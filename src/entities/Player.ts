@@ -34,7 +34,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   applyDamage(amount: number): void {
     this.stats.health = Math.max(0, this.stats.health - amount);
-    this.setTintFill(0xff8d8d);
+    this.setTint(0xff8d8d);
     this.scene.time.delayedCall(70, () => {
       if (this.active) {
         this.clearTint();

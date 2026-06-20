@@ -31,7 +31,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   receiveDamage(amount: number): boolean {
     this.health -= amount;
-    this.setTintFill(0xffffff);
+    this.setTint(0xffffff);
     this.scene.time.delayedCall(40, () => {
       if (this.active) {
         this.clearTint();

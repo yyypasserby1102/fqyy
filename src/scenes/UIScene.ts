@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { UpgradeConfig } from "../data/upgrades";
+import type { ChoicePayload } from "../data/choices";
 import { InputController } from "../systems/InputController";
 import { formatTime } from "../utils/format";
 import { DebugOverlay } from "../ui/DebugOverlay";
@@ -16,13 +16,17 @@ interface HudState {
   remainingMs: number;
   paused: boolean;
   gameOver: boolean;
-  swordDamage: number;
-  swordCount: number;
-  swordCooldownMs: number;
+  stageName: string;
+  linggenName: string;
+  gongfaName: string;
+  methodDamage: number;
+  methodCount: number;
+  methodCooldownMs: number;
   moveSpeed: number;
   enemyKinds: number;
   enemyCount: number;
   orbCount: number;
+  lingcaoCollected: boolean;
   message?: string;
 }
 
@@ -73,8 +77,8 @@ export class UIScene extends Phaser.Scene {
     this.debugOverlay = new DebugOverlay(this);
     this.levelUpPanel = new LevelUpPanel(this);
 
-    this.events.on("show-level-up", this.onShowLevelUp, this);
-    this.events.on("hide-level-up", this.onHideLevelUp, this);
+    this.events.on("show-choice-panel", this.onShowChoicePanel, this);
+    this.events.on("hide-choice-panel", this.onHideChoicePanel, this);
     this.scale.on("resize", this.onResize, this);
   }
 
@@ -96,13 +100,15 @@ export class UIScene extends Phaser.Scene {
     }
 
     this.hudText.setText([
-      `Sect: Outer Peak Wanderer`,
-      `Realm: Qi Condensation Lv.${hud.level}`,
+      "Cultivator: Outer Peak Wanderer",
+      `Realm: ${hud.stageName} Lv.${hud.level}`,
+      `Linggen: ${hud.linggenName}`,
+      `Gongfa: ${hud.gongfaName}`,
       `Vitality: ${Math.ceil(hud.health)} / ${hud.maxHealth}`,
       `Qi: ${hud.xp} / ${hud.xpToNext}`,
-      `Flying Swords: ${hud.swordCount} | Damage: ${hud.swordDamage} | Cooldown: ${Math.round(hud.swordCooldownMs)}ms`,
+      `Method: ${hud.methodCount} | Damage: ${hud.methodDamage} | Cooldown: ${Math.round(hud.methodCooldownMs)}ms`,
       `Movement: ${hud.moveSpeed} | Kills: ${hud.kills}`,
-      `Wave Timer: ${formatTime(hud.remainingMs)}`
+      `Lingcao: ${hud.lingcaoCollected ? "claimed" : "unclaimed"} | Run Timer: ${formatTime(hud.remainingMs)}`
     ]);
 
     this.messageText.setText(hud.message ?? "");
@@ -111,7 +117,7 @@ export class UIScene extends Phaser.Scene {
         ? "Run Ended"
         : hud.paused
           ? "Paused - ESC to resume"
-          : "WASD move | ESC pause | F3 debug | 1/2/3 or click to choose breakthrough"
+        : "WASD move | ESC pause | F3 debug | 1/2/3 or click to choose"
     );
 
     this.debugOverlay.render([
@@ -124,14 +130,14 @@ export class UIScene extends Phaser.Scene {
     ]);
   }
 
-  private onShowLevelUp(options: UpgradeConfig[]): void {
+  private onShowChoicePanel(payload: ChoicePayload): void {
     this.levelUpVisible = true;
-    this.levelUpPanel.show(options, (upgrade) => {
-      this.scene.get("game").events.emit("apply-upgrade", upgrade);
+    this.levelUpPanel.show(payload.title, payload.subtitle, payload.options, (option) => {
+      this.scene.get("game").events.emit("resolve-choice", option);
     });
   }
 
-  private onHideLevelUp(): void {
+  private onHideChoicePanel(): void {
     this.levelUpVisible = false;
     this.levelUpPanel.hide();
   }

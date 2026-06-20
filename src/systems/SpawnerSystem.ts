@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { enemyConfigs, type EnemyId } from "../data/enemies";
 import { waveSpawns } from "../data/waves";
 import { Enemy } from "../entities/Enemy";
-import { pickRandom } from "../utils/random";
+import { pickRandom, randomFloat, randomInt } from "../utils/random";
 
 export class SpawnerSystem {
   private readonly scene: Phaser.Scene;
@@ -45,9 +45,16 @@ export class SpawnerSystem {
     }
   }
 
+  spawnManual(enemyId: EnemyId, x: number, y: number): Enemy {
+    const config = enemyConfigs[enemyId];
+    const enemy = new Enemy(this.scene, x, y, config);
+    this.group.add(enemy);
+    return enemy;
+  }
+
   private getSpawnPoint(playerPosition: Phaser.Math.Vector2): Phaser.Math.Vector2 {
-    const angle = Math.random() * Math.PI * 2;
-    const radius = Phaser.Math.Between(360, 460);
+    const angle = randomFloat() * Math.PI * 2;
+    const radius = randomInt(360, 460);
     return new Phaser.Math.Vector2(
       playerPosition.x + Math.cos(angle) * radius,
       playerPosition.y + Math.sin(angle) * radius

@@ -5,6 +5,8 @@ Graybox 2D action roguelite prototype with a xiuxian cultivation theme.
 ## Design Docs
 
 - `GAME_DESIGN.md`: core pillars, run structure, content roadmap, and first-slice combat direction
+- `PRD.md`: product requirements for the current vertical slice
+- `PROGRESSION_DICTIONARY.md`: current progression tree for realms, roots, Gongfa, and upgrades
 
 ## MVP Scope
 

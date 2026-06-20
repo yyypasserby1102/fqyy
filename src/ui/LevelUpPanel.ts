@@ -1,16 +1,17 @@
 import Phaser from "phaser";
-import type { UpgradeConfig } from "../data/upgrades";
+import type { ChoiceOption } from "../data/choices";
 
 export class LevelUpPanel {
   private readonly container: Phaser.GameObjects.Container;
   private readonly title: Phaser.GameObjects.Text;
+  private readonly subtitle: Phaser.GameObjects.Text;
   private readonly options: Array<{
     box: Phaser.GameObjects.Rectangle;
     label: Phaser.GameObjects.Text;
     desc: Phaser.GameObjects.Text;
   }> = [];
-  private chooseHandler?: (upgrade: UpgradeConfig) => void;
-  private currentOptions: UpgradeConfig[] = [];
+  private chooseHandler?: (option: ChoiceOption) => void;
+  private currentOptions: ChoiceOption[] = [];
 
   constructor(scene: Phaser.Scene) {
     const backdrop = scene.add
@@ -22,14 +23,24 @@ export class LevelUpPanel {
     panel.setDisplaySize(780, 360);
 
     this.title = scene.add
-      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 132, "Breakthrough Choice", {
+      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 144, "Breakthrough Choice", {
         fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
         fontSize: "28px",
         color: "#f5e6a8"
       })
       .setOrigin(0.5);
 
-    this.container = scene.add.container(0, 0, [backdrop, panel, this.title]);
+    this.subtitle = scene.add
+      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 108, "", {
+        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontSize: "15px",
+        color: "#9bc4d8",
+        align: "center",
+        wordWrap: { width: 700 }
+      })
+      .setOrigin(0.5);
+
+    this.container = scene.add.container(0, 0, [backdrop, panel, this.title, this.subtitle]);
     this.container.setDepth(500).setVisible(false);
 
     for (let i = 0; i < 3; i += 1) {
@@ -59,9 +70,9 @@ export class LevelUpPanel {
         .setOrigin(0.5);
 
       box.on("pointerdown", () => {
-        const upgrade = this.currentOptions[i];
-        if (upgrade && this.chooseHandler) {
-          this.chooseHandler(upgrade);
+        const option = this.currentOptions[i];
+        if (option && this.chooseHandler) {
+          this.chooseHandler(option);
         }
       });
 
@@ -70,19 +81,33 @@ export class LevelUpPanel {
     }
   }
 
-  show(options: UpgradeConfig[], onChoose: (upgrade: UpgradeConfig) => void): void {
+  show(
+    title: string,
+    subtitle: string | undefined,
+    options: ChoiceOption[],
+    onChoose: (option: ChoiceOption) => void
+  ): void {
     this.currentOptions = options;
     this.chooseHandler = onChoose;
+    this.title.setText(title);
+    this.subtitle.setText(subtitle ?? "");
     this.container.setVisible(true);
 
-    options.forEach((upgrade, index) => {
+    options.forEach((option, index) => {
       const slot = this.options[index];
-      slot.label.setText(`${index + 1}. ${upgrade.name}`);
-      slot.desc.setText(upgrade.lore);
+      slot.label.setText(`${index + 1}. ${option.title}`);
+      slot.desc.setText(option.description);
       slot.box.setVisible(true);
       slot.label.setVisible(true);
       slot.desc.setVisible(true);
     });
+
+    for (let i = options.length; i < this.options.length; i += 1) {
+      const slot = this.options[i];
+      slot.box.setVisible(false);
+      slot.label.setVisible(false);
+      slot.desc.setVisible(false);
+    }
   }
 
   hide(): void {
@@ -92,9 +117,9 @@ export class LevelUpPanel {
   }
 
   chooseAt(index: number): void {
-    const upgrade = this.currentOptions[index];
-    if (upgrade && this.chooseHandler) {
-      this.chooseHandler(upgrade);
+    const option = this.currentOptions[index];
+    if (option && this.chooseHandler) {
+      this.chooseHandler(option);
     }
   }
 }
