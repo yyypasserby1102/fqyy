@@ -4,7 +4,7 @@ This document is the practical dictionary for the game's progression tree. It ex
 
 - what can a run roll at the start
 - what choices can appear after the first `Breakthrough`
-- how `Gongfa` progresses across realms
+- how `Gongfa` progresses through Mastery
 - what is real content versus scaffolding
 
 Use this alongside [CONTEXT.md](/home/yiyuny/game-dev/fqyy/CONTEXT.md). `CONTEXT.md` defines terms; this file maps the current progression structure.
@@ -18,78 +18,112 @@ The first-slice run currently follows this structure:
 3. Trigger the first `Breakthrough`
 4. Reveal hidden `Linggen`
 5. Choose 1 of 3 compatible `Gongfa`
-6. Refine that `Gongfa` through later level-up choices
-7. Advance into `Zhuji`
-8. Advance into `Jindan`
+6. Refine learned `Gongfa` through independent Mastery tracks
+7. Advance into `Zhuji` and add a second `Gongfa`
+8. Advance into `Jindan` and add a third `Gongfa`
 
 ## Realm Tree
 
 Current playable realm ladder:
 
 - `Lianqi`
-  - level requirement: `1`
-  - role: unstable opening and method acquisition
+  - realm-progress threshold: starting realm
+  - role: unstable opening and first Gongfa acquisition
 - `Zhuji`
-  - level requirement: `4`
-  - role: build stabilization and first real method expression
+  - realm-progress threshold: first-slice tuning TBD
+  - role: build stabilization through a second Gongfa
 - `Jindan`
-  - level requirement: `7`
-  - role: domination spike and stronger refinement/transformation
+  - realm-progress threshold: first-slice tuning TBD
+  - role: domination spike through a third Gongfa
 
 Deferred realms:
 
-- `Yuanying`
-- `Huashen`
+- `Yuanying`: fourth Gongfa and normal ending after the final combat challenge
+- `Huashen`: non-combat true ending requiring a complete five-root Linggen
 
 ## Linggen Pool
 
-The hidden `Linggen` is rolled at run start and revealed later. First-slice pool:
+The hidden `Linggen` is rolled at run start and revealed later. The playable first-slice pool contains:
 
 ### Single-root
 
-- `Fire Linggen`
-  - roots: `fire`
-  - efficiency: `1.15`
-  - identity: aggressive and focused
-- `Water Linggen`
-  - roots: `water`
-  - efficiency: `1.15`
-  - identity: stable and controlled
 - `Metal Linggen`
   - roots: `metal`
-  - efficiency: `1.18`
   - identity: sharp and efficient
 
 ### Dual-root
 
 - `Fire-Metal Linggen`
   - roots: `fire + metal`
-  - efficiency: `0.97`
   - identity: volatile and offensive
+
+Scaffolded or deferred until every Gongfa required by the profile's offering is authored:
+
+- `Fire Linggen`
+  - roots: `fire`
+  - identity: aggressive and focused
+- `Water Linggen`
+  - roots: `water`
+  - identity: stable and controlled
+
 - `Water-Metal Linggen`
   - roots: `water + metal`
-  - efficiency: `0.97`
   - identity: technical and adaptive
 - `Water-Wood Linggen`
   - roots: `water + wood`
-  - efficiency: `0.95`
   - identity: resilient and flexible
 
 ### Rule
 
 - Single-root is narrower and more efficient
 - Dual-root is broader and more flexible
-- Triple-root exists in the larger fiction but is not in the first-slice playable pool
+- Cultivation Efficiency changes realm-advancement and Gongfa-development speed, not direct combat stats
+- Narrower Linggen progress faster early; broader Linggen begin closer to the five-root requirement for entering `Huashen`
+- Every present root has an integer Root Affinity from `1` to `10`; all affinities in one `Linggen` total exactly `10`
+- Adding a root randomly redistributes the same `10` points without reversing existing roots' relative strength order; ties are allowed
+- Example: Fire `10` can become Fire `8` / Water `2` when Water is added
+- Realm-advancement speed is derived from the strongest current Root Affinity
+- Single-root Gongfa development uses the required root's affinity
+- Hybrid Gongfa development uses the arithmetic average of its two required roots' affinities
+- Realm Progress and Gongfa Mastery are separate meters filled simultaneously by the same Qi pickups
+- Every learned Gongfa receives the full base Mastery value from each Qi pickup; Mastery Qi is not divided among Gongfa
+- Realm thresholds trigger Breakthroughs; Gongfa Mastery thresholds trigger Gongfa refinement choices
+- Qi is not manually allocated between the two meters
+- Each combat-Stage Breakthrough adds one Gongfa slot while preserving all learned Gongfa
+- Learned Gongfa are excluded from future offerings; if fewer than three compatible unlearned Gongfa remain, show fewer choices rather than duplicates
+- Gongfa capacity is one at `Lianqi`, two at `Zhuji`, three at `Jindan`, and four at `Yuanying`
+- `Yuanying` is the normal ending after the final combat challenge
+- `Huashen` adds no Gongfa; optional root-awakening challenges can complete the five-root Linggen needed to unlock this non-combat true ending
+- skipping or failing the optional root path still permits the normal Yuanying ending
+- An initial `Linggen` contains one or two roots
+- Optional root-awakening challenges can add roots without removing existing ones, up to all five elemental roots
+- An added root changes Cultivation Efficiency immediately and expands `Gongfa` eligibility at the next Stage `Breakthrough`
+- Adding a root does not transform any learned `Gongfa`
+- Root-adding evolution is not part of the first slice
 
 ## Gongfa Dictionary
 
 General rules:
 
+- A `Gongfa` is a package of multiple Skills and passive bonuses, not one attack mechanic
+- The pattern listed for each Gongfa describes its starting signature Skill
 - A `Gongfa` is offered only if its required roots are included in the currently revealed `Linggen`
 - Most `Gongfa` require one root
-- Some future `Gongfa` can require two roots
-- The player currently holds one main `Gongfa`
-- Support `Gongfa` design is unresolved
+- Every supported dual-root profile has a hybrid `Gongfa` requiring both roots
+- Hybrid `Gongfa` are independently authored with their own identity and Mastery progression, never generated by combining single-root `Gongfa`
+- All learned Gongfa remain active and keep independent Mastery tracks; there are no main and support roles
+- A `Gongfa` contains multiple Skills and passive bonuses
+- All first-slice Skills activate automatically
+- Selecting a Gongfa grants its starting signature Skill and one defining passive immediately; Mastery unlocks or improves the rest of the package
+- Each first-slice Gongfa contains exactly two automatic Skills
+- Gongfa Mastery is open-ended and run-long
+- ranks `1`–`9` and `11+` each offer three Gongfa-specific improvements and grant one choice
+- rank `10` automatically unlocks Skill 2; later choices can improve either Skill or the package's passives
+- each authored improvement has a maximum rank, usually `3`, and leaves the choice pool once maxed
+- after all authored improvements are maxed, evergreen diminishing-return choices improve Skill 1, Skill 2, or passive potency
+- simultaneous Mastery choices pause combat once and queue in Gongfa acquisition order; rank-10 unlocks do not open a choice panel
+- Full-game baseline: at least six single-root Gongfa per element, with hybrid Gongfa additional to that count
+- Support `Gongfa` is not a separate slot or system
 
 ### Metal Root
 
@@ -111,7 +145,7 @@ This is the most intentional root path right now.
   - fantasy: defensive metal body with retaliation
   - status: primary first-slice path
 
-#### Metal Progression Tree
+#### Metal Mastery Tree
 
 This is the first branch that should be treated as a fully authored reference path.
 
@@ -119,23 +153,11 @@ This is the first branch that should be treated as a fully authored reference pa
 
 - hidden run-start `Linggen`: `Metal Linggen`
 - first `Breakthrough`: reveal `Metal Linggen`
-- immediate `Gongfa` choice: exactly one of the three methods below
-
-##### Realm Arc
-
-- `Lianqi`
-  - acquire the initial method
-  - establish the basic combat rhythm
-- `Zhuji`
-  - stabilize the method
-  - unlock a stronger expression layer without losing identity
-- `Jindan`
-  - materially refine or transform the method
-  - create the run's domination spike
+- immediate `Gongfa` choice: exactly one of the three Gongfa below
 
 ##### Branch A: Yujian Jue
 
-- `Lianqi`
+- starting package
   - core state:
     - one disciplined flying sword
     - low pierce
@@ -143,15 +165,15 @@ This is the first branch that should be treated as a fully authored reference pa
   - player fantasy:
     - controlled precision
     - clean kiting
-- `Zhuji`
+- Mastery development
   - refinement:
     - multiple swords per volley
     - better pierce
     - smoother target clearing
   - intended feeling:
-    - the method becomes reliable rather than improvised
-- `Jindan`
-  - transformation:
+    - the starting Skill becomes reliable rather than improvised
+- rank-10 Skill candidate
+  - behavior:
     - swords split and return through enemy lines
     - pressure extends beyond first contact
   - intended feeling:
@@ -166,22 +188,22 @@ This is the first branch that should be treated as a fully authored reference pa
 
 ##### Branch B: Jinfeng Gong
 
-- `Lianqi`
+- starting package
   - core state:
     - short frontal cutting waves
     - route-dependent pressure
     - stronger lane control than tracking
   - player fantasy:
     - face danger and cut a path open
-- `Zhuji`
+- Mastery development
   - refinement:
     - broader wave fan
     - more wave count
     - better crowd control in front arc
   - intended feeling:
-    - the method becomes assertive instead of tentative
-- `Jindan`
-  - transformation:
+    - the starting Skill becomes assertive instead of tentative
+- rank-10 Skill candidate
+  - behavior:
     - cutting fronts become sustained battlefield presence
     - lingering metal-qi trails or equivalent persistent pressure
   - intended feeling:
@@ -196,22 +218,22 @@ This is the first branch that should be treated as a fully authored reference pa
 
 ##### Branch C: Gengjin Huti
 
-- `Lianqi`
+- starting package
   - core state:
     - defensive aura
     - retaliatory close-range edge bursts
     - danger-conversion playstyle
   - player fantasy:
     - endure pressure and answer it
-- `Zhuji`
+- Mastery development
   - refinement:
     - stronger guard expression
     - larger aura radius
     - retaliation becomes dependable rather than incidental
   - intended feeling:
     - close-range survival becomes deliberate and stable
-- `Jindan`
-  - transformation:
+- rank-10 Skill candidate
+  - behavior:
     - absorbed pressure erupts outward as a blade shell
     - defensive posture becomes offensive inevitability
   - intended feeling:
@@ -229,8 +251,10 @@ This is the first branch that should be treated as a fully authored reference pa
 The `Metal` tree should become the benchmark for all later branches:
 
 - each `Gongfa` must feel different by minute 2
-- `Zhuji` must feel like stabilization, not just numbers
-- `Jindan` must feel like a genuine cultivation leap
+- Mastery ranks must develop the whole package rather than only increase numbers
+- rank 10 must add a distinct second Skill, after which Mastery improvements continue
+
+The current three Metal Gongfa are sufficient only for the vertical slice. A full pure-root path needs at least six Gongfa so the four acquisitions through Yuanying can each present three unlearned choices.
 
 ### Fire Root
 
@@ -241,9 +265,12 @@ The `Metal` tree should become the benchmark for all later branches:
   - status: scaffold content
 - `Burning Ring Scripture`
   - required roots: `fire`
-  - pattern: `aura`
-  - fantasy: rotating heat aura
-  - status: scaffold content
+  - starting Skill pattern: `aura`
+  - fantasy: segmented rotating flame ring that rewards close positioning and sustained exposure
+  - starting Skill: enemies take damage when rotating flame segments sweep through them; readable gaps preserve positioning risk
+  - Mastery development: add a counter-rotating ring at a different radius; segment intersections create brief high-damage hot zones
+  - rank-10 Skill candidate: periodically synchronize both rings into complete circles and release an expanding fire wave before returning to the segmented pattern
+  - status: authored first-slice option for `Fire-Metal Linggen`
 - `Scarlet Wave Manual`
   - required roots: `fire`
   - pattern: `wave`
@@ -270,7 +297,7 @@ The `Metal` tree should become the benchmark for all later branches:
 
 ### Wood Root
 
-Wood is only present to support the `Water-Wood` dual-root profile right now.
+Wood is deferred content for the future `Water-Wood` dual-root profile.
 
 - `Green Vine Art`
   - required roots: `wood`
@@ -287,6 +314,22 @@ Wood is only present to support the `Water-Wood` dual-root profile right now.
   - pattern: `wave`
   - fantasy: rib-like slashing fronts
   - status: scaffold content
+
+### Hybrid Gongfa
+
+#### Fire + Metal
+
+- `Crimson Furnace Sword Art`
+  - required roots: `fire + metal`
+  - starting Skill pattern: setup and burst
+  - starting Skill: launch metal blades that lodge in enemies and detonate at an embed threshold
+  - targeting: prioritize enemies with existing embeds until primed, then acquire a new nearby target
+  - fallback: remaining blades detonate after a short timeout
+  - upgrade hooks: lower threshold, higher embed cap, wider or propagating explosions
+  - Mastery development: coordinated multi-blade volleys; remaining blades retarget immediately once the current target is primed
+  - rank-10 Skill candidate: heated detonation fragments embed into nearby enemies and can trigger bounded chain reactions
+  - identity constraint: must not feel like `Yujian Jue` with added fire damage
+  - status: first hybrid design target
 
 ## Compatibility Tree
 
@@ -305,30 +348,30 @@ This is the current practical lookup for what a revealed `Linggen` can roll from
   - `Jinfeng Gong`
   - `Gengjin Huti`
 - `Fire + Metal`
-  - all `Fire` methods
-  - all `Metal` methods
+  - `Burning Ring Scripture` as the offered `Fire` Gongfa
+  - one of the three authored `Metal` Gongfa, selected randomly for the run
+  - `Crimson Furnace Sword Art` as the guaranteed hybrid Gongfa
+
+Deferred compatibility branches:
+
 - `Water + Metal`
-  - all `Water` methods
-  - all `Metal` methods
+  - one offered `Water` Gongfa
+  - one offered `Metal` Gongfa
+  - one guaranteed `Water + Metal` hybrid Gongfa
 - `Water + Wood`
-  - all `Water` methods
-  - all `Wood` methods
+  - one offered `Water` Gongfa
+  - one offered `Wood` Gongfa
+  - one guaranteed `Water + Wood` hybrid Gongfa
 
 Current choice rule:
 
 - after reveal, the game shows exactly `3` compatible `Gongfa`
-- dual-root profiles can pull from both single-root pools
+- dual-root profiles prefer one unlearned single-root option from each root plus one unlearned hybrid
+- if a category is exhausted, fill from any compatible unlearned Gongfa without repeating learned Gongfa
 
-## Stage Progression By Gongfa
+## Gongfa Mastery Progression
 
-Each `Gongfa` has a state for each realm:
-
-- `Lianqi`
-  - first combat expression
-- `Zhuji`
-  - stabilization and expansion
-- `Jindan`
-  - stronger refinement or transformation
+Gongfa do not have realm-specific forms. A Stage Breakthrough leaves every learned Gongfa, Skill, passive, and Mastery rank unchanged, then opens a slot for one additional Gongfa. Existing packages change only through their own open-ended Mastery tracks. Separate realm-wide improvement rewards are deferred and outside the first slice.
 
 Current mechanical fields in data:
 
@@ -344,20 +387,15 @@ Current mechanical fields in data:
 - `range`
 - `returnShots`
 
-This is the current progression schema, even where the authored feel still needs iteration.
+These fields describe the current implementation schema, which still encodes the obsolete realm-bound model and will need migration to package Skills, passives, and Mastery ranks.
 
-## Upgrade Tree
+## Reward And Refinement Tree
 
-There are currently two upgrade categories:
+Qi drives only Realm Progress and Gongfa Mastery. There is no separate cultivator level or generic Qi-upgrade track.
 
-### Generic upgrades
+### Gongfa Mastery refinements
 
-- movement speed
-- max health
-- healing
-- orb magnet
-
-### Gongfa-specific upgrades
+Mastery ranks `1`–`9` and `11+` each present three Gongfa-specific improvements and grant one choice. Rank `10` automatically unlocks the second Skill; later choices can improve either Skill or the package's passives.
 
 Examples from the current `Metal` path:
 
@@ -373,6 +411,17 @@ Examples from the current `Metal` path:
   - more aura damage
   - more retaliation damage
   - more aura radius
+
+### External utility rewards
+
+Generic utility does not appear in Gongfa Mastery choices:
+
+- movement speed
+- max health
+- healing
+- orb magnet
+
+These effects come from treasures, pills, elite rewards, and Fortunate Encounters.
 
 ## What Is Actually Finished
 
@@ -392,10 +441,10 @@ Currently present but not yet trustworthy as final design:
 
 Currently unresolved:
 
-- support `Gongfa`
-- `Linggen` completion/evolution events
-- dual-root exclusive `Gongfa`
-- true endgame beyond `Jindan`
+- exact triggers and rewards for `Linggen` evolution events
+- authored identities for each dual-root hybrid `Gongfa`
+- cadence and mechanics of optional root-awakening challenges
+- exact Huashen ascension presentation and rewards
 
 ## Recommended Use
 

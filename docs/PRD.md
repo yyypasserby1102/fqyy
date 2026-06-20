@@ -2,7 +2,7 @@
 
 ## Product Goal
 
-Build a playable first vertical slice of a xiuxian-themed action roguelite where the cultivator begins weak, reveals an innate `Linggen`, selects a stage-appropriate `Gongfa`, and advances from `Lianqi` to `Zhuji` to `Jindan` in one run.
+Build a playable first vertical slice of a xiuxian-themed action roguelite where the cultivator begins weak, reveals an innate `Linggen`, accumulates compatible `Gongfa`, and advances from `Lianqi` to `Zhuji` to `Jindan` in one run.
 
 ## Problem
 
@@ -13,54 +13,89 @@ The current prototype has a competent survival loop, but it still behaves like a
 - The opening minute feels intentionally weak and transitions into a meaningful identity reveal.
 - The run exposes a hidden `Linggen` at the first `Breakthrough`.
 - The player chooses 1 of 3 compatible `Gongfa` immediately after `Linggen` reveal.
-- The run advances through `Lianqi`, `Zhuji`, and `Jindan` with visible combat evolution.
+- The run advances through `Lianqi`, `Zhuji`, and `Jindan`, adding one Gongfa per realm with visible combat growth.
 - At least one root with three concrete `Gongfa` options is playable end to end.
 - The implementation is data-driven enough to add new roots and methods without rewriting core scene flow.
 
 ## Target Experience
 
-The player starts as an underdeveloped cultivator with only weak self-defense. Under pressure, they route to a guaranteed early `Lingcao`, trigger the first `Breakthrough`, discover their innate `Linggen`, and choose a `Gongfa` that determines both combat behavior and scaling. Later breakthroughs deepen or transform that method as the cultivator ascends into higher realms.
+The player starts as an underdeveloped cultivator with only weak self-defense. Under pressure, they route to a guaranteed early `Lingcao`, trigger the first `Breakthrough`, discover their innate `Linggen`, and choose a `Gongfa` that begins the build. Later Breakthroughs preserve every learned Gongfa and add another compatible package.
 
 ## Locked Domain Decisions
 
 - `Linggen` is innate, determined at run start, and revealed during the first `Breakthrough`.
-- First-slice `Linggen` profiles are only single-root and dual-root.
-- `Linggen` can contain at most three roots overall, but triple-root profiles are outside the first slice.
+- Initial `Linggen` profiles contain one or two roots; no run begins with more than two.
+- Optional root-awakening challenges can add roots without removing existing ones, up to all five elemental roots.
+- An added root expands compatible upgrades immediately and future `Gongfa` eligibility at the next stage `Breakthrough`, but does not transform the current `Gongfa`.
+- Root-adding `Linggen` evolution is outside the first slice.
 - Root purity is a tradeoff:
-  - Single-root is narrower and more efficient.
-  - Dual-root is broader and more flexible.
+  - Single-root advances realms and develops its `Gongfa` faster early.
+  - Dual-root progresses more slowly but has broader access and begins closer to the five-root requirement for `Huashen`.
+- Cultivation Efficiency affects progression speed, not direct damage or attack cooldown.
+- Each present root has an integer Root Affinity from 1 to 10, and all Root Affinities in a `Linggen` total exactly 10.
+- Adding a root randomly redistributes those 10 points without reversing the relative order of existing roots; ties are allowed.
+- Realm-advancement speed is derived from the strongest current Root Affinity.
+- A single-root `Gongfa` develops according to its required root's affinity; a hybrid `Gongfa` uses the arithmetic average of its required roots' affinities.
+- Realm Progress and `Gongfa Mastery` are separate meters filled simultaneously by the same Qi pickups.
+- Every learned `Gongfa` receives the full base Mastery value from each Qi pickup; Mastery Qi is not divided between Gongfa.
+- Realm thresholds trigger `Breakthrough`; `Gongfa Mastery` thresholds trigger Gongfa refinement choices.
+- The player does not manually allocate Qi between the meters.
+- Each combat-Stage `Breakthrough` adds one `Gongfa` slot and preserves all learned `Gongfa`.
+- Learned `Gongfa` are excluded from later offerings; fewer than three choices are shown if the compatible unlearned pool is smaller.
+- `Yuanying` is the normal ending after the final combat challenge.
+- `Huashen` is the non-combat true ending and requires a complete five-root `Linggen` assembled through optional root-awakening challenges.
+- Skipping or failing the optional root path does not prevent the normal `Yuanying` ending.
 - `Lingcao` accelerates the first reveal but does not affect `Linggen`.
 - `Gongfa` is selected immediately after `Linggen` reveal.
 - Exactly three compatible `Gongfa` options are presented.
-- `Gongfa` defines both combat expression and scaling.
+- A dual-root selection prefers one unlearned `Gongfa` from each root and one unlearned hybrid; exhausted categories fall back to any compatible unlearned `Gongfa`.
+- Each hybrid `Gongfa` is independently authored rather than generated by fusing single-root `Gongfa`.
+- `Gongfa` is a complete cultivation package containing multiple `Skills` and passive bonuses, not a single attack mechanic.
+- Each `Gongfa` has a starting signature `Skill` that establishes its initial combat expression.
 - `Gongfa` has required `Linggen`, usually one root and at most two.
-- `Linggen` can evolve later, but `Gongfa` offers are generated from currently revealed roots only.
-- `Gongfa` is stage-bound.
-- The cultivator can hold one main `Gongfa` and one support `Gongfa`.
-- Support `Gongfa` behavior is unresolved and explicitly deferred.
+- `Gongfa` offers are generated from the currently revealed roots at selection time, including roots added by earlier progression events.
+- Stage advancement does not modify existing `Gongfa`, `Skills`, passives, or Mastery.
+- Existing `Gongfa` improve only through their own Mastery tracks; separate realm-wide improvements are deferred.
+- Gongfa accumulate by combat Stage: one at `Lianqi`, two at `Zhuji`, three at `Jindan`, and four at `Yuanying`.
+- All learned `Gongfa` remain active with independent Mastery tracks; they are not divided into main and support roles.
+- All first-slice `Skills` activate automatically; manual activation is outside the current control model.
+- Selecting a `Gongfa` immediately grants its starting signature `Skill` and one defining passive; further contents unlock through `Gongfa Mastery`.
+- Each first-slice `Gongfa` contains exactly two automatic `Skills`.
+- Each `Gongfa` has an open-ended, run-long Mastery track.
+- Ranks 1–9 and ranks after 10 each offer three improvements from that `Gongfa`, and the player chooses one.
+- Rank 10 automatically unlocks Skill 2; later choices can improve either Skill or the package's passives.
+- Each authored improvement has a maximum rank, usually three, and is removed from the choice pool once maxed.
+- After authored improvements are exhausted, three evergreen diminishing-return options improve Skill 1, Skill 2, or passive potency.
+- Simultaneous Mastery choices pause combat once and resolve sequentially in Gongfa acquisition order; automatic rank-10 unlocks require no panel.
 
 ## First-Slice Realm Arc
 
-- `Lianqi`: unstable survival and basic method acquisition
-- `Zhuji`: build stabilization and first true method expression
-- `Jindan`: domination spike and major transformation or refinement
+- `Lianqi`: unstable survival and first `Gongfa` acquisition
+- `Zhuji`: build stabilization through a second `Gongfa`
+- `Jindan`: domination spike through a third `Gongfa`
+
+Long-term progression continues to `Yuanying` with four active Gongfa and the normal ending after its final combat challenge. `Huashen` is a non-combat true ending requiring a complete five-root Linggen assembled through optional challenges; it adds no fifth Gongfa.
 
 This first slice ends at `Jindan`. `Yuanying` and `Huashen` are out of scope.
 
 ## First-Slice Linggen Pool
 
 - Single-root:
-  - Fire
-  - Water
   - Metal
 - Dual-root:
   - Fire + Metal
-  - Water + Metal
-  - Water + Wood
+
+Pure `Fire`, pure `Water`, `Water + Metal`, and `Water + Wood` are scaffolded or deferred until every `Gongfa` needed by their three-choice offering is authored.
 
 ## First Fully Authored Root
 
 The first fully playable root is `Metal`.
+
+The full-game content target is at least six single-root `Gongfa` per element, plus separately authored hybrids. The first slice intentionally proves the system with a smaller pool.
+
+`Burning Ring Scripture` is also authored as the pure-Fire option required by the playable `Fire + Metal` profile. It uses a rotating heat aura that rewards close positioning and sustained exposure.
+
+The `Fire + Metal` choice set contains `Burning Ring Scripture`, the hybrid `Crimson Furnace Sword Art`, and one randomly selected Metal `Gongfa`.
 
 ### Metal Gongfa Trio
 
@@ -69,21 +104,21 @@ The first fully playable root is `Metal`.
 - Behavior: auto-targeted flying sword volleys
 - Scaling: sword count and pierce efficiency
 - Support stat: cooldown recovery
-- Jindan evolution: swords split on hit and return through enemies
+- Rank-10 Skill candidate: swords split on hit and return through enemies
 
 #### Jinfeng Gong
 
 - Behavior: frontal cutting waves
 - Scaling: wave width and cut damage
 - Support stat: range extension
-- Jindan evolution: cutting waves leave lingering metal-qi trails
+- Rank-10 Skill candidate: cutting waves leave lingering metal-qi trails
 
 #### Gengjin Huti
 
 - Behavior: defensive aura with retaliatory bursts
 - Scaling: retaliation damage and guard stability
 - Support stat: max health or mitigation efficiency
-- Jindan evolution: absorbed pressure erupts as a blade shell
+- Rank-10 Skill candidate: absorbed pressure erupts as a blade shell
 
 ## Gameplay Flow
 
@@ -92,9 +127,9 @@ The first fully playable root is `Metal`.
 3. Trigger the first `Breakthrough`.
 4. Reveal hidden `Linggen`.
 5. Present exactly three compatible `Gongfa` choices.
-6. Advance through normal level-up choices that mostly deepen the chosen method.
-7. Reach `Zhuji`, refining or materially evolving the active `Gongfa`.
-8. Reach `Jindan`, gaining a stronger transformation or refinement.
+6. Reach `Gongfa Mastery` thresholds and choose refinements that deepen the selected `Gongfa`.
+7. Reach `Zhuji` and select a second compatible, unlearned `Gongfa`; existing packages remain unchanged.
+8. Reach `Jindan` and select a third compatible, unlearned `Gongfa`; existing packages remain unchanged.
 9. Finish the run under high-pressure late-game conditions.
 
 ## Implementation Scope
@@ -103,25 +138,28 @@ The first fully playable root is `Metal`.
 
 - Hidden `Linggen` generation at run start
 - First `Breakthrough` flow: reveal -> `Gongfa` choice
-- Data model for roots, profiles, realms, and methods
+- Data model for roots, profiles, realms, Gongfa packages, Skills, passives, and Mastery
 - Stage progression for `Lianqi`, `Zhuji`, `Jindan`
 - One fully implemented root with three playable `Gongfa`
-- HUD updates for realm, root, and method state
+- HUD updates for realm, root, Gongfa, and Mastery state
 - Graybox visuals for the new systems
 
 ### Should Have
 
 - A visible `Lingcao` world object or equivalent scripted opening trigger
 - Realm-specific messaging for breakthroughs
-- Method-specific upgrade pools instead of the current generic list
+- `Gongfa`-specific Mastery refinement pools
 
 ### Out of Scope
 
 - Full five-element content matrix
-- Triple-root playable profiles
+- Root-adding `Linggen` evolution
+- Pure `Fire` and pure `Water` profiles
+- `Water + Metal` and `Water + Wood` profiles
 - `Yuanying` and `Huashen`
-- Final support `Gongfa` system behavior
 - Meta progression and account-level unlock economy
+- Final Chinese game title
+- Separate realm-wide improvement rewards
 
 ## Technical Direction
 
@@ -136,9 +174,9 @@ The first fully playable root is `Metal`.
 
 ## Risks
 
-- Overloading the current level-up panel with multiple choice types without a proper schema
+- Overloading the current choice panel with multiple event types without a proper schema
 - Building too many roots before one complete root is satisfying
-- Treating realms as simple stat multipliers instead of method changes
+- Leaving realm-wide progression feeling empty after separating it from Gongfa Mastery
 - Making the opening too weak or too long before the first reveal
 
 ## Milestones
@@ -146,5 +184,5 @@ The first fully playable root is `Metal`.
 1. PRD and issue breakdown
 2. Core progression skeleton: `Linggen`, `Breakthrough`, `Gongfa`, `Stage`
 3. One complete `Metal` path with three methods
-4. Realm refinement pass for `Zhuji` and `Jindan`
+4. Realm reward and additional-Gongfa pass for `Zhuji` and `Jindan`
 5. Additional roots after the vertical slice feels coherent
