@@ -6,11 +6,16 @@ export const textureSpecs = {
   "qi-bolt": { width: 28, height: 20 },
   "metal-wave": { width: 56, height: 24 },
   "aura-blade": { width: 14, height: 16 },
-  "xp-orb": { width: 16, height: 16 },
+  "qi-orb": { width: 16, height: 16 },
   lingcao: { width: 32, height: 32 },
   "enemy-rat": { width: 28, height: 28 },
   "enemy-wolf": { width: 36, height: 22 },
   "enemy-crow": { width: 36, height: 18 },
+  "enemy-cultivator": { width: 34, height: 30 },
+  "enemy-spirit": { width: 30, height: 30 },
+  "enemy-construct": { width: 34, height: 34 },
+  "enemy-shade": { width: 34, height: 34 },
+  "healing-pill": { width: 20, height: 20 },
   panel: { width: 360, height: 200 }
 } as const;
 
@@ -47,7 +52,7 @@ export function createGrayboxTextures(scene: Phaser.Scene): void {
 
   graphics.fillStyle(0x7df9ff);
   graphics.fillCircle(8, 8, 8);
-  graphics.generateTexture("xp-orb", textureSpecs["xp-orb"].width, textureSpecs["xp-orb"].height);
+  graphics.generateTexture("qi-orb", textureSpecs["qi-orb"].width, textureSpecs["qi-orb"].height);
   graphics.clear();
 
   graphics.fillStyle(0x4fbf77);
@@ -72,6 +77,40 @@ export function createGrayboxTextures(scene: Phaser.Scene): void {
   graphics.fillStyle(0xe9e1ca);
   graphics.fillTriangle(0, 18, 18, 0, 36, 18);
   graphics.generateTexture("enemy-crow", textureSpecs["enemy-crow"].width, textureSpecs["enemy-crow"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0x9f8b7a);
+  graphics.fillRoundedRect(3, 3, 28, 24, 5);
+  graphics.fillStyle(0x5b4d46);
+  graphics.fillRect(11, 0, 12, 30);
+  graphics.generateTexture("enemy-cultivator", textureSpecs["enemy-cultivator"].width, textureSpecs["enemy-cultivator"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0xbe8cff, 0.95);
+  graphics.fillCircle(15, 15, 13);
+  graphics.fillStyle(0xf1dbff, 0.55);
+  graphics.fillTriangle(6, 16, 15, 2, 24, 16);
+  graphics.generateTexture("enemy-spirit", textureSpecs["enemy-spirit"].width, textureSpecs["enemy-spirit"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0x9cdfff, 0.95);
+  graphics.fillRoundedRect(4, 4, 26, 26, 7);
+  graphics.fillStyle(0xe9f8ff, 0.75);
+  graphics.fillCircle(17, 17, 7);
+  graphics.generateTexture("enemy-construct", textureSpecs["enemy-construct"].width, textureSpecs["enemy-construct"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0xf0d3ff, 0.94);
+  graphics.fillTriangle(16, 0, 33, 18, 16, 34);
+  graphics.fillTriangle(18, 0, 0, 18, 18, 34);
+  graphics.generateTexture("enemy-shade", textureSpecs["enemy-shade"].width, textureSpecs["enemy-shade"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0xff9ccf);
+  graphics.fillEllipse(10, 9, 12, 16);
+  graphics.fillStyle(0xfff3f8);
+  graphics.fillRect(8, 6, 4, 8);
+  graphics.generateTexture("healing-pill", textureSpecs["healing-pill"].width, textureSpecs["healing-pill"].height);
   graphics.clear();
 
   graphics.fillStyle(0x24313d, 0.9);

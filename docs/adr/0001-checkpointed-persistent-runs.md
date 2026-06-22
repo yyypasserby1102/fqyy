@@ -1,0 +1,3 @@
+# Checkpointed persistent Runs
+
+A Run can span multiple play sessions, but saves capture durable Run state only at safe progression boundaries rather than serializing live combat entities. Each player profile has one active Run; quitting mid-combat rolls back the incomplete segment, while death is committed immediately and deletes the Run save. Durable ground loot such as unconsumed Healing Pills is persisted explicitly, but enemies, projectiles, and timers are not. Mastery and Breakthrough choices are deterministic from durable Run inputs so checkpoint replay cannot reroll them. This accepts limited checkpoint retry in exchange for a stable save format that does not couple persistence to transient combat simulation.

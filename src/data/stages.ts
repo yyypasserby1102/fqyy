@@ -1,43 +1,32 @@
-export type StageId = "lianqi" | "zhuji" | "jindan";
+export type StageId = "lianqi" | "zhuji" | "jindan" | "yuanying";
 
 export interface StageConfig {
   id: StageId;
   name: string;
-  levelRequirement: number;
   message: string;
 }
 
-export const stageOrder: StageId[] = ["lianqi", "zhuji", "jindan"];
+export const stageOrder: StageId[] = ["lianqi", "zhuji", "jindan", "yuanying"];
 
 export const stageConfigs: Record<StageId, StageConfig> = {
   lianqi: {
     id: "lianqi",
     name: "Lianqi",
-    levelRequirement: 1,
     message: "Qi is crude and unstable."
   },
   zhuji: {
     id: "zhuji",
     name: "Zhuji",
-    levelRequirement: 4,
     message: "Foundation established. The method stabilizes."
   },
   jindan: {
     id: "jindan",
     name: "Jindan",
-    levelRequirement: 7,
     message: "Golden core forms. Qi surges outward."
+  },
+  yuanying: {
+    id: "yuanying",
+    name: "Yuanying",
+    message: "Nascent soul stirs. The skies open."
   }
 };
-
-export function getStageForLevel(level: number): StageId {
-  if (level >= stageConfigs.jindan.levelRequirement) {
-    return "jindan";
-  }
-
-  if (level >= stageConfigs.zhuji.levelRequirement) {
-    return "zhuji";
-  }
-
-  return "lianqi";
-}

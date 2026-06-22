@@ -1,4 +1,10 @@
-export type ChoiceKind = "gongfa" | "upgrade" | "continue";
+export type ChoiceKind =
+  | "gongfa"
+  | "upgrade"
+  | "continue"
+  | "return-to-title"
+  | "abandon-run"
+  | "mastery";
 
 export interface ChoiceOption {
   id: string;

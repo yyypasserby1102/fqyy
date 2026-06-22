@@ -1,11 +1,12 @@
 import {
   getCompatibleGongfaIds,
   gongfaConfigs,
+  getGongfaSkillTags,
   type GongfaId,
   type GongfaStageState
 } from "../data/gongfa";
 import { linggenConfigs, type LinggenId } from "../data/linggen";
-import { getStageForLevel, stageOrder, type StageId } from "../data/stages";
+import { stageOrder, type StageId } from "../data/stages";
 import { upgradeConfigs } from "../data/upgrades";
 
 type TransitionKind = "acquire" | "refine" | "transform";
@@ -29,7 +30,7 @@ interface StageNarrative {
 interface MetalBranchSpec {
   id: GongfaId;
   name: string;
-  stages: Record<StageId, StageNarrative>;
+  stages: Partial<Record<StageId, StageNarrative>>;
 }
 
 interface MetalTreeSpec {
@@ -37,36 +38,10 @@ interface MetalTreeSpec {
   branches: MetalBranchSpec[];
 }
 
-type PendingChoice =
-  | {
-      kind: "stage-breakthrough";
-      stageId: StageId;
-      gongfaId: GongfaId;
-    }
-  | {
-      kind: "upgrade";
-    };
-
-interface ProgressionAdvanceInput {
-  level: number;
-  xp: number;
-  xpToNext: number;
-  stage: StageId;
-  mainGongfaId?: GongfaId;
-}
-
-interface ProgressionAdvanceResult {
-  level: number;
-  xp: number;
-  xpToNext: number;
-  stage: StageId;
-  pendingChoice?: PendingChoice;
-  pendingUpgradeChoice: boolean;
-}
 
 const metalStageNarratives: Record<
   "yujian-jue" | "jinfeng-gong" | "gengjin-huti",
-  Record<StageId, StageNarrative>
+  Partial<Record<StageId, StageNarrative>>
 > = {
   "yujian-jue": {
     lianqi: {
@@ -122,9 +97,9 @@ const metalStageNarratives: Record<
 };
 
 const rootMethodOrder = {
-  fire: ["blazing-feather-art", "scarlet-wave-manual", "burning-ring-scripture"],
+  fire: ["blazing-feather-art", "scarlet-wave-manual", "burning-ring-scripture", "crimson-furnace-sword-art"],
   water: ["drifting-frost-needle", "black-tide-scripture", "ice-mirror-guard"],
-  metal: ["yujian-jue", "jinfeng-gong", "gengjin-huti"],
+  metal: ["yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art"],
   wood: ["green-vine-art", "ironwood-wave-form", "verdant-ring-scripture"]
 } as const;
 
@@ -135,7 +110,7 @@ export function getCompatibleGongfaIdsForLinggen(linggenId: LinggenId): GongfaId
 
   roots.forEach((root) => {
     rootMethodOrder[root].forEach((gongfaId) => {
-      if (compatible.has(gongfaId)) {
+      if (compatible.has(gongfaId) && !ordered.includes(gongfaId)) {
         ordered.push(gongfaId);
       }
     });
@@ -144,8 +119,25 @@ export function getCompatibleGongfaIdsForLinggen(linggenId: LinggenId): GongfaId
   return ordered;
 }
 
-export function getPresentedGongfaIdsForLinggen(linggenId: LinggenId): GongfaId[] {
-  const ordered = getCompatibleGongfaIdsForLinggen(linggenId);
+export function getPresentedGongfaIdsForLinggen(
+  linggenId: LinggenId,
+  learnedIds: GongfaId[] = []
+): GongfaId[] {
+  const learned = new Set(learnedIds);
+  const ordered = getCompatibleGongfaIdsForLinggen(linggenId).filter((gongfaId) => !learned.has(gongfaId));
+  if (linggenId === "fire-metal") {
+    const firePick =
+      ordered.find((gongfaId) => gongfaId === "burning-ring-scripture") ??
+      ordered.find((gongfaId) => gongfaId === "scarlet-wave-manual") ??
+      ordered.find((gongfaId) => gongfaId === "blazing-feather-art");
+    const metalPick = ordered.find(
+      (gongfaId) => gongfaId === "yujian-jue" || gongfaId === "jinfeng-gong" || gongfaId === "gengjin-huti"
+    );
+    const hybrid = ordered.find((gongfaId) => gongfaId === "crimson-furnace-sword-art");
+    const picks = [firePick, metalPick, hybrid].filter((gongfaId) => gongfaId !== undefined) as GongfaId[];
+    return picks.length >= 3 ? picks.slice(0, 3) : ordered.slice(0, 3);
+  }
+
   if (ordered.length <= 3) {
     return ordered;
   }
@@ -209,7 +201,18 @@ export function getMetalBranchSpec(): MetalTreeSpec {
 
 export function getStageProgressionSummary(gongfaId: GongfaId): Record<StageId, StageNarrative> {
   if (gongfaId in metalStageNarratives) {
-    return metalStageNarratives[gongfaId as keyof typeof metalStageNarratives];
+    const stages = metalStageNarratives[gongfaId as keyof typeof metalStageNarratives];
+    return {
+      lianqi: stages.lianqi as StageNarrative,
+      zhuji: stages.zhuji as StageNarrative,
+      jindan: stages.jindan as StageNarrative,
+      yuanying:
+        stages.yuanying ?? {
+          stage: "yuanying",
+          transitionKind: "transform",
+          signatureChange: `transform ${gongfaConfigs[gongfaId].name} into a nascent-soul manifestation`
+        }
+    };
   }
 
   return {
@@ -227,6 +230,11 @@ export function getStageProgressionSummary(gongfaId: GongfaId): Record<StageId, 
       stage: "jindan",
       transitionKind: "transform",
       signatureChange: `transform ${gongfaConfigs[gongfaId].name} into a higher-order manifestation`
+    },
+    yuanying: {
+      stage: "yuanying",
+      transitionKind: "transform",
+      signatureChange: `transform ${gongfaConfigs[gongfaId].name} into a nascent-soul manifestation`
     }
   };
 }
@@ -236,8 +244,10 @@ export function getStageNarrative(gongfaId: GongfaId, stageId: StageId): StageNa
 }
 
 export function getGongfaStageState(gongfaId: GongfaId, stageId: StageId): GongfaStageState {
-  return gongfaConfigs[gongfaId].stages[stageId];
+  return gongfaConfigs[gongfaId].stages[stageId] ?? gongfaConfigs[gongfaId].stages.jindan!;
 }
+
+export { getGongfaSkillTags };
 
 export function getCompatibleUpgradeIdsForGongfa(gongfaId: GongfaId): string[] {
   const specific = upgradeConfigs
@@ -248,10 +258,6 @@ export function getCompatibleUpgradeIdsForGongfa(gongfaId: GongfaId): string[] {
     .map((upgrade) => upgrade.id);
 
   return [...specific, ...generic];
-}
-
-export function getCurrentStage(level: number): StageId {
-  return getStageForLevel(level);
 }
 
 export function getFirstBreakthroughState(
@@ -274,58 +280,5 @@ export function getFirstBreakthroughState(
   return {
     canReveal: true,
     reason: "Lingcao has been claimed and the first breakthrough can begin."
-  };
-}
-
-export function advanceProgressionUntilChoice(
-  input: ProgressionAdvanceInput
-): ProgressionAdvanceResult {
-  let { level, xp, xpToNext, stage } = input;
-
-  while (xp >= xpToNext) {
-    xp -= xpToNext;
-    level += 1;
-    xpToNext = Math.floor(xpToNext * 1.32 + 3);
-
-    const nextStage = getCurrentStage(level);
-    if (nextStage !== stage) {
-      stage = nextStage;
-      if (input.mainGongfaId) {
-        return {
-          level,
-          xp,
-          xpToNext,
-          stage,
-          pendingChoice: {
-            kind: "stage-breakthrough",
-            stageId: nextStage,
-            gongfaId: input.mainGongfaId
-          },
-          pendingUpgradeChoice: true
-        };
-      }
-      continue;
-    }
-
-    if (input.mainGongfaId) {
-      return {
-        level,
-        xp,
-        xpToNext,
-        stage,
-        pendingChoice: {
-          kind: "upgrade"
-        },
-        pendingUpgradeChoice: false
-      };
-    }
-  }
-
-  return {
-    level,
-    xp,
-    xpToNext,
-    stage,
-    pendingUpgradeChoice: false
   };
 }

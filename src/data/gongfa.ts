@@ -2,11 +2,13 @@ import type { RootId } from "./linggen";
 import type { StageId } from "./stages";
 
 export type GongfaPattern = "homing" | "wave" | "aura";
+export type GongfaTag = GongfaPattern | RootId | "projectile" | "sword" | "defensive" | "explosive";
 
 export type GongfaId =
   | "yujian-jue"
   | "jinfeng-gong"
   | "gengjin-huti"
+  | "crimson-furnace-sword-art"
   | "blazing-feather-art"
   | "burning-ring-scripture"
   | "scarlet-wave-manual"
@@ -41,7 +43,7 @@ export interface GongfaConfig {
   lore: string;
   projectileTexture: string;
   tint: number;
-  stages: Record<StageId, GongfaStageState>;
+  stages: Partial<Record<StageId, GongfaStageState>>;
 }
 
 const defaultProjectileSpeed = 430;
@@ -210,6 +212,60 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
       }
     }
   },
+  "crimson-furnace-sword-art": {
+    id: "crimson-furnace-sword-art",
+    name: "Crimson Furnace Sword Art",
+    requiredRoots: ["fire", "metal"],
+    pattern: "homing",
+    title: "Crimson Furnace Sword Art",
+    lore: "Focused blades embed into a crucible of heat and shrapnel.",
+    projectileTexture: "qi-bolt",
+    tint: 0xff8d6b,
+    stages: {
+      lianqi: {
+        damage: 14,
+        cooldownMs: 880,
+        count: 2,
+        pierce: 1,
+        projectileSpeed: 450,
+        projectileLifetimeMs: 900,
+        spreadDeg: 8,
+        auraRadius: 0,
+        retaliationDamage: 0,
+        range: 52,
+        returnShots: 0,
+        shellBursts: 0
+      },
+      zhuji: {
+        damage: 18,
+        cooldownMs: 760,
+        count: 3,
+        pierce: 1,
+        projectileSpeed: 480,
+        projectileLifetimeMs: 980,
+        spreadDeg: 10,
+        auraRadius: 0,
+        retaliationDamage: 0,
+        range: 62,
+        returnShots: 0,
+        shellBursts: 0
+      },
+      jindan: {
+        damage: 23,
+        cooldownMs: 650,
+        count: 4,
+        pierce: 1,
+        projectileSpeed: 510,
+        projectileLifetimeMs: 1050,
+        spreadDeg: 12,
+        auraRadius: 0,
+        retaliationDamage: 0,
+        range: 72,
+        returnShots: 0,
+        shellBursts: 0
+      }
+    }
+  },
   "blazing-feather-art": {
     id: "blazing-feather-art",
     name: "Blazing Feather Art",
@@ -347,8 +403,31 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   }
 };
 
+for (const gongfa of Object.values(gongfaConfigs)) {
+  gongfa.stages.yuanying ??= gongfa.stages.jindan;
+}
+
 export function getCompatibleGongfaIds(roots: RootId[]): GongfaId[] {
   return (Object.values(gongfaConfigs) as GongfaConfig[])
     .filter((gongfa) => gongfa.requiredRoots.every((root) => roots.includes(root)))
     .map((gongfa) => gongfa.id);
+}
+
+export function getGongfaSkillTags(gongfaId: GongfaId): GongfaTag[] {
+  switch (gongfaId) {
+    case "yujian-jue":
+      return ["projectile", "metal", "sword"];
+    case "jinfeng-gong":
+      return ["wave", "metal"];
+    case "gengjin-huti":
+      return ["aura", "metal", "defensive"];
+    case "crimson-furnace-sword-art":
+      return ["projectile", "explosive", "fire", "metal"];
+    case "burning-ring-scripture":
+      return ["aura", "fire"];
+    default: {
+      const gongfa = gongfaConfigs[gongfaId];
+      return [gongfa.pattern, ...gongfa.requiredRoots];
+    }
+  }
 }
