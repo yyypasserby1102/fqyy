@@ -23,7 +23,7 @@ The first-slice Run is persistent and resumable across play sessions. Its progre
 - each Phase Transition autosaves before offering `Continue`, `Return to Title`, and confirmed `Abandon Run`; there are no manual in-Run save controls
 - abandonment clears the active save and grants no victory
 
-1. Start as a `Mortal` with no attack or active dodge action; evade through movement alone
+1. Start as a `Mortal` with no attack; evade through movement and the shared `Evade` action
 2. Route to the guaranteed `Lingcao`
    - direction and distance are marked from spawn
    - exact valid position may vary deterministically by Run seed

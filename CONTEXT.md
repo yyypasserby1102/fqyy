@@ -9,12 +9,16 @@ A persistent cultivation journey from spawn to death, victory, or confirmed aban
 _Avoid_: Match, round, session as a synonym
 
 **Mortal**:
-The cultivator's pre-cultivation state at the beginning of a Run, before Linggen revelation or Gongfa acquisition. A Mortal has no attack or active dodge action and survives through movement alone. Reaching the Lingcao triggers the Breakthrough from Mortal into Lianqi Chuqi.
+The cultivator's pre-cultivation state at the beginning of a Run, before Linggen revelation or Gongfa acquisition. A Mortal has no attack and survives through movement and the shared Evade action. Reaching the Lingcao triggers the Breakthrough from Mortal into Lianqi Chuqi.
 _Avoid_: Lianqi level zero, tutorial class
 
 **Cultivator**:
 The player character as a martial-fantasy practitioner advancing through a run. This term frames the fantasy layer above generic player language.
 _Avoid_: Hero, avatar
+
+**Evade**:
+A shared Cultivator action that moves 120 pixels over 200 milliseconds in the currently held movement direction and prevents incoming damage for that duration. Evade has a 1.2-second cooldown, requires directional input, and cannot start while the Run is paused or stopped for a choice.
+_Avoid_: Passive dodge chance, Gongfa Skill, teleport
 
 **Weapon Family**:
 A high-level combat school or elemental direction that defines how a build deals damage and scales.

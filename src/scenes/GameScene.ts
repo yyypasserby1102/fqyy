@@ -34,6 +34,7 @@ import {
   getMasteryProgressWithinRank
 } from "../logic/masteryPresentation";
 import { buildHudLines } from "../logic/hudPresentation";
+import { Evade } from "../logic/evade";
 import {
   completePhaseTransition,
   completeStageTribulation,
@@ -203,6 +204,7 @@ export class GameScene extends Phaser.Scene {
   private gongfaRuntime?: GongfaRuntime;
   private combatState: CombatState = { ...baselineState };
   private combatCooldownRemaining = 0;
+  private readonly evade = new Evade();
   private choiceActive = false;
   private currentChoiceTitle?: string;
   private currentChoiceOptions: ChoiceOption[] = [];
@@ -388,9 +390,19 @@ export class GameScene extends Phaser.Scene {
 
     this.runState.elapsedMs += delta;
     this.combatCooldownRemaining -= delta;
+    this.evade.advance(delta);
 
     const movement = this.inputController.getMovementVector();
-    this.player.move(movement);
+    if (this.inputController.evadePressed) {
+      this.evade.tryStart({ x: movement.x, y: movement.y });
+    }
+    const evadeState = this.evade.state;
+    this.player.move(
+      evadeState.active
+        ? new Phaser.Math.Vector2(evadeState.direction.x, evadeState.direction.y)
+        : movement,
+      evadeState.active ? evadeState.speed : this.player.stats.moveSpeed
+    );
     if (movement.lengthSq() > 0) {
       this.lastAimAngle = Phaser.Math.Angle.Between(0, 0, movement.x, movement.y);
     }
@@ -2293,6 +2305,8 @@ export class GameScene extends Phaser.Scene {
       methodCount: this.combatState.count,
       methodCooldownMs: this.combatState.cooldownMs,
       moveSpeed: this.player?.stats.moveSpeed ?? 0,
+      evadeActive: this.evade.state.active,
+      evadeCooldownRemainingMs: this.evade.state.cooldownRemainingMs,
       enemyKinds: Object.keys(enemyConfigs).length,
       enemyCount: this.enemies?.countActive(true) ?? 0,
       orbCount: this.orbs?.countActive(true) ?? 0,
@@ -2342,6 +2356,8 @@ export class GameScene extends Phaser.Scene {
           methodDamage: this.combatState.damage,
           methodCooldownMs: this.combatState.cooldownMs,
           moveSpeed: this.player?.stats.moveSpeed ?? 0,
+          evadeActive: this.evade.state.active,
+          evadeCooldownRemainingMs: this.evade.state.cooldownRemainingMs,
           kills: this.runState.kills,
           lingcaoCollected: this.runState.lingcaoCollected,
           remainingMs: Math.max(0, waveDurationMs - this.runState.elapsedMs)
@@ -2352,7 +2368,8 @@ export class GameScene extends Phaser.Scene {
         y: this.player?.y ?? 0,
         health: this.player?.stats.health ?? 0,
         maxHealth: this.player?.stats.maxHealth ?? 0,
-        moveSpeed: this.player?.stats.moveSpeed ?? 0
+        moveSpeed: this.player?.stats.moveSpeed ?? 0,
+        evade: this.evade.state
       },
       progression: {
         stage: this.runState.stage,
@@ -2538,6 +2555,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyIncomingDamage(amount: number): void {
+    if (this.evade.state.invulnerable) {
+      return;
+    }
+
     const mitigation = this.runState.mainGongfaId === "gengjin-huti" ? this.runState.guardMitigation : 0;
     const finalDamage = Math.max(1, Math.floor(amount * (1 - mitigation)));
     this.player.applyDamage(finalDamage);
@@ -2604,8 +2625,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     const efficiency = this.runState.hiddenLinggen.efficiency;
-    this.advanceRealmProgress(amount * 8 * efficiency);
-    this.advanceMasteryProgress(amount * efficiency * 2);
+    this.advanceRealmProgress(amount * 4 * efficiency);
+    this.advanceMasteryProgress(amount * 8 * efficiency);
   }
 
   private offerMasteryChoice(): void {

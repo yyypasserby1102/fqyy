@@ -31,7 +31,9 @@ describe("HUD presentation", () => {
         moveSpeed: 250,
         kills: 8,
         lingcaoCollected: true,
-        remainingMs: 51_000
+        remainingMs: 51_000,
+        evadeActive: false,
+        evadeCooldownRemainingMs: 0
       })
     ).toEqual([
       "Cultivator: Outer Peak Wanderer",
@@ -47,6 +49,7 @@ describe("HUD presentation", () => {
       "Vitality: 77 / 100",
       "Method: 3 | Damage: 12 | Cooldown: 900ms",
       "Movement: 250 | Kills: 8",
+      "Evade: Ready",
       "Lingcao: claimed | Run Timer: 00:51"
     ]);
   });

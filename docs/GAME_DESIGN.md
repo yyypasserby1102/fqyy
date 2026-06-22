@@ -44,7 +44,7 @@
 ## Core Gameplay Loop
 
 1. Move through the arena and avoid contact pressure.
-2. Begin as a Mortal and evade enemies through movement alone.
+2. Begin as a Mortal and evade enemies through movement and the shared Evade action.
 3. Route toward a guaranteed early Lingcao while under pressure.
 4. Collect dropped qi orbs and claim the Lingcao to secure the first major progression spike.
 5. Claim the Lingcao and Breakthrough into Lianqi Chuqi, revealing the cultivator's innate Linggen.
@@ -58,7 +58,8 @@
 ### Player Baseline
 
 - Movement-driven survival
-- No Mortal attack, dash, or invulnerability action; movement is the only defense before the first Gongfa
+- No Mortal attack; movement and the shared 120-pixel Evade are the only defenses before the first Gongfa
+- Evade lasts 200ms, prevents incoming damage during that movement, has a 1.2s cooldown, and requires held directional input
 - Health and recovery as scarce resources
 - Pickup magnet as an important comfort stat
 - Early fragility is intentional so the first breakthrough feels decisive

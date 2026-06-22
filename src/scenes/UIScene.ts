@@ -36,6 +36,8 @@ interface HudState {
   methodCount: number;
   methodCooldownMs: number;
   moveSpeed: number;
+  evadeActive: boolean;
+  evadeCooldownRemainingMs: number;
   enemyKinds: number;
   enemyCount: number;
   orbCount: number;
@@ -138,6 +140,8 @@ export class UIScene extends Phaser.Scene {
         methodDamage: hud.methodDamage,
         methodCooldownMs: hud.methodCooldownMs,
         moveSpeed: hud.moveSpeed,
+        evadeActive: hud.evadeActive,
+        evadeCooldownRemainingMs: hud.evadeCooldownRemainingMs,
         kills: hud.kills,
         lingcaoCollected: hud.lingcaoCollected,
         remainingMs: hud.remainingMs
@@ -150,7 +154,7 @@ export class UIScene extends Phaser.Scene {
         ? "Run Ended"
         : hud.paused
           ? "Paused - ESC to resume"
-        : "WASD move | ESC pause | F3 debug | 1/2/3 or click to choose"
+        : "WASD move | SPACE evade | ESC pause | F3 debug | 1/2/3 or click to choose"
     );
 
     this.debugOverlay.render([

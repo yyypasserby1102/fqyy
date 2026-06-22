@@ -12,6 +12,7 @@ Graybox Phaser + Vite + TypeScript MVP for a 2D Vampire-Survivors-like xiuxian a
 ## Controls
 
 - `WASD` or arrow keys: move
+- `Space`: evade in the held movement direction
 - `ESC`: pause
 - `F3`: debug overlay
 - `1`, `2`, `3` or mouse click: choose a breakthrough

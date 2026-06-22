@@ -32,6 +32,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Vitality: 100 / 100",
     "Method: 1 | Damage: 9 | Cooldown: 1150ms",
     "Movement: 220 | Kills: 0",
+    "Evade: Ready",
     "Lingcao: unclaimed | Run Timer: 05:59"
   ]);
 
@@ -45,7 +46,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
   expect(revealed.progression.lingcaoCollected).toBe(true);
   expect(revealed.hud.lines[8]).toBe("Linggen: Unrevealed | Grades: Hidden");
   expect(revealed.hud.lines[9]).toBe("Gongfa: Crude Qi Thread");
-  expect(revealed.hud.lines[13]).toBe("Lingcao: claimed | Run Timer: 05:59");
+  expect(revealed.hud.lines[14]).toBe("Lingcao: claimed | Run Timer: 05:59");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
 
@@ -65,8 +66,36 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Vitality: 100 / 100",
     "Method: 1 | Damage: 15 | Cooldown: 850ms",
     "Movement: 220 | Kills: 0",
+    "Evade: Ready",
     "Lingcao: claimed | Run Timer: 05:59"
   ]);
+});
+
+test("HUD shows evade readiness, active invulnerability, and cooldown", async ({ page }) => {
+  await startNewRun(page);
+  expect((await page.evaluate(() => window.__gameTest!.getSnapshot())).hud.lines).toContain(
+    "Evade: Ready"
+  );
+
+  await page.keyboard.down("d");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(30);
+  await page.keyboard.up("Space");
+  await page.keyboard.up("d");
+  expect((await page.evaluate(() => window.__gameTest!.getSnapshot())).hud.lines).toContain(
+    "Evade: Active"
+  );
+
+  await page.waitForTimeout(220);
+  const coolingDown = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(coolingDown.hud.lines.find((line) => line.startsWith("Evade: "))).toMatch(
+    /^Evade: \d\.\ds$/
+  );
+
+  await page.waitForTimeout(1_050);
+  expect((await page.evaluate(() => window.__gameTest!.getSnapshot())).hud.lines).toContain(
+    "Evade: Ready"
+  );
 });
 
 test("HUD registry state exposes masteryProgress to the live UI payload", async ({ page }) => {
@@ -122,8 +151,14 @@ test("HUD shows mastery gain, rank-up feedback, and the first realm cleanup", as
   const afterRankUp = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterRankUp.progression.masteryRank).toBeGreaterThanOrEqual(1);
   expect(afterRankUp.message).toContain("mastery reaches Rank");
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  while (true) {
+    const masterySnapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (!masterySnapshot.choice?.title?.includes("Mastery Rank")) {
+      break;
+    }
+
+    await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  }
 
   await page.evaluate(() => {
     window.__gameTest!.forceAdvanceRealmProgress(100);

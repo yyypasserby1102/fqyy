@@ -59,6 +59,82 @@ test("movement updates player position in the real browser game", async ({ page 
   expect(after.player.x).toBeGreaterThan(before.player.x);
 });
 
+test("Space evades in the held movement direction", async ({ page }) => {
+  await startNewRun(page);
+
+  const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  await page.keyboard.down("d");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(30);
+  await page.keyboard.up("Space");
+  await page.waitForTimeout(50);
+  const duringEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  await page.keyboard.up("d");
+
+  expect(duringEvade.player.x - before.player.x).toBeGreaterThan(25);
+  expect(duringEvade.player.evade.active).toBe(true);
+  expect(duringEvade.player.evade.invulnerable).toBe(true);
+});
+
+test("evade prevents damage only during its invulnerability window", async ({ page }) => {
+  await startNewRun(page);
+
+  await page.keyboard.down("d");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(30);
+  await page.keyboard.up("Space");
+  await page.keyboard.up("d");
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
+  const duringEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
+
+  expect(duringEvade.player.health).toBe(100);
+
+  await page.waitForTimeout(220);
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
+  const afterEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(afterEvade.player.health).toBe(80);
+});
+
+test("evade cannot start while the Run is manually paused", async ({ page }) => {
+  await startNewRun(page);
+  await page.keyboard.down("Escape");
+  await page.waitForTimeout(30);
+  await page.keyboard.up("Escape");
+  const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
+
+  await page.keyboard.down("d");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(50);
+  await page.keyboard.up("Space");
+  await page.keyboard.up("d");
+  const after = await page.evaluate(() => window.__gameTest!.getSnapshot());
+
+  expect(after.player.x).toBe(before.player.x);
+  expect(after.player.evade.active).toBe(false);
+  expect(after.player.evade.cooldownRemainingMs).toBe(0);
+});
+
+test("evade cannot start while a cultivation choice stops the Run", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceSetLinggen("metal");
+    window.__gameTest!.forceClaimLingcao();
+  });
+  const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
+
+  await page.keyboard.down("d");
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(50);
+  await page.keyboard.up("Space");
+  await page.keyboard.up("d");
+  const after = await page.evaluate(() => window.__gameTest!.getSnapshot());
+
+  expect(after.choice?.title).toBe("Metal Linggen Revealed");
+  expect(after.player.x).toBe(before.player.x);
+  expect(after.player.evade.active).toBe(false);
+  expect(after.player.evade.cooldownRemainingMs).toBe(0);
+});
+
 test("the Mortal opening only spawns slow melee pursuers before Gongfa 1", async ({ page }) => {
   await startNewRun(page);
 
@@ -252,6 +328,7 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.gongfa).not.toBe("baseline");
   expect(snapshot.progression.masteryProgress).toBeGreaterThan(0);
+  expect(snapshot.progression.masteryProgress).toBeGreaterThan(snapshot.progression.realmProgress);
   expect(snapshot.message).toBeDefined();
 
   await page.evaluate(() => window.__gameTest!.forceGrantQi(100));

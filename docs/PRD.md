@@ -26,7 +26,7 @@ The current prototype has a competent survival loop, but it still behaves like a
 
 ## Target Experience
 
-The player starts as a Mortal with no attack or active dodge action and must evade through movement alone. Under pressure, they route to a guaranteed early `Lingcao`, trigger the first `Breakthrough`, discover their innate `Linggen`, and choose a `Gongfa` that begins the build. Later Breakthroughs preserve every learned Gongfa and add another compatible package.
+The player starts as a Mortal with no attack and must survive through movement and the shared `Evade` action. Pressing Space while holding a movement direction moves 120 pixels over 200 milliseconds, prevents incoming damage during that movement, and starts a 1.2-second cooldown on activation. Under pressure, the player routes to a guaranteed early `Lingcao`, triggers the first `Breakthrough`, discovers their innate `Linggen`, and chooses a `Gongfa` that begins the build. Later Breakthroughs preserve every learned Gongfa and add another compatible package.
 
 ## Locked Domain Decisions
 
@@ -187,7 +187,7 @@ The `Fire + Metal` choice set contains `Burning Ring Scripture`, the hybrid `Cri
 
 ## Gameplay Flow
 
-1. Spawn as a `Mortal` with movement as the only defense.
+1. Spawn as a `Mortal` with movement and `Evade` as the only defenses.
 2. Survive early enemy pressure and route toward a guaranteed `Lingcao`.
 3. Claim the `Lingcao` and Breakthrough into `Lianqi Chuqi`.
 4. Reveal hidden `Linggen`.
