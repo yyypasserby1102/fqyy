@@ -11,6 +11,7 @@ Graybox 2D action roguelite prototype with a xiuxian cultivation theme.
 ## MVP Scope
 
 - WASD and arrow-key movement
+- Spacebar evade in the held movement direction
 - Auto-attacking flying swords
 - Spirit beast spawner and wave escalation
 - Health, damage, XP orbs, level-up choices

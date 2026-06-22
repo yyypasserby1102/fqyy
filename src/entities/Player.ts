@@ -26,10 +26,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setMaxVelocity(this.stats.moveSpeed, this.stats.moveSpeed);
   }
 
-  move(input: Phaser.Math.Vector2): void {
+  move(input: Phaser.Math.Vector2, speed = this.stats.moveSpeed): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
-    body.setMaxVelocity(this.stats.moveSpeed, this.stats.moveSpeed);
-    body.setVelocity(input.x * this.stats.moveSpeed, input.y * this.stats.moveSpeed);
+    body.setMaxVelocity(speed, speed);
+    body.setVelocity(input.x * speed, input.y * speed);
   }
 
   applyDamage(amount: number): void {

@@ -17,12 +17,22 @@ function attachGameTestHarness(game: Phaser.Game): void {
   const getGameScene = (): GameScene => game.scene.getScene("game") as GameScene;
   const harness: GameTestHarness = {
     getSnapshot: () => getGameScene().getTestSnapshot(),
+    getHudState: () => game.registry.get("hud") as Record<string, unknown>,
     forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
-    forceGainXp: (amount) => getGameScene().forceGainXp(amount),
+    forceGrantQi: (amount) => getGameScene().forceGrantQi(amount),
     selectChoice: (index) => getGameScene().forceSelectChoice(index),
     setRngSeed: (seed) => setRandomSeed(seed),
     forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
-    forceSetLinggen: (id: LinggenId) => getGameScene().forceSetLinggen(id)
+    forceSetLinggen: (id: LinggenId) => getGameScene().forceSetLinggen(id),
+    forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
+    forceAdvanceRealmProgress: (amount: number) =>
+      getGameScene().forceAdvanceRealmProgress(amount),
+    forceClearEnemies: () => getGameScene().forceClearEnemies(),
+    forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
+    forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
+    forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs),
+    forceAdvanceMasteryProgress: (points: number) =>
+      getGameScene().forceAdvanceMasteryProgress(points)
   };
 
   window.__gameTest = harness;

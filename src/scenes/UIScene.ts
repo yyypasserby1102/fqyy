@@ -1,16 +1,28 @@
 import Phaser from "phaser";
 import type { ChoicePayload } from "../data/choices";
 import { InputController } from "../systems/InputController";
-import { formatTime } from "../utils/format";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { LevelUpPanel } from "../ui/LevelUpPanel";
+import { buildHudLines } from "../logic/hudPresentation";
 
 interface HudState {
   health: number;
   maxHealth: number;
-  level: number;
-  xp: number;
-  xpToNext: number;
+  realmPhase: string;
+  realmProgress: number;
+  stageBreakthroughReady: boolean;
+  foundationGrowthTransactions: number;
+  masteryPoints: number;
+  masteryProgress: number;
+  masteryRank: number;
+  masterySkill2?: string;
+  masterySkill2Casts: number;
+  galeMomentum: number;
+  guard: number;
+  guardMitigation: number;
+  bladeShellCharge: number;
+  bladeShellCasts: number;
+  skillTags: string;
   kills: number;
   elapsedMs: number;
   remainingMs: number;
@@ -18,11 +30,14 @@ interface HudState {
   gameOver: boolean;
   stageName: string;
   linggenName: string;
+  linggenGrades: string;
   gongfaName: string;
   methodDamage: number;
   methodCount: number;
   methodCooldownMs: number;
   moveSpeed: number;
+  evadeActive: boolean;
+  evadeCooldownRemainingMs: number;
   enemyKinds: number;
   enemyCount: number;
   orbCount: number;
@@ -99,17 +114,39 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    this.hudText.setText([
-      "Cultivator: Outer Peak Wanderer",
-      `Realm: ${hud.stageName} Lv.${hud.level}`,
-      `Linggen: ${hud.linggenName}`,
-      `Gongfa: ${hud.gongfaName}`,
-      `Vitality: ${Math.ceil(hud.health)} / ${hud.maxHealth}`,
-      `Qi: ${hud.xp} / ${hud.xpToNext}`,
-      `Method: ${hud.methodCount} | Damage: ${hud.methodDamage} | Cooldown: ${Math.round(hud.methodCooldownMs)}ms`,
-      `Movement: ${hud.moveSpeed} | Kills: ${hud.kills}`,
-      `Lingcao: ${hud.lingcaoCollected ? "claimed" : "unclaimed"} | Run Timer: ${formatTime(hud.remainingMs)}`
-    ]);
+    this.hudText.setText(
+      buildHudLines({
+        stageName: hud.stageName,
+        realmPhase: hud.realmPhase,
+        realmProgress: hud.realmProgress,
+        stageBreakthroughReady: hud.stageBreakthroughReady,
+        foundationGrowthTransactions: hud.foundationGrowthTransactions,
+        masteryRank: hud.masteryRank,
+        masteryProgress: hud.masteryProgress,
+        masterySkill2: hud.masterySkill2,
+        masterySkill2Casts: hud.masterySkill2Casts,
+        galeMomentum: hud.galeMomentum,
+        skillTags: hud.skillTags,
+        guard: hud.guard,
+        guardMitigation: hud.guardMitigation,
+        bladeShellCasts: hud.bladeShellCasts,
+        bladeShellCharge: hud.bladeShellCharge,
+        linggenName: hud.linggenName,
+        linggenGrades: hud.linggenGrades,
+        gongfaName: hud.gongfaName,
+        health: hud.health,
+        maxHealth: hud.maxHealth,
+        methodCount: hud.methodCount,
+        methodDamage: hud.methodDamage,
+        methodCooldownMs: hud.methodCooldownMs,
+        moveSpeed: hud.moveSpeed,
+        evadeActive: hud.evadeActive,
+        evadeCooldownRemainingMs: hud.evadeCooldownRemainingMs,
+        kills: hud.kills,
+        lingcaoCollected: hud.lingcaoCollected,
+        remainingMs: hud.remainingMs
+      })
+    );
 
     this.messageText.setText(hud.message ?? "");
     this.pauseText.setText(
@@ -117,7 +154,7 @@ export class UIScene extends Phaser.Scene {
         ? "Run Ended"
         : hud.paused
           ? "Paused - ESC to resume"
-        : "WASD move | ESC pause | F3 debug | 1/2/3 or click to choose"
+        : "WASD move | SPACE evade | ESC pause | F3 debug | 1/2/3 or click to choose"
     );
 
     this.debugOverlay.render([

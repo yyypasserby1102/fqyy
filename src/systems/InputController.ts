@@ -5,7 +5,7 @@ export class InputController {
 
   constructor(scene: Phaser.Scene) {
     this.keys = scene.input.keyboard!.addKeys(
-      "W,A,S,D,UP,LEFT,DOWN,RIGHT,ESC,F3,ONE,TWO,THREE"
+      "W,A,S,D,UP,LEFT,DOWN,RIGHT,SPACE,ESC,F3,ONE,TWO,THREE"
     ) as Record<string, Phaser.Input.Keyboard.Key>;
   }
 
@@ -31,6 +31,10 @@ export class InputController {
 
   get pausePressed(): boolean {
     return Phaser.Input.Keyboard.JustDown(this.keys.ESC);
+  }
+
+  get evadePressed(): boolean {
+    return Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
   }
 
   get debugPressed(): boolean {

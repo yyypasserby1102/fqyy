@@ -5,6 +5,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   config: EnemyConfig;
   health: number;
   contactCooldownUntil = 0;
+  embedStacks = 0;
+  embedPower = 0;
 
   constructor(scene: Phaser.Scene, x: number, y: number, config: EnemyConfig) {
     super(scene, x, y, config.texture);

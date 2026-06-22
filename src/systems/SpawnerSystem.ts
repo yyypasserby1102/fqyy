@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { enemyConfigs, type EnemyId } from "../data/enemies";
-import { waveSpawns } from "../data/waves";
+import { stageWaveSpawns } from "../data/waves";
+import type { StageId } from "../data/stages";
 import { Enemy } from "../entities/Enemy";
 import { pickRandom, randomFloat, randomInt } from "../utils/random";
 
@@ -12,21 +13,47 @@ export class SpawnerSystem {
   private currentAmount = 2;
   private currentPool: EnemyId[] = ["jade-rat"];
   private accumulator = 0;
+  private currentStage: StageId = "lianqi";
 
   constructor(scene: Phaser.Scene, group: Phaser.Physics.Arcade.Group) {
     this.scene = scene;
     this.group = group;
   }
 
-  update(deltaMs: number, playerPosition: Phaser.Math.Vector2): void {
+  update(
+    deltaMs: number,
+    playerPosition: Phaser.Math.Vector2,
+    stage: StageId,
+    allowWaveEscalation = true
+  ): void {
+    this.advanceClock(deltaMs, playerPosition, stage, allowWaveEscalation);
+  }
+
+  advanceClock(
+    deltaMs: number,
+    playerPosition: Phaser.Math.Vector2,
+    stage: StageId,
+    allowWaveEscalation: boolean
+  ): void {
     this.elapsedMs += deltaMs;
     this.accumulator += deltaMs;
 
-    for (const wave of waveSpawns) {
-      if (this.elapsedMs >= wave.at) {
-        this.currentPool = wave.pool;
-        this.currentInterval = wave.intervalMs;
-        this.currentAmount = wave.amount;
+    if (stage !== this.currentStage) {
+      this.currentStage = stage;
+      const waves = stageWaveSpawns[stage];
+      const firstWave = waves[0];
+      this.currentPool = firstWave.pool;
+      this.currentInterval = firstWave.intervalMs;
+      this.currentAmount = firstWave.amount;
+    }
+
+    if (allowWaveEscalation) {
+      for (const wave of stageWaveSpawns[stage]) {
+        if (this.elapsedMs >= wave.at) {
+          this.currentPool = wave.pool;
+          this.currentInterval = wave.intervalMs;
+          this.currentAmount = wave.amount;
+        }
       }
     }
 

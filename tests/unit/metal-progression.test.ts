@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  advanceProgressionUntilChoice,
-  getCurrentStage,
   getCompatibleUpgradeIdsForGongfa,
   getCompatibleGongfaIdsForLinggen,
   getFirstBreakthroughState,
+  getGongfaSkillTags,
   getGongfaStageState,
   getMetalBranchSpec,
   getPresentedGongfaIdsForLinggen,
@@ -31,6 +30,28 @@ describe("Metal progression tree", () => {
     ]);
   });
 
+  it("prioritizes the guaranteed Fire-Metal hybrid alongside the Fire and Metal picks", () => {
+    expect(getPresentedGongfaIdsForLinggen("fire-metal")).toEqual([
+      "burning-ring-scripture",
+      "yujian-jue",
+      "crimson-furnace-sword-art"
+    ]);
+  });
+
+  it("drops learned Fire-Metal Gongfa and backfills from the authored pools without duplicates", () => {
+    expect(
+      getPresentedGongfaIdsForLinggen("fire-metal", [
+        "burning-ring-scripture",
+        "yujian-jue",
+        "crimson-furnace-sword-art"
+      ])
+    ).toEqual([
+      "blazing-feather-art",
+      "scarlet-wave-manual",
+      "jinfeng-gong"
+    ]);
+  });
+
   it("presents a balanced 3-choice dual-root Gongfa reveal instead of sampling one pool only", () => {
     expect(getPresentedGongfaIdsForLinggen("water-metal")).toEqual([
       "drifting-frost-needle",
@@ -42,7 +63,7 @@ describe("Metal progression tree", () => {
   it("describes authored realm transitions for each Metal branch", () => {
     const metal = getMetalBranchSpec();
 
-    expect(metal.realmOrder).toEqual(["lianqi", "zhuji", "jindan"]);
+    expect(metal.realmOrder).toEqual(["lianqi", "zhuji", "jindan", "yuanying"]);
     expect(metal.branches).toHaveLength(3);
     expect(metal.branches.map((branch) => branch.id)).toEqual([
       "yujian-jue",
@@ -86,11 +107,14 @@ describe("Metal progression tree", () => {
     ]);
   });
 
-  it("does not leak unrelated Metal upgrades into another Metal Gongfa pool", () => {
+  it("includes the full six authored refinements plus generic fallbacks for Jinfeng Gong", () => {
     expect(getCompatibleUpgradeIdsForGongfa("jinfeng-gong")).toEqual([
       "cutting-qi-pressure",
       "broadened-front",
       "long-edge-resonance",
+      "gathering-gale",
+      "unbroken-stride",
+      "windborne-reach",
       "tempered-meridians",
       "jade-meridian",
       "minor-pill",
@@ -98,13 +122,85 @@ describe("Metal progression tree", () => {
     ]);
   });
 
-  it("maps levels into the authored Lianqi -> Zhuji -> Jindan thresholds", () => {
-    expect(getCurrentStage(1)).toBe("lianqi");
-    expect(getCurrentStage(3)).toBe("lianqi");
-    expect(getCurrentStage(4)).toBe("zhuji");
-    expect(getCurrentStage(6)).toBe("zhuji");
-    expect(getCurrentStage(7)).toBe("jindan");
-    expect(getCurrentStage(12)).toBe("jindan");
+  it("includes the full six authored refinements plus generic fallbacks for Gengjin Huti", () => {
+    expect(getCompatibleUpgradeIdsForGongfa("gengjin-huti")).toEqual([
+      "guard-pressure",
+      "retaliatory-edge",
+      "expanding-shell",
+      "lasting-temper",
+      "bulwark-reflection",
+      "unyielding-shield",
+      "tempered-meridians",
+      "jade-meridian",
+      "minor-pill",
+      "soul-lure-banner"
+    ]);
+  });
+
+  it("includes the full six authored refinements plus generic fallbacks for Burning Ring Scripture", () => {
+    expect(getCompatibleUpgradeIdsForGongfa("burning-ring-scripture")).toEqual([
+      "broadened-flame",
+      "rapid-revolution",
+      "scorching-passage",
+      "counterflow-ring",
+      "gathering-heat",
+      "banked-ember",
+      "tempered-meridians",
+      "jade-meridian",
+      "minor-pill",
+      "soul-lure-banner"
+    ]);
+  });
+
+  it("includes the full six authored refinements plus generic fallbacks for Crimson Furnace Sword Art", () => {
+    expect(getCompatibleUpgradeIdsForGongfa("crimson-furnace-sword-art")).toEqual([
+      "tempered-needles",
+      "rapid-forging",
+      "deep-embedding",
+      "furnace-expansion",
+      "rising-pressure",
+      "sealed-crucible",
+      "tempered-meridians",
+      "jade-meridian",
+      "minor-pill",
+      "soul-lure-banner"
+    ]);
+  });
+
+  it("does not leak unrelated Metal upgrades into another Metal Gongfa pool", () => {
+    expect(getCompatibleUpgradeIdsForGongfa("jinfeng-gong")).toEqual([
+      "cutting-qi-pressure",
+      "broadened-front",
+      "long-edge-resonance",
+      "gathering-gale",
+      "unbroken-stride",
+      "windborne-reach",
+      "tempered-meridians",
+      "jade-meridian",
+      "minor-pill",
+      "soul-lure-banner"
+    ]);
+  });
+
+  it("exposes the wave and metal skill tags for Jinfeng Gong", () => {
+    expect(getGongfaSkillTags("jinfeng-gong")).toEqual(["wave", "metal"]);
+  });
+
+  it("exposes the aura, metal, and defensive skill tags for Gengjin Huti", () => {
+    expect(getGongfaSkillTags("gengjin-huti")).toEqual(["aura", "metal", "defensive"]);
+  });
+
+  it("exposes the aura and fire skill tags for Burning Ring Scripture", () => {
+    expect(getGongfaSkillTags("burning-ring-scripture")).toEqual(["aura", "fire"]);
+  });
+
+  it("exposes projectile, explosive, fire, and metal tags for Crimson Furnace Sword Art", () => {
+    expect(getGongfaSkillTags("crimson-furnace-sword-art")).toEqual([
+      "projectile",
+      "explosive",
+      "fire",
+      "metal"
+    ]);
   });
 
   it("does not allow the first breakthrough before Lingcao is claimed", () => {
@@ -135,47 +231,4 @@ describe("Metal progression tree", () => {
     ).toBe(false);
   });
 
-  it("halts on Zhuji breakthrough before later refinements when a large XP gain crosses the realm threshold", () => {
-    expect(
-      advanceProgressionUntilChoice({
-        level: 3,
-        xp: 100,
-        xpToNext: 20,
-        stage: "lianqi",
-        mainGongfaId: "yujian-jue"
-      })
-    ).toEqual({
-      level: 4,
-      xp: 80,
-      xpToNext: 29,
-      stage: "zhuji",
-      pendingChoice: {
-        kind: "stage-breakthrough",
-        stageId: "zhuji",
-        gongfaId: "yujian-jue"
-      },
-      pendingUpgradeChoice: true
-    });
-  });
-
-  it("offers a normal refinement when leveling within the same realm", () => {
-    expect(
-      advanceProgressionUntilChoice({
-        level: 4,
-        xp: 30,
-        xpToNext: 26,
-        stage: "zhuji",
-        mainGongfaId: "yujian-jue"
-      })
-    ).toEqual({
-      level: 5,
-      xp: 4,
-      xpToNext: 37,
-      stage: "zhuji",
-      pendingChoice: {
-        kind: "upgrade"
-      },
-      pendingUpgradeChoice: false
-    });
-  });
 });
