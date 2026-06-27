@@ -2,4 +2,9 @@ node_modules/
 dist/
 test-results/
 playwright-report/
+coverage/
 .DS_Store
+
+# Agent skills tooling (installed locally, not project code)
+.agents/
+skills-lock.json
