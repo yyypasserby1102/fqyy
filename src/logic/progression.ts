@@ -2,6 +2,7 @@ import {
   getCompatibleGongfaIds,
   gongfaConfigs,
   getGongfaSkillTags,
+  isPlayableGongfa,
   type GongfaId,
   type GongfaStageState
 } from "../data/gongfa";
@@ -124,7 +125,9 @@ export function getPresentedGongfaIdsForLinggen(
   learnedIds: GongfaId[] = []
 ): GongfaId[] {
   const learned = new Set(learnedIds);
-  const ordered = getCompatibleGongfaIdsForLinggen(linggenId).filter((gongfaId) => !learned.has(gongfaId));
+  const ordered = getCompatibleGongfaIdsForLinggen(linggenId).filter(
+    (gongfaId) => !learned.has(gongfaId) && isPlayableGongfa(gongfaId)
+  );
   if (linggenId === "fire-metal") {
     const firePick =
       ordered.find((gongfaId) => gongfaId === "burning-ring-scripture") ??

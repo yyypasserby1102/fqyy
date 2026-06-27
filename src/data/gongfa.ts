@@ -44,6 +44,13 @@ export interface GongfaConfig {
   projectileTexture: string;
   tint: number;
   stages: Partial<Record<StageId, GongfaStageState>>;
+  /**
+   * A Playable Gongfa has a complete Skill, defining passive, Mastery Pool,
+   * Transformations, Skill 2, and persistence support. Only Playable Gongfa may
+   * appear in Candidate compatibility or Breakthrough offerings. Missing or
+   * false means stat-only scaffold — never offered.
+   */
+  playable?: boolean;
 }
 
 const defaultProjectileSpeed = 430;
@@ -53,6 +60,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   "yujian-jue": {
     id: "yujian-jue",
     name: "Yujian Jue",
+    playable: true,
     requiredRoots: ["metal"],
     pattern: "homing",
     title: "Yujian Jue",
@@ -107,6 +115,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   "jinfeng-gong": {
     id: "jinfeng-gong",
     name: "Jinfeng Gong",
+    playable: true,
     requiredRoots: ["metal"],
     pattern: "wave",
     title: "Jinfeng Gong",
@@ -161,6 +170,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   "gengjin-huti": {
     id: "gengjin-huti",
     name: "Gengjin Huti",
+    playable: true,
     requiredRoots: ["metal"],
     pattern: "aura",
     title: "Gengjin Huti",
@@ -215,6 +225,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   "crimson-furnace-sword-art": {
     id: "crimson-furnace-sword-art",
     name: "Crimson Furnace Sword Art",
+    playable: true,
     requiredRoots: ["fire", "metal"],
     pattern: "homing",
     title: "Crimson Furnace Sword Art",
@@ -284,6 +295,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   "burning-ring-scripture": {
     id: "burning-ring-scripture",
     name: "Burning Ring Scripture",
+    playable: true,
     requiredRoots: ["fire"],
     pattern: "aura",
     title: "Burning Ring Scripture",
@@ -411,6 +423,14 @@ export function getCompatibleGongfaIds(roots: RootId[]): GongfaId[] {
   return (Object.values(gongfaConfigs) as GongfaConfig[])
     .filter((gongfa) => gongfa.requiredRoots.every((root) => roots.includes(root)))
     .map((gongfa) => gongfa.id);
+}
+
+/**
+ * Only Playable Gongfa may be presented in a Breakthrough offering. Stat-only
+ * scaffolds (missing or false `playable`) are never offered to the player.
+ */
+export function isPlayableGongfa(gongfaId: GongfaId): boolean {
+  return gongfaConfigs[gongfaId].playable === true;
 }
 
 export function getGongfaSkillTags(gongfaId: GongfaId): GongfaTag[] {

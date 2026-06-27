@@ -7,8 +7,11 @@ import {
   getGongfaStageState,
   getMetalBranchSpec,
   getPresentedGongfaIdsForLinggen,
+  getStageNarrative,
   getStageProgressionSummary
 } from "../../src/logic/progression";
+import { isPlayableGongfa } from "../../src/data/gongfa";
+import { linggenConfigs, type LinggenId } from "../../src/data/linggen";
 
 describe("Metal progression tree", () => {
   it("exposes the exact Metal Gongfa trio for pure Metal Linggen", () => {
@@ -38,26 +41,35 @@ describe("Metal progression tree", () => {
     ]);
   });
 
-  it("drops learned Fire-Metal Gongfa and backfills from the authored pools without duplicates", () => {
+  it("drops learned Fire-Metal Gongfa and backfills only with Playable Gongfa", () => {
+    // The remaining unlearned Fire pool is stat-only scaffolds
+    // (blazing-feather-art, scarlet-wave-manual) which must never be offered,
+    // so the offer falls back to the two unlearned Playable Metal Gongfa.
     expect(
       getPresentedGongfaIdsForLinggen("fire-metal", [
         "burning-ring-scripture",
         "yujian-jue",
         "crimson-furnace-sword-art"
       ])
-    ).toEqual([
-      "blazing-feather-art",
-      "scarlet-wave-manual",
-      "jinfeng-gong"
+    ).toEqual(["jinfeng-gong", "gengjin-huti"]);
+  });
+
+  it("never offers stat-only scaffolds even when the compatible pool contains them", () => {
+    // Water-Metal compatibility includes three Water scaffolds, but only the
+    // Playable Metal trio is authored, so only those may be presented.
+    expect(getPresentedGongfaIdsForLinggen("water-metal")).toEqual([
+      "yujian-jue",
+      "jinfeng-gong",
+      "gengjin-huti"
     ]);
   });
 
-  it("presents a balanced 3-choice dual-root Gongfa reveal instead of sampling one pool only", () => {
-    expect(getPresentedGongfaIdsForLinggen("water-metal")).toEqual([
-      "drifting-frost-needle",
-      "yujian-jue",
-      "black-tide-scripture"
-    ]);
+  it("only ever presents Playable Gongfa across every Linggen profile", () => {
+    const everyLinggen = Object.keys(linggenConfigs) as LinggenId[];
+    for (const linggenId of everyLinggen) {
+      const presented = getPresentedGongfaIdsForLinggen(linggenId);
+      expect(presented.every(isPlayableGongfa)).toBe(true);
+    }
   });
 
   it("describes authored realm transitions for each Metal branch", () => {
@@ -194,6 +206,23 @@ describe("Metal progression tree", () => {
     expect(getGongfaSkillTags("burning-ring-scripture")).toEqual(["aura", "fire"]);
   });
 
+  it("derives fallback skill tags and progression narratives for non-specialized Gongfa", () => {
+    expect(getGongfaSkillTags("blazing-feather-art")).toEqual(["homing", "fire"]);
+
+    const summary = getStageProgressionSummary("blazing-feather-art");
+    expect(summary.lianqi.signatureChange).toBe("acquire Blazing Feather Art");
+    expect(summary.zhuji.transitionKind).toBe("refine");
+    expect(getStageNarrative("blazing-feather-art", "yuanying").signatureChange).toContain(
+      "nascent-soul"
+    );
+  });
+
+  it("falls back to the Jindan combat state for stages without authored stats", () => {
+    expect(getGongfaStageState("blazing-feather-art", "yuanying")).toEqual(
+      getGongfaStageState("blazing-feather-art", "jindan")
+    );
+  });
+
   it("exposes projectile, explosive, fire, and metal tags for Crimson Furnace Sword Art", () => {
     expect(getGongfaSkillTags("crimson-furnace-sword-art")).toEqual([
       "projectile",
@@ -220,6 +249,12 @@ describe("Metal progression tree", () => {
 
     expect(state.canReveal).toBe(true);
     expect(state.reason).toContain("Lingcao");
+  });
+
+  it("returns the remaining compatible Gongfa when a reveal has three or fewer choices", () => {
+    expect(
+      getPresentedGongfaIdsForLinggen("metal", ["yujian-jue", "jinfeng-gong"])
+    ).toEqual(["gengjin-huti"]);
   });
 
   it("does not repeat the first breakthrough after Linggen is already revealed", () => {
