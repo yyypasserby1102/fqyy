@@ -15,6 +15,269 @@ export interface GongfaCombatState extends GongfaStageState {
 export interface GongfaRuntime {
   gongfaId: GongfaId;
   combat: GongfaCombatState;
+  yujian?: YujianState;
+  jinfeng?: JinfengState;
+  gengjin?: GengjinState;
+  burningRing?: BurningRingState;
+  crimsonFurnace?: CrimsonFurnaceState;
+}
+
+export interface GongfaProjectileHitMode {
+  appliesBaseDamage: boolean;
+  consumesPierce: boolean;
+}
+
+export interface GongfaProjectileHitFacts {
+  sourceGongfaId?: GongfaId;
+  targetId: number;
+  damage: number;
+  learnedMasteryIds: string[];
+  baseDamageKilledTarget: boolean;
+  embedStacks: number;
+  embedPower: number;
+}
+
+export interface YujianState {
+  executionSealTriggers: number;
+  swordBloomTriggers: number;
+  reversingSwordPathTriggers: number;
+  executionSealStacksByTarget: Record<number, number>;
+}
+
+export interface JinfengState {
+  momentum: number;
+  momentumBuildRate: number;
+  momentumDecayRate: number;
+  momentumWaveBonus: number;
+  momentumAppliedRangeBonus: number;
+  momentumAppliedSpreadBonus: number;
+  momentumAppliedLifetimeBonus: number;
+}
+
+export interface GengjinState {
+  guardValue: number;
+  guardBuildRate: number;
+  guardDecayRate: number;
+  guardMitigation: number;
+  guardMitigationBonus: number;
+  guardAppliedRetaliationBonus: number;
+  guardAppliedAuraBonus: number;
+  guardAppliedDamageBonus: number;
+  bladeShellCharge: number;
+  bladeShellThreshold: number;
+  bladeShellCooldownRemaining: number;
+  bladeShellCasts: number;
+}
+
+export interface BurningRingState {
+  heat: number;
+  heatBuildRate: number;
+  heatDecayRate: number;
+  heatAppliedCooldownBonus: number;
+  heatAuraSpeedBonus: number;
+  ringSegments: number;
+  counterflowRingSegments: number;
+  counterflowRingAppliedSegments: number;
+  counterflowRingRadiusBonus: number;
+  counterflowRingCooldownRemaining: number;
+  solarFlareCooldownRemaining: number;
+  solarFlareCasts: number;
+}
+
+export interface CrimsonFurnaceState {
+  pressure: number;
+  pressureBuildRate: number;
+  pressureDecayRate: number;
+  pressureAppliedRadiusBonus: number;
+  pressureRadiusScale: number;
+  embedThreshold: number;
+  furnaceCascadeCooldownRemaining: number;
+  furnaceCascadeCasts: number;
+}
+
+export type GongfaRuntimeEvent =
+  | {
+      kind: "tick";
+      deltaMs: number;
+      nearbyEnemyCount: number;
+      isMoving?: boolean;
+      skill2Id?: string;
+    }
+  | { kind: "projectile-hit"; damage: number }
+  | {
+      kind: "yujian-projectile-hit";
+      targetId: number;
+      damage: number;
+      learnedMasteryIds: string[];
+    }
+  | {
+      kind: "crimson-projectile-hit";
+      targetId: number;
+      damage: number;
+      embedStacks: number;
+      embedPower: number;
+    }
+  | { kind: "yujian-reversal-spawned" }
+  | { kind: "skill2"; skill2Id: string }
+  | { kind: "incoming-damage"; amount: number; skill2Id?: string }
+  | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean };
+
+export type GongfaRuntimeCommand =
+  | {
+      kind: "mastery-skill2-cast";
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "homing-volley";
+      count: number;
+      transformationTriggers?: YujianTransformationTriggers;
+    }
+  | {
+      kind: "apply-target-damage";
+      targetId: number;
+      amount: number;
+      source: "execution-seal";
+    }
+  | {
+      kind: "spawn-yujian-bloom";
+      originTargetId: number;
+      maxTargets: number;
+      damage: number;
+      pierce: number;
+    }
+  | {
+      kind: "spawn-yujian-reversal";
+      delayMs: number;
+      damage: number;
+      pierce: number;
+      speed: number;
+      lifetimeMs: number;
+    }
+  | {
+      kind: "returning-sword-formation";
+      count: number;
+      opening: YujianProjectileSpec;
+      returnPath: YujianProjectileSpec & { delayMs: number };
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "golden-gale-corridor";
+      burstCount: number;
+      burstDelayMs: number;
+      laneCount: number;
+      spreadDeg: number;
+      forwardOffset: {
+        start: number;
+        step: number;
+      };
+      sidewaysSpacing: number;
+      projectile: WaveProjectileSpec;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "wave-volley";
+      count: number;
+      returnShots: number;
+      aimMode: "nearest" | "last";
+    }
+  | {
+      kind: "aura-burst";
+      damage: number;
+      count: number;
+    }
+  | {
+      kind: "burning-ring-volley";
+      rotation: number;
+      segmentCount: number;
+      visibleSegments: number;
+      ringRadius: number;
+    }
+  | {
+      kind: "solar-flare-cycle";
+      segmentCount: number;
+      ringRadius: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "blade-shell-rebound";
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "incoming-damage";
+      finalDamage: number;
+    }
+  | {
+      kind: "crimson-furnace-volley";
+      count: number;
+    }
+  | {
+      kind: "crimson-detonation";
+      x: number;
+      y: number;
+      radius: number;
+      splashDamage: number;
+    }
+  | {
+      kind: "lodge-crimson-needle";
+      targetId: number;
+      embedStacks: number;
+      embedPower: number;
+    }
+  | {
+      kind: "detonate-crimson-embed";
+      targetId: number;
+      sourceDamage: number;
+      fragment: CrimsonFragmentSpec;
+    }
+  | {
+      kind: "furnace-cascade";
+      sourceDamage: {
+        embedPowerMultiplier: number;
+        stackDamage: number;
+      };
+      fragment: CrimsonFragmentSpec;
+      masteryCast: MasterySkill2Cast;
+    };
+
+export interface YujianTransformationTriggers {
+  executionSeal: boolean;
+  swordBloom: boolean;
+  reversingSwordPath: boolean;
+}
+
+export interface YujianProjectileSpec {
+  damage: number;
+  pierce: number;
+  speed: number;
+  lifetimeMs: number;
+}
+
+export interface WaveProjectileSpec {
+  damage: number;
+  pierce: number;
+  speed: number;
+  lifetimeMs: number;
+  scale: number;
+}
+
+export interface MasterySkill2Cast {
+  skill2Id: AuthoredSkill2Intent;
+  cooldownMs?: number;
+}
+
+export interface CrimsonFragmentSpec {
+  radius: number;
+  maxTargets: number;
+  delayMs: number;
+  delayStepMs: number;
+  damage: number;
+  speed: number;
+  lifetimeMs: number;
+}
+
+export interface GongfaRuntimeResult {
+  runtime: GongfaRuntime;
+  commands: GongfaRuntimeCommand[];
 }
 
 export type PlayerImprovementEffect =
@@ -36,12 +299,26 @@ export interface GongfaImprovementResult {
   passiveEffect?: PassiveImprovementEffect;
 }
 
+export interface GongfaImprovementReplayPlan {
+  runtimeUpgradeIds: string[];
+  checkpointedRuntimeUpgradeIds: string[];
+  playerUpgradeIds: string[];
+}
+
 export type AuthoredSkill2Intent =
   | "returning-sword-formation"
   | "golden-gale-corridor"
   | "blade-shell-rebound"
   | "solar-flare-cycle"
-  | "furnace-cascade";
+  | "furnace-cascade"
+  | "feather-rain-formation"
+  | "sunset-wave-apex"
+  | "mirror-needle-constellation"
+  | "moon-tide-vault"
+  | "frozen-lotus-shell"
+  | "verdant-root-network"
+  | "sprout-sun-circle"
+  | "ironwood-surge-form";
 
 export interface AuthoredSkill2Plan {
   intent: AuthoredSkill2Intent;
@@ -74,7 +351,69 @@ const authoredSkill2Plans: Record<AuthoredSkill2Intent, AuthoredSkill2Plan> = {
     intent: "furnace-cascade",
     trigger: "timed",
     cooldownMs: 2600
+  },
+  "feather-rain-formation": {
+    intent: "feather-rain-formation",
+    trigger: "timed",
+    cooldownMs: 2700
+  },
+  "sunset-wave-apex": {
+    intent: "sunset-wave-apex",
+    trigger: "timed",
+    cooldownMs: 2800
+  },
+  "mirror-needle-constellation": {
+    intent: "mirror-needle-constellation",
+    trigger: "timed",
+    cooldownMs: 2700
+  },
+  "moon-tide-vault": {
+    intent: "moon-tide-vault",
+    trigger: "timed",
+    cooldownMs: 2800
+  },
+  "frozen-lotus-shell": {
+    intent: "frozen-lotus-shell",
+    trigger: "timed",
+    cooldownMs: 3000
+  },
+  "verdant-root-network": {
+    intent: "verdant-root-network",
+    trigger: "timed",
+    cooldownMs: 2700
+  },
+  "sprout-sun-circle": {
+    intent: "sprout-sun-circle",
+    trigger: "timed",
+    cooldownMs: 3000
+  },
+  "ironwood-surge-form": {
+    intent: "ironwood-surge-form",
+    trigger: "timed",
+    cooldownMs: 2800
   }
+};
+
+const skill2GongfaIds: Record<AuthoredSkill2Intent, GongfaId> = {
+  "returning-sword-formation": "yujian-jue",
+  "golden-gale-corridor": "jinfeng-gong",
+  "blade-shell-rebound": "gengjin-huti",
+  "solar-flare-cycle": "burning-ring-scripture",
+  "furnace-cascade": "crimson-furnace-sword-art",
+  "feather-rain-formation": "blazing-feather-art",
+  "sunset-wave-apex": "scarlet-wave-manual",
+  "mirror-needle-constellation": "drifting-frost-needle",
+  "moon-tide-vault": "black-tide-scripture",
+  "frozen-lotus-shell": "ice-mirror-guard",
+  "verdant-root-network": "green-vine-art",
+  "sprout-sun-circle": "verdant-ring-scripture",
+  "ironwood-surge-form": "ironwood-wave-form"
+};
+
+const emptyYujianTransformationTriggers: YujianTransformationTriggers = {
+  executionSeal: false,
+  swordBloom: false,
+  reversingSwordPath: false
 };
 
 export function getAuthoredSkill2Plan(skill2Id: string | undefined): AuthoredSkill2Plan | undefined {
@@ -85,8 +424,268 @@ export function getAuthoredSkill2Plan(skill2Id: string | undefined): AuthoredSki
   return authoredSkill2Plans[skill2Id as AuthoredSkill2Intent];
 }
 
+function buildGenericTimedSkill2Commands(
+  runtime: GongfaRuntime,
+  skill2: AuthoredSkill2Plan
+): GongfaRuntimeCommand[] {
+  const masteryCast: MasterySkill2Cast = {
+    skill2Id: skill2.intent,
+    cooldownMs: skill2.cooldownMs
+  };
+  const commands: GongfaRuntimeCommand[] = [
+    {
+      kind: "mastery-skill2-cast",
+      masteryCast
+    }
+  ];
+
+  if (runtime.combat.pattern === "homing") {
+    commands.push({
+      kind: "homing-volley",
+      count: Math.max(2, runtime.combat.count + 2),
+      transformationTriggers: emptyYujianTransformationTriggers
+    });
+    return commands;
+  }
+
+  if (runtime.combat.pattern === "wave") {
+    commands.push({
+      kind: "wave-volley",
+      count: Math.max(3, runtime.combat.count + 2),
+      returnShots: runtime.combat.returnShots + 1,
+      aimMode: "nearest"
+    });
+    return commands;
+  }
+
+  commands.push({
+    kind: "aura-burst",
+    damage: Math.max(1, Math.floor(runtime.combat.damage * 1.35)),
+    count: Math.max(8, runtime.combat.count + 4)
+  });
+  return commands;
+}
+
+function buildCrimsonFragmentSpec(runtime: GongfaRuntime): CrimsonFragmentSpec {
+  return {
+    radius: 220,
+    maxTargets: 2,
+    delayMs: 100,
+    delayStepMs: 60,
+    damage: Math.max(4, Math.floor(runtime.combat.damage * 0.45)),
+    speed: runtime.combat.projectileSpeed + 80,
+    lifetimeMs: Math.max(420, runtime.combat.projectileLifetimeMs - 120)
+  };
+}
+
 interface CreateGongfaRuntimeInput {
   gongfaId: GongfaId;
+  yujian?: Partial<YujianState>;
+  jinfeng?: Partial<JinfengState>;
+  gengjin?: Partial<GengjinState>;
+  burningRing?: Partial<BurningRingState>;
+  crimsonFurnace?: Partial<CrimsonFurnaceState>;
+}
+
+export interface GongfaRuntimeCheckpointFields {
+  galeMomentum: number;
+  galeMomentumBuildRate: number;
+  galeMomentumDecayRate: number;
+  galeMomentumWaveBonus: number;
+  galeMomentumAppliedRangeBonus: number;
+  galeMomentumAppliedSpreadBonus: number;
+  galeMomentumAppliedLifetimeBonus: number;
+  heat: number;
+  heatBuildRate: number;
+  heatDecayRate: number;
+  heatAppliedCooldownBonus: number;
+  heatAuraSpeedBonus: number;
+  ringSegments: number;
+  counterflowRingSegments: number;
+  counterflowRingAppliedSegments: number;
+  counterflowRingRadiusBonus: number;
+  counterflowRingCooldownRemaining: number;
+  solarFlareCooldownRemaining: number;
+  solarFlareCasts: number;
+  crimsonPressure: number;
+  crimsonPressureBuildRate: number;
+  crimsonPressureDecayRate: number;
+  crimsonPressureAppliedRadiusBonus: number;
+  crimsonPressureRadiusScale: number;
+  crimsonEmbedThreshold: number;
+  furnaceCascadeCooldownRemaining: number;
+  furnaceCascadeCasts: number;
+  guardValue: number;
+  guardBuildRate: number;
+  guardDecayRate: number;
+  guardMitigation: number;
+  guardMitigationBonus: number;
+  guardAppliedRetaliationBonus: number;
+  guardAppliedAuraBonus: number;
+  guardAppliedDamageBonus: number;
+  bladeShellCharge: number;
+  bladeShellThreshold: number;
+  bladeShellCooldownRemaining: number;
+  bladeShellCasts: number;
+}
+
+export type GongfaRuntimeCheckpointInput = Partial<GongfaRuntimeCheckpointFields>;
+
+const jinfengDefaults: JinfengState = {
+  momentum: 0,
+  momentumBuildRate: 0.72,
+  momentumDecayRate: 0.48,
+  momentumWaveBonus: 0.08,
+  momentumAppliedRangeBonus: 0,
+  momentumAppliedSpreadBonus: 0,
+  momentumAppliedLifetimeBonus: 0
+};
+
+const gengjinDefaults: GengjinState = {
+  guardValue: 0,
+  guardBuildRate: 0.62,
+  guardDecayRate: 0.38,
+  guardMitigation: 0,
+  guardMitigationBonus: 0,
+  guardAppliedRetaliationBonus: 0,
+  guardAppliedAuraBonus: 0,
+  guardAppliedDamageBonus: 0,
+  bladeShellCharge: 0,
+  bladeShellThreshold: 100,
+  bladeShellCooldownRemaining: 0,
+  bladeShellCasts: 0
+};
+
+const burningRingDefaults: BurningRingState = {
+  heat: 0,
+  heatBuildRate: 1.2,
+  heatDecayRate: 0.65,
+  heatAppliedCooldownBonus: 0,
+  heatAuraSpeedBonus: 0.08,
+  ringSegments: 6,
+  counterflowRingSegments: 0,
+  counterflowRingAppliedSegments: 0,
+  counterflowRingRadiusBonus: 0,
+  counterflowRingCooldownRemaining: 0,
+  solarFlareCooldownRemaining: 0,
+  solarFlareCasts: 0
+};
+
+const crimsonFurnaceDefaults: CrimsonFurnaceState = {
+  pressure: 0,
+  pressureBuildRate: 1.4,
+  pressureDecayRate: 0.6,
+  pressureAppliedRadiusBonus: 0,
+  pressureRadiusScale: 0.45,
+  embedThreshold: 3,
+  furnaceCascadeCooldownRemaining: 0,
+  furnaceCascadeCasts: 0
+};
+
+const yujianDefaults: YujianState = {
+  executionSealTriggers: 0,
+  swordBloomTriggers: 0,
+  reversingSwordPathTriggers: 0,
+  executionSealStacksByTarget: {}
+};
+
+function copyRuntime(runtime: GongfaRuntime): GongfaRuntime {
+  return {
+    ...runtime,
+    combat: { ...runtime.combat },
+    yujian: runtime.yujian
+      ? {
+          ...runtime.yujian,
+          executionSealStacksByTarget: {
+            ...runtime.yujian.executionSealStacksByTarget
+          }
+        }
+      : undefined,
+    jinfeng: runtime.jinfeng ? { ...runtime.jinfeng } : undefined,
+    gengjin: runtime.gengjin ? { ...runtime.gengjin } : undefined,
+    burningRing: runtime.burningRing ? { ...runtime.burningRing } : undefined,
+    crimsonFurnace: runtime.crimsonFurnace ? { ...runtime.crimsonFurnace } : undefined
+  };
+}
+
+function definedFields<T extends Record<string, unknown>>(fields: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(fields).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+}
+
+function syncJinfengCombat(runtime: GongfaRuntime): void {
+  const state = runtime.jinfeng;
+  if (!state) {
+    return;
+  }
+
+  const stageState = gongfaConfigs["jinfeng-gong"].stages.lianqi!;
+  const momentumBonus = 1 + state.momentum * state.momentumWaveBonus;
+  const desiredRangeBonus = Math.round(stageState.range * (momentumBonus - 1));
+  const desiredSpreadBonus = Math.round(stageState.spreadDeg * (momentumBonus - 1));
+  const desiredLifetimeBonus = Math.floor(state.momentum * 50);
+
+  runtime.combat.range += desiredRangeBonus - state.momentumAppliedRangeBonus;
+  runtime.combat.spreadDeg += desiredSpreadBonus - state.momentumAppliedSpreadBonus;
+  runtime.combat.projectileLifetimeMs +=
+    desiredLifetimeBonus - state.momentumAppliedLifetimeBonus;
+
+  state.momentumAppliedRangeBonus = desiredRangeBonus;
+  state.momentumAppliedSpreadBonus = desiredSpreadBonus;
+  state.momentumAppliedLifetimeBonus = desiredLifetimeBonus;
+}
+
+function syncGengjinCombat(runtime: GongfaRuntime): void {
+  const state = runtime.gengjin;
+  if (!state) {
+    return;
+  }
+
+  const stageState = gongfaConfigs["gengjin-huti"].stages.lianqi!;
+  const desiredRetaliationBonus = Math.max(1, Math.floor(state.guardValue * 0.18));
+  const desiredAuraBonus = Math.floor(state.guardValue * 0.35);
+  const desiredDamageBonus = Math.floor(state.guardValue * 0.08);
+
+  runtime.combat.retaliationDamage +=
+    desiredRetaliationBonus - state.guardAppliedRetaliationBonus;
+  runtime.combat.auraRadius += desiredAuraBonus - state.guardAppliedAuraBonus;
+  runtime.combat.damage += desiredDamageBonus - state.guardAppliedDamageBonus;
+
+  state.guardAppliedRetaliationBonus = desiredRetaliationBonus;
+  state.guardAppliedAuraBonus = desiredAuraBonus;
+  state.guardAppliedDamageBonus = desiredDamageBonus;
+  state.guardMitigation = Math.min(0.65, state.guardValue / 220 + state.guardMitigationBonus);
+  runtime.combat.auraRadius = Math.max(stageState.auraRadius, runtime.combat.auraRadius);
+}
+
+function syncBurningRingCombat(runtime: GongfaRuntime): void {
+  const state = runtime.burningRing;
+  if (!state) {
+    return;
+  }
+
+  const stageState = gongfaConfigs["burning-ring-scripture"].stages.lianqi!;
+  const currentHeatBonus = Math.min(0.5, state.heat * (0.01 + state.heatAuraSpeedBonus));
+  const desiredCooldownBonus = Math.floor(stageState.cooldownMs * currentHeatBonus);
+  runtime.combat.cooldownMs = Math.max(
+    220,
+    runtime.combat.cooldownMs - (desiredCooldownBonus - state.heatAppliedCooldownBonus)
+  );
+  state.heatAppliedCooldownBonus = desiredCooldownBonus;
+}
+
+function syncCrimsonFurnaceCombat(runtime: GongfaRuntime): void {
+  const state = runtime.crimsonFurnace;
+  if (!state) {
+    return;
+  }
+
+  const stageState = gongfaConfigs["crimson-furnace-sword-art"].stages.lianqi!;
+  const desiredRadiusBonus = Math.floor(state.pressure * state.pressureRadiusScale);
+  runtime.combat.range += desiredRadiusBonus - state.pressureAppliedRadiusBonus;
+  state.pressureAppliedRadiusBonus = desiredRadiusBonus;
+  runtime.combat.range = Math.max(stageState.range, runtime.combat.range);
 }
 
 export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRuntime {
@@ -96,7 +695,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
     throw new Error(`Gongfa ${input.gongfaId} has no starting combat state.`);
   }
 
-  return {
+  const runtime: GongfaRuntime = {
     gongfaId: input.gongfaId,
     combat: {
       ...stageState,
@@ -105,8 +704,751 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
       tint: gongfa.tint,
       damage: stageState.damage,
       cooldownMs: stageState.cooldownMs
-    }
+    },
+    yujian:
+      input.gongfaId === "yujian-jue"
+        ? {
+            ...yujianDefaults,
+            ...input.yujian,
+            executionSealStacksByTarget: {
+              ...yujianDefaults.executionSealStacksByTarget,
+              ...input.yujian?.executionSealStacksByTarget
+            }
+          }
+        : undefined,
+    jinfeng:
+      input.gongfaId === "jinfeng-gong"
+        ? {
+            ...jinfengDefaults,
+            ...input.jinfeng,
+            // These are derived projections onto combat state, not durable state.
+            momentumAppliedRangeBonus: 0,
+            momentumAppliedSpreadBonus: 0,
+            momentumAppliedLifetimeBonus: 0
+          }
+        : undefined,
+    gengjin:
+      input.gongfaId === "gengjin-huti"
+        ? {
+            ...gengjinDefaults,
+            ...input.gengjin,
+            // These are derived projections onto combat state, not durable state.
+            guardAppliedRetaliationBonus: 0,
+            guardAppliedAuraBonus: 0,
+            guardAppliedDamageBonus: 0
+          }
+        : undefined,
+    burningRing:
+      input.gongfaId === "burning-ring-scripture"
+        ? {
+            ...burningRingDefaults,
+            ...input.burningRing,
+            // This is a derived projection onto combat cooldown, not durable state.
+            heatAppliedCooldownBonus: 0
+          }
+        : undefined,
+    crimsonFurnace:
+      input.gongfaId === "crimson-furnace-sword-art"
+        ? {
+            ...crimsonFurnaceDefaults,
+            ...input.crimsonFurnace,
+            // This is a derived projection onto combat range, not durable state.
+            pressureAppliedRadiusBonus: 0
+          }
+        : undefined
   };
+
+  syncJinfengCombat(runtime);
+  syncGengjinCombat(runtime);
+  syncBurningRingCombat(runtime);
+  syncCrimsonFurnaceCombat(runtime);
+  return runtime;
+}
+
+export function createGongfaRuntimeFromCheckpoint(
+  gongfaId: GongfaId,
+  checkpoint: GongfaRuntimeCheckpointInput
+): GongfaRuntime {
+  return createGongfaRuntime({
+    gongfaId,
+    jinfeng:
+      gongfaId === "jinfeng-gong"
+        ? definedFields({
+            momentum: checkpoint.galeMomentum,
+            momentumBuildRate: checkpoint.galeMomentumBuildRate,
+            momentumDecayRate: checkpoint.galeMomentumDecayRate,
+            momentumWaveBonus: checkpoint.galeMomentumWaveBonus,
+            momentumAppliedRangeBonus: checkpoint.galeMomentumAppliedRangeBonus,
+            momentumAppliedSpreadBonus: checkpoint.galeMomentumAppliedSpreadBonus,
+            momentumAppliedLifetimeBonus: checkpoint.galeMomentumAppliedLifetimeBonus
+          })
+        : undefined,
+    gengjin:
+      gongfaId === "gengjin-huti"
+        ? definedFields({
+            guardValue: checkpoint.guardValue,
+            guardBuildRate: checkpoint.guardBuildRate,
+            guardDecayRate: checkpoint.guardDecayRate,
+            guardMitigation: checkpoint.guardMitigation,
+            guardMitigationBonus: checkpoint.guardMitigationBonus,
+            guardAppliedRetaliationBonus: checkpoint.guardAppliedRetaliationBonus,
+            guardAppliedAuraBonus: checkpoint.guardAppliedAuraBonus,
+            guardAppliedDamageBonus: checkpoint.guardAppliedDamageBonus,
+            bladeShellCharge: checkpoint.bladeShellCharge,
+            bladeShellThreshold: checkpoint.bladeShellThreshold,
+            bladeShellCooldownRemaining: checkpoint.bladeShellCooldownRemaining,
+            bladeShellCasts: checkpoint.bladeShellCasts
+          })
+        : undefined,
+    burningRing:
+      gongfaId === "burning-ring-scripture"
+        ? definedFields({
+            heat: checkpoint.heat,
+            heatBuildRate: checkpoint.heatBuildRate,
+            heatDecayRate: checkpoint.heatDecayRate,
+            heatAppliedCooldownBonus: checkpoint.heatAppliedCooldownBonus,
+            heatAuraSpeedBonus: checkpoint.heatAuraSpeedBonus,
+            ringSegments: checkpoint.ringSegments,
+            counterflowRingSegments: checkpoint.counterflowRingSegments,
+            counterflowRingAppliedSegments: checkpoint.counterflowRingAppliedSegments,
+            counterflowRingRadiusBonus: checkpoint.counterflowRingRadiusBonus,
+            counterflowRingCooldownRemaining: checkpoint.counterflowRingCooldownRemaining,
+            solarFlareCooldownRemaining: checkpoint.solarFlareCooldownRemaining,
+            solarFlareCasts: checkpoint.solarFlareCasts
+          })
+        : undefined,
+    crimsonFurnace:
+      gongfaId === "crimson-furnace-sword-art"
+        ? definedFields({
+            pressure: checkpoint.crimsonPressure,
+            pressureBuildRate: checkpoint.crimsonPressureBuildRate,
+            pressureDecayRate: checkpoint.crimsonPressureDecayRate,
+            pressureAppliedRadiusBonus: checkpoint.crimsonPressureAppliedRadiusBonus,
+            pressureRadiusScale: checkpoint.crimsonPressureRadiusScale,
+            embedThreshold: checkpoint.crimsonEmbedThreshold,
+            furnaceCascadeCooldownRemaining: checkpoint.furnaceCascadeCooldownRemaining,
+            furnaceCascadeCasts: checkpoint.furnaceCascadeCasts
+          })
+        : undefined
+  });
+}
+
+export function projectGongfaRuntimeCheckpoint(
+  runtime: GongfaRuntime | undefined
+): GongfaRuntimeCheckpointFields {
+  const jinfeng = runtime?.jinfeng;
+  const gengjin = runtime?.gengjin;
+  const burningRing = runtime?.burningRing;
+  const crimsonFurnace = runtime?.crimsonFurnace;
+
+  return {
+    galeMomentum: jinfeng?.momentum ?? 0,
+    galeMomentumBuildRate: jinfeng?.momentumBuildRate ?? 0,
+    galeMomentumDecayRate: jinfeng?.momentumDecayRate ?? 0,
+    galeMomentumWaveBonus: jinfeng?.momentumWaveBonus ?? 0,
+    galeMomentumAppliedRangeBonus: jinfeng?.momentumAppliedRangeBonus ?? 0,
+    galeMomentumAppliedSpreadBonus: jinfeng?.momentumAppliedSpreadBonus ?? 0,
+    galeMomentumAppliedLifetimeBonus: jinfeng?.momentumAppliedLifetimeBonus ?? 0,
+    heat: burningRing?.heat ?? 0,
+    heatBuildRate: burningRing?.heatBuildRate ?? 0,
+    heatDecayRate: burningRing?.heatDecayRate ?? 0,
+    heatAppliedCooldownBonus: burningRing?.heatAppliedCooldownBonus ?? 0,
+    heatAuraSpeedBonus: burningRing?.heatAuraSpeedBonus ?? 0,
+    ringSegments: burningRing?.ringSegments ?? 0,
+    counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
+    counterflowRingAppliedSegments: burningRing?.counterflowRingAppliedSegments ?? 0,
+    counterflowRingRadiusBonus: burningRing?.counterflowRingRadiusBonus ?? 0,
+    counterflowRingCooldownRemaining: burningRing?.counterflowRingCooldownRemaining ?? 0,
+    solarFlareCooldownRemaining: burningRing?.solarFlareCooldownRemaining ?? 0,
+    solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
+    crimsonPressure: crimsonFurnace?.pressure ?? 0,
+    crimsonPressureBuildRate: crimsonFurnace?.pressureBuildRate ?? 0,
+    crimsonPressureDecayRate: crimsonFurnace?.pressureDecayRate ?? 0,
+    crimsonPressureAppliedRadiusBonus: crimsonFurnace?.pressureAppliedRadiusBonus ?? 0,
+    crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
+    crimsonEmbedThreshold: crimsonFurnace?.embedThreshold ?? 3,
+    furnaceCascadeCooldownRemaining: crimsonFurnace?.furnaceCascadeCooldownRemaining ?? 0,
+    furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
+    guardValue: gengjin?.guardValue ?? 0,
+    guardBuildRate: gengjin?.guardBuildRate ?? 0,
+    guardDecayRate: gengjin?.guardDecayRate ?? 0,
+    guardMitigation: gengjin?.guardMitigation ?? 0,
+    guardMitigationBonus: gengjin?.guardMitigationBonus ?? 0,
+    guardAppliedRetaliationBonus: gengjin?.guardAppliedRetaliationBonus ?? 0,
+    guardAppliedAuraBonus: gengjin?.guardAppliedAuraBonus ?? 0,
+    guardAppliedDamageBonus: gengjin?.guardAppliedDamageBonus ?? 0,
+    bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
+    bladeShellThreshold: gengjin?.bladeShellThreshold ?? 100,
+    bladeShellCooldownRemaining: gengjin?.bladeShellCooldownRemaining ?? 0,
+    bladeShellCasts: gengjin?.bladeShellCasts ?? 0
+  };
+}
+
+export function getGongfaProjectileHitMode(sourceGongfaId?: GongfaId): GongfaProjectileHitMode {
+  if (sourceGongfaId === "crimson-furnace-sword-art") {
+    return {
+      appliesBaseDamage: false,
+      consumesPierce: false
+    };
+  }
+
+  return {
+    appliesBaseDamage: true,
+    consumesPierce: true
+  };
+}
+
+export function advanceGongfaRuntimeForProjectileHit(
+  runtime: GongfaRuntime,
+  facts: GongfaProjectileHitFacts
+): GongfaRuntimeResult {
+  const commands: GongfaRuntimeCommand[] = [];
+
+  if (facts.sourceGongfaId === "crimson-furnace-sword-art") {
+    return advanceGongfaRuntime(runtime, {
+      kind: "crimson-projectile-hit",
+      targetId: facts.targetId,
+      damage: facts.damage,
+      embedStacks: facts.embedStacks,
+      embedPower: facts.embedPower
+    });
+  }
+
+  let next = runtime;
+
+  if (facts.sourceGongfaId === "yujian-jue" && !facts.baseDamageKilledTarget) {
+    const result = advanceGongfaRuntime(next, {
+      kind: "yujian-projectile-hit",
+      targetId: facts.targetId,
+      damage: facts.damage,
+      learnedMasteryIds: facts.learnedMasteryIds
+    });
+    next = result.runtime;
+    commands.push(...result.commands);
+  }
+
+  if (next.burningRing) {
+    const result = advanceGongfaRuntime(next, {
+      kind: "projectile-hit",
+      damage: facts.damage
+    });
+    next = result.runtime;
+    commands.push(...result.commands);
+  }
+
+  return { runtime: next, commands };
+}
+
+export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number {
+  if (runtime.burningRing) {
+    return 170;
+  }
+
+  if (runtime.gengjin) {
+    return 160;
+  }
+
+  return 0;
+}
+
+export function advanceGongfaRuntime(
+  runtime: GongfaRuntime,
+  event: GongfaRuntimeEvent
+): GongfaRuntimeResult {
+  if (
+    !runtime.yujian &&
+    !runtime.jinfeng &&
+    !runtime.gengjin &&
+    !runtime.burningRing &&
+    !runtime.crimsonFurnace &&
+    event.kind !== "skill2"
+  ) {
+    return { runtime, commands: [] };
+  }
+
+  const next = copyRuntime(runtime);
+  const commands: GongfaRuntimeCommand[] = [];
+
+  if (event.kind === "yujian-projectile-hit") {
+    const state = next.yujian;
+    if (!state) {
+      return { runtime: next, commands };
+    }
+
+    if (event.learnedMasteryIds.includes("execution-seal")) {
+      const nextStack = Math.min(
+        3,
+        (state.executionSealStacksByTarget[event.targetId] ?? 0) + 1
+      );
+      state.executionSealStacksByTarget[event.targetId] = nextStack;
+
+      if (nextStack >= 2) {
+        state.executionSealTriggers += 1;
+        commands.push({
+          kind: "apply-target-damage",
+          targetId: event.targetId,
+          amount: Math.max(1, Math.floor(next.combat.damage * (0.35 + nextStack * 0.15))),
+          source: "execution-seal"
+        });
+      }
+    }
+
+    if (event.learnedMasteryIds.includes("sword-bloom")) {
+      state.swordBloomTriggers += 1;
+      commands.push({
+        kind: "spawn-yujian-bloom",
+        originTargetId: event.targetId,
+        maxTargets: 2,
+        damage: Math.max(1, Math.floor(next.combat.damage * 0.5)),
+        pierce: 1
+      });
+    }
+
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "yujian-reversal-spawned") {
+    if (next.yujian) {
+      next.yujian.reversingSwordPathTriggers += 1;
+    }
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "skill2") {
+    if (event.skill2Id === "returning-sword-formation" && next.yujian) {
+      commands.push({
+        kind: "returning-sword-formation",
+        count: Math.max(1, next.combat.count),
+        opening: {
+          damage: Math.floor(next.combat.damage * 0.72),
+          pierce: next.combat.pierce + 1,
+          speed: next.combat.projectileSpeed + 55,
+          lifetimeMs: next.combat.projectileLifetimeMs + 280
+        },
+        returnPath: {
+          delayMs: 240,
+          damage: Math.floor(next.combat.damage * 0.58),
+          pierce: next.combat.pierce + 1,
+          speed: next.combat.projectileSpeed + 75,
+          lifetimeMs: next.combat.projectileLifetimeMs + 340
+        },
+        masteryCast: {
+          skill2Id: "returning-sword-formation",
+          cooldownMs: authoredSkill2Plans["returning-sword-formation"].cooldownMs
+        }
+      });
+    }
+    if (event.skill2Id === "golden-gale-corridor" && next.jinfeng) {
+      commands.push({
+        kind: "golden-gale-corridor",
+        burstCount: 3,
+        burstDelayMs: 180,
+        laneCount: Math.max(3, Math.min(5, 3 + Math.floor(next.combat.count / 2))),
+        spreadDeg: Math.max(8, next.combat.spreadDeg * 0.4),
+        forwardOffset: {
+          start: 32,
+          step: 26
+        },
+        sidewaysSpacing: 12,
+        projectile: {
+          damage: Math.floor(next.combat.damage * 0.8),
+          pierce: next.combat.pierce + 1,
+          speed: next.combat.projectileSpeed + 25,
+          lifetimeMs: next.combat.projectileLifetimeMs + Math.floor(next.combat.range * 0.9),
+          scale: 0.92
+        },
+        masteryCast: {
+          skill2Id: "golden-gale-corridor",
+          cooldownMs: authoredSkill2Plans["golden-gale-corridor"].cooldownMs
+        }
+      });
+    }
+    if (event.skill2Id === "furnace-cascade" && next.crimsonFurnace) {
+      next.crimsonFurnace.furnaceCascadeCasts += 1;
+      commands.push({
+        kind: "furnace-cascade",
+        sourceDamage: {
+          embedPowerMultiplier: 1,
+          stackDamage: 3
+        },
+        fragment: buildCrimsonFragmentSpec(next),
+        masteryCast: {
+          skill2Id: "furnace-cascade",
+          cooldownMs: authoredSkill2Plans["furnace-cascade"].cooldownMs
+        }
+      });
+    }
+    const skill2 = getAuthoredSkill2Plan(event.skill2Id);
+    if (
+      skill2?.trigger === "timed" &&
+      skill2GongfaIds[skill2.intent] === next.gongfaId &&
+      !commands.some((command) => "masteryCast" in command)
+    ) {
+      commands.push(...buildGenericTimedSkill2Commands(next, skill2));
+    }
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "projectile-hit") {
+    const state = next.burningRing;
+    if (!state) {
+      return { runtime: next, commands };
+    }
+    state.heat = Math.min(100, state.heat + Math.max(0.4, event.damage * 0.15));
+    syncBurningRingCombat(next);
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "crimson-projectile-hit") {
+    const state = next.crimsonFurnace;
+    if (!state) {
+      return { runtime: next, commands };
+    }
+
+    const embedStacks = event.embedStacks + 1;
+    const embedPower = event.embedPower + event.damage;
+    commands.push({
+      kind: "lodge-crimson-needle",
+      targetId: event.targetId,
+      embedStacks,
+      embedPower
+    });
+
+    if (embedStacks >= state.embedThreshold) {
+      commands.push({
+        kind: "detonate-crimson-embed",
+        targetId: event.targetId,
+        sourceDamage: Math.max(event.damage, embedPower + embedStacks * 2),
+        fragment: buildCrimsonFragmentSpec(next)
+      });
+    }
+
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "incoming-damage") {
+    const state = next.gengjin;
+    if (!state) {
+      commands.push({
+        kind: "incoming-damage",
+        finalDamage: Math.max(1, Math.floor(event.amount))
+      });
+      return { runtime: next, commands };
+    }
+
+    const finalDamage = Math.max(1, Math.floor(event.amount * (1 - state.guardMitigation)));
+    state.bladeShellCharge = Math.min(
+      state.bladeShellThreshold,
+      state.bladeShellCharge + finalDamage * 2
+    );
+    syncGengjinCombat(next);
+    commands.push({ kind: "incoming-damage", finalDamage });
+
+    const skill2 = getAuthoredSkill2Plan(event.skill2Id);
+    if (skill2?.trigger === "threshold" && state.bladeShellCooldownRemaining === 0) {
+      if (state.bladeShellCharge >= state.bladeShellThreshold) {
+        state.bladeShellCasts += 1;
+        state.bladeShellCharge = 0;
+        state.bladeShellCooldownRemaining = 1800;
+        commands.push({
+          kind: "blade-shell-rebound",
+          masteryCast: {
+            skill2Id: "blade-shell-rebound",
+            cooldownMs: authoredSkill2Plans["blade-shell-rebound"].cooldownMs
+          }
+        });
+      }
+    }
+    return { runtime: next, commands };
+  }
+
+  if (event.kind === "crimson-detonation") {
+    const state = next.crimsonFurnace;
+    if (!state) {
+      return { runtime: next, commands };
+    }
+
+    const pressureGain = event.fromEmbed
+      ? Math.max(0.8, event.damage * 0.14)
+      : Math.max(0.5, event.damage * 0.1);
+    state.pressure = Math.min(100, state.pressure + pressureGain * state.pressureBuildRate);
+    syncCrimsonFurnaceCombat(next);
+    commands.push({
+      kind: "crimson-detonation",
+      x: event.x,
+      y: event.y,
+      radius: Math.max(20, next.combat.range + Math.floor(state.pressure * 0.35)),
+      splashDamage: Math.max(1, Math.floor(event.damage + state.pressure * 0.4))
+    });
+    return { runtime: next, commands };
+  }
+
+  const deltaSeconds = Math.max(0, event.deltaMs) / 1000;
+
+  if (next.jinfeng) {
+    if (event.isMoving) {
+      next.jinfeng.momentum = Math.min(
+        5,
+        next.jinfeng.momentum + next.jinfeng.momentumBuildRate * deltaSeconds
+      );
+    } else {
+      next.jinfeng.momentum = Math.max(
+        0,
+        next.jinfeng.momentum - next.jinfeng.momentumDecayRate * deltaSeconds
+      );
+    }
+    syncJinfengCombat(next);
+  }
+
+  if (next.gengjin) {
+    if (event.nearbyEnemyCount > 0) {
+      next.gengjin.guardValue = Math.min(
+        100,
+        next.gengjin.guardValue +
+          event.nearbyEnemyCount * next.gengjin.guardBuildRate * deltaSeconds
+      );
+      next.gengjin.bladeShellCharge = Math.min(
+        next.gengjin.bladeShellThreshold,
+        next.gengjin.bladeShellCharge +
+          event.nearbyEnemyCount * 7 * deltaSeconds +
+          next.gengjin.guardValue * 0.05 * deltaSeconds
+      );
+    } else {
+      next.gengjin.guardValue = Math.max(
+        0,
+        next.gengjin.guardValue - next.gengjin.guardDecayRate * deltaSeconds
+      );
+      next.gengjin.bladeShellCharge = Math.max(
+        0,
+        next.gengjin.bladeShellCharge - 5 * deltaSeconds
+      );
+    }
+    syncGengjinCombat(next);
+
+    const skill2 = getAuthoredSkill2Plan(event.skill2Id);
+    if (skill2?.trigger === "threshold") {
+      if (next.gengjin.bladeShellCooldownRemaining > 0) {
+        next.gengjin.bladeShellCooldownRemaining = Math.max(
+          0,
+          next.gengjin.bladeShellCooldownRemaining - Math.max(0, event.deltaMs)
+        );
+      } else if (next.gengjin.bladeShellCharge >= next.gengjin.bladeShellThreshold) {
+        next.gengjin.bladeShellCasts += 1;
+        next.gengjin.bladeShellCharge = 0;
+        next.gengjin.bladeShellCooldownRemaining = 1800;
+        commands.push({
+          kind: "blade-shell-rebound",
+          masteryCast: {
+            skill2Id: "blade-shell-rebound",
+            cooldownMs: authoredSkill2Plans["blade-shell-rebound"].cooldownMs
+          }
+        });
+      }
+    }
+  }
+
+  if (next.crimsonFurnace) {
+    next.crimsonFurnace.pressure = Math.max(
+      0,
+      next.crimsonFurnace.pressure - next.crimsonFurnace.pressureDecayRate * deltaSeconds
+    );
+    syncCrimsonFurnaceCombat(next);
+  }
+
+  if (!next.burningRing) {
+    return { runtime: next, commands };
+  }
+
+  const state = next.burningRing;
+  if (event.nearbyEnemyCount > 0) {
+    state.heat = Math.min(
+      100,
+      state.heat + event.nearbyEnemyCount * state.heatBuildRate * deltaSeconds
+    );
+  } else {
+    state.heat = Math.max(0, state.heat - state.heatDecayRate * deltaSeconds);
+  }
+  syncBurningRingCombat(next);
+
+  const skill2 = getAuthoredSkill2Plan(event.skill2Id);
+  if (skill2?.intent === "solar-flare-cycle") {
+    state.solarFlareCooldownRemaining = Math.max(
+      0,
+      state.solarFlareCooldownRemaining - Math.max(0, event.deltaMs)
+    );
+    if (state.solarFlareCooldownRemaining === 0) {
+      state.solarFlareCasts += 1;
+      state.solarFlareCooldownRemaining = skill2.cooldownMs;
+      commands.push({
+        kind: "solar-flare-cycle",
+        segmentCount: Math.max(
+          6,
+          state.ringSegments + state.counterflowRingAppliedSegments
+        ),
+        ringRadius: 32 + Math.floor(state.heat * 0.3) + state.counterflowRingRadiusBonus,
+        masteryCast: {
+          skill2Id: "solar-flare-cycle"
+        }
+      });
+    }
+  }
+
+  return { runtime: next, commands };
+}
+
+export function planGongfaAttack(
+  runtime: GongfaRuntime,
+  elapsedMs: number,
+  options: { learnedMasteryIds?: string[] } = {}
+): GongfaRuntimeCommand[] {
+  if (runtime.crimsonFurnace) {
+    return [{ kind: "crimson-furnace-volley", count: runtime.combat.count }];
+  }
+
+  switch (runtime.combat.pattern) {
+    case "homing": {
+      const learnedMasteryIds = options.learnedMasteryIds ?? [];
+      const transformationTriggers = runtime.yujian
+        ? {
+            executionSeal: learnedMasteryIds.includes("execution-seal"),
+            swordBloom: learnedMasteryIds.includes("sword-bloom"),
+            reversingSwordPath: learnedMasteryIds.includes("reversing-sword-path")
+          }
+        : emptyYujianTransformationTriggers;
+      const commands: GongfaRuntimeCommand[] = [
+        {
+          kind: "homing-volley",
+          count: runtime.combat.count,
+          transformationTriggers
+        }
+      ];
+
+      if (runtime.yujian && transformationTriggers.reversingSwordPath) {
+        commands.push({
+          kind: "spawn-yujian-reversal",
+          delayMs: 170,
+          damage: Math.max(1, Math.floor(runtime.combat.damage * 0.58)),
+          pierce: runtime.combat.pierce + 1,
+          speed: runtime.combat.projectileSpeed + 70,
+          lifetimeMs: runtime.combat.projectileLifetimeMs + 160
+        });
+      }
+
+      return commands;
+    }
+    case "wave":
+      return [
+        {
+          kind: "wave-volley",
+          count: Math.max(1, runtime.combat.count),
+          returnShots: runtime.combat.returnShots,
+          aimMode: runtime.jinfeng ? "last" : "nearest"
+        }
+      ];
+    case "aura":
+      if (!runtime.burningRing) {
+        return [
+          {
+            kind: "aura-burst",
+            damage: runtime.combat.damage,
+            count: runtime.combat.count
+          }
+        ];
+      }
+      break;
+  }
+
+  const state = runtime.burningRing;
+  if (!state) {
+    return [];
+  }
+
+  const segmentCount = Math.max(
+    6,
+    state.ringSegments + state.counterflowRingAppliedSegments
+  );
+  return [
+    {
+      kind: "burning-ring-volley",
+      rotation: (Math.max(0, elapsedMs) / 1000) * 0.9,
+      segmentCount,
+      visibleSegments: Math.max(4, segmentCount - 2),
+      ringRadius: 24 + Math.floor(state.heat * 0.3)
+    }
+  ];
+}
+
+export interface CrimsonTargetFact {
+  index: number;
+  embedStacks: number;
+  distance: number;
+  active: boolean;
+}
+
+export function selectCrimsonFurnaceTargetIndexes(
+  candidates: CrimsonTargetFact[],
+  count: number
+): number[] {
+  return candidates
+    .filter((enemy) => enemy.active)
+    .sort((a, b) => {
+      const embedPriority = b.embedStacks - a.embedStacks;
+      if (embedPriority !== 0) {
+        return embedPriority;
+      }
+
+      return a.distance - b.distance;
+    })
+    .slice(0, Math.max(0, count))
+    .map((enemy) => enemy.index);
+}
+
+export function getCrimsonEmbedThreshold(runtime: GongfaRuntime): number {
+  return runtime.crimsonFurnace?.embedThreshold ?? crimsonFurnaceDefaults.embedThreshold;
+}
+
+export function splitGongfaImprovementReplayIds(upgradeIds: string[]): GongfaImprovementReplayPlan {
+  const checkpointedRuntimeEffects: UpgradeEffect[] = [
+    "heatBuild",
+    "heatDecay",
+    "auraSynergy",
+    "galeMomentumBuild",
+    "galeMomentumDecay",
+    "waveSynergy",
+    "guardBuild",
+    "guardStability",
+    "defensiveSynergy",
+    "embedThreshold",
+    "pressureBuild",
+    "pressureDecay"
+  ];
+
+  return upgradeIds.reduce<GongfaImprovementReplayPlan>(
+    (plan, upgradeId) => {
+      const upgrade = upgradeConfigs.find((item) => item.id === upgradeId);
+      if (
+        upgrade?.effect === "moveSpeed" ||
+        upgrade?.effect === "maxHealth" ||
+        upgrade?.effect === "heal" ||
+        upgrade?.effect === "magnet"
+      ) {
+        plan.playerUpgradeIds.push(upgradeId);
+        return plan;
+      }
+
+      if (
+        upgrade &&
+        (checkpointedRuntimeEffects.includes(upgrade.effect) || upgradeId === "counterflow-ring")
+      ) {
+        plan.checkpointedRuntimeUpgradeIds.push(upgradeId);
+        return plan;
+      }
+
+      plan.runtimeUpgradeIds.push(upgradeId);
+      return plan;
+    },
+    { runtimeUpgradeIds: [], checkpointedRuntimeUpgradeIds: [], playerUpgradeIds: [] }
+  );
 }
 
 export function applyGongfaImprovement(
@@ -117,11 +1459,11 @@ export function applyGongfaImprovement(
   if (!upgrade) {
     return { runtime };
   }
+  if (upgrade.requiredGongfaIds && !upgrade.requiredGongfaIds.includes(runtime.gongfaId)) {
+    return { runtime };
+  }
 
-  const next: GongfaRuntime = {
-    ...runtime,
-    combat: { ...runtime.combat }
-  };
+  const next = copyRuntime(runtime);
 
   switch (upgrade.effect) {
     case "methodDamage":
@@ -132,6 +1474,11 @@ export function applyGongfaImprovement(
       return { runtime: next };
     case "methodCount":
       next.combat.count += upgrade.value;
+      if (upgradeId === "counterflow-ring" && next.burningRing) {
+        next.burningRing.counterflowRingSegments += 1;
+        next.burningRing.counterflowRingAppliedSegments =
+          next.burningRing.counterflowRingSegments;
+      }
       return { runtime: next };
     case "methodPierce":
       next.combat.pierce += upgrade.value;
@@ -151,15 +1498,113 @@ export function applyGongfaImprovement(
         runtime: next,
         playerEffect: { kind: upgrade.effect, value: upgrade.value }
       };
+    case "heatBuild":
+      if (next.burningRing) {
+        next.burningRing.heatBuildRate += upgrade.value;
+        return { runtime: next };
+      }
+      break;
+    case "heatDecay":
+      if (next.burningRing) {
+        next.burningRing.heatDecayRate = Math.max(
+          0.08,
+          next.burningRing.heatDecayRate * upgrade.value
+        );
+        return { runtime: next };
+      }
+      break;
+    case "auraSynergy":
+      if (next.burningRing) {
+        next.burningRing.heatDecayRate = Math.max(
+          0.08,
+          next.burningRing.heatDecayRate * 0.84
+        );
+        next.burningRing.heatAuraSpeedBonus += upgrade.value;
+        syncBurningRingCombat(next);
+        return { runtime: next };
+      }
+      break;
+    case "galeMomentumBuild":
+      if (next.jinfeng) {
+        next.jinfeng.momentumBuildRate += upgrade.value;
+        return { runtime: next };
+      }
+      break;
+    case "galeMomentumDecay":
+      if (next.jinfeng) {
+        next.jinfeng.momentumDecayRate = Math.max(
+          0.08,
+          next.jinfeng.momentumDecayRate * upgrade.value
+        );
+        return { runtime: next };
+      }
+      break;
+    case "waveSynergy":
+      if (next.jinfeng) {
+        next.jinfeng.momentumWaveBonus += upgrade.value;
+        syncJinfengCombat(next);
+        return { runtime: next };
+      }
+      break;
+    case "guardBuild":
+      if (next.gengjin) {
+        next.gengjin.guardBuildRate += upgrade.value;
+        return { runtime: next };
+      }
+      break;
+    case "guardStability":
+      if (next.gengjin) {
+        next.gengjin.guardDecayRate = Math.max(
+          0.08,
+          next.gengjin.guardDecayRate * upgrade.value
+        );
+        return { runtime: next };
+      }
+      break;
+    case "defensiveSynergy":
+      if (next.gengjin) {
+        next.gengjin.guardMitigationBonus += upgrade.value;
+        syncGengjinCombat(next);
+        return { runtime: next };
+      }
+      break;
+    case "embedThreshold":
+      if (next.crimsonFurnace) {
+        next.crimsonFurnace.embedThreshold = Math.max(
+          1,
+          next.crimsonFurnace.embedThreshold + upgrade.value
+        );
+        return { runtime: next };
+      }
+      break;
+    case "pressureBuild":
+      if (next.crimsonFurnace) {
+        next.crimsonFurnace.pressureBuildRate += upgrade.value;
+        return { runtime: next };
+      }
+      break;
+    case "pressureDecay":
+      if (next.crimsonFurnace) {
+        next.crimsonFurnace.pressureDecayRate = Math.max(
+          0.08,
+          next.crimsonFurnace.pressureDecayRate * upgrade.value
+        );
+        next.crimsonFurnace.pressureRadiusScale += 0.08;
+        syncCrimsonFurnaceCombat(next);
+        return { runtime: next };
+      }
+      break;
     default:
-      return {
-        runtime: next,
-        passiveEffect: {
-          kind: "passive",
-          effect: upgrade.effect,
-          value: upgrade.value,
-          upgradeId
-        }
-      };
+      break;
   }
+
+  return {
+    runtime: next,
+    passiveEffect: {
+      kind: "passive",
+      effect: upgrade.effect,
+      value: upgrade.value,
+      upgradeId
+    }
+  };
 }

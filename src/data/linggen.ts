@@ -21,6 +21,16 @@ export interface LinggenConfig {
   lore: string;
 }
 
+export interface CultivatorCandidate {
+  id: string;
+  name: string;
+  linggenId: LinggenId;
+  linggenName: string;
+  roots: RootId[];
+  affinityGrades: AffinityGrade[];
+  lore: string;
+}
+
 export function getAffinityGrade(value: number): AffinityGrade {
   if (value <= 3) {
     return "Weak";
@@ -125,6 +135,47 @@ export const firstSliceLinggenPool: LinggenId[] = [
 
 export function rollLinggen(): LinggenConfig {
   return linggenConfigs[pickRandom(firstSliceLinggenPool)];
+}
+
+function seededIndex(seed: number, salt: number, length: number): number {
+  const mixed = (Math.imul(seed >>> 0, 1664525) + Math.imul(salt, 1013904223)) >>> 0;
+  return mixed % length;
+}
+
+function pickSeededDistinct(
+  pool: LinggenId[],
+  seed: number,
+  salt: number,
+  excluded: Set<LinggenId>
+): LinggenId {
+  const candidates = pool.filter((id) => !excluded.has(id));
+  return candidates[seededIndex(seed, salt, candidates.length)];
+}
+
+export function getCultivatorCandidates(seed: number): CultivatorCandidate[] {
+  const singleRootPool = firstSliceLinggenPool.filter(
+    (id) => linggenConfigs[id].roots.length === 1
+  );
+  const dualRootPool = firstSliceLinggenPool.filter((id) => linggenConfigs[id].roots.length === 2);
+  const selected = new Set<LinggenId>();
+  const singleRoot = pickSeededDistinct(singleRootPool, seed, 1, selected);
+  selected.add(singleRoot);
+  const dualRoot = pickSeededDistinct(dualRootPool, seed, 2, selected);
+  selected.add(dualRoot);
+  selected.add(pickSeededDistinct(firstSliceLinggenPool, seed, 3, selected));
+
+  return Array.from(selected).map((linggenId, index) => {
+    const linggen = linggenConfigs[linggenId];
+    return {
+      id: `candidate-${index + 1}`,
+      name: `Candidate ${index + 1}`,
+      linggenId,
+      linggenName: linggen.name,
+      roots: [...linggen.roots],
+      affinityGrades: getLinggenAffinityGradeSummary(linggenId),
+      lore: linggen.lore
+    };
+  });
 }
 
 export function getLinggenAffinityTotal(linggenId: LinggenId): number {

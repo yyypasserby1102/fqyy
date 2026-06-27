@@ -8,6 +8,48 @@ export interface MasteryChoiceContext {
   learnedIds: string[];
 }
 
+export type MasteryChoiceKind = "refinement" | "transformation" | "skill2";
+
+export interface MasteryChoiceDefinition {
+  id: string;
+  name: string;
+  lore: string;
+  kind: MasteryChoiceKind;
+  requiredGongfaIds?: GongfaId[];
+  milestoneRank?: number;
+  exclusivityGroup?: string;
+}
+
+export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
+  {
+    id: "execution-seal",
+    name: "Execution Seal",
+    lore: "Repeated Yujian Skill 1 hits escalate against a marked priority target.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 3,
+    exclusivityGroup: "yujian-jue:rank-3"
+  },
+  {
+    id: "sword-bloom",
+    name: "Sword Bloom",
+    lore: "The first Yujian Skill 1 hit splits into weaker swords seeking different enemies.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 3,
+    exclusivityGroup: "yujian-jue:rank-3"
+  },
+  {
+    id: "reversing-sword-path",
+    name: "Reversing Sword Path",
+    lore: "Yujian Skill 1 swords return back through enemies toward the Cultivator.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 3,
+    exclusivityGroup: "yujian-jue:rank-3"
+  }
+];
+
 const rank10Skill2Ids: Record<GongfaId, string> = {
   "yujian-jue": "returning-sword-formation",
   "jinfeng-gong": "golden-gale-corridor",
@@ -37,9 +79,78 @@ export function getRank10Skill2Id(gongfaId: GongfaId): string {
   return rank10Skill2Ids[gongfaId];
 }
 
+export function getMasteryChoiceDefinition(id: string): MasteryChoiceDefinition | undefined {
+  const transformation = masteryTransformationConfigs.find((item) => item.id === id);
+  if (transformation) {
+    return transformation;
+  }
+
+  const upgrade = upgradeConfigs.find((item) => item.id === id);
+  if (upgrade) {
+    return {
+      id: upgrade.id,
+      name: upgrade.name,
+      lore: upgrade.lore,
+      kind: "refinement",
+      requiredGongfaIds: upgrade.requiredGongfaIds
+    };
+  }
+
+  const skill2Entry = Object.entries(rank10Skill2Ids).find(([, skill2Id]) => skill2Id === id);
+  if (skill2Entry) {
+    return {
+      id,
+      name: id,
+      lore: "Unlock this Gongfa's second Skill.",
+      kind: "skill2",
+      requiredGongfaIds: [skill2Entry[0] as GongfaId],
+      milestoneRank: 10
+    };
+  }
+
+  return undefined;
+}
+
+export function hasMasteryTransformation(
+  learnedIds: string[],
+  transformationId: string
+): boolean {
+  return learnedIds.includes(transformationId);
+}
+
+function getMilestoneTransformationIds(context: MasteryChoiceContext): string[] | undefined {
+  const transformations = masteryTransformationConfigs.filter(
+    (transformation) =>
+      transformation.milestoneRank === context.rank &&
+      transformation.requiredGongfaIds?.includes(context.gongfaId)
+  );
+  if (transformations.length === 0) {
+    return undefined;
+  }
+
+  const learned = new Set(context.learnedIds);
+  const chosenGroup = transformations.find(
+    (transformation) =>
+      transformation.exclusivityGroup && learned.has(transformation.id)
+  )?.exclusivityGroup;
+
+  if (chosenGroup) {
+    return [];
+  }
+
+  return transformations
+    .filter((transformation) => !learned.has(transformation.id))
+    .map((transformation) => transformation.id);
+}
+
 export function getDeterministicMasteryChoiceIds(
   context: MasteryChoiceContext
 ): string[] {
+  const milestoneTransformationIds = getMilestoneTransformationIds(context);
+  if (milestoneTransformationIds) {
+    return milestoneTransformationIds;
+  }
+
   if (context.rank === 10) {
     return [getRank10Skill2Id(context.gongfaId)];
   }

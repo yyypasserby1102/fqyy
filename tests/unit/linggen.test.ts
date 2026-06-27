@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  getCultivatorCandidates,
   getGongfaMasterySpeedLabel,
   getLinggenAffinityGradeSummary,
   getLinggenAffinityTotal,
+  getMasterySpeedLabelFromValue,
+  rollLinggen,
   linggenConfigs
 } from "../../src/data/linggen";
+import { setRandomSeed } from "../../src/utils/random";
 
 describe("Linggen affinity rules", () => {
   it("keeps each authored Linggen at a total affinity of 10 and exposes grade labels", () => {
@@ -29,5 +33,28 @@ describe("Linggen affinity rules", () => {
     expect(getGongfaMasterySpeedLabel("metal", "yujian-jue")).toBe("Fast");
     expect(getGongfaMasterySpeedLabel("water-metal", "yujian-jue")).toBe("Normal");
     expect(getGongfaMasterySpeedLabel("water-wood", "yujian-jue")).toBe("Slow");
+  });
+
+  it("classifies mastery speed boundaries and rolls deterministic Linggen candidates", () => {
+    expect(getMasterySpeedLabelFromValue(3)).toBe("Slow");
+    expect(getMasterySpeedLabelFromValue(6)).toBe("Normal");
+    expect(getMasterySpeedLabelFromValue(7)).toBe("Fast");
+
+    setRandomSeed(1);
+    expect(rollLinggen().id).toBe("water");
+  });
+
+  it("generates three deterministic visible Cultivator Candidates with single and dual roots", () => {
+    const first = getCultivatorCandidates(42);
+    const second = getCultivatorCandidates(42);
+
+    expect(second).toEqual(first);
+    expect(first).toHaveLength(3);
+    expect(new Set(first.map((candidate) => candidate.linggenId)).size).toBe(3);
+    expect(first.some((candidate) => candidate.roots.length === 1)).toBe(true);
+    expect(first.some((candidate) => candidate.roots.length === 2)).toBe(true);
+    expect(first.every((candidate) => candidate.affinityGrades.length === candidate.roots.length)).toBe(
+      true
+    );
   });
 });

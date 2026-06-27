@@ -1,4 +1,5 @@
 export type StageId = "lianqi" | "zhuji" | "jindan" | "yuanying";
+export type RealmPhaseId = "chuqi" | "zhongqi" | "houqi" | "dayuanman";
 
 export interface StageConfig {
   id: StageId;
@@ -7,6 +8,7 @@ export interface StageConfig {
 }
 
 export const stageOrder: StageId[] = ["lianqi", "zhuji", "jindan", "yuanying"];
+export const realmPhaseOrder: RealmPhaseId[] = ["chuqi", "zhongqi", "houqi", "dayuanman"];
 
 export const stageConfigs: Record<StageId, StageConfig> = {
   lianqi: {
