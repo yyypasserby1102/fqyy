@@ -1,5 +1,4 @@
 import type { ChoiceOption } from "../data/choices";
-import type { LinggenId } from "../data/linggen";
 import type { EvadeState } from "../logic/evade";
 
 export interface GameSnapshot {
@@ -29,6 +28,11 @@ export interface GameSnapshot {
     masterySkill2?: string;
     masterySkill2Casts: number;
     learnedGongfaIds: string[];
+    masteryTransformationTriggers: {
+      executionSeal: number;
+      swordBloom: number;
+      reversingSwordPath: number;
+    };
     skillTags: string[];
     galeMomentum: number;
     guard: number;
@@ -68,9 +72,12 @@ export interface GameSnapshot {
   };
   counts: {
     enemies: number;
+    projectiles: number;
     orbs: number;
+    orbPositions: Array<{ x: number; y: number }>;
     healingPills: number;
     healingPillPositions: Array<{ x: number; y: number; healAmount: number }>;
+    lingcaoPositions: Array<{ x: number; y: number }>;
     enemyIds: Record<string, number>;
   };
   choice?: {
@@ -83,16 +90,11 @@ export interface GameTestHarness {
   getSnapshot(): GameSnapshot;
   getHudState(): Record<string, unknown>;
   forceSpawnEnemies(count: number): void;
-  forceGrantQi(amount: number): void;
   selectChoice(index: number): void;
   setRngSeed(seed: number): void;
-  forceClaimLingcao(): void;
-  forceSetLinggen(id: LinggenId): void;
   forceDamagePlayer(amount: number): void;
-  forceAdvanceRealmProgress(amount: number): void;
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnHealingPill(healAmount?: number): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
-  forceAdvanceMasteryProgress(points: number): void;
 }

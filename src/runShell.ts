@@ -1,4 +1,5 @@
 import { createGame } from "./game";
+import { getCultivatorCandidates, type CultivatorCandidate } from "./data/linggen";
 import {
   clearActiveRun,
   createActiveRunSave,
@@ -35,6 +36,7 @@ export function mountRunShell(container: HTMLElement): void {
   clearElement(container);
 
   let awaitingAbandonConfirmation = false;
+  let pendingCandidateSeed: number | null = null;
 
   const shell = document.createElement("div");
   shell.style.minHeight = "100vh";
@@ -105,8 +107,43 @@ export function mountRunShell(container: HTMLElement): void {
   status.style.minHeight = "1.5em";
   status.style.color = "#f5e6a8";
 
+  const startCandidateRun = (seed: number, candidate: CultivatorCandidate): void => {
+    const save = createActiveRunSave(seed, Date.now(), candidate.linggenId);
+    saveActiveRun(window.localStorage, save);
+    launchGame(container, save.seed);
+  };
+
+  const renderCandidateButtons = (seed: number): void => {
+    buttonRow.replaceChildren();
+    const candidates = getCultivatorCandidates(seed);
+
+    for (const candidate of candidates) {
+      const candidateButton = document.createElement("button");
+      candidateButton.type = "button";
+      candidateButton.textContent = `Choose ${candidate.name}: ${candidate.linggenName}`;
+      candidateButton.style.padding = "12px 16px";
+      candidateButton.style.border = "1px solid rgba(142, 202, 230, 0.32)";
+      candidateButton.style.borderRadius = "14px";
+      candidateButton.style.background = "rgba(159, 227, 140, 0.14)";
+      candidateButton.style.color = "#f4f8ff";
+      candidateButton.style.fontWeight = "700";
+      candidateButton.style.cursor = "pointer";
+      candidateButton.style.maxWidth = "220px";
+      candidateButton.title = `${candidate.roots.join("/")} roots | Grades: ${candidate.affinityGrades.join(", ")}`;
+      candidateButton.addEventListener("click", () => startCandidateRun(seed, candidate));
+      buttonRow.appendChild(candidateButton);
+    }
+
+    status.textContent = "Choose a Cultivator Candidate. Roots and grade labels are visible; exact affinities stay hidden.";
+  };
+
   const renderButtons = (): void => {
     buttonRow.replaceChildren();
+
+    if (pendingCandidateSeed !== null) {
+      renderCandidateButtons(pendingCandidateSeed);
+      return;
+    }
 
     const activeRun = loadActiveRun(window.localStorage);
     const profile = loadProfileRecord(window.localStorage) ?? createProfileRecord();
@@ -140,9 +177,9 @@ export function mountRunShell(container: HTMLElement): void {
 
       confirmButton.addEventListener("click", () => {
         clearActiveRun(window.localStorage);
-        const save = createActiveRunSave(generateSeed());
-        saveActiveRun(window.localStorage, save);
-        launchGame(container, save.seed);
+        awaitingAbandonConfirmation = false;
+        pendingCandidateSeed = generateSeed();
+        renderButtons();
       });
 
       cancelButton.addEventListener("click", () => {
@@ -173,8 +210,8 @@ export function mountRunShell(container: HTMLElement): void {
     }
 
     const save = createActiveRunSave(generateSeed());
-    saveActiveRun(window.localStorage, save);
-    launchGame(container, save.seed);
+    pendingCandidateSeed = save.seed;
+    renderButtons();
   });
 
   continueButton.addEventListener("click", () => {

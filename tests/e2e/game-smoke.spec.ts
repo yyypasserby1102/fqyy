@@ -1,4 +1,25 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+
+type CandidateLinggenId = "fire" | "water" | "metal" | "fire-metal" | "water-metal" | "water-wood";
+
+const candidateTestSeeds: Record<CandidateLinggenId, number> = {
+  fire: 1,
+  water: 0,
+  metal: 2,
+  "fire-metal": 2,
+  "water-metal": 1,
+  "water-wood": 0
+};
+
+const candidateLinggenNames: Record<CandidateLinggenId, string> = {
+  fire: "Fire Linggen",
+  water: "Water Linggen",
+  metal: "Metal Linggen",
+  "fire-metal": "Fire-Metal Linggen",
+  "water-metal": "Water-Metal Linggen",
+  "water-wood": "Water-Wood Linggen"
+};
 
 async function chooseUntil(page: { evaluate: (fn: () => void) => Promise<void> }, predicate: (snapshot: { title: string } | undefined) => boolean): Promise<void> {
   for (let i = 0; i < 10; i += 1) {
@@ -15,22 +36,169 @@ async function chooseUntil(page: { evaluate: (fn: () => void) => Promise<void> }
   }
 }
 
-async function startNewRun(page: {
-  goto: (url: string) => Promise<void>;
-  getByRole: (role: string, options: { name: string }) => { click: () => Promise<void> };
-  waitForFunction: (fn: () => boolean) => Promise<void>;
-}) {
+async function startNewRun(page: Page, linggenId: CandidateLinggenId = "metal") {
+  const seed = candidateTestSeeds[linggenId];
+  await page.addInitScript((runSeed) => {
+    const original = Crypto.prototype.getRandomValues;
+    Crypto.prototype.getRandomValues = function getSeededRandomValues<T extends ArrayBufferView | null>(array: T): T {
+      if (array instanceof Uint32Array && array.length === 1) {
+        array[0] = runSeed;
+        return array;
+      }
+      return original.call(this, array);
+    };
+  }, seed);
   await page.goto("/");
   await page.getByRole("button", { name: "Start New Run" }).click();
+  await page
+    .getByRole("button", { name: new RegExp(`Choose Candidate \\d+: ${candidateLinggenNames[linggenId]}`) })
+    .click();
   await page.waitForFunction(() => Boolean(window.__gameTest));
 }
 
-async function advanceOneStage(page: { evaluate: (fn: () => void) => Promise<void> }) {
+async function collectQiOrb(page: Page, qiValue: number): Promise<void> {
+  await page.evaluate((value) => window.__gameTest!.forceSpawnQiOrb(value), qiValue);
+  for (let i = 0; i < 12; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.counts.orbs === 0) {
+      return;
+    }
+
+    const [orb] = snapshot.counts.orbPositions;
+    if (!orb) {
+      await page.waitForTimeout(60);
+      continue;
+    }
+
+    const dx = orb.x - snapshot.player.x;
+    const dy = orb.y - snapshot.player.y;
+    const key = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "d" : "a") : dy >= 0 ? "s" : "w";
+    await page.keyboard.down(key);
+    await page.waitForTimeout(60);
+    await page.keyboard.up(key);
+  }
+
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().counts.orbs === 0);
+}
+
+async function claimOpeningLingcao(page: Page): Promise<void> {
+  for (let i = 0; i < 80; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.progression.lingcaoCollected) {
+      return;
+    }
+
+    const [lingcao] = snapshot.counts.lingcaoPositions;
+    if (!lingcao) {
+      await page.waitForTimeout(25);
+      continue;
+    }
+
+    const dx = lingcao.x - snapshot.player.x;
+    const dy = lingcao.y - snapshot.player.y;
+    const key = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "d" : "a") : dy >= 0 ? "s" : "w";
+    await page.keyboard.down(key);
+    await page.waitForTimeout(45);
+    await page.keyboard.up(key);
+  }
+
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.lingcaoCollected);
+}
+
+async function resolveAnyCurrentChoice(page: Page): Promise<void> {
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  if (snapshot.choice) {
+    await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  }
+}
+
+async function advanceMasteryToRankThroughQi(page: Page, targetRank: number): Promise<void> {
+  for (let i = 0; i < 40; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.progression.masteryRank >= targetRank) {
+      return;
+    }
+
+    if (snapshot.choice) {
+      await resolveAnyCurrentChoice(page);
+      continue;
+    }
+
+    await collectQiOrb(page, 11);
+    await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  }
+}
+
+async function reachNextMasteryChoiceThroughQi(page: Page): Promise<void> {
+  for (let i = 0; i < 40; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.choice?.title.includes("Mastery Rank")) {
+      return;
+    }
+
+    if (snapshot.choice) {
+      await page.evaluate(() => window.__gameTest!.selectChoice(0));
+      continue;
+    }
+
+    await collectQiOrb(page, 11);
+    await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  }
+}
+
+async function reachJourneyChoiceThroughQi(page: Page): Promise<void> {
+  for (let i = 0; i < 20; i += 1) {
+    const existing = await page.evaluate(() => window.__gameTest!.getSnapshot().choice?.title);
+    if (existing === "Phase Transition" || existing?.includes("Tribulation")) {
+      return;
+    }
+
+    if (existing) {
+      await page.evaluate(() => window.__gameTest!.selectChoice(0));
+      continue;
+    }
+
+    await collectQiOrb(page, 26);
+    await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  }
+}
+
+async function chooseYujianRank3Transformation(page: Page, transformationId: string) {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => {
+    window.__gameTest!.selectChoice(0);
+  });
+
+  await reachNextMasteryChoiceThroughQi(page);
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice?.title).toContain("Mastery Rank 1");
+  let optionIndex = snapshot.choice?.options.findIndex((option) => option.id !== "sword-intent-sharpening") ?? -1;
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), Math.max(0, optionIndex));
+
+  await reachNextMasteryChoiceThroughQi(page);
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice?.title).toContain("Mastery Rank 2");
+  optionIndex = snapshot.choice?.options.findIndex((option) => option.id !== "sword-intent-sharpening") ?? -1;
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), Math.max(0, optionIndex));
+
+  await reachNextMasteryChoiceThroughQi(page);
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice?.title).toContain("Mastery Rank 3");
+  expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
+    "execution-seal",
+    "sword-bloom",
+    "reversing-sword-path"
+  ]);
+
+  optionIndex = snapshot.choice?.options.findIndex((option) => option.id === transformationId) ?? -1;
+  expect(optionIndex).toBeGreaterThanOrEqual(0);
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), optionIndex);
+}
+
+async function advanceOneStage(page: Page) {
   for (let phase = 0; phase < 4; phase += 1) {
-    await page.evaluate(() => {
-      window.__gameTest!.forceAdvanceRealmProgress(100);
-      window.__gameTest!.forceClearEnemies();
-    });
+    await reachJourneyChoiceThroughQi(page);
     await page.evaluate(() => window.__gameTest!.selectChoice(0));
   }
 
@@ -67,7 +235,14 @@ test("Space evades in the held movement direction", async ({ page }) => {
   await page.keyboard.down("Space");
   await page.waitForTimeout(30);
   await page.keyboard.up("Space");
-  await page.waitForTimeout(50);
+  await page.waitForFunction((startX) => {
+    const snapshot = window.__gameTest!.getSnapshot();
+    return (
+      snapshot.player.evade.active &&
+      snapshot.player.evade.invulnerable &&
+      snapshot.player.x - startX > 25
+    );
+  }, before.player.x);
   const duringEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
   await page.keyboard.up("d");
 
@@ -89,7 +264,10 @@ test("evade prevents damage only during its invulnerability window", async ({ pa
 
   expect(duringEvade.player.health).toBe(100);
 
-  await page.waitForTimeout(220);
+  await page.waitForFunction(() => {
+    const evade = window.__gameTest!.getSnapshot().player.evade;
+    return !evade.active && !evade.invulnerable;
+  });
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   const afterEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterEvade.player.health).toBe(80);
@@ -116,10 +294,7 @@ test("evade cannot start while the Run is manually paused", async ({ page }) => 
 
 test("evade cannot start while a cultivation choice stops the Run", async ({ page }) => {
   await startNewRun(page);
-  await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
-  });
+  await claimOpeningLingcao(page);
   const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
   await page.keyboard.down("d");
@@ -144,18 +319,18 @@ test("the Mortal opening only spawns slow melee pursuers before Gongfa 1", async
 
   const beforeBreakthrough = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(Object.keys(beforeBreakthrough.counts.enemyIds)).toEqual(["jade-rat"]);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceAdvanceSpawnClock(100_000);
   });
 
   const afterBreakthrough = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(Object.keys(afterBreakthrough.counts.enemyIds)).toEqual(
-    expect.arrayContaining(["jade-rat", "mist-wolf"])
+  const postGongfaEnemyIds = Object.keys(afterBreakthrough.counts.enemyIds);
+  expect(postGongfaEnemyIds.every((id) => ["jade-rat", "mist-wolf", "bone-crow"].includes(id))).toBe(
+    true
   );
+  expect(postGongfaEnemyIds.some((id) => id !== "jade-rat")).toBe(true);
 });
 
 test("Lingcao reveal pauses the scene until a Gongfa is chosen", async ({ page }) => {
@@ -166,17 +341,15 @@ test("Lingcao reveal pauses the scene until a Gongfa is chosen", async ({ page }
   });
 
   const beforeReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
-
-  await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
-  });
+  await claimOpeningLingcao(page);
+  const afterReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
   await page.waitForTimeout(1000);
 
   const duringReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(duringReveal.counts.enemies).toBe(beforeReveal.counts.enemies);
-  expect(duringReveal.counts.orbs).toBe(beforeReveal.counts.orbs);
+  expect(afterReveal.counts.enemies).toBeGreaterThanOrEqual(beforeReveal.counts.enemies);
+  expect(duringReveal.counts.enemies).toBe(afterReveal.counts.enemies);
+  expect(duringReveal.counts.orbs).toBe(afterReveal.counts.orbs);
   expect(duringReveal.choice?.title).toContain("Revealed");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
@@ -188,10 +361,8 @@ test("Lingcao reveal pauses the scene until a Gongfa is chosen", async ({ page }
 
 test("choosing a Gongfa enables combat progress against forced enemies", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
   });
 
@@ -213,13 +384,11 @@ test("Yujian Jue shows deterministic mastery rank-ups and a rank-10 skill unlock
   page
 }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceAdvanceMasteryProgress(100);
   });
+  await collectQiOrb(page, 11);
 
   const firstRankUp = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(firstRankUp.progression.gongfa).toBe("yujian-jue");
@@ -227,22 +396,66 @@ test("Yujian Jue shows deterministic mastery rank-ups and a rank-10 skill unlock
   expect(firstRankUp.choice?.title).toContain("Mastery");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
-  await page.evaluate(() => window.__gameTest!.forceAdvanceMasteryProgress(1000));
+  await advanceMasteryToRankThroughQi(page, 10);
 
   const rank10 = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(rank10.progression.masteryRank).toBeGreaterThanOrEqual(10);
   expect(rank10.progression.masterySkill2).toBe("returning-sword-formation");
+
+  await chooseUntil(page, () => false);
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.masterySkill2Casts > 0
+  );
+
+  const afterSkill2 = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(afterSkill2.progression.masterySkill2Casts).toBeGreaterThan(0);
+  expect(afterSkill2.counts.projectiles).toBeGreaterThan(0);
+});
+
+test("Yujian rank-3 Sword Bloom Transformation splits Skill 1 hits", async ({ page }) => {
+  await chooseYujianRank3Transformation(page, "sword-bloom");
+
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(4));
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.masteryTransformationTriggers.swordBloom > 0
+  );
+
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.masteryTransformationTriggers.swordBloom).toBeGreaterThan(0);
+});
+
+test("Yujian rank-3 Execution Seal escalates repeated Skill 1 hits on a target", async ({ page }) => {
+  await chooseYujianRank3Transformation(page, "execution-seal");
+
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(3));
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.masteryTransformationTriggers.executionSeal > 0
+  );
+
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.masteryTransformationTriggers.executionSeal).toBeGreaterThan(0);
+});
+
+test("Yujian rank-3 Reversing Sword Path sends return-path swords after Skill 1", async ({ page }) => {
+  await chooseYujianRank3Transformation(page, "reversing-sword-path");
+
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.masteryTransformationTriggers.reversingSwordPath > 0
+  );
+
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.masteryTransformationTriggers.reversingSwordPath).toBeGreaterThan(0);
 });
 
 test("mastery rank-up choices survive reload with deterministic options", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceAdvanceMasteryProgress(100);
   });
+  await collectQiOrb(page, 11);
 
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(beforeReload.choice?.title).toContain("Mastery");
@@ -260,14 +473,12 @@ test("mastery rank-up choices survive reload with deterministic options", async 
 
 test("a checkpoint resume preserves a selected mastery improvement", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
-    window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceAdvanceMasteryProgress(100);
     window.__gameTest!.selectChoice(0);
   });
+  await collectQiOrb(page, 11);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
   await page.reload();
@@ -280,13 +491,11 @@ test("a checkpoint resume preserves a selected mastery improvement", async ({ pa
 
 test("multiple mastery rank-ups are queued in acquisition order", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceAdvanceMasteryProgress(250);
   });
+  await collectQiOrb(page, 22);
 
   const firstPanel = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(firstPanel.choice?.title).toContain("Mastery Rank 1");
@@ -304,13 +513,12 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
 
   await page.evaluate(() => {
     window.__gameTest!.setRngSeed(9);
-    window.__gameTest!.forceSetLinggen("metal");
     window.__gameTest!.forceSpawnEnemies(2);
   });
   const beforeReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  await page.evaluate(() => window.__gameTest!.forceClaimLingcao());
+  await claimOpeningLingcao(page);
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.counts.enemies).toBe(beforeReveal.counts.enemies);
+  expect(snapshot.counts.enemies).toBeGreaterThanOrEqual(beforeReveal.counts.enemies);
   expect(snapshot.choice?.title).toContain("Revealed");
   expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
     "yujian-jue",
@@ -323,15 +531,15 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   const afterChoice = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(afterChoice.counts.enemies).toBe(beforeReveal.counts.enemies);
-  await page.evaluate(() => window.__gameTest!.forceGrantQi(10));
+  expect(afterChoice.counts.enemies).toBeGreaterThanOrEqual(snapshot.counts.enemies);
+  await collectQiOrb(page, 10);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.gongfa).not.toBe("baseline");
   expect(snapshot.progression.masteryProgress).toBeGreaterThan(0);
   expect(snapshot.progression.masteryProgress).toBeGreaterThan(snapshot.progression.realmProgress);
   expect(snapshot.message).toBeDefined();
 
-  await page.evaluate(() => window.__gameTest!.forceGrantQi(100));
+  await collectQiOrb(page, 100);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.masteryRank).toBeGreaterThanOrEqual(1);
   expect(snapshot.choice?.title).toContain("Mastery Rank");
@@ -339,12 +547,8 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
 });
 
 test("dual-root reveals present Gongfa from both compatible root pools", async ({ page }) => {
-  await startNewRun(page);
-
-  await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("water-metal");
-    window.__gameTest!.forceClaimLingcao();
-  });
+  await startNewRun(page, "water-metal");
+  await claimOpeningLingcao(page);
 
   const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
@@ -366,21 +570,18 @@ for (const [choiceIndex, expectedGongfa] of [
       "crimson-furnace-sword-art"
     ];
 
-    await startNewRun(page);
+    await startNewRun(page, "fire-metal");
 
     await page.evaluate(() => {
       window.__gameTest!.setRngSeed(17);
-      window.__gameTest!.forceSetLinggen("fire-metal");
-      window.__gameTest!.forceClaimLingcao();
-    });
-
+  });
+  await claimOpeningLingcao(page);
     const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(snapshot.choice?.title).toContain("Revealed");
     expect(snapshot.choice?.options.map((option) => option.id)).toEqual(expectedOptionIds);
     expect(snapshot.choice?.options.every((option) => option.description.includes("Mastery Speed"))).toBe(
       true
     );
-
     await page.evaluate((index) => window.__gameTest!.selectChoice(index), choiceIndex);
     const afterChoice = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(afterChoice.progression.gongfa).toBe(expectedGongfa);
@@ -391,14 +592,12 @@ for (const [choiceIndex, expectedGongfa] of [
 
 test("forced Qi cannot skip Realm Phases or a Stage Tribulation", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
   });
 
-  await page.evaluate(() => window.__gameTest!.forceGrantQi(10_000));
+  await collectQiOrb(page, 10_000);
   const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("lianqi");
   expect(snapshot.progression.realmPhase).toBe("chuqi");
@@ -407,13 +606,11 @@ test("forced Qi cannot skip Realm Phases or a Stage Tribulation", async ({ page 
 
 test("Qi cannot change Stage before Realm Phases and Tribulation are complete", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceGrantQi(10_000);
   });
+  await collectQiOrb(page, 10_000);
   await chooseUntil(page, (choice) => choice?.title.includes("Breakthrough") ?? false);
 
   const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -425,24 +622,16 @@ test("Lianqi Dayuanman requires its Tribulation before the Zhuji Breakthrough", 
   page
 }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
   });
 
   for (let phase = 0; phase < 3; phase += 1) {
-    await page.evaluate(() => {
-      window.__gameTest!.forceAdvanceRealmProgress(100);
-      window.__gameTest!.forceClearEnemies();
-      window.__gameTest!.selectChoice(0);
-    });
+    await reachJourneyChoiceThroughQi(page);
+    await page.evaluate(() => window.__gameTest!.selectChoice(0));
   }
-  await page.evaluate(() => {
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
-  });
+  await reachJourneyChoiceThroughQi(page);
 
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("lianqi");
@@ -460,11 +649,8 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   page
 }) => {
   const advancePhase = async () => {
-    await page.evaluate(() => {
-      window.__gameTest!.forceSpawnEnemies(1);
-      window.__gameTest!.forceAdvanceRealmProgress(100);
-      window.__gameTest!.forceClearEnemies();
-    });
+    await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
+    await reachJourneyChoiceThroughQi(page);
 
     const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(snapshot.choice?.title).toBe("Phase Transition");
@@ -475,8 +661,9 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 
   await page.evaluate(() => {
     window.__gameTest!.setRngSeed(21);
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
+  });
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
 
@@ -488,10 +675,7 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   expect(afterDayuanman.progression.stage).toBe("lianqi");
   expect(afterDayuanman.progression.realmPhase).toBe("dayuanman");
 
-  await page.evaluate(() => {
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
-  });
+  await reachJourneyChoiceThroughQi(page);
 
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("lianqi");
@@ -520,12 +704,13 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 });
 
 test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ page }) => {
-  await startNewRun(page);
+  await startNewRun(page, "fire-metal");
 
   await page.evaluate(() => {
     window.__gameTest!.setRngSeed(17);
-    window.__gameTest!.forceSetLinggen("fire-metal");
-    window.__gameTest!.forceClaimLingcao();
+  });
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
 
@@ -554,12 +739,13 @@ test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ p
 });
 
 test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", async ({ page }) => {
-  await startNewRun(page);
+  await startNewRun(page, "fire-metal");
 
   await page.evaluate(() => {
     window.__gameTest!.setRngSeed(17);
-    window.__gameTest!.forceSetLinggen("fire-metal");
-    window.__gameTest!.forceClaimLingcao();
+  });
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
 
@@ -572,11 +758,8 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(4);
 
   const advanceYuanyingPhase = async () => {
-    await page.evaluate(() => {
-      window.__gameTest!.forceSpawnEnemies(1);
-      window.__gameTest!.forceAdvanceRealmProgress(100);
-      window.__gameTest!.forceClearEnemies();
-    });
+    await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
+    await reachJourneyChoiceThroughQi(page);
 
     const phaseSnapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(phaseSnapshot.choice?.title).toBe("Phase Transition");
@@ -587,11 +770,8 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   await advanceYuanyingPhase();
   await advanceYuanyingPhase();
 
-  await page.evaluate(() => {
-    window.__gameTest!.forceSpawnEnemies(1);
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
-  });
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
+  await reachJourneyChoiceThroughQi(page);
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("yuanying");
@@ -599,6 +779,14 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   expect(snapshot.choice?.title).toBe("Yuanying Heavenly Tribulation");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  await page.reload();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.waitForFunction(() => Boolean(window.__gameTest));
+
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.finalBossActive).toBe(true);
+  expect(snapshot.progression.finalBossPhaseIndex).toBe(0);
+
   await page.waitForTimeout(250);
   await page.evaluate(() => window.__gameTest!.forceClearEnemies());
   await page.waitForFunction(() => Boolean(window.__gameTest!.getSnapshot().choice));
@@ -662,11 +850,8 @@ test("Healing Pills heal on contact, persist when untouched, and survive phase c
   const positionsBefore = snapshot.counts.healingPillPositions;
   expect(positionsBefore).toHaveLength(1);
 
-  await page.evaluate(() => {
-    window.__gameTest!.forceSpawnEnemies(1);
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
-  });
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
+  await reachJourneyChoiceThroughQi(page);
   await page.waitForFunction(
     () => window.__gameTest!.getSnapshot().choice?.title === "Phase Transition"
   );
@@ -683,10 +868,8 @@ test("Healing Pills heal on contact, persist when untouched, and survive phase c
 
 test("Stage Breakthroughs preserve Yujian Jue instead of upgrading it", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
   });
 
@@ -712,10 +895,8 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
   page
 }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(1);
   });
 
@@ -748,7 +929,7 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
   expect(snapshot.combat.count).toBe(2);
   expect(snapshot.combat.returnShots).toBe(0);
 
-  await page.evaluate(() => window.__gameTest!.forceAdvanceMasteryProgress(1000));
+  await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
 
   const beforeSkill2Window = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -765,10 +946,8 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
 
 test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independent", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(2);
   });
 
@@ -792,6 +971,10 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   expect(snapshot.progression.guardMitigation).toBeGreaterThan(0);
   expect(snapshot.combat.retaliationDamage).toBeGreaterThan(8);
 
+  await page.evaluate(() => {
+    window.__gameTest!.forceClearEnemies();
+  });
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   const beforeMitigatedDamage = snapshot.player.health;
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -809,7 +992,7 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   expect(snapshot.combat.auraRadius).toBe(92);
   expect(snapshot.combat.shellBursts).toBe(0);
 
-  await page.evaluate(() => window.__gameTest!.forceAdvanceMasteryProgress(1000));
+  await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
   await page.waitForTimeout(120);
   await chooseUntil(page, () => false);
@@ -829,12 +1012,10 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   expect(snapshot.progression.bladeShellCasts).toBeGreaterThan(0);
 });
 
-test("Burning Ring Scripture builds Heat and unlocks Solar Flare Cycle", async ({ page }) => {
-  await startNewRun(page);
-
+test("Burning Ring Scripture builds Heat and accelerates aura cycling", async ({ page }) => {
+  await startNewRun(page, "fire");
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("fire");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(2);
   });
 
@@ -856,25 +1037,35 @@ test("Burning Ring Scripture builds Heat and unlocks Solar Flare Cycle", async (
   expect(snapshot.progression.heat).toBeGreaterThan(0);
   expect(snapshot.progression.heat).toBeLessThanOrEqual(100);
   expect(snapshot.combat.cooldownMs).toBeLessThan(beforeHeatCooldown);
+});
 
-  await advanceOneStage(page);
+test("Blazing Feather Art unlocks Feather Rain Formation as an observable Skill 2", async ({
+  page
+}) => {
+  await startNewRun(page, "fire");
+  await claimOpeningLingcao(page);
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  const choiceIndex = snapshot.choice?.options.findIndex(
+    (option) => option.id === "blazing-feather-art"
+  ) ?? -1;
+  expect(choiceIndex).toBeGreaterThanOrEqual(0);
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), choiceIndex);
+
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.progression.stage).toBe("zhuji");
-  expect(snapshot.combat.segmentCount).toBe(6);
+  expect(snapshot.progression.gongfa).toBe("blazing-feather-art");
+  expect(snapshot.progression.skillTags).toEqual(["homing", "fire"]);
 
-  await advanceOneStage(page);
-  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.progression.stage).toBe("jindan");
-  expect(snapshot.combat.returnShots).toBe(0);
-
-  await page.evaluate(() => window.__gameTest!.forceAdvanceMasteryProgress(1000));
+  await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
-
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.progression.masteryRank).toBeGreaterThanOrEqual(10);
-  expect(snapshot.progression.masterySkill2).toBe("solar-flare-cycle");
+  expect(snapshot.progression.masterySkill2).toBe("feather-rain-formation");
 
-  await page.waitForTimeout(3200);
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(3));
+  await page.waitForFunction(
+    () =>
+      window.__gameTest!.getSnapshot().progression.masterySkill2Casts > 0 &&
+      window.__gameTest!.getSnapshot().counts.projectiles > 0
+  );
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.masterySkill2Casts).toBeGreaterThan(0);
@@ -883,7 +1074,7 @@ test("Burning Ring Scripture builds Heat and unlocks Solar Flare Cycle", async (
 test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unlocks Furnace Cascade", async ({
   page
 }) => {
-  await startNewRun(page);
+  await startNewRun(page, "fire-metal");
 
   const chooseOptionById = async (optionId: string) => {
     const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -893,11 +1084,7 @@ test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unloc
       window.__gameTest!.selectChoice(index);
     }, choiceIndex);
   };
-
-  await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("fire-metal");
-    window.__gameTest!.forceClaimLingcao();
-  });
+  await claimOpeningLingcao(page);
   await chooseOptionById("crimson-furnace-sword-art");
 
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -914,20 +1101,28 @@ test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unloc
   await page.evaluate(() => {
     window.__gameTest!.forceSpawnEnemies(2);
   });
-  await page.waitForTimeout(1100);
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.embeddedEnemies > 0
+  );
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.embeddedEnemies).toBeGreaterThan(0);
   const beforePressure = snapshot.progression.pressure;
   const beforeRange = snapshot.combat.range;
 
-  await page.waitForTimeout(1300);
+  await page.waitForFunction(
+    ({ pressure, range }) => {
+      const snapshot = window.__gameTest!.getSnapshot();
+      return snapshot.progression.pressure > pressure && snapshot.combat.range > range;
+    },
+    { pressure: beforePressure, range: beforeRange }
+  );
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.pressure).toBeGreaterThan(beforePressure);
   expect(snapshot.combat.range).toBeGreaterThan(beforeRange);
 
-  await page.evaluate(() => window.__gameTest!.forceAdvanceMasteryProgress(1000));
+  await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -973,10 +1168,8 @@ test("Start New Run persists a mortal shell that Continue restores after reload"
 
 test("first breakthrough saves a resumable Lianqi run after Gongfa selection", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
   });
 
@@ -1020,16 +1213,12 @@ test("Lianqi Chuqi transitions to Zhongqi after Qi reaches the checkpoint and re
   page
 }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceSpawnEnemies(1);
-    window.__gameTest!.forceSpawnQiOrb(1);
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
   });
+  await reachJourneyChoiceThroughQi(page);
 
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(beforeReload.progression.stage).toBe("lianqi");
@@ -1042,7 +1231,6 @@ test("Lianqi Chuqi transitions to Zhongqi after Qi reaches the checkpoint and re
     "Return to Title",
     "Abandon Run"
   ]);
-  expect(beforeReload.counts.orbs).toBe(1);
   expect(beforeReload.progression.realmProgress).toBeGreaterThanOrEqual(1);
 
   await page.reload();
@@ -1067,15 +1255,12 @@ test("Lianqi Chuqi transitions to Zhongqi after Qi reaches the checkpoint and re
 
 test("phase transition return to title keeps the active save on the shell", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceSpawnEnemies(1);
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
   });
+  await reachJourneyChoiceThroughQi(page);
 
   await page.evaluate(() => window.__gameTest!.selectChoice(1));
   await page.waitForFunction(() => Boolean(document.querySelector("button")));
@@ -1086,15 +1271,12 @@ test("phase transition return to title keeps the active save on the shell", asyn
 
 test("phase transition abandon run deletes the active save on the shell", async ({ page }) => {
   await startNewRun(page);
-
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
-    window.__gameTest!.forceSetLinggen("metal");
-    window.__gameTest!.forceClaimLingcao();
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceSpawnEnemies(1);
-    window.__gameTest!.forceAdvanceRealmProgress(100);
-    window.__gameTest!.forceClearEnemies();
   });
+  await reachJourneyChoiceThroughQi(page);
 
   await page.evaluate(() => window.__gameTest!.selectChoice(2));
   await page.waitForFunction(() => Boolean(document.querySelector("button")));

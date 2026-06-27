@@ -13,11 +13,9 @@ import {
   getLinggenAffinityGradeSummary,
   linggenConfigs,
   rollLinggen,
-  type LinggenConfig,
-  type LinggenId
+  type LinggenConfig
 } from "../data/linggen";
 import { stageConfigs, type StageId } from "../data/stages";
-import { upgradeConfigs } from "../data/upgrades";
 import { waveDurationMs } from "../data/waves";
 import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
@@ -36,31 +34,43 @@ import {
 import { buildHudLines } from "../logic/hudPresentation";
 import { Evade } from "../logic/evade";
 import {
-  completePhaseTransition,
-  completeStageTribulation,
-  getCleanupDecision,
-  grantRealmQi
+  advanceRunJourney,
+  createRunJourneyStateFromCheckpoint,
+  projectRunJourneyCheckpointFields,
+  type RunJourneyCommand,
+  type RunJourneyDecision,
+  type RunJourneyState
 } from "../logic/runJourney";
 import {
   getDeterministicMasteryChoiceIds,
+  getMasteryChoiceDefinition,
   getRank10Skill2Id
 } from "../logic/mastery";
 import {
+  advanceGongfaRuntimeForProjectileHit,
+  advanceGongfaRuntime,
   applyGongfaImprovement,
   createGongfaRuntime,
+  createGongfaRuntimeFromCheckpoint,
   getAuthoredSkill2Plan,
-  type AuthoredSkill2Intent,
+  getGongfaProjectileHitMode,
+  getGongfaRuntimeTickThreatRadius,
+  planGongfaAttack,
+  projectGongfaRuntimeCheckpoint,
+  selectCrimsonFurnaceTargetIndexes,
+  splitGongfaImprovementReplayIds,
+  type GongfaRuntimeCommand,
   type GongfaRuntime,
   type PassiveImprovementEffect,
   type PlayerImprovementEffect
 } from "../logic/gongfaRuntime";
 import {
   clearActiveRun,
+  createActiveRunCheckpoint,
   createActiveRunSave,
   loadActiveRun,
   saveActiveRun,
   type HealingPillCheckpoint,
-  type ActiveRunCheckpoint,
   type ActiveRunSave
 } from "../persistence/runPersistence";
 import {
@@ -99,44 +109,7 @@ interface RunState {
   masteryChoiceActive: boolean;
   masteryPendingRanks: number[];
   learnedGongfaIds: GongfaId[];
-  galeMomentum: number;
-  galeMomentumBuildRate: number;
-  galeMomentumDecayRate: number;
-  galeMomentumWaveBonus: number;
-  galeMomentumAppliedRangeBonus: number;
-  galeMomentumAppliedSpreadBonus: number;
-  galeMomentumAppliedLifetimeBonus: number;
-  guardValue: number;
-  guardBuildRate: number;
-  guardDecayRate: number;
-  guardMitigation: number;
-  guardAppliedRetaliationBonus: number;
-  guardAppliedAuraBonus: number;
-  guardAppliedDamageBonus: number;
-  bladeShellCharge: number;
-  bladeShellThreshold: number;
-  bladeShellCooldownRemaining: number;
-  bladeShellCasts: number;
-  heat: number;
-  heatBuildRate: number;
-  heatDecayRate: number;
-  heatAppliedCooldownBonus: number;
-  heatAuraSpeedBonus: number;
-  ringSegments: number;
-  counterflowRingSegments: number;
-  counterflowRingAppliedSegments: number;
-  counterflowRingRadiusBonus: number;
-  counterflowRingCooldownRemaining: number;
-  solarFlareCooldownRemaining: number;
-  solarFlareCasts: number;
-  crimsonPressure: number;
-  crimsonPressureBuildRate: number;
-  crimsonPressureDecayRate: number;
-  crimsonPressureAppliedRadiusBonus: number;
-  crimsonPressureRadiusScale: number;
-  crimsonEmbedThreshold: number;
   furnaceCascadeCooldownRemaining: number;
-  furnaceCascadeCasts: number;
   hiddenLinggen: LinggenConfig;
   revealedLinggen?: LinggenConfig;
   lingcaoCollected: boolean;
@@ -147,7 +120,6 @@ interface RunState {
   healingPills: HealingPillCheckpoint[];
   finalBossActive: boolean;
   finalBossPhaseIndex: number;
-  finalBossPhaseReady: boolean;
 }
 
 const baselineState: CombatState = {
@@ -208,9 +180,7 @@ export class GameScene extends Phaser.Scene {
   private choiceActive = false;
   private currentChoiceTitle?: string;
   private currentChoiceOptions: ChoiceOption[] = [];
-  private pendingStageTribulationChoice = false;
-  private pendingFinalBossChoice = false;
-  private pendingPhaseTransitionTarget?: "zhongqi" | "houqi" | "dayuanman";
+  private pendingJourneyDecision?: RunJourneyDecision;
   private lastMessage?: string;
   private lastAimAngle = 0;
   private finalBossWaveAccumulator = 0;
@@ -220,6 +190,7 @@ export class GameScene extends Phaser.Scene {
   private finalBossSafeZoneRadius = 220;
   private finalBossPhaseSpawned = false;
   private activeRunSave: ActiveRunSave | null = null;
+  private nextCombatTargetId = 1;
   private runState: RunState = {
     kills: 0,
     elapsedMs: 0,
@@ -239,44 +210,7 @@ export class GameScene extends Phaser.Scene {
     learnedGongfaIds: [],
     masterySkill2CooldownRemaining: 0,
     masterySkill2Casts: 0,
-    galeMomentum: 0,
-    galeMomentumBuildRate: 0.72,
-    galeMomentumDecayRate: 0.48,
-    galeMomentumWaveBonus: 0.08,
-    galeMomentumAppliedRangeBonus: 0,
-    galeMomentumAppliedSpreadBonus: 0,
-    galeMomentumAppliedLifetimeBonus: 0,
-    guardValue: 0,
-    guardBuildRate: 0,
-    guardDecayRate: 0,
-    guardMitigation: 0,
-    guardAppliedRetaliationBonus: 0,
-    guardAppliedAuraBonus: 0,
-    guardAppliedDamageBonus: 0,
-    bladeShellCharge: 0,
-    bladeShellThreshold: 100,
-    bladeShellCooldownRemaining: 0,
-    bladeShellCasts: 0,
-    heat: 0,
-    heatBuildRate: 1.2,
-    heatDecayRate: 0.65,
-    heatAppliedCooldownBonus: 0,
-    heatAuraSpeedBonus: 0.08,
-    ringSegments: 6,
-    counterflowRingSegments: 0,
-    counterflowRingAppliedSegments: 0,
-    counterflowRingRadiusBonus: 0,
-    counterflowRingCooldownRemaining: 0,
-    solarFlareCooldownRemaining: 0,
-    solarFlareCasts: 0,
-    crimsonPressure: 0,
-    crimsonPressureBuildRate: 1.4,
-    crimsonPressureDecayRate: 0.6,
-    crimsonPressureAppliedRadiusBonus: 0,
-    crimsonPressureRadiusScale: 0.45,
-    crimsonEmbedThreshold: 3,
     furnaceCascadeCooldownRemaining: 0,
-    furnaceCascadeCasts: 0,
     hiddenLinggen: rollLinggen(),
     lingcaoCollected: false,
     lingcaoMarker: "",
@@ -284,8 +218,7 @@ export class GameScene extends Phaser.Scene {
     lingcaoY: -140,
     healingPills: [],
     finalBossActive: false,
-    finalBossPhaseIndex: 0,
-    finalBossPhaseReady: false
+    finalBossPhaseIndex: 0
   };
 
   constructor() {
@@ -307,9 +240,10 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.maxHealth = checkpoint?.playerMaxHealth ?? this.player.stats.maxHealth;
     this.player.stats.moveSpeed = checkpoint?.playerMoveSpeed ?? this.player.stats.moveSpeed;
     this.player.stats.magnetRadius = checkpoint?.playerMagnetRadius ?? this.player.stats.magnetRadius;
-    [...this.runState.upgradeSelectionIds, ...this.runState.masteryLearnedIds].forEach(
-      (upgradeId) => this.replayCombatImprovement(upgradeId)
-    );
+    splitGongfaImprovementReplayIds([
+      ...this.runState.upgradeSelectionIds,
+      ...this.runState.masteryLearnedIds
+    ]).runtimeUpgradeIds.forEach((upgradeId) => this.replayCombatImprovement(upgradeId));
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setZoom(1);
 
@@ -319,7 +253,9 @@ export class GameScene extends Phaser.Scene {
     this.lingcaoGroup = this.physics.add.group({ runChildUpdate: false });
     this.healingPills = this.physics.add.group({ runChildUpdate: false });
     this.inputController = new InputController(this);
-    this.spawner = new SpawnerSystem(this, this.enemies);
+    this.spawner = new SpawnerSystem(this, this.enemies, (enemy) =>
+      this.assignCombatTargetId(enemy)
+    );
 
     if (!this.runState.lingcaoCollected) {
       this.spawnOpeningLingcao();
@@ -406,10 +342,7 @@ export class GameScene extends Phaser.Scene {
     if (movement.lengthSq() > 0) {
       this.lastAimAngle = Phaser.Math.Angle.Between(0, 0, movement.x, movement.y);
     }
-    this.updateGaleMomentum(movement, delta);
-    this.updateGengjinGuard(delta);
-    this.updateBurningRingHeat(delta);
-    this.updateCrimsonPressure(delta);
+    this.updateGongfaRuntimeTick(movement, delta);
 
     const playerPosition = new Phaser.Math.Vector2(this.player.x, this.player.y);
     if (this.runState.finalBossActive) {
@@ -480,24 +413,44 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handleProjectileHit(projectile: Projectile, enemy: Enemy): void {
-    if (projectile.sourceGongfaId === "crimson-furnace-sword-art") {
-      this.handleCrimsonNeedleHit(projectile, enemy);
-      return;
+    const hitMode = getGongfaProjectileHitMode(projectile.sourceGongfaId);
+    const diedFromHit = hitMode.appliesBaseDamage ? enemy.receiveDamage(projectile.damage) : false;
+    let diedFromCommands = false;
+
+    if (this.gongfaRuntime) {
+      const result = advanceGongfaRuntimeForProjectileHit(this.gongfaRuntime, {
+        sourceGongfaId: projectile.sourceGongfaId,
+        targetId: enemy.combatTargetId,
+        damage: projectile.damage,
+        learnedMasteryIds: this.runState.masteryLearnedIds,
+        baseDamageKilledTarget: diedFromHit,
+        embedStacks: enemy.embedStacks,
+        embedPower: enemy.embedPower
+      });
+      this.gongfaRuntime = result.runtime;
+      this.combatState = result.runtime.combat;
+      diedFromCommands = this.executeProjectileHitCommands(projectile, enemy, result.commands);
     }
 
-    const died = enemy.receiveDamage(projectile.damage);
-    projectile.pierceRemaining -= 1;
+    const died = diedFromHit || diedFromCommands;
 
-    if (this.runState.mainGongfaId === "burning-ring-scripture") {
-      this.runState.heat = Math.min(100, this.runState.heat + Math.max(0.4, projectile.damage * 0.15));
-      this.syncBurningRingCombatState();
+    if (hitMode.consumesPierce) {
+      projectile.pierceRemaining -= 1;
     }
 
-    if (projectile.pierceRemaining <= 0) {
+    if (hitMode.consumesPierce && projectile.pierceRemaining <= 0) {
       projectile.destroy();
     }
 
     if (!died) {
+      return;
+    }
+
+    this.resolveEnemyDeath(enemy);
+  }
+
+  private resolveEnemyDeath(enemy: Enemy): void {
+    if (!enemy.active) {
       return;
     }
 
@@ -506,19 +459,114 @@ export class GameScene extends Phaser.Scene {
     this.runState.kills += 1;
   }
 
-  private handleCrimsonNeedleHit(projectile: Projectile, enemy: Enemy): void {
-    enemy.embedStacks += 1;
-    enemy.embedPower += projectile.damage;
-    projectile.lodgedEnemy = enemy;
-    const body = projectile.body as Phaser.Physics.Arcade.Body;
-    body.reset(enemy.x, enemy.y);
-    body.setVelocity(0, 0);
-    body.enable = false;
+  private executeProjectileHitCommands(
+    projectile: Projectile,
+    enemy: Enemy,
+    commands: GongfaRuntimeCommand[]
+  ): boolean {
+    let targetDied = false;
+    commands.forEach((command) => {
+      if (command.kind === "apply-target-damage") {
+        const target = this.getEnemyByCombatTargetId(command.targetId);
+        if (target?.active && target.receiveDamage(command.amount)) {
+          targetDied ||= target === enemy;
+        }
+        return;
+      }
 
-    if (enemy.embedStacks >= this.runState.crimsonEmbedThreshold) {
-      this.detonateCrimsonEnemy(enemy, projectile.damage);
-      this.destroyLodgedCrimsonNeedles(enemy);
-    }
+      if (command.kind === "spawn-yujian-bloom") {
+        const origin = this.getEnemyByCombatTargetId(command.originTargetId) ?? enemy;
+        this.spawnYujianBloomProjectiles(origin, command);
+        return;
+      }
+
+      if (command.kind === "lodge-crimson-needle") {
+        const target = this.getEnemyByCombatTargetId(command.targetId);
+        if (!target?.active || !projectile.active) {
+          return;
+        }
+
+        target.embedStacks = command.embedStacks;
+        target.embedPower = command.embedPower;
+        projectile.lodgedEnemy = target;
+        const body = projectile.body as Phaser.Physics.Arcade.Body;
+        body.reset(target.x, target.y);
+        body.setVelocity(0, 0);
+        body.enable = false;
+        return;
+      }
+
+      if (command.kind === "detonate-crimson-embed") {
+        const target = this.getEnemyByCombatTargetId(command.targetId);
+        if (!target?.active) {
+          return;
+        }
+
+        this.detonateCrimsonEnemy(target, command.sourceDamage, command.fragment);
+        this.destroyLodgedCrimsonNeedles(target);
+      }
+    });
+
+    return targetDied || enemy.health <= 0;
+  }
+
+  private spawnYujianBloomProjectiles(
+    origin: Enemy,
+    command: Extract<GongfaRuntimeCommand, { kind: "spawn-yujian-bloom" }>
+  ): void {
+    const bloomTargets = this.getNearestEnemies(6)
+      .filter((enemy) => enemy.active && enemy.combatTargetId !== command.originTargetId)
+      .slice(0, command.maxTargets);
+
+    bloomTargets.forEach((target, index) => {
+      this.spawnProjectileAtTarget(
+        origin.x,
+        origin.y - 4 + index * 8,
+        target,
+        command.damage,
+        command.pierce,
+        this.combatState.projectileSpeed,
+        this.combatState.projectileLifetimeMs,
+        this.combatState.projectileTexture,
+        this.combatState.tint,
+        { sourceGongfaId: "yujian-jue" }
+      );
+    });
+  }
+
+  private spawnYujianReversalProjectiles(
+    command: Extract<GongfaRuntimeCommand, { kind: "spawn-yujian-reversal" }>
+  ): void {
+    const targets = this.getNearestEnemies(Math.max(1, this.combatState.count));
+    targets.forEach((enemy, index) => {
+      this.time.delayedCall(command.delayMs + index * 35, () => {
+        if (!enemy.active || !this.player.active) {
+          return;
+        }
+
+        const returnAngle = Phaser.Math.Angle.Between(enemy.x, enemy.y, this.player.x, this.player.y);
+        this.spawnProjectileAlongAngle(
+          enemy.x - Math.cos(returnAngle) * 30,
+          enemy.y - Math.sin(returnAngle) * 30,
+          returnAngle,
+          command.damage,
+          command.pierce,
+          command.speed,
+          command.lifetimeMs,
+          this.combatState.projectileTexture,
+          this.combatState.tint,
+          { sourceGongfaId: "yujian-jue" }
+        );
+
+        if (this.gongfaRuntime?.yujian) {
+          const result = advanceGongfaRuntime(this.gongfaRuntime, {
+            kind: "yujian-reversal-spawned"
+          });
+          this.gongfaRuntime = result.runtime;
+          this.combatState = result.runtime.combat;
+        }
+      });
+    });
   }
 
   private collectOrb(orb: QiOrb): void {
@@ -695,30 +743,19 @@ export class GameScene extends Phaser.Scene {
   }
 
   private fireCurrentMethod(): void {
-    switch (this.combatState.pattern) {
-      case "baseline":
-      case "homing":
-        if (this.runState.mainGongfaId === "crimson-furnace-sword-art") {
-          this.fireCrimsonFurnaceVolley();
-        } else {
-          this.fireHomingVolley();
-        }
-        break;
-      case "wave":
-        this.fireWaveVolley();
-        break;
-      case "aura":
-        if (this.runState.mainGongfaId === "burning-ring-scripture") {
-          this.fireBurningRingVolley();
-        } else {
-          this.emitAuraBurst(this.combatState.damage, this.combatState.count);
-        }
-        break;
+    if (this.gongfaRuntime) {
+      this.executeGongfaRuntimeCommands(
+        planGongfaAttack(this.gongfaRuntime, this.runState.elapsedMs, {
+          learnedMasteryIds: this.runState.masteryLearnedIds
+        })
+      );
     }
   }
 
-  private fireHomingVolley(): void {
-    const targets = this.getNearestEnemies(this.combatState.count);
+  private fireHomingVolley(
+    command: Extract<GongfaRuntimeCommand, { kind: "homing-volley" }>
+  ): void {
+    const targets = this.getNearestEnemies(command.count);
     if (targets.length === 0) {
       return;
     }
@@ -733,7 +770,10 @@ export class GameScene extends Phaser.Scene {
         this.combatState.projectileSpeed,
         this.combatState.projectileLifetimeMs,
         this.combatState.projectileTexture,
-        this.combatState.tint
+        this.combatState.tint,
+        {
+          sourceGongfaId: this.gongfaRuntime?.gongfaId
+        }
       );
     });
 
@@ -753,15 +793,20 @@ export class GameScene extends Phaser.Scene {
             this.combatState.projectileSpeed + 40,
             this.combatState.projectileLifetimeMs,
             this.combatState.projectileTexture,
-            this.combatState.tint
+            this.combatState.tint,
+            {
+              sourceGongfaId: this.gongfaRuntime?.gongfaId
+            }
           );
         });
       });
     }
   }
 
-  private fireCrimsonFurnaceVolley(): void {
-    const targets = this.getCrimsonFurnaceTargets(this.combatState.count);
+  private fireCrimsonFurnaceVolley(
+    command: Extract<GongfaRuntimeCommand, { kind: "crimson-furnace-volley" }>
+  ): void {
+    const targets = this.getCrimsonFurnaceTargets(command.count);
     if (targets.length === 0) {
       return;
     }
@@ -809,14 +854,16 @@ export class GameScene extends Phaser.Scene {
           projectile.lodgedEnemy.embedPower - projectile.damage
         );
       }
-      this.detonateCrimsonNeedle(projectile.x, projectile.y, projectile.damage, false);
+      this.triggerCrimsonDetonation(projectile.x, projectile.y, projectile.damage, false);
       projectile.destroy();
     });
   }
 
-  private fireWaveVolley(): void {
-    const angle = this.getWaveAimAngle();
-    const count = Math.max(1, this.combatState.count);
+  private fireWaveVolley(
+    command: Extract<GongfaRuntimeCommand, { kind: "wave-volley" }>
+  ): void {
+    const angle = this.getWaveAimAngle(command.aimMode);
+    const count = command.count;
     const spreadRad = Phaser.Math.DegToRad(this.combatState.spreadDeg);
 
     for (let i = 0; i < count; i += 1) {
@@ -833,13 +880,13 @@ export class GameScene extends Phaser.Scene {
       );
     }
 
-    for (let trail = 0; trail < this.combatState.returnShots; trail += 1) {
+    for (let trail = 0; trail < command.returnShots; trail += 1) {
       this.time.delayedCall(110 + trail * 90, () => {
         if (!this.player.active) {
           return;
         }
 
-        const delayedAngle = this.getWaveAimAngle();
+        const delayedAngle = this.getWaveAimAngle(command.aimMode);
         for (let i = 0; i < count; i += 1) {
           const offset =
             count === 1
@@ -964,17 +1011,51 @@ export class GameScene extends Phaser.Scene {
     speed: number,
     lifetimeMs: number,
     texture: string,
-    tint: number
+    tint: number,
+    options: {
+      sourceGongfaId?: GongfaId;
+    } = {}
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
+    projectile.sourceGongfaId = options.sourceGongfaId;
     projectile.setTint(tint);
     projectile.setAngle(
       Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y))
     );
     this.projectiles.add(projectile);
     this.physics.moveToObject(projectile, enemy, speed);
+    this.time.delayedCall(lifetimeMs, () => {
+      if (projectile.active) {
+        projectile.destroy();
+      }
+    });
+  }
+
+  private spawnProjectileAlongAngle(
+    x: number,
+    y: number,
+    angle: number,
+    damage: number,
+    pierce: number,
+    speed: number,
+    lifetimeMs: number,
+    texture: string,
+    tint: number,
+    options: {
+      sourceGongfaId?: GongfaId;
+    } = {}
+  ): void {
+    const projectile = new Projectile(this, x, y, texture);
+    projectile.damage = damage;
+    projectile.pierceRemaining = pierce;
+    projectile.sourceGongfaId = options.sourceGongfaId;
+    projectile.setTint(tint);
+    projectile.setAngle(Phaser.Math.RadToDeg(angle));
+    this.projectiles.add(projectile);
+    const body = projectile.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
     this.time.delayedCall(lifetimeMs, () => {
       if (projectile.active) {
         projectile.destroy();
@@ -996,231 +1077,30 @@ export class GameScene extends Phaser.Scene {
     return this.lastAimAngle;
   }
 
-  private getWaveAimAngle(): number {
-    if (this.runState.mainGongfaId === "jinfeng-gong") {
+  private getWaveAimAngle(aimMode: "nearest" | "last" = "last"): number {
+    if (aimMode === "last") {
       return this.lastAimAngle;
     }
 
     return this.getAimAngle();
   }
 
-  private updateGaleMomentum(movement: Phaser.Math.Vector2, delta: number): void {
-    if (this.runState.mainGongfaId !== "jinfeng-gong") {
+  private updateGongfaRuntimeTick(movement: Phaser.Math.Vector2, delta: number): void {
+    if (!this.gongfaRuntime) {
       return;
     }
 
-    const deltaSeconds = delta / 1000;
-    if (movement.lengthSq() > 0) {
-      this.runState.galeMomentum = Math.min(
-        5,
-        this.runState.galeMomentum + this.runState.galeMomentumBuildRate * deltaSeconds
-      );
-      this.syncGaleMomentumCombatState();
-      return;
-    }
-
-    this.runState.galeMomentum = Math.max(
-      0,
-      this.runState.galeMomentum - this.runState.galeMomentumDecayRate * deltaSeconds
-    );
-    this.syncGaleMomentumCombatState();
-    return;
-  }
-
-  private updateGengjinGuard(delta: number): void {
-    if (this.runState.mainGongfaId !== "gengjin-huti") {
-      return;
-    }
-
-    const deltaSeconds = delta / 1000;
-    const nearbyEnemies = this.getEnemiesWithinRadius(160);
-
-    if (nearbyEnemies.length > 0) {
-      this.runState.guardValue = Math.min(
-        100,
-        this.runState.guardValue + nearbyEnemies.length * this.runState.guardBuildRate * deltaSeconds
-      );
-      this.runState.bladeShellCharge = Math.min(
-        this.runState.bladeShellThreshold,
-        this.runState.bladeShellCharge +
-          nearbyEnemies.length * 7 * deltaSeconds +
-          this.runState.guardValue * 0.05 * deltaSeconds
-      );
-    } else {
-      this.runState.guardValue = Math.max(
-        0,
-        this.runState.guardValue - this.runState.guardDecayRate * deltaSeconds
-      );
-      this.runState.bladeShellCharge = Math.max(
-        0,
-        this.runState.bladeShellCharge - 5 * deltaSeconds
-      );
-    }
-
-    this.syncGengjinCombatState();
-    this.tickBladeShell(delta);
-  }
-
-  private updateBurningRingHeat(delta: number): void {
-    if (this.runState.mainGongfaId !== "burning-ring-scripture") {
-      return;
-    }
-
-    const deltaSeconds = delta / 1000;
-    const nearbyEnemies = this.getEnemiesWithinRadius(170);
-
-    if (nearbyEnemies.length > 0) {
-      this.runState.heat = Math.min(
-        100,
-        this.runState.heat + nearbyEnemies.length * this.runState.heatBuildRate * deltaSeconds
-      );
-    } else {
-      this.runState.heat = Math.max(
-        0,
-        this.runState.heat - this.runState.heatDecayRate * deltaSeconds
-      );
-    }
-
-    this.syncBurningRingCombatState();
-    this.tickSolarFlareCycle(delta);
-  }
-
-  private updateCrimsonPressure(delta: number): void {
-    if (this.runState.mainGongfaId !== "crimson-furnace-sword-art") {
-      return;
-    }
-
-    const deltaSeconds = delta / 1000;
-    this.runState.crimsonPressure = Math.max(
-      0,
-      this.runState.crimsonPressure - this.runState.crimsonPressureDecayRate * deltaSeconds
-    );
-    this.syncCrimsonPressureCombatState();
-  }
-
-  private syncGaleMomentumCombatState(): void {
-    if (this.runState.mainGongfaId !== "jinfeng-gong") {
-      return;
-    }
-
-    const gongfa = gongfaConfigs["jinfeng-gong"];
-    const stageState = gongfa.stages.lianqi!;
-    const momentumBonus = 1 + this.runState.galeMomentum * this.runState.galeMomentumWaveBonus;
-    const desiredRangeBonus = Math.round(stageState.range * (momentumBonus - 1));
-    const desiredSpreadBonus = Math.round(stageState.spreadDeg * (momentumBonus - 1));
-    const desiredLifetimeBonus = Math.floor(this.runState.galeMomentum * 50);
-
-    this.combatState.range += desiredRangeBonus - this.runState.galeMomentumAppliedRangeBonus;
-    this.combatState.spreadDeg +=
-      desiredSpreadBonus - this.runState.galeMomentumAppliedSpreadBonus;
-    this.combatState.projectileLifetimeMs +=
-      desiredLifetimeBonus - this.runState.galeMomentumAppliedLifetimeBonus;
-
-    this.runState.galeMomentumAppliedRangeBonus = desiredRangeBonus;
-    this.runState.galeMomentumAppliedSpreadBonus = desiredSpreadBonus;
-    this.runState.galeMomentumAppliedLifetimeBonus = desiredLifetimeBonus;
-  }
-
-  private syncGengjinCombatState(): void {
-    if (this.runState.mainGongfaId !== "gengjin-huti") {
-      return;
-    }
-
-    const gongfa = gongfaConfigs["gengjin-huti"];
-    const stageState = gongfa.stages.lianqi!;
-    const desiredRetaliationBonus = Math.max(1, Math.floor(this.runState.guardValue * 0.18));
-    const desiredAuraBonus = Math.floor(this.runState.guardValue * 0.35);
-    const desiredDamageBonus = Math.floor(this.runState.guardValue * 0.08);
-
-    this.combatState.retaliationDamage +=
-      desiredRetaliationBonus - this.runState.guardAppliedRetaliationBonus;
-    this.combatState.auraRadius += desiredAuraBonus - this.runState.guardAppliedAuraBonus;
-    this.combatState.damage += desiredDamageBonus - this.runState.guardAppliedDamageBonus;
-
-    this.runState.guardAppliedRetaliationBonus = desiredRetaliationBonus;
-    this.runState.guardAppliedAuraBonus = desiredAuraBonus;
-    this.runState.guardAppliedDamageBonus = desiredDamageBonus;
-
-    this.runState.guardMitigation = Math.min(0.5, this.runState.guardValue / 220);
-    this.combatState.auraRadius = Math.max(stageState.auraRadius, this.combatState.auraRadius);
-  }
-
-  private syncBurningRingCombatState(): void {
-    if (this.runState.mainGongfaId !== "burning-ring-scripture") {
-      return;
-    }
-
-    const gongfa = gongfaConfigs["burning-ring-scripture"];
-    const stageState = gongfa.stages.lianqi!;
-    const currentHeatBonus = Math.min(0.5, this.runState.heat * (0.01 + this.runState.heatAuraSpeedBonus));
-    const desiredCooldownBonus = Math.floor(stageState.cooldownMs * currentHeatBonus);
-
-    this.combatState.cooldownMs = Math.max(
-      220,
-      this.combatState.cooldownMs - (desiredCooldownBonus - this.runState.heatAppliedCooldownBonus)
-    );
-    this.runState.heatAppliedCooldownBonus = desiredCooldownBonus;
-  }
-
-  private syncCrimsonPressureCombatState(): void {
-    if (this.runState.mainGongfaId !== "crimson-furnace-sword-art") {
-      return;
-    }
-
-    const gongfa = gongfaConfigs["crimson-furnace-sword-art"];
-    const stageState = gongfa.stages.lianqi!;
-    const desiredRadiusBonus = Math.floor(
-      this.runState.crimsonPressure * this.runState.crimsonPressureRadiusScale
-    );
-
-    this.combatState.range += desiredRadiusBonus - this.runState.crimsonPressureAppliedRadiusBonus;
-    this.runState.crimsonPressureAppliedRadiusBonus = desiredRadiusBonus;
-    this.combatState.range = Math.max(stageState.range, this.combatState.range);
-  }
-
-  private tickSolarFlareCycle(delta: number): void {
-    const plan = getAuthoredSkill2Plan(this.runState.masterySkill2Id);
-    if (
-      this.runState.mainGongfaId !== "burning-ring-scripture" ||
-      plan?.trigger !== "cycle"
-    ) {
-      return;
-    }
-
-    this.runState.solarFlareCooldownRemaining = Math.max(
-      0,
-      this.runState.solarFlareCooldownRemaining - delta
-    );
-    if (this.runState.solarFlareCooldownRemaining > 0) {
-      return;
-    }
-
-    this.fireMasterySkill2();
-    this.runState.solarFlareCooldownRemaining = this.getMasterySkill2CooldownMs();
-  }
-
-  private tickBladeShell(delta: number): void {
-    const plan = getAuthoredSkill2Plan(this.runState.masterySkill2Id);
-    if (this.runState.mainGongfaId !== "gengjin-huti" || plan?.trigger !== "threshold") {
-      return;
-    }
-
-    if (this.runState.bladeShellCooldownRemaining > 0) {
-      this.runState.bladeShellCooldownRemaining = Math.max(
-        0,
-        this.runState.bladeShellCooldownRemaining - delta
-      );
-      return;
-    }
-
-    if (this.runState.bladeShellCharge < this.runState.bladeShellThreshold) {
-      return;
-    }
-
-    this.fireMasterySkill2();
-    this.runState.bladeShellCharge = 0;
-    this.runState.bladeShellCooldownRemaining = 1800;
-    this.runState.masterySkill2CooldownRemaining = this.getMasterySkill2CooldownMs();
+    const threatRadius = getGongfaRuntimeTickThreatRadius(this.gongfaRuntime);
+    const result = advanceGongfaRuntime(this.gongfaRuntime, {
+      kind: "tick",
+      deltaMs: delta,
+      nearbyEnemyCount: threatRadius > 0 ? this.getEnemiesWithinRadius(threatRadius).length : 0,
+      isMoving: movement.lengthSq() > 0,
+      skill2Id: this.runState.masterySkill2Id
+    });
+    this.gongfaRuntime = result.runtime;
+    this.combatState = result.runtime.combat;
+    this.executeGongfaRuntimeCommands(result.commands);
   }
 
   private getEnemiesWithinRadius(radius: number): Enemy[] {
@@ -1255,7 +1135,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.fireMasterySkill2();
-    this.runState.masterySkill2CooldownRemaining = this.getMasterySkill2CooldownMs();
   }
 
   private getMasterySkill2CooldownMs(): number {
@@ -1268,41 +1147,131 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.runState.masterySkill2Casts += 1;
-    this.executeSkill2Intent(plan.intent);
+    if (!this.gongfaRuntime) {
+      return;
+    }
+
+    const result = advanceGongfaRuntime(this.gongfaRuntime, {
+      kind: "skill2",
+      skill2Id: plan.intent
+    });
+    this.gongfaRuntime = result.runtime;
+    this.combatState = result.runtime.combat;
+    this.executeGongfaRuntimeCommands(result.commands);
   }
 
-  private executeSkill2Intent(intent: AuthoredSkill2Intent): void {
-    switch (intent) {
-      case "solar-flare-cycle":
-        this.fireSolarFlareCycle();
-        break;
-      case "furnace-cascade":
-        this.fireFurnaceCascade();
-        break;
-      case "golden-gale-corridor":
-        this.fireGoldenGaleCorridor();
-        break;
-      case "returning-sword-formation":
-        this.fireReturningSwordFormation();
-        break;
-      case "blade-shell-rebound":
-        this.fireBladeShellRebound();
-        break;
+  private executeGongfaRuntimeCommands(commands: GongfaRuntimeCommand[]): void {
+    commands.forEach((command) => {
+      this.recordMasterySkill2Cast(command);
+
+      if (command.kind === "homing-volley") {
+        this.fireHomingVolley(command);
+        return;
+      }
+
+      if (command.kind === "mastery-skill2-cast") {
+        return;
+      }
+
+      if (command.kind === "wave-volley") {
+        this.fireWaveVolley(command);
+        return;
+      }
+
+      if (command.kind === "aura-burst") {
+        this.emitAuraBurst(command.damage, command.count);
+        return;
+      }
+
+      if (command.kind === "burning-ring-volley") {
+        this.fireBurningRingVolley(command);
+        return;
+      }
+
+      if (command.kind === "crimson-furnace-volley") {
+        this.fireCrimsonFurnaceVolley(command);
+        return;
+      }
+
+      if (command.kind === "crimson-detonation") {
+        this.applyCrimsonDetonation(command);
+        return;
+      }
+
+      if (command.kind === "furnace-cascade") {
+        this.fireFurnaceCascade(command);
+        return;
+      }
+
+      if (command.kind === "incoming-damage") {
+        this.player.applyDamage(command.finalDamage);
+        return;
+      }
+
+      if (command.kind === "spawn-yujian-reversal") {
+        this.spawnYujianReversalProjectiles(command);
+        return;
+      }
+
+      if (command.kind === "returning-sword-formation") {
+        this.fireReturningSwordFormation(command);
+        return;
+      }
+
+      if (command.kind === "golden-gale-corridor") {
+        this.fireGoldenGaleCorridor(command);
+        return;
+      }
+
+      if (command.kind === "apply-target-damage") {
+        const target = this.getEnemyByCombatTargetId(command.targetId);
+        if (target?.active && target.receiveDamage(command.amount)) {
+          this.resolveEnemyDeath(target);
+        }
+        return;
+      }
+
+      if (command.kind === "spawn-yujian-bloom") {
+        const origin = this.getEnemyByCombatTargetId(command.originTargetId);
+        if (origin?.active) {
+          this.spawnYujianBloomProjectiles(origin, command);
+        }
+        return;
+      }
+
+      if (command.kind === "blade-shell-rebound") {
+        this.fireBladeShellRebound(command);
+        return;
+      }
+
+      if (command.kind === "solar-flare-cycle") {
+        this.fireSolarFlareCycle(command);
+      }
+    });
+  }
+
+  private recordMasterySkill2Cast(command: GongfaRuntimeCommand): void {
+    if (!("masteryCast" in command)) {
+      return;
+    }
+
+    this.runState.masterySkill2Casts += 1;
+    if (command.masteryCast.cooldownMs !== undefined) {
+      this.runState.masterySkill2CooldownRemaining = command.masteryCast.cooldownMs;
     }
   }
 
-  private fireSolarFlareCycle(): void {
-    this.runState.solarFlareCasts += 1;
+  private fireSolarFlareCycle(
+    command: Extract<GongfaRuntimeCommand, { kind: "solar-flare-cycle" }>
+  ): void {
     const baseAngle = this.getAimAngle();
-    const radius = 32 + Math.floor(this.runState.heat * 0.3) + this.runState.counterflowRingRadiusBonus;
 
     for (let ring = 0; ring < 2; ring += 1) {
       const direction = ring === 0 ? 1 : -1;
-      const ringRadius = radius + ring * 10;
-      const segmentCount = Math.max(6, this.runState.ringSegments + this.runState.counterflowRingAppliedSegments);
-      for (let i = 0; i < segmentCount; i += 1) {
-        const angle = baseAngle + ((Math.PI * 2) / segmentCount) * i * direction;
+      const ringRadius = command.ringRadius + ring * 10;
+      for (let i = 0; i < command.segmentCount; i += 1) {
+        const angle =
+          baseAngle + ((Math.PI * 2) / command.segmentCount) * i * direction;
         const projectile = new Projectile(
           this,
           this.player.x + Math.cos(angle) * ringRadius,
@@ -1328,33 +1297,41 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private fireFurnaceCascade(): void {
-    this.runState.furnaceCascadeCasts += 1;
+  private fireFurnaceCascade(
+    command: Extract<GongfaRuntimeCommand, { kind: "furnace-cascade" }>
+  ): void {
     const primedEnemies = (this.enemies.getChildren() as Enemy[]).filter(
       (enemy) => enemy.active && enemy.embedStacks > 0
     );
 
     primedEnemies.forEach((enemy) => {
-      this.detonateCrimsonEnemy(enemy, enemy.embedPower + enemy.embedStacks * 3);
+      this.detonateCrimsonEnemy(
+        enemy,
+        enemy.embedPower * command.sourceDamage.embedPowerMultiplier +
+          enemy.embedStacks * command.sourceDamage.stackDamage,
+        command.fragment
+      );
       this.destroyLodgedCrimsonNeedles(enemy);
     });
   }
 
-  private fireGoldenGaleCorridor(): void {
+  private fireGoldenGaleCorridor(
+    command: Extract<GongfaRuntimeCommand, { kind: "golden-gale-corridor" }>
+  ): void {
     const angle = this.getWaveAimAngle();
-    const laneCount = Math.max(3, Math.min(5, 3 + Math.floor(this.combatState.count / 2)));
-    const spreadRad = Phaser.Math.DegToRad(Math.max(8, this.combatState.spreadDeg * 0.4));
+    const laneCount = command.laneCount;
+    const spreadRad = Phaser.Math.DegToRad(command.spreadDeg);
 
-    for (let burst = 0; burst < 3; burst += 1) {
-      this.time.delayedCall(burst * 180, () => {
+    for (let burst = 0; burst < command.burstCount; burst += 1) {
+      this.time.delayedCall(burst * command.burstDelayMs, () => {
         if (!this.player.active) {
           return;
         }
 
-        const forwardOffset = 32 + burst * 26;
+        const forwardOffset = command.forwardOffset.start + burst * command.forwardOffset.step;
         for (let i = 0; i < laneCount; i += 1) {
           const offset = laneCount === 1 ? 0 : Phaser.Math.Linear(-spreadRad / 2, spreadRad / 2, i / (laneCount - 1));
-          const sideways = (i - (laneCount - 1) / 2) * 12;
+          const sideways = (i - (laneCount - 1) / 2) * command.sidewaysSpacing;
           const x =
             this.player.x +
             Math.cos(angle) * forwardOffset +
@@ -1368,19 +1345,21 @@ export class GameScene extends Phaser.Scene {
             x,
             y,
             angle + offset,
-            Math.floor(this.combatState.damage * 0.8),
-            this.combatState.pierce + 1,
-            this.combatState.projectileSpeed + 25,
-            this.combatState.projectileLifetimeMs + Math.floor(this.combatState.range * 0.9),
-            0.92
+            command.projectile.damage,
+            command.projectile.pierce,
+            command.projectile.speed,
+            command.projectile.lifetimeMs,
+            command.projectile.scale
           );
         }
       });
     }
   }
 
-  private fireReturningSwordFormation(): void {
-    const targets = this.getNearestEnemies(Math.max(1, this.combatState.count));
+  private fireReturningSwordFormation(
+    command: Extract<GongfaRuntimeCommand, { kind: "returning-sword-formation" }>
+  ): void {
+    const targets = this.getNearestEnemies(command.count);
     if (targets.length === 0) {
       return;
     }
@@ -1390,16 +1369,16 @@ export class GameScene extends Phaser.Scene {
         this.player.x,
         this.player.y - 12 + index * 6,
         enemy,
-        Math.floor(this.combatState.damage * 0.72),
-        this.combatState.pierce + 1,
-        this.combatState.projectileSpeed + 55,
-        this.combatState.projectileLifetimeMs + 280,
+        command.opening.damage,
+        command.opening.pierce,
+        command.opening.speed,
+        command.opening.lifetimeMs,
         this.combatState.projectileTexture,
         this.combatState.tint
       );
     });
 
-    this.time.delayedCall(240, () => {
+    this.time.delayedCall(command.returnPath.delayMs, () => {
       if (!this.player.active) {
         return;
       }
@@ -1413,10 +1392,10 @@ export class GameScene extends Phaser.Scene {
           this.player.x,
           this.player.y + 14 + index * 6,
           enemy,
-          Math.floor(this.combatState.damage * 0.58),
-          this.combatState.pierce + 1,
-          this.combatState.projectileSpeed + 75,
-          this.combatState.projectileLifetimeMs + 340,
+          command.returnPath.damage,
+          command.returnPath.pierce,
+          command.returnPath.speed,
+          command.returnPath.lifetimeMs,
           this.combatState.projectileTexture,
           this.combatState.tint
         );
@@ -1424,26 +1403,29 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private fireBladeShellRebound(): void {
-    this.runState.bladeShellCasts += 1;
+  private fireBladeShellRebound(
+    command: Extract<GongfaRuntimeCommand, { kind: "blade-shell-rebound" }>
+  ): void {
+    void command;
     this.emitAuraBurst(Math.floor(this.combatState.damage * 0.82), this.combatState.count + 2);
   }
 
-  private fireBurningRingVolley(): void {
+  private fireBurningRingVolley(
+    command: Extract<GongfaRuntimeCommand, { kind: "burning-ring-volley" }>
+  ): void {
     const baseAngle = this.getAimAngle();
-    const segmentCount = Math.max(6, this.runState.ringSegments + this.runState.counterflowRingAppliedSegments);
-    const visibleSegments = Math.max(4, segmentCount - 2);
-    const rotation = (this.runState.elapsedMs / 1000) * 0.9;
-    const ringRadius = 24 + Math.floor(this.runState.heat * 0.3);
 
     for (let ring = 0; ring < 2; ring += 1) {
       const direction = ring === 0 ? 1 : -1;
-      const radius = ringRadius + ring * 12;
-      const start = Math.floor((segmentCount - visibleSegments) / 2);
+      const radius = command.ringRadius + ring * 12;
+      const start = Math.floor((command.segmentCount - command.visibleSegments) / 2);
 
-      for (let i = 0; i < visibleSegments; i += 1) {
+      for (let i = 0; i < command.visibleSegments; i += 1) {
         const segmentIndex = start + i;
-        const angle = baseAngle + rotation * direction + ((Math.PI * 2) / segmentCount) * segmentIndex;
+        const angle =
+          baseAngle +
+          command.rotation * direction +
+          ((Math.PI * 2) / command.segmentCount) * segmentIndex;
         const projectile = new Projectile(
           this,
           this.player.x + Math.cos(angle) * radius,
@@ -1481,51 +1463,60 @@ export class GameScene extends Phaser.Scene {
       .slice(0, count);
   }
 
-  private getCrimsonFurnaceTargets(count: number): Enemy[] {
-    const enemies = this.enemies.getChildren() as Enemy[];
-    const prioritized = enemies
-      .filter((enemy) => enemy.active)
-      .sort((a, b) => {
-        const embedPriority = b.embedStacks - a.embedStacks;
-        if (embedPriority !== 0) {
-          return embedPriority;
-        }
-
-        const distanceA = Phaser.Math.Distance.Between(this.player.x, this.player.y, a.x, a.y);
-        const distanceB = Phaser.Math.Distance.Between(this.player.x, this.player.y, b.x, b.y);
-        return distanceA - distanceB;
-      });
-
-    return prioritized.slice(0, count);
+  private assignCombatTargetId(enemy: Enemy): void {
+    enemy.combatTargetId = this.nextCombatTargetId;
+    this.nextCombatTargetId += 1;
   }
 
-  private detonateCrimsonNeedle(
+  private getEnemyByCombatTargetId(targetId: number): Enemy | undefined {
+    return (this.enemies.getChildren() as Enemy[]).find(
+      (enemy) => enemy.active && enemy.combatTargetId === targetId
+    );
+  }
+
+  private getCrimsonFurnaceTargets(count: number): Enemy[] {
+    const enemies = this.enemies.getChildren() as Enemy[];
+    const targetIndexes = selectCrimsonFurnaceTargetIndexes(
+      enemies.map((enemy, index) => ({
+        index,
+        active: enemy.active,
+        embedStacks: enemy.embedStacks,
+        distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y)
+      })),
+      count
+    );
+
+    return targetIndexes.map((index) => enemies[index]).filter((enemy) => enemy?.active);
+  }
+
+  private triggerCrimsonDetonation(
     x: number,
     y: number,
     damage: number,
     fromEmbed: boolean
   ): void {
-    const pressureBonus = Math.floor(this.runState.crimsonPressure * 0.35);
-    const radius = Math.max(20, this.combatState.range + pressureBonus);
-    const splashDamage = Math.max(1, Math.floor(damage + this.runState.crimsonPressure * 0.4));
-    const hits = this.getEnemiesWithinRadiusFrom(x, y, radius);
-
-    if (fromEmbed) {
-      this.runState.crimsonPressure = Math.min(
-        100,
-        this.runState.crimsonPressure +
-          Math.max(0.8, damage * 0.14) * this.runState.crimsonPressureBuildRate
-      );
-    } else {
-      this.runState.crimsonPressure = Math.min(
-        100,
-        this.runState.crimsonPressure +
-          Math.max(0.5, damage * 0.1) * this.runState.crimsonPressureBuildRate
-      );
+    if (!this.gongfaRuntime?.crimsonFurnace) {
+      return;
     }
 
+    const result = advanceGongfaRuntime(this.gongfaRuntime, {
+      kind: "crimson-detonation",
+      x,
+      y,
+      damage,
+      fromEmbed
+    });
+    this.gongfaRuntime = result.runtime;
+    this.combatState = result.runtime.combat;
+    this.executeGongfaRuntimeCommands(result.commands);
+  }
+
+  private applyCrimsonDetonation(
+    command: Extract<GongfaRuntimeCommand, { kind: "crimson-detonation" }>
+  ): void {
+    const hits = this.getEnemiesWithinRadiusFrom(command.x, command.y, command.radius);
     hits.forEach((enemy) => {
-      const died = enemy.receiveDamage(splashDamage);
+      const died = enemy.receiveDamage(command.splashDamage);
       if (died) {
         this.spawnOrb(enemy.x, enemy.y, enemy.config.xpDrop);
         enemy.destroy();
@@ -1533,16 +1524,24 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    this.syncCrimsonPressureCombatState();
   }
 
-  private detonateCrimsonEnemy(enemy: Enemy, sourceDamage: number): void {
+  private detonateCrimsonEnemy(
+    enemy: Enemy,
+    sourceDamage: number,
+    fragment: Extract<GongfaRuntimeCommand, { kind: "detonate-crimson-embed" }>["fragment"]
+  ): void {
     const embedStacks = enemy.embedStacks;
     const embedPower = enemy.embedPower;
     enemy.embedStacks = 0;
     enemy.embedPower = 0;
-    this.detonateCrimsonNeedle(enemy.x, enemy.y, Math.max(sourceDamage, embedPower + embedStacks * 2), true);
-    this.spawnCrimsonFragments(enemy.x, enemy.y);
+    this.triggerCrimsonDetonation(
+      enemy.x,
+      enemy.y,
+      Math.max(sourceDamage, embedPower + embedStacks * 2),
+      true
+    );
+    this.spawnCrimsonFragments(enemy.x, enemy.y, fragment);
   }
 
   private destroyLodgedCrimsonNeedles(enemy: Enemy): void {
@@ -1553,10 +1552,17 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private spawnCrimsonFragments(x: number, y: number): void {
-    const fragments = this.getEnemiesWithinRadiusFrom(x, y, 220).slice(0, 2);
+  private spawnCrimsonFragments(
+    x: number,
+    y: number,
+    fragment: Extract<GongfaRuntimeCommand, { kind: "detonate-crimson-embed" }>["fragment"]
+  ): void {
+    const fragments = this.getEnemiesWithinRadiusFrom(x, y, fragment.radius).slice(
+      0,
+      fragment.maxTargets
+    );
     fragments.forEach((enemy, index) => {
-      this.time.delayedCall(100 + index * 60, () => {
+      this.time.delayedCall(fragment.delayMs + index * fragment.delayStepMs, () => {
         if (!enemy.active) {
           return;
         }
@@ -1565,9 +1571,9 @@ export class GameScene extends Phaser.Scene {
           x,
           y,
           enemy,
-          Math.max(4, Math.floor(this.combatState.damage * 0.45)),
-          this.combatState.projectileSpeed + 80,
-          Math.max(420, this.combatState.projectileLifetimeMs - 120),
+          fragment.damage,
+          fragment.speed,
+          fragment.lifetimeMs,
           this.combatState.projectileTexture,
           this.combatState.tint
         );
@@ -1607,26 +1613,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resolveChoice(option: ChoiceOption): void {
-    const wasStageTribulationChoice =
-      option.kind === "continue" && this.pendingStageTribulationChoice;
-    const wasFinalBossChoice = option.kind === "continue" && this.pendingFinalBossChoice;
+    const acceptedJourneyDecision =
+      option.kind === "continue" ? this.pendingJourneyDecision : undefined;
 
     if (option.kind === "gongfa") {
       this.applyGongfaChoice(option.id as keyof typeof gongfaConfigs, !this.runState.mainGongfaId);
     } else if (option.kind === "mastery") {
       this.applyMasteryChoice(option.id);
       return;
-    } else if (option.kind === "continue" && this.pendingPhaseTransitionTarget) {
-      this.applyPhaseTransitionChoice();
-    } else if (option.kind === "continue" && this.pendingStageTribulationChoice) {
-      this.completeStageTribulationVictory();
-    } else if (option.kind === "continue" && this.pendingFinalBossChoice) {
-      this.pendingFinalBossChoice = false;
-      if (!this.runState.finalBossActive) {
-        this.startYuanyingTribulation();
-      } else {
-        this.advanceFinalBossPhase();
-      }
+    } else if (acceptedJourneyDecision) {
+      this.pendingJourneyDecision = undefined;
+      const result = advanceRunJourney(this.runState, {
+        kind: "journey-choice-accepted",
+        decision: acceptedJourneyDecision
+      });
+      this.applyRunJourneyState(result.state);
+      this.applyJourneyChoiceMessage(acceptedJourneyDecision);
+      this.executeRunJourneyCommands(result.commands);
     } else if (option.kind === "return-to-title") {
       this.returnToTitle(false);
       return;
@@ -1642,15 +1645,10 @@ export class GameScene extends Phaser.Scene {
     this.scene.get("ui").events.emit("hide-choice-panel");
     this.publishHud(this.lastMessage);
 
-    if (wasStageTribulationChoice) {
+    if (acceptedJourneyDecision?.kind === "tribulation") {
       this.offerGongfaChoice();
       return;
     }
-
-    if (wasFinalBossChoice) {
-      return;
-    }
-
   }
 
   private applyGongfaChoice(gongfaId: keyof typeof gongfaConfigs, replaceCurrent = false): void {
@@ -1738,118 +1736,65 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyPassiveImprovement(improvement: PassiveImprovementEffect): void {
-    if (
-      improvement.upgradeId === "counterflow-ring" &&
-      this.runState.mainGongfaId === "burning-ring-scripture"
-    ) {
-      this.runState.counterflowRingSegments += 1;
-      this.runState.counterflowRingAppliedSegments = this.runState.counterflowRingSegments;
-    }
-
     switch (improvement.effect) {
-      case "galeMomentumBuild":
-        this.runState.galeMomentumBuildRate += improvement.value;
-        break;
-      case "galeMomentumDecay":
-        this.runState.galeMomentumDecayRate = Math.max(
-          0.08,
-          this.runState.galeMomentumDecayRate * improvement.value
-        );
-        break;
-      case "waveSynergy":
-        this.runState.galeMomentumWaveBonus += improvement.value;
-        this.syncGaleMomentumCombatState();
-        break;
-      case "guardBuild":
-        this.runState.guardBuildRate += improvement.value;
-        break;
-      case "guardStability":
-        this.runState.guardDecayRate = Math.max(
-          0.08,
-          this.runState.guardDecayRate * improvement.value
-        );
-        break;
-      case "defensiveSynergy":
-        this.runState.guardMitigation = Math.min(
-          0.65,
-          this.runState.guardMitigation + improvement.value
-        );
-        this.syncGengjinCombatState();
-        break;
-      case "heatBuild":
-        this.runState.heatBuildRate += improvement.value;
-        break;
-      case "heatDecay":
-        this.runState.heatDecayRate = Math.max(
-          0.08,
-          this.runState.heatDecayRate * improvement.value
-        );
-        break;
-      case "auraSynergy":
-        this.runState.heatDecayRate = Math.max(0.08, this.runState.heatDecayRate * 0.84);
-        this.runState.heatAuraSpeedBonus += improvement.value;
-        this.syncBurningRingCombatState();
-        break;
-      case "embedThreshold":
-        this.runState.crimsonEmbedThreshold = Math.max(
-          1,
-          this.runState.crimsonEmbedThreshold + improvement.value
-        );
-        break;
-      case "pressureBuild":
-        this.runState.crimsonPressureBuildRate += improvement.value;
-        break;
-      case "pressureDecay":
-        this.runState.crimsonPressureDecayRate = Math.max(
-          0.08,
-          this.runState.crimsonPressureDecayRate * improvement.value
-        );
-        this.runState.crimsonPressureRadiusScale += 0.08;
-        this.syncCrimsonPressureCombatState();
+      default:
         break;
     }
   }
 
-  private applyPhaseTransitionChoice(): void {
-    if (!this.pendingPhaseTransitionTarget) {
+  private applyRunJourneyState(state: RunJourneyState): void {
+    this.runState.stage = state.stage;
+    this.runState.realmPhase = state.realmPhase;
+    this.runState.realmProgress = state.realmProgress;
+    this.runState.phaseCleanupActive = state.phaseCleanupActive;
+    this.runState.foundationGrowthTransactions = state.foundationGrowthTransactions ?? 0;
+    this.runState.finalBossActive = state.finalBossActive ?? false;
+    this.runState.finalBossPhaseIndex = state.finalBossPhaseIndex ?? 0;
+    this.runState.gameOver = state.gameOver ?? false;
+  }
+
+  private applyJourneyChoiceMessage(decision: RunJourneyDecision): void {
+    if (decision.kind === "phase-transition") {
+      this.lastMessage =
+        decision.nextPhase === "zhongqi"
+          ? "Chuqi complete. Foundation pressure settles into Zhongqi."
+          : decision.nextPhase === "houqi"
+            ? "Zhongqi complete. Pressure deepens into Houqi."
+            : "Houqi complete. Dayuanman approaches.";
       return;
     }
 
-    const nextPhase = this.pendingPhaseTransitionTarget;
-    const nextJourney = completePhaseTransition(this.runState);
-    this.applyFoundationGrowthHook();
-    this.runState.realmPhase = nextJourney.realmPhase;
-    this.runState.realmProgress = nextJourney.realmProgress;
-    this.runState.phaseCleanupActive = nextJourney.phaseCleanupActive;
-    this.pendingPhaseTransitionTarget = undefined;
-    this.lastMessage =
-      nextPhase === "zhongqi"
-        ? "Chuqi complete. Foundation pressure settles into Zhongqi."
-        : nextPhase === "houqi"
-          ? "Zhongqi complete. Pressure deepens into Houqi."
-          : "Houqi complete. Dayuanman approaches.";
-    this.persistRunCheckpoint();
-    this.publishHud(this.lastMessage);
-  }
-
-  private completeStageTribulationVictory(): void {
-    const result = completeStageTribulation(this.runState);
-    if (result.outcome !== "breakthrough") {
-      return;
+    if (decision.kind === "tribulation") {
+      this.lastMessage = `${stageConfigs[this.runState.stage].name} Chuqi begins.`;
     }
-
-    this.runState.stage = result.state.stage;
-    this.runState.realmPhase = result.state.realmPhase;
-    this.runState.realmProgress = result.state.realmProgress;
-    this.runState.phaseCleanupActive = result.state.phaseCleanupActive;
-    this.pendingStageTribulationChoice = false;
-    this.applyFoundationGrowthHook();
-    this.lastMessage = `${stageConfigs[this.runState.stage].name} Chuqi begins.`;
-    this.persistRunCheckpoint();
   }
 
-  private applyFoundationGrowthHook(): void {
-    this.runState.foundationGrowthTransactions += 1;
+  private executeRunJourneyCommands(commands: RunJourneyCommand[]): void {
+    commands.forEach((command) => {
+      if (command.kind === "persist-checkpoint") {
+        this.persistRunCheckpoint();
+        return;
+      }
+
+      if (command.kind === "present-journey-choice") {
+        this.offerJourneyChoice(command.decision);
+        return;
+      }
+
+      if (command.kind === "start-final-boss") {
+        this.startYuanyingTribulation(command.phaseIndex);
+        return;
+      }
+
+      if (command.kind === "advance-final-boss-phase") {
+        this.advanceFinalBossPhase(command.phaseIndex);
+        return;
+      }
+
+      if (command.kind === "complete-run") {
+        this.completeFinalBossVictory();
+      }
+    });
   }
 
   private returnToTitle(abandon: boolean): void {
@@ -1871,175 +1816,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resetGongfaPassiveState(): void {
-    if (this.runState.mainGongfaId === "jinfeng-gong") {
-      this.runState.galeMomentum = 0;
-      this.runState.galeMomentumBuildRate = 0.72;
-      this.runState.galeMomentumDecayRate = 0.48;
-      this.runState.galeMomentumWaveBonus = 0.08;
-      this.runState.galeMomentumAppliedRangeBonus = 0;
-      this.runState.galeMomentumAppliedSpreadBonus = 0;
-      this.runState.galeMomentumAppliedLifetimeBonus = 0;
-      return;
-    }
-
-    if (this.runState.mainGongfaId === "gengjin-huti") {
-      this.runState.guardValue = 0;
-      this.runState.guardBuildRate = 0.62;
-      this.runState.guardDecayRate = 0.38;
-      this.runState.guardMitigation = 0;
-      this.runState.guardAppliedRetaliationBonus = 0;
-      this.runState.guardAppliedAuraBonus = 0;
-      this.runState.guardAppliedDamageBonus = 0;
-      this.runState.bladeShellCharge = 0;
-      this.runState.bladeShellThreshold = 100;
-      this.runState.bladeShellCooldownRemaining = 0;
-      this.runState.bladeShellCasts = 0;
-      this.runState.galeMomentum = 0;
-      this.runState.galeMomentumBuildRate = 0;
-      this.runState.galeMomentumDecayRate = 0;
-      this.runState.galeMomentumWaveBonus = 0;
-      this.runState.galeMomentumAppliedRangeBonus = 0;
-      this.runState.galeMomentumAppliedSpreadBonus = 0;
-      this.runState.galeMomentumAppliedLifetimeBonus = 0;
-      return;
-    }
-
-    if (this.runState.mainGongfaId === "burning-ring-scripture") {
-      this.runState.heat = 0;
-      this.runState.heatBuildRate = 1.2;
-      this.runState.heatDecayRate = 0.65;
-      this.runState.heatAppliedCooldownBonus = 0;
-      this.runState.heatAuraSpeedBonus = 0.08;
-      this.runState.ringSegments = 6;
-      this.runState.counterflowRingSegments = 0;
-      this.runState.counterflowRingAppliedSegments = 0;
-      this.runState.counterflowRingRadiusBonus = 0;
-      this.runState.counterflowRingCooldownRemaining = 0;
-      this.runState.solarFlareCooldownRemaining = 0;
-      this.runState.solarFlareCasts = 0;
-      this.runState.galeMomentum = 0;
-      this.runState.galeMomentumBuildRate = 0;
-      this.runState.galeMomentumDecayRate = 0;
-      this.runState.galeMomentumWaveBonus = 0;
-      this.runState.galeMomentumAppliedRangeBonus = 0;
-      this.runState.galeMomentumAppliedSpreadBonus = 0;
-      this.runState.galeMomentumAppliedLifetimeBonus = 0;
-      this.runState.guardValue = 0;
-      this.runState.guardBuildRate = 0;
-      this.runState.guardDecayRate = 0;
-      this.runState.guardMitigation = 0;
-      this.runState.guardAppliedRetaliationBonus = 0;
-      this.runState.guardAppliedAuraBonus = 0;
-      this.runState.guardAppliedDamageBonus = 0;
-      this.runState.bladeShellCharge = 0;
-      this.runState.bladeShellThreshold = 100;
-      this.runState.bladeShellCooldownRemaining = 0;
-      this.runState.bladeShellCasts = 0;
-      return;
-    }
-
     if (this.runState.mainGongfaId === "crimson-furnace-sword-art") {
-      this.runState.crimsonPressure = 0;
-      this.runState.crimsonPressureBuildRate = 1.4;
-      this.runState.crimsonPressureDecayRate = 0.6;
-      this.runState.crimsonPressureAppliedRadiusBonus = 0;
-      this.runState.crimsonPressureRadiusScale = 0.45;
-      this.runState.crimsonEmbedThreshold = 3;
       this.runState.furnaceCascadeCooldownRemaining = 0;
-      this.runState.furnaceCascadeCasts = 0;
-      this.runState.heat = 0;
-      this.runState.heatBuildRate = 0;
-      this.runState.heatDecayRate = 0;
-      this.runState.heatAppliedCooldownBonus = 0;
-      this.runState.heatAuraSpeedBonus = 0;
-      this.runState.ringSegments = 0;
-      this.runState.counterflowRingSegments = 0;
-      this.runState.counterflowRingAppliedSegments = 0;
-      this.runState.counterflowRingRadiusBonus = 0;
-      this.runState.counterflowRingCooldownRemaining = 0;
-      this.runState.solarFlareCooldownRemaining = 0;
-      this.runState.solarFlareCasts = 0;
-      this.runState.galeMomentum = 0;
-      this.runState.galeMomentumBuildRate = 0;
-      this.runState.galeMomentumDecayRate = 0;
-      this.runState.galeMomentumWaveBonus = 0;
-      this.runState.galeMomentumAppliedRangeBonus = 0;
-      this.runState.galeMomentumAppliedSpreadBonus = 0;
-      this.runState.galeMomentumAppliedLifetimeBonus = 0;
-      this.runState.guardValue = 0;
-      this.runState.guardBuildRate = 0;
-      this.runState.guardDecayRate = 0;
-      this.runState.guardMitigation = 0;
-      this.runState.guardAppliedRetaliationBonus = 0;
-      this.runState.guardAppliedAuraBonus = 0;
-      this.runState.guardAppliedDamageBonus = 0;
-      this.runState.bladeShellCharge = 0;
-      this.runState.bladeShellThreshold = 100;
-      this.runState.bladeShellCooldownRemaining = 0;
-      this.runState.bladeShellCasts = 0;
       return;
     }
 
-    this.runState.galeMomentum = 0;
-    this.runState.galeMomentumBuildRate = 0;
-    this.runState.galeMomentumDecayRate = 0;
-    this.runState.galeMomentumWaveBonus = 0;
-    this.runState.galeMomentumAppliedRangeBonus = 0;
-    this.runState.galeMomentumAppliedSpreadBonus = 0;
-    this.runState.galeMomentumAppliedLifetimeBonus = 0;
-    this.runState.guardValue = 0;
-    this.runState.guardBuildRate = 0;
-    this.runState.guardDecayRate = 0;
-    this.runState.guardMitigation = 0;
-    this.runState.guardAppliedRetaliationBonus = 0;
-    this.runState.guardAppliedAuraBonus = 0;
-    this.runState.guardAppliedDamageBonus = 0;
-    this.runState.bladeShellCharge = 0;
-    this.runState.bladeShellThreshold = 100;
-    this.runState.bladeShellCooldownRemaining = 0;
-    this.runState.bladeShellCasts = 0;
-    this.runState.heat = 0;
-    this.runState.heatBuildRate = 0;
-    this.runState.heatDecayRate = 0;
-    this.runState.heatAppliedCooldownBonus = 0;
-    this.runState.heatAuraSpeedBonus = 0;
-    this.runState.ringSegments = 0;
-    this.runState.counterflowRingSegments = 0;
-    this.runState.counterflowRingAppliedSegments = 0;
-    this.runState.counterflowRingRadiusBonus = 0;
-    this.runState.counterflowRingCooldownRemaining = 0;
-    this.runState.solarFlareCooldownRemaining = 0;
-    this.runState.solarFlareCasts = 0;
-    this.runState.crimsonPressure = 0;
-    this.runState.crimsonPressureBuildRate = 0;
-    this.runState.crimsonPressureDecayRate = 0;
-    this.runState.crimsonPressureAppliedRadiusBonus = 0;
-    this.runState.crimsonPressureRadiusScale = 0.45;
-    this.runState.crimsonEmbedThreshold = 3;
     this.runState.furnaceCascadeCooldownRemaining = 0;
-    this.runState.furnaceCascadeCasts = 0;
   }
 
-  private applyGongfaStage(): void {
+  private applyGongfaStage(restoredRuntime?: GongfaRuntime): void {
     const gongfaId = this.runState.mainGongfaId;
     if (!gongfaId) {
       return;
     }
 
-    this.gongfaRuntime = createGongfaRuntime({
-      gongfaId
-    });
+    this.gongfaRuntime = restoredRuntime ?? createGongfaRuntime({ gongfaId });
     this.combatState = this.gongfaRuntime.combat;
-    this.runState.galeMomentumAppliedRangeBonus = 0;
-    this.runState.galeMomentumAppliedSpreadBonus = 0;
-    this.runState.galeMomentumAppliedLifetimeBonus = 0;
-    this.syncGaleMomentumCombatState();
-    this.runState.guardAppliedRetaliationBonus = 0;
-    this.runState.guardAppliedAuraBonus = 0;
-    this.runState.guardAppliedDamageBonus = 0;
-    this.syncGengjinCombatState();
-    this.runState.crimsonPressureAppliedRadiusBonus = 0;
-    this.syncCrimsonPressureCombatState();
   }
 
   private togglePause(): void {
@@ -2060,64 +1852,24 @@ export class GameScene extends Phaser.Scene {
   private restoreSavedRunState(): void {
     const checkpoint = this.activeRunSave?.checkpoint;
     if (!checkpoint) {
+      if (this.activeRunSave?.selectedLinggenId) {
+        this.runState.hiddenLinggen = linggenConfigs[this.activeRunSave.selectedLinggenId];
+      }
       return;
     }
 
-    this.runState.stage = checkpoint.stage;
-    this.runState.realmPhase = checkpoint.realmPhase;
-    this.runState.realmProgress = checkpoint.realmProgress;
-    this.runState.phaseCleanupActive = checkpoint.phaseCleanupActive;
-    this.runState.foundationGrowthTransactions = checkpoint.foundationGrowthTransactions;
+    this.applyRunJourneyState(createRunJourneyStateFromCheckpoint(checkpoint));
     this.runState.masteryPoints = checkpoint.masteryPoints;
     this.runState.masteryRank = checkpoint.masteryRank;
     this.runState.masteryLearnedIds = [...checkpoint.masteryLearnedIds];
     this.runState.upgradeSelectionIds = [...(checkpoint.upgradeSelectionIds ?? [])];
     this.runState.masterySkill2Id = checkpoint.masterySkill2Id;
-    this.runState.masterySkill2CooldownRemaining = checkpoint.masterySkill2CooldownRemaining ?? 0;
-    this.runState.masterySkill2Casts = checkpoint.masterySkill2Casts ?? 0;
+    this.runState.masterySkill2CooldownRemaining = checkpoint.masterySkill2CooldownRemaining;
+    this.runState.masterySkill2Casts = checkpoint.masterySkill2Casts;
     this.runState.masteryChoiceActive = checkpoint.masteryChoiceActive;
     this.runState.masteryPendingRanks = [...checkpoint.masteryPendingRanks];
-    this.runState.learnedGongfaIds = [...(checkpoint.learnedGongfaIds ?? [])];
-    this.runState.galeMomentum = checkpoint.galeMomentum ?? 0;
-    this.runState.galeMomentumBuildRate = checkpoint.galeMomentumBuildRate ?? 0;
-    this.runState.galeMomentumDecayRate = checkpoint.galeMomentumDecayRate ?? 0;
-    this.runState.galeMomentumWaveBonus = checkpoint.galeMomentumWaveBonus ?? 0;
-    this.runState.galeMomentumAppliedRangeBonus = checkpoint.galeMomentumAppliedRangeBonus ?? 0;
-    this.runState.galeMomentumAppliedSpreadBonus = checkpoint.galeMomentumAppliedSpreadBonus ?? 0;
-    this.runState.galeMomentumAppliedLifetimeBonus = checkpoint.galeMomentumAppliedLifetimeBonus ?? 0;
-    this.runState.heat = checkpoint.heat ?? 0;
-    this.runState.heatBuildRate = checkpoint.heatBuildRate ?? 0;
-    this.runState.heatDecayRate = checkpoint.heatDecayRate ?? 0;
-    this.runState.heatAppliedCooldownBonus = checkpoint.heatAppliedCooldownBonus ?? 0;
-    this.runState.heatAuraSpeedBonus = checkpoint.heatAuraSpeedBonus ?? 0;
-    this.runState.ringSegments = checkpoint.ringSegments ?? 0;
-    this.runState.counterflowRingSegments = checkpoint.counterflowRingSegments ?? 0;
-    this.runState.counterflowRingAppliedSegments = checkpoint.counterflowRingAppliedSegments ?? 0;
-    this.runState.counterflowRingRadiusBonus = checkpoint.counterflowRingRadiusBonus ?? 0;
-    this.runState.counterflowRingCooldownRemaining = checkpoint.counterflowRingCooldownRemaining ?? 0;
-    this.runState.solarFlareCooldownRemaining = checkpoint.solarFlareCooldownRemaining ?? 0;
-    this.runState.solarFlareCasts = checkpoint.solarFlareCasts ?? 0;
-    this.runState.crimsonPressure = checkpoint.crimsonPressure ?? 0;
-    this.runState.crimsonPressureBuildRate = checkpoint.crimsonPressureBuildRate ?? 0;
-    this.runState.crimsonPressureDecayRate = checkpoint.crimsonPressureDecayRate ?? 0;
-    this.runState.crimsonPressureAppliedRadiusBonus =
-      checkpoint.crimsonPressureAppliedRadiusBonus ?? 0;
-    this.runState.crimsonPressureRadiusScale = checkpoint.crimsonPressureRadiusScale ?? 0.45;
-    this.runState.crimsonEmbedThreshold = checkpoint.crimsonEmbedThreshold ?? 3;
-    this.runState.furnaceCascadeCooldownRemaining =
-      checkpoint.furnaceCascadeCooldownRemaining ?? 0;
-    this.runState.furnaceCascadeCasts = checkpoint.furnaceCascadeCasts ?? 0;
-    this.runState.guardValue = checkpoint.guardValue ?? 0;
-    this.runState.guardBuildRate = checkpoint.guardBuildRate ?? 0;
-    this.runState.guardDecayRate = checkpoint.guardDecayRate ?? 0;
-    this.runState.guardMitigation = checkpoint.guardMitigation ?? 0;
-    this.runState.guardAppliedRetaliationBonus = checkpoint.guardAppliedRetaliationBonus ?? 0;
-    this.runState.guardAppliedAuraBonus = checkpoint.guardAppliedAuraBonus ?? 0;
-    this.runState.guardAppliedDamageBonus = checkpoint.guardAppliedDamageBonus ?? 0;
-    this.runState.bladeShellCharge = checkpoint.bladeShellCharge ?? 0;
-    this.runState.bladeShellThreshold = checkpoint.bladeShellThreshold ?? 100;
-    this.runState.bladeShellCooldownRemaining = checkpoint.bladeShellCooldownRemaining ?? 0;
-    this.runState.bladeShellCasts = checkpoint.bladeShellCasts ?? 0;
+    this.runState.learnedGongfaIds = [...checkpoint.learnedGongfaIds];
+    this.runState.furnaceCascadeCooldownRemaining = checkpoint.furnaceCascadeCooldownRemaining;
     this.runState.hiddenLinggen = linggenConfigs[checkpoint.hiddenLinggenId];
     this.runState.revealedLinggen = checkpoint.revealedLinggenId
       ? linggenConfigs[checkpoint.revealedLinggenId]
@@ -2133,7 +1885,9 @@ export class GameScene extends Phaser.Scene {
     this.runState.kills = checkpoint.kills;
     this.runState.elapsedMs = checkpoint.elapsedMs;
     if (this.runState.mainGongfaId) {
-      this.applyGongfaStage();
+      this.applyGongfaStage(
+        createGongfaRuntimeFromCheckpoint(this.runState.mainGongfaId, checkpoint)
+      );
     }
   }
 
@@ -2142,16 +1896,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const checkpoint: ActiveRunCheckpoint = {
+    const gongfaCheckpoint = projectGongfaRuntimeCheckpoint(this.gongfaRuntime);
+    const checkpoint = createActiveRunCheckpoint({
       playerHealth: this.player?.stats.health,
       playerMaxHealth: this.player?.stats.maxHealth,
       playerMoveSpeed: this.player?.stats.moveSpeed,
       playerMagnetRadius: this.player?.stats.magnetRadius,
-      stage: this.runState.stage,
-      realmPhase: this.runState.realmPhase,
-      realmProgress: this.runState.realmProgress,
-      phaseCleanupActive: this.runState.phaseCleanupActive,
-      foundationGrowthTransactions: this.runState.foundationGrowthTransactions,
+      ...projectRunJourneyCheckpointFields(this.runState),
       masteryPoints: this.runState.masteryPoints,
       masteryRank: this.runState.masteryRank,
       masteryLearnedIds: this.runState.masteryLearnedIds,
@@ -2162,44 +1913,7 @@ export class GameScene extends Phaser.Scene {
       masteryChoiceActive: this.runState.masteryChoiceActive,
       masteryPendingRanks: this.runState.masteryPendingRanks,
       learnedGongfaIds: this.runState.learnedGongfaIds,
-      galeMomentum: this.runState.galeMomentum,
-      galeMomentumBuildRate: this.runState.galeMomentumBuildRate,
-      galeMomentumDecayRate: this.runState.galeMomentumDecayRate,
-      galeMomentumWaveBonus: this.runState.galeMomentumWaveBonus,
-      galeMomentumAppliedRangeBonus: this.runState.galeMomentumAppliedRangeBonus,
-      galeMomentumAppliedSpreadBonus: this.runState.galeMomentumAppliedSpreadBonus,
-      galeMomentumAppliedLifetimeBonus: this.runState.galeMomentumAppliedLifetimeBonus,
-      heat: this.runState.heat,
-      heatBuildRate: this.runState.heatBuildRate,
-      heatDecayRate: this.runState.heatDecayRate,
-      heatAppliedCooldownBonus: this.runState.heatAppliedCooldownBonus,
-      heatAuraSpeedBonus: this.runState.heatAuraSpeedBonus,
-      ringSegments: this.runState.ringSegments,
-      counterflowRingSegments: this.runState.counterflowRingSegments,
-      counterflowRingAppliedSegments: this.runState.counterflowRingAppliedSegments,
-      counterflowRingRadiusBonus: this.runState.counterflowRingRadiusBonus,
-      counterflowRingCooldownRemaining: this.runState.counterflowRingCooldownRemaining,
-      solarFlareCooldownRemaining: this.runState.solarFlareCooldownRemaining,
-      solarFlareCasts: this.runState.solarFlareCasts,
-      crimsonPressure: this.runState.crimsonPressure,
-      crimsonPressureBuildRate: this.runState.crimsonPressureBuildRate,
-      crimsonPressureDecayRate: this.runState.crimsonPressureDecayRate,
-      crimsonPressureAppliedRadiusBonus: this.runState.crimsonPressureAppliedRadiusBonus,
-      crimsonPressureRadiusScale: this.runState.crimsonPressureRadiusScale,
-      crimsonEmbedThreshold: this.runState.crimsonEmbedThreshold,
-      furnaceCascadeCooldownRemaining: this.runState.furnaceCascadeCooldownRemaining,
-      furnaceCascadeCasts: this.runState.furnaceCascadeCasts,
-      guardValue: this.runState.guardValue,
-      guardBuildRate: this.runState.guardBuildRate,
-      guardDecayRate: this.runState.guardDecayRate,
-      guardMitigation: this.runState.guardMitigation,
-      guardAppliedRetaliationBonus: this.runState.guardAppliedRetaliationBonus,
-      guardAppliedAuraBonus: this.runState.guardAppliedAuraBonus,
-      guardAppliedDamageBonus: this.runState.guardAppliedDamageBonus,
-      bladeShellCharge: this.runState.bladeShellCharge,
-      bladeShellThreshold: this.runState.bladeShellThreshold,
-      bladeShellCooldownRemaining: this.runState.bladeShellCooldownRemaining,
-      bladeShellCasts: this.runState.bladeShellCasts,
+      ...gongfaCheckpoint,
       hiddenLinggenId: this.runState.hiddenLinggen.id,
       revealedLinggenId: this.runState.revealedLinggen?.id,
       lingcaoCollected: this.runState.lingcaoCollected,
@@ -2216,7 +1930,7 @@ export class GameScene extends Phaser.Scene {
       mainGongfaId: this.runState.mainGongfaId,
       kills: this.runState.kills,
       elapsedMs: this.runState.elapsedMs
-    };
+    });
 
     const save = this.activeRunSave ?? createActiveRunSave(Date.now());
     this.activeRunSave = {
@@ -2254,6 +1968,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private publishHud(message?: string): void {
+    const jinfeng = this.gongfaRuntime?.jinfeng;
+    const gengjin = this.gongfaRuntime?.gengjin;
+    const burningRing = this.gongfaRuntime?.burningRing;
+    const crimsonFurnace = this.gongfaRuntime?.crimsonFurnace;
     this.registry.set("hud", {
       health: this.player?.stats.health ?? 100,
       maxHealth: this.player?.stats.maxHealth ?? 100,
@@ -2269,21 +1987,21 @@ export class GameScene extends Phaser.Scene {
       masteryRank: this.runState.masteryRank,
       masterySkill2: this.runState.masterySkill2Id,
       masterySkill2Casts: this.runState.masterySkill2Casts,
-      galeMomentum: this.runState.galeMomentum,
-      heat: this.runState.heat,
-      ringSegments: this.runState.ringSegments,
-      counterflowRingSegments: this.runState.counterflowRingSegments,
-      solarFlareCasts: this.runState.solarFlareCasts,
-      pressure: this.runState.crimsonPressure,
+      galeMomentum: jinfeng?.momentum ?? 0,
+      heat: burningRing?.heat ?? 0,
+      ringSegments: burningRing?.ringSegments ?? 0,
+      counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
+      solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
+      pressure: crimsonFurnace?.pressure ?? 0,
       embeddedEnemies: (this.enemies?.getChildren() as Enemy[] | undefined)?.filter(
         (enemy) => enemy.active && enemy.embedStacks > 0
       ).length ?? 0,
-      furnaceCascadeCasts: this.runState.furnaceCascadeCasts,
-      crimsonPressureRadiusScale: this.runState.crimsonPressureRadiusScale,
-      guard: this.runState.guardValue,
-      guardMitigation: this.runState.guardMitigation,
-      bladeShellCharge: this.runState.bladeShellCharge,
-      bladeShellCasts: this.runState.bladeShellCasts,
+      furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
+      crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
+      guard: gengjin?.guardValue ?? 0,
+      guardMitigation: gengjin?.guardMitigation ?? 0,
+      bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
+      bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
       skillTags: this.runState.mainGongfaId
         ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
         : "",
@@ -2316,6 +2034,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   getTestSnapshot(): GameSnapshot {
+    const jinfeng = this.gongfaRuntime?.jinfeng;
+    const gengjin = this.gongfaRuntime?.gengjin;
+    const burningRing = this.gongfaRuntime?.burningRing;
+    const crimsonFurnace = this.gongfaRuntime?.crimsonFurnace;
+    const yujian = this.gongfaRuntime?.yujian;
     return {
       sceneName: this.scene.key,
       activeScenes: this.scene.manager.getScenes(true).map((scene) => scene.scene.key),
@@ -2334,14 +2057,14 @@ export class GameScene extends Phaser.Scene {
           ),
           masterySkill2: this.runState.masterySkill2Id,
           masterySkill2Casts: this.runState.masterySkill2Casts,
-          galeMomentum: this.runState.galeMomentum,
+          galeMomentum: jinfeng?.momentum ?? 0,
           skillTags: this.runState.mainGongfaId
             ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
             : "",
-          guard: this.runState.guardValue,
-          guardMitigation: this.runState.guardMitigation,
-          bladeShellCasts: this.runState.bladeShellCasts,
-          bladeShellCharge: this.runState.bladeShellCharge,
+          guard: gengjin?.guardValue ?? 0,
+          guardMitigation: gengjin?.guardMitigation ?? 0,
+          bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
+          bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
           linggenName: this.runState.revealedLinggen?.name ?? "Unrevealed",
           linggenGrades: this.runState.revealedLinggen
             ? getLinggenAffinityGradeSummary(this.runState.revealedLinggen.id).join(", ")
@@ -2386,24 +2109,29 @@ export class GameScene extends Phaser.Scene {
         masterySkill2: this.runState.masterySkill2Id,
         masterySkill2Casts: this.runState.masterySkill2Casts,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
+        masteryTransformationTriggers: {
+          executionSeal: yujian?.executionSealTriggers ?? 0,
+          swordBloom: yujian?.swordBloomTriggers ?? 0,
+          reversingSwordPath: yujian?.reversingSwordPathTriggers ?? 0
+        },
         skillTags: this.runState.mainGongfaId
           ? getGongfaSkillTags(this.runState.mainGongfaId)
           : [],
-        galeMomentum: this.runState.galeMomentum,
-        heat: this.runState.heat,
-        ringSegments: this.runState.ringSegments,
-        counterflowRingSegments: this.runState.counterflowRingSegments,
-        solarFlareCasts: this.runState.solarFlareCasts,
-        pressure: this.runState.crimsonPressure,
+        galeMomentum: jinfeng?.momentum ?? 0,
+        heat: burningRing?.heat ?? 0,
+        ringSegments: burningRing?.ringSegments ?? 0,
+        counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
+        solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
+        pressure: crimsonFurnace?.pressure ?? 0,
         embeddedEnemies: (this.enemies?.getChildren() as Enemy[] | undefined)?.filter(
           (enemy) => enemy.active && enemy.embedStacks > 0
         ).length ?? 0,
-        furnaceCascadeCasts: this.runState.furnaceCascadeCasts,
-        crimsonPressureRadiusScale: this.runState.crimsonPressureRadiusScale,
-        guard: this.runState.guardValue,
-        guardMitigation: this.runState.guardMitigation,
-        bladeShellCharge: this.runState.bladeShellCharge,
-        bladeShellCasts: this.runState.bladeShellCasts,
+        furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
+        crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
+        guard: gengjin?.guardValue ?? 0,
+        guardMitigation: gengjin?.guardMitigation ?? 0,
+        bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
+        bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
         linggen: this.runState.revealedLinggen?.id ?? "unrevealed",
         linggenGrades: this.runState.revealedLinggen
           ? getLinggenAffinityGradeSummary(this.runState.revealedLinggen.id).join(", ")
@@ -2421,7 +2149,7 @@ export class GameScene extends Phaser.Scene {
         cooldownMs: this.combatState.cooldownMs,
         pierce: this.combatState.pierce,
         segmentCount: this.combatState.count,
-        counterflowSegments: this.runState.counterflowRingSegments,
+        counterflowSegments: burningRing?.counterflowRingSegments ?? 0,
         spreadDeg: this.combatState.spreadDeg,
         range: this.combatState.range,
         auraRadius: this.combatState.auraRadius,
@@ -2431,7 +2159,14 @@ export class GameScene extends Phaser.Scene {
       },
       counts: {
         enemies: this.enemies?.countActive(true) ?? 0,
+        projectiles: this.projectiles?.countActive(true) ?? 0,
         orbs: this.orbs?.countActive(true) ?? 0,
+        orbPositions: ((this.orbs?.getChildren() as QiOrb[] | undefined) ?? [])
+          .filter((orb) => orb.active)
+          .map((orb) => ({
+            x: orb.x,
+            y: orb.y
+          })),
         healingPills: this.healingPills?.countActive(true) ?? 0,
         healingPillPositions: ((this.healingPills?.getChildren() as HealingPill[] | undefined) ?? [])
           .filter((pill) => pill.active)
@@ -2439,6 +2174,12 @@ export class GameScene extends Phaser.Scene {
             x: pill.x,
             y: pill.y,
             healAmount: pill.healAmount
+          })),
+        lingcaoPositions: ((this.lingcaoGroup?.getChildren() as Lingcao[] | undefined) ?? [])
+          .filter((lingcao) => lingcao.active)
+          .map((lingcao) => ({
+            x: lingcao.x,
+            y: lingcao.y
           })),
         enemyIds: ((this.enemies?.getChildren() as Enemy[] | undefined) ?? []).reduce<
           Record<string, number>
@@ -2480,32 +2221,11 @@ export class GameScene extends Phaser.Scene {
     this.publishHud(this.lastMessage);
   }
 
-  forceGrantQi(amount: number): void {
-    this.grantQi(amount);
-    this.publishHud(this.lastMessage);
-  }
-
   forceSelectChoice(index: number): void {
     if (!this.choiceActive || index < 0 || index >= this.currentChoiceOptions.length) {
       return;
     }
     this.resolveChoice(this.currentChoiceOptions[index]);
-  }
-
-  forceClaimLingcao(): void {
-    const lingcao = this.lingcaoGroup.getChildren()[0] as Lingcao | undefined;
-    if (lingcao?.active) {
-      this.collectLingcao(lingcao);
-    }
-  }
-
-  forceSetLinggen(id: LinggenId): void {
-    if (this.runState.revealedLinggen) {
-      return;
-    }
-
-    this.runState.hiddenLinggen = linggenConfigs[id];
-    this.publishHud(this.lastMessage);
   }
 
   forceDamagePlayer(amount: number): void {
@@ -2515,12 +2235,6 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.publishHud(this.lastMessage);
-  }
-
-  forceAdvanceRealmProgress(amount: number): void {
-    this.advanceRealmProgress(amount);
-    this.persistRunCheckpoint();
     this.publishHud(this.lastMessage);
   }
 
@@ -2536,17 +2250,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   forceSpawnQiOrb(qiValue: number): void {
-    this.spawnOrb(this.player.x + 24, this.player.y + 24, qiValue);
+    this.spawnOrb(this.player.x, this.player.y, qiValue);
     this.publishHud(this.lastMessage);
   }
 
   forceSpawnHealingPill(healAmount = 30, offsetX = 0, offsetY = 0): void {
     this.spawnHealingPill(this.player.x + offsetX, this.player.y + offsetY, healAmount);
-    this.publishHud(this.lastMessage);
-  }
-
-  forceAdvanceMasteryProgress(points: number): void {
-    this.advanceMasteryProgress(points);
     this.publishHud(this.lastMessage);
   }
 
@@ -2559,19 +2268,20 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const mitigation = this.runState.mainGongfaId === "gengjin-huti" ? this.runState.guardMitigation : 0;
-    const finalDamage = Math.max(1, Math.floor(amount * (1 - mitigation)));
-    this.player.applyDamage(finalDamage);
-
-    if (this.runState.mainGongfaId === "gengjin-huti") {
-      this.runState.bladeShellCharge = Math.min(
-        this.runState.bladeShellThreshold,
-        this.runState.bladeShellCharge + finalDamage * 2
-      );
-      this.syncGengjinCombatState();
-      this.tickBladeShell(0);
+    if (this.gongfaRuntime?.gengjin) {
+      const result = advanceGongfaRuntime(this.gongfaRuntime, {
+        kind: "incoming-damage",
+        amount,
+        skill2Id: this.runState.masterySkill2Id
+      });
+      this.gongfaRuntime = result.runtime;
+      this.combatState = result.runtime.combat;
+      this.executeGongfaRuntimeCommands(result.commands);
       this.persistRunCheckpoint();
+      return;
     }
+
+    this.player.applyDamage(Math.max(1, Math.floor(amount)));
   }
 
   private advanceMasteryProgress(points: number): void {
@@ -2595,11 +2305,6 @@ export class GameScene extends Phaser.Scene {
       if (rank === 10) {
         this.runState.masterySkill2Id = getRank10Skill2Id(this.runState.mainGongfaId);
         this.runState.masterySkill2CooldownRemaining = this.getMasterySkill2CooldownMs();
-        if (this.runState.masterySkill2Id === "blade-shell-rebound") {
-          this.runState.bladeShellCooldownRemaining = 0;
-        } else if (this.runState.masterySkill2Id === "solar-flare-cycle") {
-          this.runState.solarFlareCooldownRemaining = 0;
-        }
         continue;
       }
 
@@ -2641,12 +2346,12 @@ export class GameScene extends Phaser.Scene {
       seed: String(this.getRunSeed()),
       learnedIds: this.runState.masteryLearnedIds
     }).map<ChoiceOption>((id) => {
-      const upgrade = upgradeConfigs.find((item) => item.id === id);
+      const definition = getMasteryChoiceDefinition(id);
       return {
         id,
         kind: "mastery",
-        title: upgrade?.name ?? id,
-        description: upgrade?.lore ?? "A deterministic mastery refinement."
+        title: definition?.name ?? id,
+        description: definition?.lore ?? "A deterministic mastery refinement."
       };
     });
 
@@ -2673,9 +2378,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const nextJourney = grantRealmQi(this.runState, amount);
-    this.runState.realmProgress = nextJourney.realmProgress;
-    this.runState.phaseCleanupActive = nextJourney.phaseCleanupActive;
+    const result = advanceRunJourney(this.runState, {
+      kind: "realm-qi-gained",
+      amount
+    });
+    this.applyRunJourneyState(result.state);
+    this.executeRunJourneyCommands(result.commands);
   }
 
   private maybeResolvePhaseTransition(): void {
@@ -2684,122 +2392,130 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.runState.finalBossActive) {
-      this.runState.finalBossPhaseReady = true;
-
       if (this.runState.masteryPendingRanks.length > 0) {
         this.offerMasteryChoice();
         return;
       }
 
-      if (this.runState.finalBossPhaseIndex >= 2) {
-        this.completeFinalBossVictory();
-        return;
-      }
-
-      this.offerFinalBossPhaseChoice();
+      const result = advanceRunJourney(this.runState, {
+        kind: "final-boss-phase-cleared"
+      });
+      this.applyRunJourneyState(result.state);
+      this.executeRunJourneyCommands(result.commands);
       return;
     }
 
-    const decision = getCleanupDecision(this.runState);
-    if (decision?.kind === "tribulation") {
-      if (decision.stage === "yuanying") {
-        this.offerYuanyingTribulationChoice();
-      } else {
-        this.offerStageTribulationChoice();
-      }
-      return;
-    }
-
-    this.offerPhaseTransition();
+    const result = advanceRunJourney(this.runState, {
+      kind: "cleanup-finished"
+    });
+    this.applyRunJourneyState(result.state);
+    this.executeRunJourneyCommands(result.commands);
   }
 
-  private offerYuanyingTribulationChoice(): void {
-    if (this.choiceActive || this.pendingFinalBossChoice) {
+  private offerJourneyChoice(decision: RunJourneyDecision): void {
+    if (this.choiceActive || this.pendingJourneyDecision) {
       return;
     }
 
-    this.pendingFinalBossChoice = true;
+    this.pendingJourneyDecision = decision;
     this.choiceActive = true;
-    this.currentChoiceTitle = "Yuanying Heavenly Tribulation";
-    this.currentChoiceOptions = [
-      {
-        id: "yuanying-tribulation-continue",
-        kind: "continue",
-        title: "Face the Heavenly Tribulation",
-        description: "Begin the normal-ending boss sequence."
-      }
-    ];
+    this.currentChoiceTitle = this.getJourneyChoiceTitle(decision);
+    this.currentChoiceOptions = this.getJourneyChoiceOptions(decision);
     this.setPausedState(true);
     this.scene.get("ui").events.emit("show-choice-panel", {
       title: this.currentChoiceTitle,
-      subtitle: "Dayuanman clears. Cloudbreak Summit answers with thunder.",
+      subtitle: this.getJourneyChoiceSubtitle(decision),
       options: this.currentChoiceOptions
     });
     this.publishHud(this.lastMessage);
   }
 
-  private offerStageTribulationChoice(): void {
-    if (this.choiceActive || this.pendingStageTribulationChoice) {
-      return;
+  private getJourneyChoiceTitle(decision: RunJourneyDecision): string {
+    if (decision.kind === "phase-transition") {
+      return "Phase Transition";
     }
 
-    const destination =
-      this.runState.stage === "lianqi"
-        ? "zhuji"
-        : this.runState.stage === "zhuji"
-          ? "jindan"
-          : "yuanying";
-    const destinationName = stageConfigs[destination].name;
-    const currentName = stageConfigs[this.runState.stage].name;
-    this.pendingStageTribulationChoice = true;
-    this.choiceActive = true;
-    this.currentChoiceTitle = `${currentName} Tribulation`;
-    this.currentChoiceOptions = [
-      {
-        id: `${this.runState.stage}-tribulation-continue`,
-        kind: "continue",
-        title: `Break through into ${destinationName}`,
-        description: `Complete the ${currentName} Tribulation and open the next Gongfa slot.`
-      }
-    ];
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
-      title: this.currentChoiceTitle,
-      subtitle: `${currentName} Dayuanman clears. Its concluding Tribulation rises.`,
-      options: this.currentChoiceOptions
-    });
-    this.publishHud(this.lastMessage);
+    if (decision.kind === "tribulation") {
+      return `${stageConfigs[decision.stage].name} Tribulation`;
+    }
+
+    return "Yuanying Heavenly Tribulation";
   }
 
-  private startYuanyingTribulation(): void {
-    this.runState.finalBossActive = true;
-    this.runState.finalBossPhaseIndex = 0;
-    this.runState.finalBossPhaseReady = false;
-    this.runState.phaseCleanupActive = false;
-    this.runState.realmProgress = 0;
-    this.finalBossWaveAccumulator = 0;
-    this.finalBossHazardAccumulator = 0;
-    this.finalBossPhaseSpawned = false;
-    this.finalBossSafeZoneX = this.player.x;
-    this.finalBossSafeZoneY = this.player.y;
-    this.finalBossSafeZoneRadius = 220;
-    this.lastMessage = "Lightning judgment descends over Cloudbreak Summit.";
-    this.persistRunCheckpoint();
-  }
+  private getJourneyChoiceSubtitle(decision: RunJourneyDecision): string {
+    if (decision.kind === "phase-transition") {
+      return `Cleanup complete. ${decision.nextPhase === "zhongqi" ? "Lianqi Chuqi" : this.runState.realmPhase} is ready to advance.`;
+    }
 
-  private offerFinalBossPhaseChoice(): void {
-    if (this.choiceActive || !this.runState.finalBossActive) {
-      return;
+    if (decision.kind === "tribulation") {
+      return `${stageConfigs[decision.stage].name} Dayuanman clears. Its concluding Tribulation rises.`;
+    }
+
+    if (decision.kind === "yuanying-tribulation") {
+      return "Dayuanman clears. Cloudbreak Summit answers with thunder.";
     }
 
     const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
-    const nextPhaseIndex = this.runState.finalBossPhaseIndex + 1;
-    const nextPhaseName = phaseNames[nextPhaseIndex] ?? "Heavenly Judgment";
+    return `${phaseNames[this.runState.finalBossPhaseIndex]} clears. The tribulation deepens.`;
+  }
 
-    this.pendingFinalBossChoice = true;
-    this.choiceActive = true;
-    this.currentChoiceTitle = "Yuanying Heavenly Tribulation";
-    this.currentChoiceOptions = [
+  private getJourneyChoiceOptions(decision: RunJourneyDecision): ChoiceOption[] {
+    if (decision.kind === "phase-transition") {
+      return [
+        {
+          id: "phase-continue",
+          kind: "continue",
+          title: `Continue to ${decision.nextPhase}`,
+          description: "Advance after cleanup and autosave."
+        },
+        {
+          id: "phase-return-title",
+          kind: "return-to-title",
+          title: "Return to Title",
+          description: "Leave the run on the current checkpoint."
+        },
+        {
+          id: "phase-abandon",
+          kind: "abandon-run",
+          title: "Abandon Run",
+          description: "Delete the active save and return to title."
+        }
+      ];
+    }
+
+    if (decision.kind === "tribulation") {
+      const destination =
+        decision.stage === "lianqi"
+          ? "zhuji"
+          : decision.stage === "zhuji"
+            ? "jindan"
+            : "yuanying";
+      const destinationName = stageConfigs[destination].name;
+      const currentName = stageConfigs[decision.stage].name;
+      return [
+        {
+          id: `${decision.stage}-tribulation-continue`,
+          kind: "continue",
+          title: `Break through into ${destinationName}`,
+          description: `Complete the ${currentName} Tribulation and open the next Gongfa slot.`
+        }
+      ];
+    }
+
+    if (decision.kind === "yuanying-tribulation") {
+      return [
+        {
+          id: "yuanying-tribulation-continue",
+          kind: "continue",
+          title: "Face the Heavenly Tribulation",
+          description: "Begin the normal-ending boss sequence."
+        }
+      ];
+    }
+
+    const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
+    const nextPhaseName = phaseNames[decision.nextPhaseIndex] ?? "Heavenly Judgment";
+    return [
       {
         id: "final-boss-continue",
         kind: "continue",
@@ -2807,36 +2523,31 @@ export class GameScene extends Phaser.Scene {
         description: "Resolve the next celestial pattern after cleanup and autosave."
       }
     ];
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
-      title: this.currentChoiceTitle,
-      subtitle: `${phaseNames[this.runState.finalBossPhaseIndex]} clears. The tribulation deepens.`,
-      options: this.currentChoiceOptions
-    });
-    this.publishHud(this.lastMessage);
   }
 
-  private advanceFinalBossPhase(): void {
-    this.runState.finalBossPhaseIndex += 1;
-    this.runState.finalBossPhaseReady = false;
-    this.runState.phaseCleanupActive = false;
+  private startYuanyingTribulation(phaseIndex: number): void {
     this.finalBossWaveAccumulator = 0;
     this.finalBossHazardAccumulator = 0;
     this.finalBossPhaseSpawned = false;
     this.finalBossSafeZoneX = this.player.x;
     this.finalBossSafeZoneY = this.player.y;
-    this.finalBossSafeZoneRadius = Math.max(120, 220 - this.runState.finalBossPhaseIndex * 40);
+    this.finalBossSafeZoneRadius = 220;
+    this.lastMessage = "Lightning judgment descends over Cloudbreak Summit.";
+    void phaseIndex;
+  }
+
+  private advanceFinalBossPhase(phaseIndex: number): void {
+    this.finalBossWaveAccumulator = 0;
+    this.finalBossHazardAccumulator = 0;
+    this.finalBossPhaseSpawned = false;
+    this.finalBossSafeZoneX = this.player.x;
+    this.finalBossSafeZoneY = this.player.y;
+    this.finalBossSafeZoneRadius = Math.max(120, 220 - phaseIndex * 40);
     const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
-    this.lastMessage = `${phaseNames[this.runState.finalBossPhaseIndex]} begins.`;
-    this.persistRunCheckpoint();
+    this.lastMessage = `${phaseNames[phaseIndex]} begins.`;
   }
 
   private completeFinalBossVictory(): void {
-    this.runState.finalBossActive = false;
-    this.runState.finalBossPhaseReady = false;
-    this.runState.phaseCleanupActive = false;
-    this.runState.gameOver = true;
-    this.pendingFinalBossChoice = false;
     this.setPausedState(true);
     this.recordCompletion();
     this.clearActiveRunSave();
@@ -2866,49 +2577,6 @@ export class GameScene extends Phaser.Scene {
         this.collectOrb(orb);
       }
     });
-  }
-
-  private offerPhaseTransition(): void {
-    if (this.choiceActive || this.pendingPhaseTransitionTarget) {
-      return;
-    }
-
-    const decision = getCleanupDecision(this.runState);
-    if (!decision || decision.kind !== "phase-transition") {
-      return;
-    }
-    const nextPhase = decision.nextPhase;
-
-    this.pendingPhaseTransitionTarget = nextPhase;
-    this.choiceActive = true;
-    this.currentChoiceTitle = "Phase Transition";
-    this.currentChoiceOptions = [
-      {
-        id: "phase-continue",
-        kind: "continue",
-        title: `Continue to ${nextPhase}`,
-        description: "Advance after cleanup and autosave."
-      },
-      {
-        id: "phase-return-title",
-        kind: "return-to-title",
-        title: "Return to Title",
-        description: "Leave the run on the current checkpoint."
-      },
-      {
-        id: "phase-abandon",
-        kind: "abandon-run",
-        title: "Abandon Run",
-        description: "Delete the active save and return to title."
-      }
-    ];
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
-      title: this.currentChoiceTitle,
-      subtitle: `Cleanup complete. ${nextPhase === "zhongqi" ? "Lianqi Chuqi" : this.runState.realmPhase} is ready to advance.`,
-      options: this.currentChoiceOptions
-    });
-    this.publishHud(this.lastMessage);
   }
 
 }

@@ -14,10 +14,16 @@ export class SpawnerSystem {
   private currentPool: EnemyId[] = ["jade-rat"];
   private accumulator = 0;
   private currentStage: StageId = "lianqi";
+  private readonly onSpawn?: (enemy: Enemy) => void;
 
-  constructor(scene: Phaser.Scene, group: Phaser.Physics.Arcade.Group) {
+  constructor(
+    scene: Phaser.Scene,
+    group: Phaser.Physics.Arcade.Group,
+    onSpawn?: (enemy: Enemy) => void
+  ) {
     this.scene = scene;
     this.group = group;
+    this.onSpawn = onSpawn;
   }
 
   update(
@@ -69,6 +75,7 @@ export class SpawnerSystem {
       const spawnPoint = this.getSpawnPoint(playerPosition);
       const enemy = new Enemy(this.scene, spawnPoint.x, spawnPoint.y, config);
       this.group.add(enemy);
+      this.onSpawn?.(enemy);
     }
   }
 
@@ -76,6 +83,7 @@ export class SpawnerSystem {
     const config = enemyConfigs[enemyId];
     const enemy = new Enemy(this.scene, x, y, config);
     this.group.add(enemy);
+    this.onSpawn?.(enemy);
     return enemy;
   }
 

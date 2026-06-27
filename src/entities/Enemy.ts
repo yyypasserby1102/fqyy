@@ -4,6 +4,7 @@ import type { EnemyConfig } from "../data/enemies";
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   config: EnemyConfig;
   health: number;
+  combatTargetId = 0;
   contactCooldownUntil = 0;
   embedStacks = 0;
   embedPower = 0;

@@ -2,7 +2,6 @@ import Phaser from "phaser";
 import { BootScene } from "./scenes/BootScene";
 import { GameScene } from "./scenes/GameScene";
 import { UIScene } from "./scenes/UIScene";
-import type { LinggenId } from "./data/linggen";
 import type { GameTestHarness } from "./types/gameTest";
 import { setRandomSeed } from "./utils/random";
 
@@ -19,20 +18,13 @@ function attachGameTestHarness(game: Phaser.Game): void {
     getSnapshot: () => getGameScene().getTestSnapshot(),
     getHudState: () => game.registry.get("hud") as Record<string, unknown>,
     forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
-    forceGrantQi: (amount) => getGameScene().forceGrantQi(amount),
     selectChoice: (index) => getGameScene().forceSelectChoice(index),
     setRngSeed: (seed) => setRandomSeed(seed),
-    forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
-    forceSetLinggen: (id: LinggenId) => getGameScene().forceSetLinggen(id),
     forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
-    forceAdvanceRealmProgress: (amount: number) =>
-      getGameScene().forceAdvanceRealmProgress(amount),
     forceClearEnemies: () => getGameScene().forceClearEnemies(),
     forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
     forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
-    forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs),
-    forceAdvanceMasteryProgress: (points: number) =>
-      getGameScene().forceAdvanceMasteryProgress(points)
+    forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs)
   };
 
   window.__gameTest = harness;
