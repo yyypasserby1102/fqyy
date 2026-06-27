@@ -16,6 +16,10 @@ _Avoid_: Lianqi level zero, tutorial class
 The player character as a martial-fantasy practitioner advancing through a run. This term frames the fantasy layer above generic player language.
 _Avoid_: Hero, avatar
 
+**Cultivator Candidate**:
+One of three prospective cultivators offered when starting a Run, each showing their elemental roots and qualitative Affinity Grades. Candidates may differ cosmetically, but their Linggen is initially their only gameplay difference; exact Root Affinities remain hidden.
+_Avoid_: Character class, reroll card, starting Gongfa
+
 **Evade**:
 A shared Cultivator action that moves 120 pixels over 200 milliseconds in the currently held movement direction and prevents incoming damage for that duration. Evade has a 1.2-second cooldown, requires directional input, and cannot start while the Run is paused or stopped for a choice.
 _Avoid_: Passive dodge chance, Gongfa Skill, teleport
@@ -28,9 +32,17 @@ _Avoid_: Class, loadout
 The emergent combination of weapon families, upgrades, and breakthrough choices assembled during a run.
 _Avoid_: Spec, kit
 
+**Combat Profile**:
+A Gongfa's relative contribution to Damage, Survival, and Control. Every Gongfa contributes to all three because it must function alone in Lianqi, but its emphasis and method of contribution define its combat identity.
+_Avoid_: Hard role, class category, damage-only rating
+
 **Gongfa**:
 A complete cultivation system containing multiple Skills and passive bonuses that collectively express one path in combat. Passives may affect only that Gongfa or improve shared Cultivator Attributes and compatible Skills across the build. A Gongfa is not one attack or mechanic. Gongfa accumulate as the cultivator advances through combat Stages rather than being divided into main and support roles. Each Gongfa requires compatible Linggen; a hybrid Gongfa requiring two roots is independently authored rather than generated from single-root Gongfa.
 _Avoid_: Method as a separate game concept, skill tree, subclass
+
+**Playable Gongfa**:
+A Gongfa with a complete starting Skill, defining passive, fixed Mastery Pool, three Transformation milestones, functioning Skill 2, and persistence support. Only Playable Gongfa may appear in Candidate compatibility or Breakthrough offerings.
+_Avoid_: Stat-only configuration, placeholder Gongfa, planned Skill
 
 **Cultivator Attribute**:
 A shared baseline property of the cultivator, such as movement speed, maximum health, mitigation, or projectile speed. Foundation Growth, Spirit Treasures, and thematic Gongfa passives can modify Cultivator Attributes, allowing learned Gongfa to support one another.
@@ -41,12 +53,32 @@ A specific combat behavior contained within a Gongfa and unlocked or improved th
 _Avoid_: Gongfa, weapon
 
 **Skill Tag**:
-A trait such as projectile, aura, fire, or defensive that identifies which global Gongfa passives can affect a Skill. Tags make cross-Gongfa synergy explicit rather than universal.
+A trait such as projectile, aura, fire, or defensive that identifies which global Gongfa passives can affect a Skill. Bonuses from different Gongfa to the same tagged property stack additively from its base value unless an exceptional formula is explicitly authored.
 _Avoid_: Class, hidden compatibility rule
 
 **Gongfa Mastery**:
-An independent progression track representing the cultivator's understanding of one learned Gongfa. Gongfa Mastery unlocks or improves that Gongfa's Skills and passive bonuses at a rate derived from its required Root Affinities.
+An independent progression track representing the cultivator's understanding of one learned Gongfa. Ranks one through nine alternate ordinary Mastery Refinements with Mastery Transformations at ranks three, six, and nine; rank ten unlocks the Gongfa's second Skill.
 _Avoid_: Weapon XP, Gongfa level
+
+**Mastery Refinement**:
+A chosen numerical improvement to a Gongfa's existing Skills, passive bonuses, synergies, or related Cultivator Attributes. Each family has two authored tiers, remains available until both are selected, and can appear among the three reproducibly random options at ordinary Mastery ranks.
+_Avoid_: Foundation Growth, generic stat upgrade, Skill unlock
+
+**Mastery Transformation**:
+A chosen structural change to how a Gongfa's Skill or passive delivers comparable killing power through a different play pattern. Ranks three, six, and nine each offer three milestone-specific Transformations; the chosen one becomes permanent and the other two become unavailable for that Run.
+_Avoid_: Mastery Refinement, flat stat increase, Realm Breakthrough
+
+**Mastery Pool**:
+The fixed, authored set of Refinements and Transformations belonging to one Gongfa. Offerings are drawn from this pool, but effects are never procedurally generated or replaced with generic upgrades when Gongfa-specific content is missing.
+_Avoid_: Global upgrade pool, generated stat roll, fallback rewards
+
+**Effect Scope**:
+The explicit target of a Mastery effect: a named Skill, the owning Gongfa, its defining passive, a Skill Tag shared across Gongfa, or a Cultivator Attribute. No Mastery effect implicitly changes every Skill through an ambiguous shared Method stat.
+_Avoid_: Method-wide bonus, implicit global modifier, unlabeled stat increase
+
+**Fully Mastered**:
+The terminal state of a Gongfa after Skill 2 is unlocked and every available Refinement tier in its authored Mastery Pool has been selected. A Fully Mastered Gongfa remains active but no longer gains Mastery progress or creates choices from Qi.
+_Avoid_: Maximum Stage, completed Run, evergreen Mastery
 
 **Stage**:
 A major cultivation realm that gates which Gongfa are appropriate and how many Gongfa the cultivator can hold. Each combat Stage progresses through the four Realm Phases Chuqi, Zhongqi, Houqi, and Dayuanman. The combat Stages grant one cumulative Gongfa slot each: one at Lianqi, two at Zhuji, three at Jindan, and four at Yuanying. Yuanying is a full combat Stage with time to develop the fourth Gongfa before its final Tribulation; overcoming that challenge grants the normal ending. Huashen is the hidden, non-combat true ending available only to a cultivator with a complete five-root Linggen.
@@ -69,7 +101,7 @@ A small automatic increase to the cultivator's baseline strength granted when a 
 _Avoid_: Mastery choice, Gongfa improvement
 
 **Linggen**:
-The cultivator's innate elemental root profile, determined at run start, revealed during the first Breakthrough, and defining cultivation affinity before Gongfa selection. An initial Linggen contains one or two roots. Exceptional progression can add roots but never remove them, allowing an evolved Linggen to contain all five elemental roots. An added root randomly redistributes the Linggen's Root Affinity while preserving the relative order of existing roots, changes Cultivation Efficiency, expands future Gongfa choices, and does not transform learned Gongfa. A complete five-root Linggen is required to enter Huashen but not to reach the normal Yuanying ending.
+The cultivator's innate elemental root profile, selected visibly through one of three Cultivator Candidates at Run start and awakened by the first Breakthrough. An initial Linggen contains one or two roots. Exceptional progression can add roots but never remove them, allowing an evolved Linggen to contain all five elemental roots. A complete five-root Linggen is required to enter Huashen but not to reach the normal Yuanying ending.
 _Avoid_: Class, talent tree
 
 **Root Affinity**:
@@ -93,7 +125,7 @@ A rare opportunity that adds an off-path technique, treasure, or modifier to an 
 _Avoid_: Multiclass, random bonus
 
 **Breakthrough**:
-A high-impact transition into a new Stage. Reaching the Lingcao triggers the first Breakthrough from Mortal into Lianqi Chuqi, reveals the cultivator's Linggen, and grants the first Gongfa selection. Each later Breakthrough follows the current Stage's Dayuanman Tribulation, adds one Gongfa slot, and preserves learned Gongfa. Entering Huashen ends the Run instead of adding another Gongfa.
+A high-impact transition into a new Stage. Reaching the Lingcao triggers the first Breakthrough from Mortal into Lianqi Chuqi, awakens the selected Linggen, and grants the first Gongfa selection. Each later Breakthrough follows the current Stage's Dayuanman Tribulation, adds one Gongfa slot, and preserves learned Gongfa. Entering Huashen ends the Run instead of adding another Gongfa.
 _Avoid_: Perk, talent tier
 
 **Qi Orb**:
@@ -109,7 +141,7 @@ A world pickup that restores missing health immediately on contact. A full-healt
 _Avoid_: Inventory item, passive regeneration, permanent upgrade
 
 **Lingcao**:
-A spirit herb placed in the opening arena that triggers the Mortal cultivator's first Breakthrough into Lianqi Chuqi. Lingcao reveals but does not determine the cultivator's innate Linggen.
+A spirit herb placed in the opening arena that triggers the Mortal cultivator's first Breakthrough into Lianqi Chuqi and awakens the Linggen selected at Run start. Lingcao does not determine or alter that Linggen.
 _Avoid_: Powerup, chest, herb drop
 
 **Tribulation**:

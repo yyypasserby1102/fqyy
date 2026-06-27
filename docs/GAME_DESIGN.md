@@ -45,9 +45,9 @@
 
 1. Move through the arena and avoid contact pressure.
 2. Begin as a Mortal and evade enemies through movement and the shared Evade action.
-3. Route toward a guaranteed early Lingcao while under pressure.
-4. Collect dropped qi orbs and claim the Lingcao to secure the first major progression spike.
-5. Claim the Lingcao and Breakthrough into Lianqi Chuqi, revealing the cultivator's innate Linggen.
+3. Choose one of three Cultivator Candidates showing roots and qualitative Affinity Grades.
+4. Route toward a guaranteed early Lingcao while under pressure.
+5. Claim the Lingcao and Breakthrough into Lianqi Chuqi, awakening the selected Linggen.
 6. Select a Gongfa that expresses that Linggen in combat.
 7. Accumulate Qi to earn Gongfa Mastery refinements and trigger later realm Breakthroughs.
 8. Survive elite fights, boss phases, and later tribulations.
@@ -95,19 +95,25 @@ These should become the main build identity layer.
 
 - A guaranteed early Lingcao creates a reliable first power spike without changing the cultivator's innate Linggen
 - Gongfa Mastery choices when mastery thresholds are reached
-- An early first breakthrough that identifies the cultivator's Linggen
-- Gongfa selection after root identification to determine combat expression
+- A three-candidate opening that makes initial Linggen roots and Affinity Grades an informed roguelite choice
+- Gongfa selection after Linggen awakening to determine combat expression
 - Most later growth should deepen the chosen path rather than flattening all doctrines into one generic pool
 - Rare fortunate encounters can introduce limited off-path techniques without replacing the main path
 - Later major Breakthroughs when Realm Progress thresholds are reached
 - Elite drops that offer treasure-grade upgrades or consumables
 - The first slice should contain 3 major Stages, each opening one additional Gongfa slot
 
-The Run begins in the Mortal state. Claiming the Lingcao triggers the first Breakthrough into Lianqi Chuqi, reveals Linggen, and grants Gongfa 1. Each combat Stage is then divided into four ordered Realm Phases: `Chuqi -> Zhongqi -> Houqi -> Dayuanman`. Every Phase is one bounded combat segment and ends at a safe checkpoint. Completing Dayuanman leads into that Stage's concluding Tribulation and subsequent Breakthrough. Yuanying follows the same four-Phase structure before the Heavenly Tribulation.
+Starting a Run presents three Cultivator Candidates with visible roots and qualitative Affinity Grades while exact affinities remain hidden. Choosing one fixes the initial Linggen and enters the Mortal state. Claiming the Lingcao then triggers the first Breakthrough into Lianqi Chuqi, awakens that Linggen, and grants Gongfa 1. Each combat Stage is divided into four ordered Realm Phases: `Chuqi -> Zhongqi -> Houqi -> Dayuanman`.
 
-Claiming the Lingcao freezes combat for the Linggen reveal and Gongfa choice but does not remove the enemies pursuing the Mortal. Resume against the same pack so the first Gongfa's power spike is immediately legible.
+Candidate names and portraits may differ, but Linggen is their only initial gameplay difference. Do not add character-specific base stats, talents, or starting items until Linggen and Gongfa balance can be evaluated independently.
 
-Lingcao activates immediately on contact with no channel time. Every reveal or one-of-three choice scene fully pauses enemies, projectiles, spawns, and combat timers until resolved.
+Generate three distinct Candidate Linggen profiles from the Run seed. Guarantee at least one single-root and one dual-root profile, then draw the third from the remaining pool. Reloading or restarting the same seeded Run must not reroll this opening tradeoff.
+
+A Linggen profile enters the Candidate pool only when it supports at least three compatible Playable Gongfa: complete starting Skill, defining passive, fixed Mastery Pool, three Transformation milestones, functioning Skill 2, and persistence behavior. Stat-only placeholders are not playable content and must never appear in Candidate or Breakthrough offerings.
+
+Claiming the Lingcao freezes combat for the Gongfa choice but does not remove the enemies pursuing the Mortal. Resume against the same pack so the first Gongfa's power spike is immediately legible.
+
+Lingcao activates immediately on contact with no channel time. Every one-of-three choice scene fully pauses enemies, projectiles, spawns, and combat timers until resolved.
 
 Qi fills a Realm Progress meter for the current Phase. Filling it starts the Phase cleanup; completing the subsequent Phase Transition advances from Chuqi to Zhongqi, Zhongqi to Houqi, or Houqi to Dayuanman. Filling Dayuanman and clearing its remaining enemies unlocks the Stage's Tribulation; defeating that challenge triggers the Breakthrough into the next Stage and grants the new Gongfa slot. Gongfa Mastery continues independently throughout.
 
@@ -224,7 +230,7 @@ Breakthroughs should be more than normal upgrades. They are the clearest express
   - Add a new subsystem such as dash, summon, or shield
   - Trade risk for power through tribulation-style modifiers
 
-For the first vertical slice, the first breakthrough should reveal a Linggen profile rather than ask the player to pick a class-like doctrine directly.
+The opening selects a Cultivator Candidate and visible Linggen rather than a class-like doctrine. The first Breakthrough awakens that Linggen and offers compatible Gongfa.
 
 After the first breakthrough, runs should use a soft-hybrid model: most upgrades reinforce the chosen doctrine, while rare fortunate encounters can add constrained cross-path expression. This better matches xiuxian fiction than either rigid class purity or unrestricted build soup.
 
@@ -232,9 +238,15 @@ The first breakthrough should establish the cultivator's elemental foundation fi
 
 A Gongfa should define both the cultivator's combat expression and the way that build scales. Each Gongfa is a complete cultivation package containing multiple Skills and passive bonuses, not a single attack behavior. Its documented core pattern is the starting signature Skill through which the package first becomes visible.
 
+Author and benchmark each Gongfa through a three-axis Combat Profile: Damage, Survival, and Control. Every Gongfa must contribute to all three because it operates alone during Lianqi, but one or two axes may be its focus. Survival can emerge from mitigation, mobility, spacing, or recovery; Control can emerge from shaping movement, density, targeting, or safe space. These are contribution axes, not hard roles.
+
 Gongfa passives can be internal or global. Internal passives affect only that Gongfa; global passives improve shared Cultivator Attributes or compatible Skills from other Gongfa. These thematic global effects create cross-Gongfa synergy without restoring a generic Qi-upgrade track.
 
 Every Skill has explicit compatibility tags such as `projectile`, `aura`, `fire`, or `defensive`. Global Gongfa passives target tags rather than applying universal damage multipliers, making cross-package synergies predictable and data-driven.
+
+When different Gongfa improve the same tagged property, add their bonuses against the base value rather than multiplying them together. Exceptional formulas may exist only as explicitly scoped Gongfa behavior, never as an accidental consequence of modifier order.
+
+Do not impose a general cap on additive synergy; strong combinations are part of the survivor-like payoff. Use only stat-specific safety limits—minimum activation intervals, maximum mitigation, and simulation-safe entity counts—to prevent degenerate or unstable states.
 
 Gongfa should be gated by required Linggen rather than only by broad profile categories. Most Gongfa should require one root, while more advanced or hybrid methods can require two roots. No Gongfa in the first slice should require more than two roots.
 
@@ -246,16 +258,33 @@ The first hybrid Gongfa is `Crimson Furnace Sword Art`, requiring Fire + Metal. 
 
 `Burning Ring Scripture` is the first authored pure-Fire Gongfa and the Fire option for the first-slice Fire+Metal profile. Skill 1, `Revolving Flame Ring`, forms segmented flames with readable gaps around the cultivator; enemies take damage as rotating segments sweep through them. It carries the `aura` and `fire` tags. Repeated sweeps reward close positioning and sustained exposure, while the gaps preserve risk and distinguish it from `Gengjin Huti`.
 
-Its defining passive, `Kindled Meridians`, builds Heat from aura hits and globally increases activation speed for all `aura`-tagged Skills; Heat decays when no enemies are nearby. Proposed Mastery development adds a second counter-rotating ring whose segment intersections create brief high-damage hot zones. Rank-10 Skill 2, `Solar Flare Cycle`, independently synchronizes the rings into complete circles and releases an expanding fire wave while Skill 1 continues. These effects come from Mastery, not realm advancement.
+Its defining passive, `Kindled Meridians`, builds Heat from unique enemies hit by aura damage during each cycle, subject to a per-cycle cap. Heat globally increases activation speed for all `aura`-tagged Skills and decays after a short period without aura damage; repeated overlap ticks cannot instantly fill it. Rank-10 Skill 2, `Solar Flare Cycle`, independently forms two complete concentric solar rings and releases expanding fire waves while Skill 1 continues. Damage, radius, and wave count scale from current Heat without consuming it, and each enemy builds Heat at most once per activation.
+
+Solar Flare Cycle has three two-tier Refinement families: `Solar Tempering` for damage, `Widened Corona` for radius and wave count, and `Accelerated Cycle` for cooldown and expansion speed.
 
 Pre-rank-10 Mastery pool:
 
-- `Broadened Flame`: wider flame segments
-- `Rapid Revolution`: faster ring rotation
 - `Scorching Passage`: more Skill 1 damage
-- `Counterflow Ring`: add and strengthen the second counter-rotating ring
-- `Gathering Heat`: Heat builds faster
-- `Banked Ember`: Heat decays slower and gives a stronger global `aura` speed bonus
+- `Broadened Flame`: wider flame segments and larger ring radius
+- `Gathering Heat`: more Heat from unique targets
+- `Banked Ember`: longer delay and slower Heat decay
+- `Kindled Circulation`: stronger Heat-based activation speed for all `aura` Skills
+- `Ember Step`: Heat grants Cultivator movement speed
+
+Each family has two authored tiers and an explicit Effect Scope. The counter-rotating ring is structural Transformation content rather than a Refinement.
+
+- Rank-3 exclusive Skill-1 Transformations:
+  - `Counterflow Ring`: add a second counter-rotating ring whose segment intersections create brief high-damage zones
+  - `Condensed Furnace Ring`: merge segments into fewer, denser hotspots that repeatedly burn priority targets
+  - `Scattered Ember Orbit`: segment hits leave short-lived burning patches
+- Rank-6 exclusive passive Transformations:
+  - `Banked Sun`: Heat cannot decay below half while enemies remain nearby
+  - `Aura Furnace`: hits from any aura-tagged Skill build Heat
+  - `Meridian Ignition`: full Heat starts a brief high-output aura state, then resets
+- Rank-9 exclusive capstone Transformations:
+  - `Perfect Solar Orbit`: Heat adds flame segments and progressively closes the ring's gaps
+  - `Sunspot Collapse`: periodically condense the ring onto the highest-health nearby enemy, then reform around the Cultivator
+  - `Phoenix Passage`: Evade leaves a temporary ring copy whose duration and power scale from Heat
 
 The first-slice Fire+Metal offering contains `Burning Ring Scripture`, the authored Fire+Metal hybrid, and one of the three Metal Gongfa selected randomly for that run.
 
@@ -270,7 +299,7 @@ Pre-rank-10 Mastery pool:
 - `Rising Pressure`: Pressure builds faster
 - `Sealed Crucible`: Pressure decays slower and gives a stronger global `explosive` radius bonus
 
-Linggen can evolve through exceptional progression that adds roots without removing existing ones. Initial Linggen contain one or two roots, while an evolved Linggen can eventually contain all five. Adding a root should immediately expand compatible offerings but should not mutate any learned Gongfa. At the next Stage Breakthrough, the new Gongfa offering should be generated from the cultivator's current revealed Linggen, including any roots added since the previous selection. The hidden and difficult route to obtaining enough roots for Huashen is intentionally deferred while the normal Yuanying path is designed.
+Linggen can evolve through exceptional progression that adds roots without removing existing ones. Initial Linggen contain one or two roots, while an evolved Linggen can eventually contain all five. Adding a root should immediately expand compatible offerings but should not mutate any learned Gongfa. At the next Stage Breakthrough, the new Gongfa offering should be generated from the cultivator's current Linggen, including any roots added since the previous selection. The hidden and difficult route to obtaining enough roots for Huashen is intentionally deferred while the normal Yuanying path is designed.
 
 Gongfa are not transformed by Stage changes. Existing packages improve only through their own Mastery tracks; a Breakthrough expands the build by adding another Gongfa. Baseline cultivator strength grows separately through automatic Foundation Growth at each Phase Transition.
 
@@ -300,25 +329,37 @@ Gongfa-development speed is derived from the affinities required by that Gongfa.
 
 Every Gongfa choice card shows qualitative Mastery Speed based on that effective affinity: `Slow` for 1–3, `Normal` for 4–6, and `Fast` for 7–10. Hybrid cards calculate the hidden average for the player.
 
-Tune Mastery so an effective-affinity-10 Gongfa normally reaches rank 10 near Dayuanman of the realm in which it was acquired. Lower-affinity Gongfa reach rank 10 later in proportion to their effective affinity, potentially during the next realm.
+Tune Fast Mastery so a newly acquired Gongfa reaches rank 3 during Chuqi, rank 6 during Zhongqi, rank 9 during Houqi, and rank 10 early in Dayuanman of its acquisition Stage. It should become Fully Mastered around the end of the following Stage. Normal and Slow Mastery Speeds delay the same milestones without changing the Gongfa's contents or maximum power.
+
+Normal Mastery should reach rank 10 late in Dayuanman of the acquisition Stage and become Fully Mastered during the following Stage. Slow Mastery should reach rank 10 around Zhongqi of the following Stage and become Fully Mastered roughly two Stages after acquisition. A Slow Gongfa acquired in Yuanying may therefore finish the normal ending without unlocking Skill 2.
 
 Realm Progress and Gongfa Mastery are separate meters fed simultaneously by the same Qi pickups. Every learned Gongfa receives the full base Mastery value rather than splitting it, then its Root Affinities determine its individual progression rate. Realm Progress thresholds trigger Phase cleanup; only completing Dayuanman and defeating the Stage Tribulation triggers a Breakthrough. Gongfa Mastery thresholds trigger Gongfa refinement choices. The player does not manually allocate Qi between the meters.
 
 All first-slice Gongfa Skills activate automatically. Player execution comes from movement and positioning; manual Skill activation is deferred unless the control model is deliberately expanded later.
 
-Selecting a Gongfa immediately grants its starting signature Skill and one defining passive. Each learned Gongfa has its own open-ended, run-long Mastery track. Ranks 1–9 each present three Gongfa-specific improvements and grant one choice. Rank 10 automatically unlocks the second Skill. Ranks 11 and beyond continue presenting three improvements, now able to affect either Skill or the package's passives.
+Selecting a Gongfa immediately grants its starting signature Skill and one defining passive. Each learned Gongfa has its own independent, finite Mastery track. Ordinary ranks present three options drawn without category quotas from the Gongfa's whole available Refinement pool. Ranks 3, 6, and 9 instead present three milestone-specific Transformations, of which one is chosen permanently. Rank 10 automatically unlocks the second Skill.
 
-Generate each Mastery rank's three options deterministically from the Run seed, Gongfa, and rank. Replaying a Phase or reloading a checkpoint must reproduce the same options rather than provide a reroll.
+Draw each Mastery rank's options using reproducible randomness derived from the Run seed, Gongfa, and rank. Replaying a Phase or reloading a checkpoint must reproduce the same options rather than provide a reroll.
 
-Each authored Gongfa improvement has an explicit maximum rank, usually three. Once maxed, that improvement leaves the Gongfa's choice pool.
+Each Gongfa owns a fixed, authored Mastery Pool so its total progression budget can be balanced against other Gongfa. Only the three-option offering is randomized; effects are never generated and generic upgrades cannot substitute for missing Gongfa content. Each Refinement family initially has two authored tiers, advances one tier when selected, and leaves the available pool after Tier 2.
 
-At rank 10, add three Skill-2-specific improvement families to that Gongfa's existing pool: potency, coverage/count, and activation speed. Unmaxed earlier options remain available. Evergreen fallback begins only after every authored option is maxed.
+Every Mastery effect declares an explicit scope: a named Skill, the owning Gongfa, its defining passive, a Skill Tag, or a Cultivator Attribute. Whole-package and cross-Gongfa effects remain valid when stated explicitly. Do not encode improvements through ambiguous shared Method damage, count, or cooldown fields that silently modify multiple Skills.
 
-After all authored improvements are maxed, the three-choice panel falls back to evergreen Skill 1 potency, Skill 2 potency, and passive potency improvements. These use diminishing returns to prevent open-ended Mastery from causing runaway scaling.
+Use the same initial authoring budget for every Gongfa: six two-tier starting Refinement families split into two Skill-1, two passive, and two synergy/Cultivator-Attribute families; three unique Transformations at each of ranks 3, 6, and 9; and three two-tier Skill-2 Refinement families added at rank 10. Individual offerings still draw from the whole currently available Refinement pool without category quotas. This places Fully Mastered near rank 22.
+
+Use Skill-1 behavior at rank 3, passive or cross-Gongfa synergy at rank 6, and a Skill-1/passive capstone interaction at rank 9 as the default Transformation sequence. This is a balancing template rather than a hard schema: an individual Gongfa may reorder or reinterpret the milestones to preserve its identity, provided all three choices at each milestone remain structurally meaningful and the total value stays comparable.
+
+Do not turn Damage, Survival, and Control into the three Transformation buttons. Survivor-like players correctly favor damage when a defensive option sacrifices killing speed. Instead, every Transformation must preserve comparable offensive viability while changing its delivery: concentrated elite pressure, broad swarm coverage, or a conditional engine based on movement, retaliation, status, or Gongfa synergy. No option should dominate both swarm and boss benchmarks.
+
+At rank 10, add three Skill-2-specific improvement families to that Gongfa's existing pool: potency, coverage/count, and activation speed. Unmaxed earlier options remain available.
+
+After rank 10, ordinary ranks continue drawing from the remaining Refinements until every available authored tier is selected. The Gongfa then becomes Fully Mastered, remains active, and receives no further Mastery progress or choices from Qi.
 
 If one Qi pickup triggers choices for multiple Gongfa, pause combat once and queue the events in Gongfa acquisition order. Resolve every pending choice before resuming combat. Automatic rank-10 Skill unlocks require no choice panel.
 
 Each first-slice Gongfa contains exactly two automatic Skills. The second Skill unlocks at Mastery rank 10; Mastery continues after that milestone, but later content should add more Skills only after this two-Skill model is proven readable and sustainable.
+
+Skill 2 operates independently while Skill 1 continues. As an authoring baseline, it must interact with Skill 1, the defining passive, or both, and make at least some earlier Refinements or Transformations more valuable. Its trigger may be timed, cyclical, threshold-based, retaliatory, or another Gongfa-specific condition; this baseline should not suppress creative package identities.
 
 At every combat-Stage Breakthrough, the cultivator keeps all learned Gongfa and selects one additional compatible, unlearned Gongfa for the newly opened slot. Learned Gongfa are excluded from later offerings. If fewer than three compatible unlearned Gongfa remain, the panel presents fewer choices rather than duplicates. Roots added during the run expand later offerings. The Huashen transition ends the run instead of opening another slot.
 
@@ -356,52 +397,125 @@ Initial Metal Gongfa trio:
   - maximum 5 stacks; successful hits refresh their duration
   - stacks slightly improve Yujian damage and globally improve flight speed for all `projectile`-tagged Skills
   - at 5 stacks, every `projectile`-tagged Skill gains +1 pierce
-  - taking damage clears all stacks; exact values and duration remain tuning parameters
+  - taking damage removes two stacks; exact values and duration remain tuning parameters
 - Scaling stat: sword count and pierce efficiency
 - Support stat: cooldown recovery
-- Rank-10 Skill 2: an independently timed sword formation sweeps outward and returns through enemy lines while normal homing volleys continue
+- Rank-10 Skill 2 — `Returning Sword Formation`:
+  - activates on an independent cooldown while Skill 1 continues
+  - targets the densest enemy lane and sends a sword array outward, then back through enemies
+  - uses Yujian damage bonuses and projectile-tag effects from Intent
+  - a formation that hits grants or refreshes one Intent stack regardless of hit count
+- Skill-2 Refinement families:
+  - `Formation Tempering`: formation damage
+  - `Expanded Sword Array`: sword count and coverage
+  - `Swift Formation`: activation and return speed
+  - each family has two authored tiers
 - Intended play pattern: kiting, target selection, and efficient pack thinning from mid-range
 - Pre-rank-10 Mastery pool:
   - `Twin Sword Split`: more Skill 1 swords
   - `Refined Sword Channel`: faster Skill 1 cycling
-  - `Penetrating Edge`: more Skill 1 pierce
   - `Sword Intent Sharpening`: stronger Intent damage bonus
-  - `Steady Sword Heart`: longer Intent duration
-  - `Tempered Focus`: taking damage removes fewer Intent stacks
+  - `Steady Sword Heart`: longer Intent duration, then reduced stack loss
+  - `Swordborne Steps`: Intent grants Cultivator movement speed
+  - `Penetrating Intent`: stronger projectile flight speed and full-stack pierce
+
+Each family has two authored tiers and an explicit Effect Scope.
+
+- Rank-3 exclusive Skill-1 Transformations:
+  - `Execution Seal`: mark a priority target and escalate repeated Skill-1 pressure until it dies
+  - `Sword Bloom`: split the first hit into weaker swords that seek different enemies
+  - `Reversing Sword Path`: return the sword through enemies toward the Cultivator after its strike
+- Rank-6 exclusive passive Transformations:
+  - `Still Sword Heart`: incoming damage no longer removes Intent
+  - `Myriad Blade Resonance`: other projectile-tagged Skills can build or refresh Intent
+  - `Intent Unleashed`: five stacks empower the next Yujian volley and are then consumed
+- Rank-9 exclusive capstone Transformations:
+  - `Sword Crown`: Skill 1 gains weaker spectral swords based on current Intent
+  - `Intent Domain`: Skill-1 impacts leave short blade fields whose size and duration scale with Intent
+  - `Void-Step Formation`: after Evade, the next Skill-1 cycle attacks from both the start and endpoint, scaling with Intent
 
 #### Jinfeng Gong
 
 - Skill 1 — `Cutting Front`: repeated frontal metal-qi waves aimed in the cultivator's movement direction
 - Skill tags: `wave`, `metal`
-- Defining passive — `Gale Momentum`: sustained movement builds momentum that globally increases width and range for all `wave`-tagged Skills; stopping causes decay
+- Defining passive — `Gale Momentum`: movement builds Momentum slowly, moving `Cutting Front` hits and Evade grant larger bursts, and stopping causes rapid decay; Momentum globally increases width and range for all `wave`-tagged Skills
 - Scaling stat: wave width and cut damage
 - Support stat: range extension
-- Rank-10 Skill 2 — `Golden Gale Corridor`: independently creates a lingering lane of cutting qi that repeatedly damages enemies crossing it
+- Rank-10 Skill 2 — `Golden Gale Corridor`:
+  - activates independently while Cutting Front continues
+  - projects a lingering corridor in the Cultivator's movement direction
+  - repeatedly cuts enemies crossing or following the lane
+  - carries the `wave` tag, so Momentum increases its width and range
+  - successful corridor hits delay Momentum decay
+- Skill-2 Refinement families:
+  - `Corridor Edge`: repeated-hit damage
+  - `Expanding Passage`: width, length, and duration
+  - `Rapid Crosswinds`: activation and cutting frequency
+  - each family has two authored tiers
 - Intended play pattern: assertive lane-clearing with deliberate positioning instead of passive orbiting damage
 - Pre-rank-10 Mastery pool:
   - `Cutting Qi Pressure`: more Cutting Front damage
-  - `Broadened Front`: wider waves
-  - `Long Edge Resonance`: longer wave range
-  - `Gathering Gale`: momentum builds faster
-  - `Unbroken Stride`: momentum decays more slowly
-  - `Windborne Reach`: stronger global width/range bonus for other `wave` Skills
+  - `Broadened Front`: wider waves and greater wave count
+  - `Gathering Gale`: stronger Momentum gain from hits and movement
+  - `Unbroken Stride`: Momentum decays more slowly
+  - `Windborne Reach`: stronger Momentum scaling for all `wave` Skills
+  - `Gale-Fed Footwork`: Momentum grants Cultivator movement speed
+
+Each family has two authored tiers and an explicit Effect Scope.
+
+- Rank-3 exclusive Skill-1 Transformations:
+  - `Heaven-Splitting Line`: compress Cutting Front into a long, narrow, highly penetrating lane
+  - `Golden Gale Fan`: spread Cutting Front across a broad frontal arc
+  - `Crescent Wake`: periodically leave cutting crescents behind along the Cultivator's movement route
+- Rank-6 exclusive passive Transformations:
+  - `Unbroken Current`: Momentum no longer decays while the Cultivator is moving
+  - `Ten-Thousand Wave Resonance`: hits from any wave-tagged Skill build Momentum
+  - `Gale Detonation`: full Momentum empowers the next Cutting Front with a second crossing wave and is partly consumed
+- Rank-9 exclusive capstone Transformations:
+  - `Endless Horizon`: Cutting Front grows wider and stronger while traveling, scaled by Momentum
+  - `Walking Storm`: high Momentum produces periodic radial cutting waves around the moving Cultivator
+  - `Gale-Step Severance`: Evade cuts a damaging corridor between its start and endpoint, scaled by Momentum
 
 #### Gengjin Huti
 
 - Skill 1 — `Gengjin Guard`: a close defensive aura that releases retaliatory edge bursts when enemies enter or damage the cultivator
 - Skill tags: `aura`, `metal`, `defensive`
-- Defining passive — `Tempered Body`: nearby enemies build Guard stacks that globally improve mitigation and `defensive` Skill potency; stacks decay outside danger
+- Defining passive — `Tempered Body`: nearby enemies build Guard continuously, damage prevented by Guard grants an additional burst, and Evading through nearby enemies grants a smaller burst; Guard improves mitigation plus damage/radius for all `defensive` Skills and decays outside danger
 - Scaling stat: retaliation damage and guard stability
 - Support stat: max health or damage reduction efficiency
-- Rank-10 Skill 2 — `Blade Shell`: independently stores a portion of pressure endured and automatically erupts outward at a threshold
+- Rank-10 Skill 2 — `Blade Shell`:
+  - charges from damage prevented by Guard and from close Evades, never requiring health loss
+  - automatically erupts at its threshold while Skill 1 continues
+  - carries the `defensive` tag and scales damage, radius, and blade count from current Guard
+  - resets its charge after eruption
+- Skill-2 Refinement families:
+  - `Tempered Shell`: eruption damage
+  - `Layered Eruption`: blade count and coverage
+  - `Rapid Reforging`: charge gain and threshold frequency
+  - each family has two authored tiers
 - Intended play pattern: controlled close-range survival that turns danger into counter-pressure
 - Pre-rank-10 Mastery pool:
-  - `Guard Pressure`: more aura damage
-  - `Retaliatory Edge`: stronger retaliation bursts
+  - `Guard Pressure`: more aura and edge-burst damage
   - `Expanding Guard`: larger aura radius
-  - `Hardened Meridians`: more mitigation per Guard stack
-  - `Threat Awareness`: Guard builds faster around nearby enemies
-  - `Lasting Temper`: slower Guard decay and stronger global `defensive` Skill potency
+  - `Lasting Temper`: stronger Guard gain from proximity, prevented damage, and Evade
+  - `Bulwark Reflection`: slower Guard decay
+  - `Unyielding Shield`: stronger Guard scaling for all `defensive` Skills
+  - `Iron Meridian`: greater Cultivator maximum health
+
+Each family has two authored tiers and an explicit Effect Scope.
+
+- Rank-3 exclusive Skill-1 Transformations:
+  - `Rebounding Edge`: prevented damage launches a focused blade toward its source
+  - `Hundred-Blade Halo`: Guard becomes a rotating close-range blade halo
+  - `Iron Wake`: Evade leaves a temporary cutting wall along its path
+- Rank-6 exclusive passive Transformations:
+  - `Immovable Mountain`: standing still greatly increases Guard gain and defensive-Skill damage
+  - `Flowing Iron Body`: Evade grants a stronger Guard burst and releases a defensive shockwave
+  - `Ten-Thousand Armor Resonance`: hits from any defensive-tagged Skill build Guard
+- Rank-9 exclusive capstone Transformations:
+  - `Gengjin Fortress`: current Guard controls the number and strength of orbiting defensive blades
+  - `Iron Gravity Domain`: high Guard pulls nearby enemies into repeated aura bursts
+  - `Unbroken Advance`: high-Guard movement damages and pushes enemies; Evade becomes a stronger breakthrough strike
 
 ## Economy And Rewards
 
