@@ -84,6 +84,7 @@ export interface BurningRingState {
   counterflowRingCooldownRemaining: number;
   solarFlareCooldownRemaining: number;
   solarFlareCasts: number;
+  sunspotCooldownRemaining: number;
 }
 
 export interface CrimsonFurnaceState {
@@ -202,6 +203,7 @@ export type GongfaRuntimeCommand =
       damageScale?: number;
       scatterEmbers?: boolean;
     }
+  | { kind: "sunspot-collapse"; radius: number; damage: number }
   | {
       kind: "solar-flare-cycle";
       segmentCount: number;
@@ -580,7 +582,8 @@ const burningRingDefaults: BurningRingState = {
   counterflowRingRadiusBonus: 0,
   counterflowRingCooldownRemaining: 0,
   solarFlareCooldownRemaining: 0,
-  solarFlareCasts: 0
+  solarFlareCasts: 0,
+  sunspotCooldownRemaining: 0
 };
 
 const crimsonFurnaceDefaults: CrimsonFurnaceState = {
@@ -1167,6 +1170,17 @@ export function advanceGongfaRuntime(
         count: 10
       });
     }
+    // Phoenix Passage: leave a Heat-scaled ring copy at the Evade's origin.
+    if (next.burningRing && event.learnedMasteryIds.includes("phoenix-passage")) {
+      const extraSegments = Math.floor(next.burningRing.heat / 15);
+      commands.push({
+        kind: "burning-ring-volley",
+        rotation: 0,
+        segmentCount: 6 + extraSegments,
+        visibleSegments: Math.max(4, 4 + extraSegments),
+        ringRadius: 24 + Math.floor(next.burningRing.heat * 0.3)
+      });
+    }
     return { runtime: next, commands };
   }
 
@@ -1408,6 +1422,20 @@ export function advanceGongfaRuntime(
       count: 12
     });
   }
+
+  // Sunspot Collapse: periodically condense the ring onto a sturdy nearby enemy.
+  state.sunspotCooldownRemaining = Math.max(
+    0,
+    state.sunspotCooldownRemaining - Math.max(0, event.deltaMs)
+  );
+  if (burningLearnedMasteryIds.includes("sunspot-collapse") && state.sunspotCooldownRemaining === 0) {
+    state.sunspotCooldownRemaining = 2000;
+    commands.push({
+      kind: "sunspot-collapse",
+      radius: 220,
+      damage: Math.max(1, Math.floor(next.combat.damage * 1.5 + state.heat))
+    });
+  }
   syncBurningRingCombat(next);
 
   const skill2 = getAuthoredSkill2Plan(event.skill2Id);
@@ -1613,15 +1641,19 @@ export function planGongfaAttack(
   );
   // Condensed Furnace Ring: merge into fewer, fiercer priority-burning hotspots.
   const condensed = learnedMasteryIds.includes("condensed-furnace-ring");
-  const segmentCount = condensed
-    ? Math.max(3, Math.floor(baseSegmentCount / 2))
-    : baseSegmentCount;
+  // Perfect Solar Orbit: Heat adds segments and closes the ring's gaps.
+  const perfectOrbit = learnedMasteryIds.includes("perfect-solar-orbit");
+  const segmentCount =
+    (condensed ? Math.max(3, Math.floor(baseSegmentCount / 2)) : baseSegmentCount) +
+    (perfectOrbit ? Math.floor(state.heat / 20) : 0);
   return [
     {
       kind: "burning-ring-volley",
       rotation: (Math.max(0, elapsedMs) / 1000) * 0.9,
       segmentCount,
-      visibleSegments: Math.min(segmentCount, Math.max(4, segmentCount - 2)),
+      visibleSegments: perfectOrbit
+        ? segmentCount
+        : Math.min(segmentCount, Math.max(4, segmentCount - 2)),
       ringRadius: 24 + Math.floor(state.heat * 0.3),
       ...(condensed ? { damageScale: 1.8 } : {}),
       ...(learnedMasteryIds.includes("scattered-ember-orbit") ? { scatterEmbers: true } : {})

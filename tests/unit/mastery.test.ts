@@ -346,6 +346,35 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Burning Ring rank-9 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "burning-ring-scripture",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["condensed-furnace-ring", "banked-sun"]
+    })).toEqual([
+      "perfect-solar-orbit",
+      "sunspot-collapse",
+      "phoenix-passage"
+    ]);
+
+    expect(getMasteryChoiceDefinition("phoenix-passage")).toMatchObject({
+      name: "Phoenix Passage",
+      kind: "transformation",
+      milestoneRank: 9,
+      exclusivityGroup: "burning-ring-scripture:rank-9"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-9 Burning Ring Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "burning-ring-scripture",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["condensed-furnace-ring", "banked-sun", "perfect-solar-orbit"]
+    })).toEqual([]);
+  });
+
   it("adds the rank-10 Skill 2 family into the post-rank-10 pool", () => {
     expect(
       getDeterministicMasteryChoiceIds({

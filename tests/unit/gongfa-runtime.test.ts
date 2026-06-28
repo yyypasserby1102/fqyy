@@ -1248,4 +1248,64 @@ describe("Gongfa runtime", () => {
     expect(ignited.runtime.burningRing!.heat).toBeLessThan(100);
     expect(ignited.commands.some((command) => command.kind === "aura-burst")).toBe(true);
   });
+
+  it("Perfect Solar Orbit adds Heat-scaled segments and closes ring gaps", () => {
+    const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
+      kind: "tick",
+      deltaMs: 12000,
+      nearbyEnemyCount: 5,
+      isMoving: false
+    }).runtime;
+    expect(heated.burningRing!.heat).toBeGreaterThan(40);
+
+    const [base] = planGongfaAttack(heated, 0);
+    const [perfect] = planGongfaAttack(heated, 0, {
+      learnedMasteryIds: ["perfect-solar-orbit"]
+    });
+    if (base.kind !== "burning-ring-volley" || perfect.kind !== "burning-ring-volley") {
+      throw new Error("expected burning-ring-volley");
+    }
+    expect(perfect.segmentCount).toBeGreaterThan(base.segmentCount);
+    expect(perfect.visibleSegments).toBe(perfect.segmentCount);
+  });
+
+  it("Sunspot Collapse condenses on a cooldown", () => {
+    const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
+    const first = advanceGongfaRuntime(ring, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 3,
+      isMoving: false,
+      learnedMasteryIds: ["sunspot-collapse"]
+    });
+    expect(first.commands.some((command) => command.kind === "sunspot-collapse")).toBe(true);
+    expect(first.runtime.burningRing!.sunspotCooldownRemaining).toBeGreaterThan(0);
+
+    const second = advanceGongfaRuntime(first.runtime, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 3,
+      isMoving: false,
+      learnedMasteryIds: ["sunspot-collapse"]
+    });
+    expect(second.commands.some((command) => command.kind === "sunspot-collapse")).toBe(false);
+  });
+
+  it("Phoenix Passage leaves a ring copy on Evade", () => {
+    const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
+      kind: "tick",
+      deltaMs: 12000,
+      nearbyEnemyCount: 5,
+      isMoving: false
+    }).runtime;
+
+    const evaded = advanceGongfaRuntime(heated, {
+      kind: "evade",
+      learnedMasteryIds: ["phoenix-passage"]
+    });
+    expect(evaded.commands.some((command) => command.kind === "burning-ring-volley")).toBe(true);
+
+    const inert = advanceGongfaRuntime(heated, { kind: "evade", learnedMasteryIds: [] });
+    expect(inert.commands).toHaveLength(0);
+  });
 });

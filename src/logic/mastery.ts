@@ -266,6 +266,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 6,
     exclusivityGroup: "burning-ring-scripture:rank-6"
+  },
+  {
+    id: "perfect-solar-orbit",
+    name: "Perfect Solar Orbit",
+    lore: "Heat adds ring segments and closes the orbit's gaps.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 9,
+    exclusivityGroup: "burning-ring-scripture:rank-9"
+  },
+  {
+    id: "sunspot-collapse",
+    name: "Sunspot Collapse",
+    lore: "Periodically condense the ring onto the sturdiest nearby enemy.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 9,
+    exclusivityGroup: "burning-ring-scripture:rank-9"
+  },
+  {
+    id: "phoenix-passage",
+    name: "Phoenix Passage",
+    lore: "Each Evade leaves a temporary Heat-scaled ring copy at its origin.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 9,
+    exclusivityGroup: "burning-ring-scripture:rank-9"
   }
 ];
 

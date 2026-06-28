@@ -335,7 +335,7 @@ export class GameScene extends Phaser.Scene {
       if (this.evade.tryStart({ x: movement.x, y: movement.y })) {
         this.maybeCutGaleStepCorridor();
         this.maybeCutIronWake();
-        this.maybeFlowingIronBody();
+        this.applyEvadeRuntimeEffects();
       }
     }
     const evadeState = this.evade.state;
@@ -1012,8 +1012,8 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private maybeFlowingIronBody(): void {
-    if (!this.gongfaRuntime?.gengjin) {
+  private applyEvadeRuntimeEffects(): void {
+    if (!this.gongfaRuntime) {
       return;
     }
 
@@ -1054,6 +1054,34 @@ export class GameScene extends Phaser.Scene {
       if (enemy.active) {
         this.physics.moveToObject(enemy, this.player, strength);
       }
+    }
+  }
+
+  private collapseSunspot(radius: number, damage: number): void {
+    const target = this.getEnemiesWithinRadius(radius)
+      .filter((enemy) => enemy.active)
+      .reduce<Enemy | undefined>(
+        (sturdiest, enemy) =>
+          !sturdiest || enemy.health > sturdiest.health ? enemy : sturdiest,
+        undefined
+      );
+    if (!target) {
+      return;
+    }
+
+    const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
+    for (let i = 0; i < 4; i += 1) {
+      const angle = baseAngle + (i - 1.5) * 0.18;
+      this.spawnWaveProjectile(
+        this.player.x,
+        this.player.y,
+        angle,
+        Math.max(1, Math.floor(damage / 4)),
+        this.combatState.pierce + 1,
+        this.combatState.projectileSpeed + 90,
+        this.combatState.projectileLifetimeMs + 200,
+        1.0
+      );
     }
   }
 
@@ -1311,6 +1339,11 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "gravity-pull") {
         this.pullEnemiesToward(command.radius, command.strength);
+        return;
+      }
+
+      if (command.kind === "sunspot-collapse") {
+        this.collapseSunspot(command.radius, command.damage);
         return;
       }
 
