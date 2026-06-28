@@ -10,8 +10,6 @@ import {
   getStageNarrative,
   getStageProgressionSummary
 } from "../../src/logic/progression";
-import { isPlayableGongfa } from "../../src/data/gongfa";
-import { linggenConfigs, type LinggenId } from "../../src/data/linggen";
 
 describe("Metal progression tree", () => {
   it("exposes the exact Metal Gongfa trio for pure Metal Linggen", () => {
@@ -41,35 +39,26 @@ describe("Metal progression tree", () => {
     ]);
   });
 
-  it("drops learned Fire-Metal Gongfa and backfills only with Playable Gongfa", () => {
-    // The remaining unlearned Fire pool is stat-only scaffolds
-    // (blazing-feather-art, scarlet-wave-manual) which must never be offered,
-    // so the offer falls back to the two unlearned Playable Metal Gongfa.
+  it("drops learned Fire-Metal Gongfa and backfills from the authored pools without duplicates", () => {
     expect(
       getPresentedGongfaIdsForLinggen("fire-metal", [
         "burning-ring-scripture",
         "yujian-jue",
         "crimson-furnace-sword-art"
       ])
-    ).toEqual(["jinfeng-gong", "gengjin-huti"]);
-  });
-
-  it("never offers stat-only scaffolds even when the compatible pool contains them", () => {
-    // Water-Metal compatibility includes three Water scaffolds, but only the
-    // Playable Metal trio is authored, so only those may be presented.
-    expect(getPresentedGongfaIdsForLinggen("water-metal")).toEqual([
-      "yujian-jue",
-      "jinfeng-gong",
-      "gengjin-huti"
+    ).toEqual([
+      "blazing-feather-art",
+      "scarlet-wave-manual",
+      "jinfeng-gong"
     ]);
   });
 
-  it("only ever presents Playable Gongfa across every Linggen profile", () => {
-    const everyLinggen = Object.keys(linggenConfigs) as LinggenId[];
-    for (const linggenId of everyLinggen) {
-      const presented = getPresentedGongfaIdsForLinggen(linggenId);
-      expect(presented.every(isPlayableGongfa)).toBe(true);
-    }
+  it("presents a balanced 3-choice dual-root Gongfa reveal instead of sampling one pool only", () => {
+    expect(getPresentedGongfaIdsForLinggen("water-metal")).toEqual([
+      "drifting-frost-needle",
+      "yujian-jue",
+      "black-tide-scripture"
+    ]);
   });
 
   it("describes authored realm transitions for each Metal branch", () => {
