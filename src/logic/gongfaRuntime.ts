@@ -1369,6 +1369,52 @@ export function galeStepSeveranceCorridor(
   };
 }
 
+/**
+ * Rebounding Edge: prevented damage launches a focused blade back at its
+ * source, its bite scaled by current Guard. Returns undefined when the
+ * Transformation is not learned or there is no Guard to spend.
+ */
+export function reboundingEdgeBlade(
+  runtime: GongfaRuntime,
+  learnedMasteryIds: string[]
+): { damage: number; pierce: number } | undefined {
+  if (
+    !runtime.gengjin ||
+    !learnedMasteryIds.includes("rebounding-edge") ||
+    runtime.gengjin.guardValue <= 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    damage: Math.max(1, Math.floor(runtime.combat.damage + runtime.gengjin.guardValue * 0.5)),
+    pierce: runtime.combat.pierce + 1
+  };
+}
+
+/**
+ * Iron Wake: each Evade leaves a Guard-scaled cutting wall along its path.
+ * Returns the wall's pierce and blade count, or undefined when not learned or
+ * there is no Guard.
+ */
+export function ironWakeWall(
+  runtime: GongfaRuntime,
+  learnedMasteryIds: string[]
+): { pierce: number; count: number } | undefined {
+  if (
+    !runtime.gengjin ||
+    !learnedMasteryIds.includes("iron-wake") ||
+    runtime.gengjin.guardValue <= 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    pierce: runtime.combat.pierce + 1,
+    count: Math.max(2, Math.round(runtime.gengjin.guardValue / 20))
+  };
+}
+
 export function planGongfaAttack(
   runtime: GongfaRuntime,
   elapsedMs: number,
@@ -1444,11 +1490,17 @@ export function planGongfaAttack(
     }
     case "aura":
       if (!runtime.burningRing) {
+        const learnedMasteryIds = options.learnedMasteryIds ?? [];
+        let count = runtime.combat.count;
+        // Hundred-Blade Halo: Guard fuels a denser rotating blade halo.
+        if (runtime.gengjin && learnedMasteryIds.includes("hundred-blade-halo")) {
+          count += Math.floor(runtime.gengjin.guardValue / 12);
+        }
         return [
           {
             kind: "aura-burst",
             damage: runtime.combat.damage,
-            count: runtime.combat.count
+            count
           }
         ];
       }

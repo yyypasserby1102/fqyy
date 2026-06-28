@@ -7,6 +7,8 @@ import {
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
+  ironWakeWall,
+  reboundingEdgeBlade,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
@@ -959,6 +961,60 @@ describe("Gongfa runtime", () => {
         createGongfaRuntime({ gongfaId: "jinfeng-gong" }),
         ["gale-step-severance"]
       )
+    ).toBeUndefined();
+  });
+
+  it("Hundred-Blade Halo widens the Gengjin aura by Guard", () => {
+    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 10,
+      isMoving: false
+    }).runtime;
+    expect(guarded.gengjin!.guardValue).toBeGreaterThan(12);
+
+    const [halo] = planGongfaAttack(guarded, 0, { learnedMasteryIds: ["hundred-blade-halo"] });
+    const [plain] = planGongfaAttack(guarded, 0);
+    const haloCount = halo.kind === "aura-burst" ? halo.count : 0;
+    const plainCount = plain.kind === "aura-burst" ? plain.count : 0;
+    expect(haloCount).toBeGreaterThan(plainCount);
+  });
+
+  it("Rebounding Edge returns a Guard-scaled blade only when learned", () => {
+    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 10,
+      isMoving: false
+    }).runtime;
+
+    const blade = reboundingEdgeBlade(guarded, ["rebounding-edge"]);
+    expect(blade).toBeDefined();
+    expect(blade!.damage).toBeGreaterThan(guarded.combat.damage);
+    expect(blade!.pierce).toBe(guarded.combat.pierce + 1);
+
+    expect(reboundingEdgeBlade(guarded, [])).toBeUndefined();
+    expect(
+      reboundingEdgeBlade(createGongfaRuntime({ gongfaId: "gengjin-huti" }), ["rebounding-edge"])
+    ).toBeUndefined();
+  });
+
+  it("Iron Wake returns a Guard-scaled wall only when learned", () => {
+    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 10,
+      isMoving: false
+    }).runtime;
+
+    const wall = ironWakeWall(guarded, ["iron-wake"]);
+    expect(wall).toBeDefined();
+    expect(wall!.pierce).toBe(guarded.combat.pierce + 1);
+    expect(wall!.count).toBeGreaterThanOrEqual(2);
+
+    expect(ironWakeWall(guarded, [])).toBeUndefined();
+    expect(
+      ironWakeWall(createGongfaRuntime({ gongfaId: "gengjin-huti" }), ["iron-wake"])
     ).toBeUndefined();
   });
 });

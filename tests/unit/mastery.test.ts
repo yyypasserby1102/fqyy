@@ -148,6 +148,35 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Gengjin rank-3 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "gengjin-huti",
+      rank: 3,
+      seed: "seed-123",
+      learnedIds: []
+    })).toEqual([
+      "rebounding-edge",
+      "hundred-blade-halo",
+      "iron-wake"
+    ]);
+
+    expect(getMasteryChoiceDefinition("iron-wake")).toMatchObject({
+      name: "Iron Wake",
+      kind: "transformation",
+      milestoneRank: 3,
+      exclusivityGroup: "gengjin-huti:rank-3"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-3 Gengjin Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "gengjin-huti",
+      rank: 3,
+      seed: "seed-123",
+      learnedIds: ["hundred-blade-halo"]
+    })).toEqual([]);
+  });
+
   it("resolves mastery choice definitions across refinements, transformations, Skill 2, and unknown ids", () => {
     expect(getMasteryChoiceDefinition("sword-intent-sharpening")).toMatchObject({
       id: "sword-intent-sharpening",
@@ -181,13 +210,13 @@ describe("mastery progression", () => {
 
   it("keeps gongfa without authored Transformations on ordinary rank 3 refinement choices", () => {
     expect(getDeterministicMasteryChoiceIds({
-      gongfaId: "gengjin-huti",
+      gongfaId: "burning-ring-scripture",
       rank: 3,
       seed: "seed-123",
       learnedIds: []
     })).toHaveLength(3);
     expect(getDeterministicMasteryChoiceIds({
-      gongfaId: "gengjin-huti",
+      gongfaId: "burning-ring-scripture",
       rank: 3,
       seed: "seed-123",
       learnedIds: []

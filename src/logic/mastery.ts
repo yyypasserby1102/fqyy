@@ -128,6 +128,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["jinfeng-gong"],
     milestoneRank: 9,
     exclusivityGroup: "jinfeng-gong:rank-9"
+  },
+  {
+    id: "rebounding-edge",
+    name: "Rebounding Edge",
+    lore: "Guard launches a focused blade at the source of prevented damage.",
+    kind: "transformation",
+    requiredGongfaIds: ["gengjin-huti"],
+    milestoneRank: 3,
+    exclusivityGroup: "gengjin-huti:rank-3"
+  },
+  {
+    id: "hundred-blade-halo",
+    name: "Hundred-Blade Halo",
+    lore: "Guard fuels a denser rotating close-range blade halo.",
+    kind: "transformation",
+    requiredGongfaIds: ["gengjin-huti"],
+    milestoneRank: 3,
+    exclusivityGroup: "gengjin-huti:rank-3"
+  },
+  {
+    id: "iron-wake",
+    name: "Iron Wake",
+    lore: "Each Evade leaves a temporary cutting wall along its path.",
+    kind: "transformation",
+    requiredGongfaIds: ["gengjin-huti"],
+    milestoneRank: 3,
+    exclusivityGroup: "gengjin-huti:rank-3"
   }
 ];
 

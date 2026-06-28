@@ -52,6 +52,8 @@ import {
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
+  ironWakeWall,
+  reboundingEdgeBlade,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
@@ -332,6 +334,7 @@ export class GameScene extends Phaser.Scene {
     if (this.inputController.evadePressed) {
       if (this.evade.tryStart({ x: movement.x, y: movement.y })) {
         this.maybeCutGaleStepCorridor();
+        this.maybeCutIronWake();
       }
     }
     const evadeState = this.evade.state;
@@ -601,6 +604,7 @@ export class GameScene extends Phaser.Scene {
 
     enemy.contactCooldownUntil = now + 750;
     this.applyIncomingDamage(enemy.config.touchDamage);
+    this.maybeReboundEdge(enemy);
 
     if (this.combatState.pattern === "aura" && this.combatState.retaliationDamage > 0) {
       this.emitAuraBurst(this.combatState.retaliationDamage, Math.max(4, Math.floor(this.combatState.count / 2)));
@@ -974,6 +978,60 @@ export class GameScene extends Phaser.Scene {
         );
       });
     }
+  }
+
+  private maybeCutIronWake(): void {
+    if (!this.gongfaRuntime) {
+      return;
+    }
+
+    const wall = ironWakeWall(this.gongfaRuntime, this.runState.masteryLearnedIds);
+    if (!wall) {
+      return;
+    }
+
+    const direction = this.evade.state.direction;
+    const angle = Math.atan2(direction.y, direction.x) + Math.PI / 2;
+    for (let i = 0; i < wall.count; i += 1) {
+      this.time.delayedCall(i * 45, () => {
+        if (!this.player.active) {
+          return;
+        }
+        this.spawnWaveProjectile(
+          this.player.x,
+          this.player.y,
+          angle,
+          Math.max(1, Math.floor(this.combatState.damage * 0.6)),
+          wall.pierce,
+          this.combatState.projectileSpeed,
+          this.combatState.projectileLifetimeMs + 260,
+          0.9
+        );
+      });
+    }
+  }
+
+  private maybeReboundEdge(enemy: Enemy): void {
+    if (!this.gongfaRuntime || !enemy.active) {
+      return;
+    }
+
+    const blade = reboundingEdgeBlade(this.gongfaRuntime, this.runState.masteryLearnedIds);
+    if (!blade) {
+      return;
+    }
+
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+    this.spawnWaveProjectile(
+      this.player.x,
+      this.player.y,
+      angle,
+      blade.damage,
+      blade.pierce,
+      this.combatState.projectileSpeed + 80,
+      this.combatState.projectileLifetimeMs + 200,
+      1.0
+    );
   }
 
   private emitAuraBurst(damage: number, count: number): void {
