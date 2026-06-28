@@ -2458,11 +2458,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    if (this.gongfaRuntime?.gengjin) {
+    if (this.gongfaRuntime?.gengjin || this.gongfaRuntime?.yujian) {
       const result = advanceGongfaRuntime(this.gongfaRuntime, {
         kind: "incoming-damage",
         amount,
-        skill2Id: this.runState.masterySkill2Id
+        skill2Id: this.runState.masterySkill2Id,
+        learnedMasteryIds: this.runState.masteryLearnedIds
       });
       this.gongfaRuntime = result.runtime;
       this.combatState = result.runtime.combat;

@@ -42,6 +42,12 @@ export interface YujianState {
   swordBloomTriggers: number;
   reversingSwordPathTriggers: number;
   executionSealStacksByTarget: Record<number, number>;
+  // Unbroken Sword Intent passive.
+  intentStacks: number;
+  intentDurationRemaining: number;
+  intentAppliedDamageBonus: number;
+  intentAppliedSpeedBonus: number;
+  intentAppliedPierceBonus: number;
 }
 
 export interface JinfengState {
@@ -126,7 +132,7 @@ export type GongfaRuntimeEvent =
     }
   | { kind: "yujian-reversal-spawned" }
   | { kind: "skill2"; skill2Id: string }
-  | { kind: "incoming-damage"; amount: number; skill2Id?: string }
+  | { kind: "incoming-damage"; amount: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean };
 
 export type GongfaRuntimeCommand =
@@ -601,8 +607,36 @@ const yujianDefaults: YujianState = {
   executionSealTriggers: 0,
   swordBloomTriggers: 0,
   reversingSwordPathTriggers: 0,
-  executionSealStacksByTarget: {}
+  executionSealStacksByTarget: {},
+  intentStacks: 0,
+  intentDurationRemaining: 0,
+  intentAppliedDamageBonus: 0,
+  intentAppliedSpeedBonus: 0,
+  intentAppliedPierceBonus: 0
 };
+
+const INTENT_DURATION_MS = 3000;
+
+function syncYujianCombat(runtime: GongfaRuntime): void {
+  const state = runtime.yujian;
+  if (!state) {
+    return;
+  }
+
+  // Each Intent stack improves Yujian damage and projectile flight speed;
+  // five stacks grant +1 pierce.
+  const desiredDamageBonus = state.intentStacks * 2;
+  const desiredSpeedBonus = state.intentStacks * 24;
+  const desiredPierceBonus = state.intentStacks >= 5 ? 1 : 0;
+
+  runtime.combat.damage += desiredDamageBonus - state.intentAppliedDamageBonus;
+  runtime.combat.projectileSpeed += desiredSpeedBonus - state.intentAppliedSpeedBonus;
+  runtime.combat.pierce += desiredPierceBonus - state.intentAppliedPierceBonus;
+
+  state.intentAppliedDamageBonus = desiredDamageBonus;
+  state.intentAppliedSpeedBonus = desiredSpeedBonus;
+  state.intentAppliedPierceBonus = desiredPierceBonus;
+}
 
 function copyRuntime(runtime: GongfaRuntime): GongfaRuntime {
   return {
@@ -1038,6 +1072,14 @@ export function advanceGongfaRuntime(
       });
     }
 
+    // Unbroken Sword Intent: a successful hit builds a stack and refreshes its
+    // duration (applied after this hit's effects). Myriad Blade Resonance feeds
+    // Intent faster.
+    const intentGain = event.learnedMasteryIds.includes("myriad-blade-resonance") ? 2 : 1;
+    state.intentStacks = Math.min(5, state.intentStacks + intentGain);
+    state.intentDurationRemaining = INTENT_DURATION_MS;
+    syncYujianCombat(next);
+
     return { runtime: next, commands };
   }
 
@@ -1212,6 +1254,13 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "incoming-damage") {
+    // Unbroken Sword Intent: taking damage sheds two stacks, unless Still Sword
+    // Heart holds them.
+    if (next.yujian && !(event.learnedMasteryIds ?? []).includes("still-sword-heart")) {
+      next.yujian.intentStacks = Math.max(0, next.yujian.intentStacks - 2);
+      syncYujianCombat(next);
+    }
+
     const state = next.gengjin;
     if (!state) {
       commands.push({
@@ -1269,6 +1318,21 @@ export function advanceGongfaRuntime(
   }
 
   const deltaSeconds = Math.max(0, event.deltaMs) / 1000;
+
+  if (next.yujian && next.yujian.intentStacks > 0) {
+    // Unbroken Sword Intent fades a stack at a time once its duration lapses.
+    next.yujian.intentDurationRemaining = Math.max(
+      0,
+      next.yujian.intentDurationRemaining - Math.max(0, event.deltaMs)
+    );
+    if (next.yujian.intentDurationRemaining === 0) {
+      next.yujian.intentStacks -= 1;
+      if (next.yujian.intentStacks > 0) {
+        next.yujian.intentDurationRemaining = INTENT_DURATION_MS;
+      }
+      syncYujianCombat(next);
+    }
+  }
 
   if (next.jinfeng) {
     const learnedMasteryIds = event.learnedMasteryIds ?? [];
@@ -1576,10 +1640,19 @@ export function planGongfaAttack(
             reversingSwordPath: learnedMasteryIds.includes("reversing-sword-path")
           }
         : emptyYujianTransformationTriggers;
+      let count = runtime.combat.count;
+      // Intent Unleashed: a full Intent charge empowers the next volley.
+      if (
+        runtime.yujian &&
+        learnedMasteryIds.includes("intent-unleashed") &&
+        runtime.yujian.intentStacks >= 5
+      ) {
+        count += 3;
+      }
       const commands: GongfaRuntimeCommand[] = [
         {
           kind: "homing-volley",
-          count: runtime.combat.count,
+          count,
           transformationTriggers
         }
       ];

@@ -303,11 +303,13 @@ describe("Gongfa runtime", () => {
       learnedMasteryIds: ["execution-seal"]
     });
 
+    // The first hit's Unbroken Sword Intent stack raises Yujian damage, so the
+    // second hit's execution-seal scales up accordingly.
     expect(secondHit.commands).toEqual([
       {
         kind: "apply-target-damage",
         targetId: 10,
-        amount: 9,
+        amount: 11,
         source: "execution-seal"
       }
     ]);
@@ -1366,5 +1368,100 @@ describe("Gongfa runtime", () => {
     });
     expect(nova.commands.some((command) => command.kind === "aura-burst")).toBe(true);
     expect(nova.runtime.crimsonFurnace!.pressure).toBeLessThan(100);
+  });
+
+  it("Unbroken Sword Intent builds on hits, boosts combat, and fades over time", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    const baseDamage = runtime.combat.damage;
+    const baseSpeed = runtime.combat.projectileSpeed;
+    const basePierce = runtime.combat.pierce;
+
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "yujian-projectile-hit",
+      targetId: 1,
+      damage: 10,
+      learnedMasteryIds: []
+    }).runtime;
+    expect(runtime.yujian!.intentStacks).toBe(1);
+    expect(runtime.combat.damage).toBeGreaterThan(baseDamage);
+    expect(runtime.combat.projectileSpeed).toBeGreaterThan(baseSpeed);
+
+    for (let i = 0; i < 5; i += 1) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "yujian-projectile-hit",
+        targetId: 1,
+        damage: 10,
+        learnedMasteryIds: []
+      }).runtime;
+    }
+    expect(runtime.yujian!.intentStacks).toBe(5);
+    expect(runtime.combat.pierce).toBe(basePierce + 1);
+
+    // Taking damage sheds two stacks.
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "incoming-damage",
+      amount: 10,
+      learnedMasteryIds: []
+    }).runtime;
+    expect(runtime.yujian!.intentStacks).toBe(3);
+
+    // Time without hits fades a stack.
+    const faded = advanceGongfaRuntime(runtime, {
+      kind: "tick",
+      deltaMs: 4000,
+      nearbyEnemyCount: 0,
+      isMoving: false
+    }).runtime;
+    expect(faded.yujian!.intentStacks).toBeLessThan(3);
+  });
+
+  it("Still Sword Heart holds Intent through damage; Myriad Blade Resonance builds it faster", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    for (let i = 0; i < 3; i += 1) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "yujian-projectile-hit",
+        targetId: 1,
+        damage: 10,
+        learnedMasteryIds: []
+      }).runtime;
+    }
+    const held = advanceGongfaRuntime(runtime, {
+      kind: "incoming-damage",
+      amount: 10,
+      learnedMasteryIds: ["still-sword-heart"]
+    }).runtime;
+    expect(held.yujian!.intentStacks).toBe(3);
+
+    const fresh = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    const myriad = advanceGongfaRuntime(fresh, {
+      kind: "yujian-projectile-hit",
+      targetId: 1,
+      damage: 10,
+      learnedMasteryIds: ["myriad-blade-resonance"]
+    }).runtime;
+    const ordinary = advanceGongfaRuntime(fresh, {
+      kind: "yujian-projectile-hit",
+      targetId: 1,
+      damage: 10,
+      learnedMasteryIds: []
+    }).runtime;
+    expect(myriad.yujian!.intentStacks).toBeGreaterThan(ordinary.yujian!.intentStacks);
+  });
+
+  it("Intent Unleashed empowers the volley at full Intent", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    for (let i = 0; i < 5; i += 1) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "yujian-projectile-hit",
+        targetId: 1,
+        damage: 10,
+        learnedMasteryIds: []
+      }).runtime;
+    }
+    const [unleashed] = planGongfaAttack(runtime, 0, { learnedMasteryIds: ["intent-unleashed"] });
+    const [plain] = planGongfaAttack(runtime, 0);
+    const unleashedCount = unleashed.kind === "homing-volley" ? unleashed.count : 0;
+    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
+    expect(unleashedCount).toBeGreaterThan(plainCount);
   });
 });

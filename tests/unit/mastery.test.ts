@@ -266,6 +266,30 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Yujian rank-6 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "yujian-jue",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["sword-bloom"]
+    })).toEqual(["still-sword-heart", "myriad-blade-resonance", "intent-unleashed"]);
+
+    expect(getMasteryChoiceDefinition("intent-unleashed")).toMatchObject({
+      kind: "transformation",
+      milestoneRank: 6,
+      exclusivityGroup: "yujian-jue:rank-6"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-6 Yujian Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "yujian-jue",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["sword-bloom", "still-sword-heart"]
+    })).toEqual([]);
+  });
+
   it("keeps gongfa without authored Transformations on ordinary rank 3 refinement choices", () => {
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "crimson-furnace-sword-art",

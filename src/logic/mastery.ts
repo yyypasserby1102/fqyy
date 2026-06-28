@@ -49,6 +49,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     exclusivityGroup: "yujian-jue:rank-3"
   },
   {
+    id: "still-sword-heart",
+    name: "Still Sword Heart",
+    lore: "Incoming damage no longer scatters accumulated Sword Intent.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 6,
+    exclusivityGroup: "yujian-jue:rank-6"
+  },
+  {
+    id: "myriad-blade-resonance",
+    name: "Myriad Blade Resonance",
+    lore: "Projectile-tagged hits feed Sword Intent far faster.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 6,
+    exclusivityGroup: "yujian-jue:rank-6"
+  },
+  {
+    id: "intent-unleashed",
+    name: "Intent Unleashed",
+    lore: "At full Intent, the next sword volley erupts with extra blades.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 6,
+    exclusivityGroup: "yujian-jue:rank-6"
+  },
+  {
     id: "heaven-splitting-line",
     name: "Heaven-Splitting Line",
     lore: "Compress Cutting Front into a single long penetrating lane.",
