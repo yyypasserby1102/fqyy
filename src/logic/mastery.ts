@@ -239,6 +239,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 3,
     exclusivityGroup: "burning-ring-scripture:rank-3"
+  },
+  {
+    id: "banked-sun",
+    name: "Banked Sun",
+    lore: "Heat no longer bleeds below half once it is stoked.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 6,
+    exclusivityGroup: "burning-ring-scripture:rank-6"
+  },
+  {
+    id: "aura-furnace",
+    name: "Aura Furnace",
+    lore: "Any aura-tagged Skill hit stokes markedly more Heat.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 6,
+    exclusivityGroup: "burning-ring-scripture:rank-6"
+  },
+  {
+    id: "meridian-ignition",
+    name: "Meridian Ignition",
+    lore: "Full Heat ignites into a brief high-output burst, then resets.",
+    kind: "transformation",
+    requiredGongfaIds: ["burning-ring-scripture"],
+    milestoneRank: 6,
+    exclusivityGroup: "burning-ring-scripture:rank-6"
   }
 ];
 

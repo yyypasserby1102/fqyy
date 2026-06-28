@@ -317,6 +317,35 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Burning Ring rank-6 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "burning-ring-scripture",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["condensed-furnace-ring"]
+    })).toEqual([
+      "banked-sun",
+      "aura-furnace",
+      "meridian-ignition"
+    ]);
+
+    expect(getMasteryChoiceDefinition("meridian-ignition")).toMatchObject({
+      name: "Meridian Ignition",
+      kind: "transformation",
+      milestoneRank: 6,
+      exclusivityGroup: "burning-ring-scripture:rank-6"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-6 Burning Ring Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "burning-ring-scripture",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["condensed-furnace-ring", "banked-sun"]
+    })).toEqual([]);
+  });
+
   it("adds the rank-10 Skill 2 family into the post-rank-10 pool", () => {
     expect(
       getDeterministicMasteryChoiceIds({

@@ -1180,4 +1180,72 @@ describe("Gongfa runtime", () => {
     expect(scattered.kind === "burning-ring-volley" && scattered.scatterEmbers).toBe(true);
     expect(plain.kind === "burning-ring-volley" && plain.scatterEmbers).toBeUndefined();
   });
+
+  it("Banked Sun floors Heat decay at half", () => {
+    const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
+      kind: "tick",
+      deltaMs: 12000,
+      nearbyEnemyCount: 5,
+      isMoving: false
+    }).runtime;
+    expect(heated.burningRing!.heat).toBeGreaterThan(50);
+
+    const banked = advanceGongfaRuntime(heated, {
+      kind: "tick",
+      deltaMs: 60000,
+      nearbyEnemyCount: 0,
+      isMoving: false,
+      learnedMasteryIds: ["banked-sun"]
+    }).runtime;
+    const bled = advanceGongfaRuntime(heated, {
+      kind: "tick",
+      deltaMs: 60000,
+      nearbyEnemyCount: 0,
+      isMoving: false
+    }).runtime;
+    expect(banked.burningRing!.heat).toBe(50);
+    expect(bled.burningRing!.heat).toBeLessThan(50);
+  });
+
+  it("Aura Furnace stokes more Heat per hit", () => {
+    const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
+    const hitFacts = {
+      sourceGongfaId: "burning-ring-scripture" as const,
+      targetId: 1,
+      damage: 10,
+      baseDamageKilledTarget: false,
+      embedStacks: 0,
+      embedPower: 0
+    };
+
+    const furnace = advanceGongfaRuntimeForProjectileHit(ring, {
+      ...hitFacts,
+      learnedMasteryIds: ["aura-furnace"]
+    }).runtime;
+    const ordinary = advanceGongfaRuntimeForProjectileHit(ring, {
+      ...hitFacts,
+      learnedMasteryIds: []
+    }).runtime;
+    expect(furnace.burningRing!.heat).toBeGreaterThan(ordinary.burningRing!.heat);
+  });
+
+  it("Meridian Ignition bursts and resets Heat at full", () => {
+    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
+      kind: "tick",
+      deltaMs: 12000,
+      nearbyEnemyCount: 10,
+      isMoving: false
+    }).runtime;
+    expect(full.burningRing!.heat).toBe(100);
+
+    const ignited = advanceGongfaRuntime(full, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 5,
+      isMoving: false,
+      learnedMasteryIds: ["meridian-ignition"]
+    });
+    expect(ignited.runtime.burningRing!.heat).toBeLessThan(100);
+    expect(ignited.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+  });
 });

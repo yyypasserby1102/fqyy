@@ -106,7 +106,7 @@ export type GongfaRuntimeEvent =
       skill2Id?: string;
       learnedMasteryIds?: string[];
     }
-  | { kind: "projectile-hit"; damage: number }
+  | { kind: "projectile-hit"; damage: number; learnedMasteryIds?: string[] }
   | { kind: "jinfeng-wave-hit"; learnedMasteryIds: string[] }
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds: string[] }
   | { kind: "evade"; learnedMasteryIds: string[] }
@@ -942,7 +942,8 @@ export function advanceGongfaRuntimeForProjectileHit(
   if (next.burningRing) {
     const result = advanceGongfaRuntime(next, {
       kind: "projectile-hit",
-      damage: facts.damage
+      damage: facts.damage,
+      learnedMasteryIds: facts.learnedMasteryIds
     });
     next = result.runtime;
     commands.push(...result.commands);
@@ -1124,7 +1125,11 @@ export function advanceGongfaRuntime(
     if (!state) {
       return { runtime: next, commands };
     }
-    state.heat = Math.min(100, state.heat + Math.max(0.4, event.damage * 0.15));
+    // Aura Furnace: aura-tagged hits stoke markedly more Heat.
+    const heatGain = (event.learnedMasteryIds ?? []).includes("aura-furnace")
+      ? Math.max(0.8, event.damage * 0.3)
+      : Math.max(0.4, event.damage * 0.15);
+    state.heat = Math.min(100, state.heat + heatGain);
     syncBurningRingCombat(next);
     return { runtime: next, commands };
   }
@@ -1381,13 +1386,27 @@ export function advanceGongfaRuntime(
   }
 
   const state = next.burningRing;
+  const burningLearnedMasteryIds = event.learnedMasteryIds ?? [];
   if (event.nearbyEnemyCount > 0) {
     state.heat = Math.min(
       100,
       state.heat + event.nearbyEnemyCount * state.heatBuildRate * deltaSeconds
     );
   } else {
-    state.heat = Math.max(0, state.heat - state.heatDecayRate * deltaSeconds);
+    // Banked Sun: stoked Heat no longer bleeds below half.
+    const heatFloor =
+      burningLearnedMasteryIds.includes("banked-sun") && state.heat >= 50 ? 50 : 0;
+    state.heat = Math.max(heatFloor, state.heat - state.heatDecayRate * deltaSeconds);
+  }
+
+  // Meridian Ignition: full Heat ignites into a high-output burst, then resets.
+  if (burningLearnedMasteryIds.includes("meridian-ignition") && state.heat >= 100) {
+    state.heat = 20;
+    commands.push({
+      kind: "aura-burst",
+      damage: Math.max(1, Math.floor(next.combat.damage * 1.8)),
+      count: 12
+    });
   }
   syncBurningRingCombat(next);
 
