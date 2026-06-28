@@ -113,7 +113,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Method: 1 | Damage: 9 | Cooldown: 1150ms",
     "Movement: 220 | Kills: 0",
     "Evade: Ready",
-    "Lingcao: unclaimed | Run Timer: 05:59"
+    "Lingcao: unclaimed"
   ]);
   await claimOpeningLingcao(page);
 
@@ -122,7 +122,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
   expect(revealed.progression.lingcaoCollected).toBe(true);
   expect(revealed.hud.lines[8]).toBe("Linggen: Unrevealed | Grades: Hidden");
   expect(revealed.hud.lines[9]).toBe("Gongfa: Crude Qi Thread");
-  expect(revealed.hud.lines[14]).toMatch(/^Lingcao: claimed \| Run Timer: 05:5\d$/);
+  expect(revealed.hud.lines[14]).toBe("Lingcao: claimed");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
 
@@ -144,7 +144,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Movement: 220 | Kills: 0",
     "Evade: Ready"
   ]);
-  expect(afterChoice.hud.lines[14]).toMatch(/^Lingcao: claimed \| Run Timer: 05:5\d$/);
+  expect(afterChoice.hud.lines[14]).toBe("Lingcao: claimed");
 });
 
 test("HUD shows evade readiness, active invulnerability, and cooldown", async ({ page }) => {

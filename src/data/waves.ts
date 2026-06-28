@@ -8,8 +8,6 @@ export interface WaveSpawn {
   amount: number;
 }
 
-export const waveDurationMs = 6 * 60 * 1000;
-
 const lianqiWaveSpawns: WaveSpawn[] = [
   {
     at: 0,

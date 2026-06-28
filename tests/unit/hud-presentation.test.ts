@@ -31,7 +31,6 @@ describe("HUD presentation", () => {
         moveSpeed: 250,
         kills: 8,
         lingcaoCollected: true,
-        remainingMs: 51_000,
         evadeActive: false,
         evadeCooldownRemainingMs: 0
       })
@@ -50,7 +49,7 @@ describe("HUD presentation", () => {
       "Method: 3 | Damage: 12 | Cooldown: 900ms",
       "Movement: 250 | Kills: 8",
       "Evade: Ready",
-      "Lingcao: claimed | Run Timer: 00:51"
+      "Lingcao: claimed"
     ]);
   });
 });

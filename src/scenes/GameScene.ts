@@ -16,7 +16,6 @@ import {
   type LinggenConfig
 } from "../data/linggen";
 import { stageConfigs, type StageId } from "../data/stages";
-import { waveDurationMs } from "../data/waves";
 import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
 import { HealingPill } from "../entities/HealingPill";
@@ -370,14 +369,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.tickMasterySkill2(delta);
-
-    if (this.runState.elapsedMs >= waveDurationMs) {
-      this.runState.gameOver = true;
-      this.setPausedState(true);
-      this.publishHud("Tribulation survived. Outer sect awaits.");
-      this.clearActiveRunSave();
-      return;
-    }
 
     this.publishHud();
   }
@@ -2007,7 +1998,6 @@ export class GameScene extends Phaser.Scene {
         : "",
       kills: this.runState.kills,
       elapsedMs: this.runState.elapsedMs,
-      remainingMs: Math.max(0, waveDurationMs - this.runState.elapsedMs),
       paused: this.runState.paused,
       gameOver: this.runState.gameOver,
       stageName: stageConfigs[this.runState.stage].name,
@@ -2082,8 +2072,7 @@ export class GameScene extends Phaser.Scene {
           evadeActive: this.evade.state.active,
           evadeCooldownRemainingMs: this.evade.state.cooldownRemainingMs,
           kills: this.runState.kills,
-          lingcaoCollected: this.runState.lingcaoCollected,
-          remainingMs: Math.max(0, waveDurationMs - this.runState.elapsedMs)
+          lingcaoCollected: this.runState.lingcaoCollected
         })
       },
       player: {

@@ -1,4 +1,3 @@
-import { formatTime } from "../utils/format";
 import { formatMasteryHudLine } from "./masteryPresentation";
 
 export interface HudPresentationState {
@@ -30,7 +29,6 @@ export interface HudPresentationState {
   evadeCooldownRemainingMs: number;
   kills: number;
   lingcaoCollected: boolean;
-  remainingMs: number;
 }
 
 export function buildHudLines(state: HudPresentationState): string[] {
@@ -62,8 +60,6 @@ export function buildHudLines(state: HudPresentationState): string[] {
       : state.evadeCooldownRemainingMs > 0
         ? `Evade: ${(state.evadeCooldownRemainingMs / 1_000).toFixed(1)}s`
         : "Evade: Ready",
-    `Lingcao: ${state.lingcaoCollected ? "claimed" : "unclaimed"} | Run Timer: ${formatTime(
-      state.remainingMs
-    )}`
+    `Lingcao: ${state.lingcaoCollected ? "claimed" : "unclaimed"}`
   ];
 }

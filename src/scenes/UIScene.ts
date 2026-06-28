@@ -25,7 +25,6 @@ interface HudState {
   skillTags: string;
   kills: number;
   elapsedMs: number;
-  remainingMs: number;
   paused: boolean;
   gameOver: boolean;
   stageName: string;
@@ -143,8 +142,7 @@ export class UIScene extends Phaser.Scene {
         evadeActive: hud.evadeActive,
         evadeCooldownRemainingMs: hud.evadeCooldownRemainingMs,
         kills: hud.kills,
-        lingcaoCollected: hud.lingcaoCollected,
-        remainingMs: hud.remainingMs
+        lingcaoCollected: hud.lingcaoCollected
       })
     );
 
