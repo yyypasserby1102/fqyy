@@ -375,6 +375,44 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers the Crimson Furnace Transformation milestones at ranks 3, 6, and 9", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "crimson-furnace-sword-art",
+      rank: 3,
+      seed: "seed-123",
+      learnedIds: []
+    })).toEqual(["crimson-piercing-needles", "scattered-needles", "volatile-embeds"]);
+
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "crimson-furnace-sword-art",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: []
+    })).toEqual(["sustained-crucible", "resonant-crucible", "overpressure-detonation"]);
+
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "crimson-furnace-sword-art",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: []
+    })).toEqual(["furnace-heart", "relentless-needles", "crucible-nova"]);
+  });
+
+  it("excludes Crimson Furnace sibling Transformations once one per milestone is learned", () => {
+    for (const [rank, learned] of [
+      [3, "scattered-needles"],
+      [6, "resonant-crucible"],
+      [9, "relentless-needles"]
+    ] as const) {
+      expect(getDeterministicMasteryChoiceIds({
+        gongfaId: "crimson-furnace-sword-art",
+        rank,
+        seed: "seed-123",
+        learnedIds: [learned]
+      })).toEqual([]);
+    }
+  });
+
   it("adds the rank-10 Skill 2 family into the post-rank-10 pool", () => {
     expect(
       getDeterministicMasteryChoiceIds({

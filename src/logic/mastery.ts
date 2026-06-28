@@ -293,6 +293,87 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 9,
     exclusivityGroup: "burning-ring-scripture:rank-9"
+  },
+  {
+    id: "crimson-piercing-needles",
+    name: "Piercing Furnace Needles",
+    lore: "Focus the needles into a deeper-piercing line.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-3"
+  },
+  {
+    id: "scattered-needles",
+    name: "Scattered Furnace Needles",
+    lore: "Loose a broader spray of embedding needles.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-3"
+  },
+  {
+    id: "volatile-embeds",
+    name: "Volatile Embeds",
+    lore: "Embeds reach detonation with fewer needles.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-3"
+  },
+  {
+    id: "sustained-crucible",
+    name: "Sustained Crucible",
+    lore: "Crucible Pressure bleeds away far more slowly.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 6,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-6"
+  },
+  {
+    id: "resonant-crucible",
+    name: "Resonant Crucible",
+    lore: "Each detonation builds markedly more Pressure.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 6,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-6"
+  },
+  {
+    id: "overpressure-detonation",
+    name: "Overpressure Detonation",
+    lore: "Pressure swells explosion radius far more sharply.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 6,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-6"
+  },
+  {
+    id: "furnace-heart",
+    name: "Furnace Heart",
+    lore: "Crucible Pressure adds extra needles to every volley.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-9"
+  },
+  {
+    id: "relentless-needles",
+    name: "Relentless Needles",
+    lore: "High Pressure looses a second needle volley.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-9"
+  },
+  {
+    id: "crucible-nova",
+    name: "Crucible Nova",
+    lore: "Full Pressure erupts in a furnace nova, then resets.",
+    kind: "transformation",
+    requiredGongfaIds: ["crimson-furnace-sword-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "crimson-furnace-sword-art:rank-9"
   }
 ];
 

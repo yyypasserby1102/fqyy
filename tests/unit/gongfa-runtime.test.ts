@@ -1308,4 +1308,63 @@ describe("Gongfa runtime", () => {
     const inert = advanceGongfaRuntime(heated, { kind: "evade", learnedMasteryIds: [] });
     expect(inert.commands).toHaveLength(0);
   });
+
+  it("applies Crimson Furnace rank-3 and rank-6 structural Transformations", () => {
+    const ring = createGongfaRuntime({ gongfaId: "crimson-furnace-sword-art" });
+
+    const piercing = applyGongfaImprovement(ring, "crimson-piercing-needles").runtime;
+    expect(piercing.combat.pierce).toBe(ring.combat.pierce + 2);
+    expect(piercing.combat.count).toBe(Math.max(1, ring.combat.count - 1));
+
+    expect(applyGongfaImprovement(ring, "scattered-needles").runtime.combat.count).toBe(
+      ring.combat.count + 2
+    );
+    expect(
+      applyGongfaImprovement(ring, "volatile-embeds").runtime.crimsonFurnace!.embedThreshold
+    ).toBe(ring.crimsonFurnace!.embedThreshold - 1);
+    expect(
+      applyGongfaImprovement(ring, "sustained-crucible").runtime.crimsonFurnace!.pressureDecayRate
+    ).toBeLessThan(ring.crimsonFurnace!.pressureDecayRate);
+    expect(
+      applyGongfaImprovement(ring, "resonant-crucible").runtime.crimsonFurnace!.pressureBuildRate
+    ).toBeGreaterThan(ring.crimsonFurnace!.pressureBuildRate);
+    expect(
+      applyGongfaImprovement(ring, "overpressure-detonation").runtime.crimsonFurnace!
+        .pressureRadiusScale
+    ).toBeGreaterThan(ring.crimsonFurnace!.pressureRadiusScale);
+  });
+
+  it("Furnace Heart and Relentless Needles scale volleys with Pressure", () => {
+    const pressured = createGongfaRuntime({
+      gongfaId: "crimson-furnace-sword-art",
+      crimsonFurnace: { pressure: 80 }
+    });
+
+    const [heart] = planGongfaAttack(pressured, 0, { learnedMasteryIds: ["furnace-heart"] });
+    const [plain] = planGongfaAttack(pressured, 0);
+    const heartCount = heart.kind === "crimson-furnace-volley" ? heart.count : 0;
+    const plainCount = plain.kind === "crimson-furnace-volley" ? plain.count : 0;
+    expect(heartCount).toBeGreaterThan(plainCount);
+
+    expect(
+      planGongfaAttack(pressured, 0, { learnedMasteryIds: ["relentless-needles"] })
+    ).toHaveLength(2);
+    expect(planGongfaAttack(pressured, 0)).toHaveLength(1);
+  });
+
+  it("Crucible Nova erupts and resets at full Pressure", () => {
+    const full = createGongfaRuntime({
+      gongfaId: "crimson-furnace-sword-art",
+      crimsonFurnace: { pressure: 100 }
+    });
+    const nova = advanceGongfaRuntime(full, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 0,
+      isMoving: false,
+      learnedMasteryIds: ["crucible-nova"]
+    });
+    expect(nova.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+    expect(nova.runtime.crimsonFurnace!.pressure).toBeLessThan(100);
+  });
 });

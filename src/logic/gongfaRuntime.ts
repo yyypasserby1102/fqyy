@@ -1388,6 +1388,16 @@ export function advanceGongfaRuntime(
   }
 
   if (next.crimsonFurnace) {
+    // Crucible Nova: full Pressure erupts in a furnace nova, then resets.
+    // Checked before decay, since Pressure only ever decays in the tick.
+    if ((event.learnedMasteryIds ?? []).includes("crucible-nova") && next.crimsonFurnace.pressure >= 100) {
+      next.crimsonFurnace.pressure = 30;
+      commands.push({
+        kind: "aura-burst",
+        damage: Math.max(1, Math.floor(next.combat.damage * 2)),
+        count: 14
+      });
+    }
     next.crimsonFurnace.pressure = Math.max(
       0,
       next.crimsonFurnace.pressure - next.crimsonFurnace.pressureDecayRate * deltaSeconds
@@ -1539,7 +1549,21 @@ export function planGongfaAttack(
   options: { learnedMasteryIds?: string[] } = {}
 ): GongfaRuntimeCommand[] {
   if (runtime.crimsonFurnace) {
-    return [{ kind: "crimson-furnace-volley", count: runtime.combat.count }];
+    const learnedMasteryIds = options.learnedMasteryIds ?? [];
+    let count = runtime.combat.count;
+    // Furnace Heart: Crucible Pressure adds needles to each volley.
+    if (learnedMasteryIds.includes("furnace-heart")) {
+      count += Math.floor(runtime.crimsonFurnace.pressure / 20);
+    }
+    const commands: GongfaRuntimeCommand[] = [{ kind: "crimson-furnace-volley", count }];
+    // Relentless Needles: high Pressure looses a second volley.
+    if (learnedMasteryIds.includes("relentless-needles") && runtime.crimsonFurnace.pressure >= 40) {
+      commands.push({
+        kind: "crimson-furnace-volley",
+        count: Math.max(1, Math.floor(count / 2))
+      });
+    }
+    return commands;
   }
 
   switch (runtime.combat.pattern) {
@@ -1738,26 +1762,67 @@ function applyStructuralTransformation(
   runtime: GongfaRuntime,
   transformationId: string
 ): GongfaRuntime | undefined {
-  if (!runtime.jinfeng) {
-    return undefined;
+  if (runtime.jinfeng) {
+    if (transformationId === "heaven-splitting-line") {
+      // Compress the Cutting Front into one long penetrating lane.
+      const next = copyRuntime(runtime);
+      next.combat.count = 1;
+      next.combat.pierce += 2;
+      next.combat.range += 90;
+      next.combat.spreadDeg = Math.max(2, Math.floor(next.combat.spreadDeg / 2));
+      return next;
+    }
+
+    if (transformationId === "golden-gale-fan") {
+      // Spread the Cutting Front into a broad frontal arc.
+      const next = copyRuntime(runtime);
+      next.combat.count += 2;
+      next.combat.spreadDeg += 40;
+      return next;
+    }
   }
 
-  if (transformationId === "heaven-splitting-line") {
-    // Compress the Cutting Front into one long penetrating lane.
-    const next = copyRuntime(runtime);
-    next.combat.count = 1;
-    next.combat.pierce += 2;
-    next.combat.range += 90;
-    next.combat.spreadDeg = Math.max(2, Math.floor(next.combat.spreadDeg / 2));
-    return next;
-  }
+  if (runtime.crimsonFurnace) {
+    if (transformationId === "crimson-piercing-needles") {
+      const next = copyRuntime(runtime);
+      next.combat.pierce += 2;
+      next.combat.count = Math.max(1, next.combat.count - 1);
+      return next;
+    }
 
-  if (transformationId === "golden-gale-fan") {
-    // Spread the Cutting Front into a broad frontal arc.
-    const next = copyRuntime(runtime);
-    next.combat.count += 2;
-    next.combat.spreadDeg += 40;
-    return next;
+    if (transformationId === "scattered-needles") {
+      const next = copyRuntime(runtime);
+      next.combat.count += 2;
+      return next;
+    }
+
+    if (transformationId === "volatile-embeds") {
+      const next = copyRuntime(runtime);
+      next.crimsonFurnace!.embedThreshold = Math.max(1, next.crimsonFurnace!.embedThreshold - 1);
+      return next;
+    }
+
+    if (transformationId === "sustained-crucible") {
+      const next = copyRuntime(runtime);
+      next.crimsonFurnace!.pressureDecayRate = Math.max(
+        0.08,
+        next.crimsonFurnace!.pressureDecayRate * 0.55
+      );
+      return next;
+    }
+
+    if (transformationId === "resonant-crucible") {
+      const next = copyRuntime(runtime);
+      next.crimsonFurnace!.pressureBuildRate += 0.7;
+      return next;
+    }
+
+    if (transformationId === "overpressure-detonation") {
+      const next = copyRuntime(runtime);
+      next.crimsonFurnace!.pressureRadiusScale += 0.35;
+      syncCrimsonFurnaceCombat(next);
+      return next;
+    }
   }
 
   return undefined;
