@@ -909,6 +909,7 @@ export class GameScene extends Phaser.Scene {
     scale: number
   ): void {
     const projectile = new Projectile(this, x, y, this.combatState.projectileTexture);
+    projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
     projectile.setTint(this.combatState.tint);
@@ -1087,7 +1088,8 @@ export class GameScene extends Phaser.Scene {
       deltaMs: delta,
       nearbyEnemyCount: threatRadius > 0 ? this.getEnemiesWithinRadius(threatRadius).length : 0,
       isMoving: movement.lengthSq() > 0,
-      skill2Id: this.runState.masterySkill2Id
+      skill2Id: this.runState.masterySkill2Id,
+      learnedMasteryIds: this.runState.masteryLearnedIds
     });
     this.gongfaRuntime = result.runtime;
     this.combatState = result.runtime.combat;

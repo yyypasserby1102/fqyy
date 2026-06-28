@@ -815,4 +815,81 @@ describe("Gongfa runtime", () => {
     // Without the Transformation learned, no crescent even at Momentum.
     expect(planGongfaAttack(moved, 0)).toHaveLength(1);
   });
+
+  it("Unbroken Current holds Momentum when the Cultivator stops", () => {
+    const moved = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick",
+      deltaMs: 3000,
+      nearbyEnemyCount: 0,
+      isMoving: true
+    }).runtime;
+    const momentum = moved.jinfeng!.momentum;
+    expect(momentum).toBeGreaterThan(0);
+
+    const held = advanceGongfaRuntime(moved, {
+      kind: "tick",
+      deltaMs: 1000,
+      nearbyEnemyCount: 0,
+      isMoving: false,
+      learnedMasteryIds: ["unbroken-current"]
+    }).runtime;
+    expect(held.jinfeng!.momentum).toBe(momentum);
+
+    const decayed = advanceGongfaRuntime(moved, {
+      kind: "tick",
+      deltaMs: 1000,
+      nearbyEnemyCount: 0,
+      isMoving: false
+    }).runtime;
+    expect(decayed.jinfeng!.momentum).toBeLessThan(momentum);
+  });
+
+  it("Ten-Thousand Wave Resonance builds Momentum on Jinfeng wave hits", () => {
+    const base = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
+    const hitFacts = {
+      sourceGongfaId: "jinfeng-gong" as const,
+      targetId: 1,
+      damage: 10,
+      baseDamageKilledTarget: false,
+      embedStacks: 0,
+      embedPower: 0
+    };
+
+    const resonant = advanceGongfaRuntimeForProjectileHit(base, {
+      ...hitFacts,
+      learnedMasteryIds: ["ten-thousand-wave-resonance"]
+    }).runtime;
+    expect(resonant.jinfeng!.momentum).toBeGreaterThan(0);
+
+    const inert = advanceGongfaRuntimeForProjectileHit(base, {
+      ...hitFacts,
+      learnedMasteryIds: []
+    }).runtime;
+    expect(inert.jinfeng!.momentum).toBe(0);
+  });
+
+  it("Gale Detonation spends full Momentum to launch a crossing wave", () => {
+    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 0,
+      isMoving: true
+    }).runtime;
+    expect(full.jinfeng!.momentum).toBe(5);
+
+    const { runtime: detonated, commands } = advanceGongfaRuntime(full, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 0,
+      isMoving: true,
+      learnedMasteryIds: ["gale-detonation"]
+    });
+    expect(detonated.jinfeng!.momentum).toBeLessThan(5);
+    expect(commands).toContainEqual({
+      kind: "wave-volley",
+      count: 2,
+      returnShots: 0,
+      aimMode: "last"
+    });
+  });
 });

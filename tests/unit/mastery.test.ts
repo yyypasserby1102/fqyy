@@ -90,6 +90,35 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Jinfeng rank-6 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "jinfeng-gong",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["golden-gale-fan"]
+    })).toEqual([
+      "unbroken-current",
+      "ten-thousand-wave-resonance",
+      "gale-detonation"
+    ]);
+
+    expect(getMasteryChoiceDefinition("gale-detonation")).toMatchObject({
+      name: "Gale Detonation",
+      kind: "transformation",
+      milestoneRank: 6,
+      exclusivityGroup: "jinfeng-gong:rank-6"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-6 Jinfeng Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "jinfeng-gong",
+      rank: 6,
+      seed: "seed-123",
+      learnedIds: ["golden-gale-fan", "unbroken-current"]
+    })).toEqual([]);
+  });
+
   it("resolves mastery choice definitions across refinements, transformations, Skill 2, and unknown ids", () => {
     expect(getMasteryChoiceDefinition("sword-intent-sharpening")).toMatchObject({
       id: "sword-intent-sharpening",

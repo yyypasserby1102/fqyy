@@ -74,6 +74,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["jinfeng-gong"],
     milestoneRank: 3,
     exclusivityGroup: "jinfeng-gong:rank-3"
+  },
+  {
+    id: "unbroken-current",
+    name: "Unbroken Current",
+    lore: "Momentum no longer bleeds away when the Cultivator stops.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 6,
+    exclusivityGroup: "jinfeng-gong:rank-6"
+  },
+  {
+    id: "ten-thousand-wave-resonance",
+    name: "Ten-Thousand Wave Resonance",
+    lore: "Every wave-tagged Skill hit feeds Momentum.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 6,
+    exclusivityGroup: "jinfeng-gong:rank-6"
+  },
+  {
+    id: "gale-detonation",
+    name: "Gale Detonation",
+    lore: "At full Momentum, spend part of it to launch a crossing cutting wave.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 6,
+    exclusivityGroup: "jinfeng-gong:rank-6"
   }
 ];
 

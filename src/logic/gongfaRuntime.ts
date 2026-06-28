@@ -102,8 +102,10 @@ export type GongfaRuntimeEvent =
       nearbyEnemyCount: number;
       isMoving?: boolean;
       skill2Id?: string;
+      learnedMasteryIds?: string[];
     }
   | { kind: "projectile-hit"; damage: number }
+  | { kind: "jinfeng-wave-hit"; learnedMasteryIds: string[] }
   | {
       kind: "yujian-projectile-hit";
       targetId: number;
@@ -936,6 +938,15 @@ export function advanceGongfaRuntimeForProjectileHit(
     commands.push(...result.commands);
   }
 
+  if (facts.sourceGongfaId === "jinfeng-gong" && next.jinfeng) {
+    const result = advanceGongfaRuntime(next, {
+      kind: "jinfeng-wave-hit",
+      learnedMasteryIds: facts.learnedMasteryIds
+    });
+    next = result.runtime;
+    commands.push(...result.commands);
+  }
+
   return { runtime: next, commands };
 }
 
@@ -1099,6 +1110,15 @@ export function advanceGongfaRuntime(
     return { runtime: next, commands };
   }
 
+  if (event.kind === "jinfeng-wave-hit") {
+    // Ten-Thousand Wave Resonance: wave-tagged Skill hits feed Momentum.
+    if (next.jinfeng && event.learnedMasteryIds.includes("ten-thousand-wave-resonance")) {
+      next.jinfeng.momentum = Math.min(5, next.jinfeng.momentum + 0.5);
+      syncJinfengCombat(next);
+    }
+    return { runtime: next, commands };
+  }
+
   if (event.kind === "crimson-projectile-hit") {
     const state = next.crimsonFurnace;
     if (!state) {
@@ -1186,17 +1206,26 @@ export function advanceGongfaRuntime(
   const deltaSeconds = Math.max(0, event.deltaMs) / 1000;
 
   if (next.jinfeng) {
+    const learnedMasteryIds = event.learnedMasteryIds ?? [];
     if (event.isMoving) {
       next.jinfeng.momentum = Math.min(
         5,
         next.jinfeng.momentum + next.jinfeng.momentumBuildRate * deltaSeconds
       );
-    } else {
+    } else if (!learnedMasteryIds.includes("unbroken-current")) {
+      // Unbroken Current holds Momentum instead of letting it bleed on a stop.
       next.jinfeng.momentum = Math.max(
         0,
         next.jinfeng.momentum - next.jinfeng.momentumDecayRate * deltaSeconds
       );
     }
+
+    // Gale Detonation: at full Momentum, spend part of it for a crossing wave.
+    if (learnedMasteryIds.includes("gale-detonation") && next.jinfeng.momentum >= 5) {
+      next.jinfeng.momentum = Math.max(0, next.jinfeng.momentum - 2.5);
+      commands.push({ kind: "wave-volley", count: 2, returnShots: 0, aimMode: "last" });
+    }
+
     syncJinfengCombat(next);
   }
 
