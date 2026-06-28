@@ -290,6 +290,30 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Yujian rank-9 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "yujian-jue",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["sword-bloom", "still-sword-heart"]
+    })).toEqual(["sword-crown", "intent-domain", "void-step-formation"]);
+
+    expect(getMasteryChoiceDefinition("void-step-formation")).toMatchObject({
+      kind: "transformation",
+      milestoneRank: 9,
+      exclusivityGroup: "yujian-jue:rank-9"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-9 Yujian Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "yujian-jue",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["sword-bloom", "still-sword-heart", "intent-domain"]
+    })).toEqual([]);
+  });
+
   it("keeps gongfa without authored Transformations on ordinary rank 3 refinement choices", () => {
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "crimson-furnace-sword-art",

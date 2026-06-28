@@ -1464,4 +1464,40 @@ describe("Gongfa runtime", () => {
     const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
     expect(unleashedCount).toBeGreaterThan(plainCount);
   });
+
+  it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    for (let i = 0; i < 3; i += 1) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "yujian-projectile-hit",
+        targetId: 1,
+        damage: 10,
+        learnedMasteryIds: []
+      }).runtime;
+    }
+    expect(runtime.yujian!.intentStacks).toBe(3);
+
+    // Sword Crown adds spectral swords by current Intent.
+    const [crowned] = planGongfaAttack(runtime, 0, { learnedMasteryIds: ["sword-crown"] });
+    const [plain] = planGongfaAttack(runtime, 0);
+    const crownedCount = crowned.kind === "homing-volley" ? crowned.count : 0;
+    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
+    expect(crownedCount).toBe(plainCount + 3);
+
+    // Intent Domain leaves a blade field (aura-burst) on hit.
+    const domainHit = advanceGongfaRuntime(runtime, {
+      kind: "yujian-projectile-hit",
+      targetId: 1,
+      damage: 10,
+      learnedMasteryIds: ["intent-domain"]
+    });
+    expect(domainHit.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+
+    // Void-Step Formation looses an extra volley on Evade.
+    const evaded = advanceGongfaRuntime(runtime, {
+      kind: "evade",
+      learnedMasteryIds: ["void-step-formation"]
+    });
+    expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+  });
 });

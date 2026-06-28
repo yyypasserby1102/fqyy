@@ -76,6 +76,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     exclusivityGroup: "yujian-jue:rank-6"
   },
   {
+    id: "sword-crown",
+    name: "Sword Crown",
+    lore: "Current Intent crowns the volley with weaker spectral swords.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 9,
+    exclusivityGroup: "yujian-jue:rank-9"
+  },
+  {
+    id: "intent-domain",
+    name: "Intent Domain",
+    lore: "Hits leave short-lived blade fields that scale with Intent.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 9,
+    exclusivityGroup: "yujian-jue:rank-9"
+  },
+  {
+    id: "void-step-formation",
+    name: "Void-Step Formation",
+    lore: "Each Evade looses an extra sword volley from its path.",
+    kind: "transformation",
+    requiredGongfaIds: ["yujian-jue"],
+    milestoneRank: 9,
+    exclusivityGroup: "yujian-jue:rank-9"
+  },
+  {
     id: "heaven-splitting-line",
     name: "Heaven-Splitting Line",
     lore: "Compress Cutting Front into a single long penetrating lane.",

@@ -1072,6 +1072,15 @@ export function advanceGongfaRuntime(
       });
     }
 
+    // Intent Domain: hits leave an Intent-scaled blade field.
+    if (event.learnedMasteryIds.includes("intent-domain") && state.intentStacks > 0) {
+      commands.push({
+        kind: "aura-burst",
+        damage: Math.max(1, Math.floor(next.combat.damage * 0.4)),
+        count: 2 + state.intentStacks
+      });
+    }
+
     // Unbroken Sword Intent: a successful hit builds a stack and refreshes its
     // duration (applied after this hit's effects). Myriad Blade Resonance feeds
     // Intent faster.
@@ -1210,6 +1219,13 @@ export function advanceGongfaRuntime(
         kind: "aura-burst",
         damage: next.combat.damage + Math.floor(next.gengjin.guardValue * 0.6),
         count: 10
+      });
+    }
+    // Void-Step Formation: each Evade looses an extra sword volley.
+    if (next.yujian && event.learnedMasteryIds.includes("void-step-formation")) {
+      commands.push({
+        kind: "homing-volley",
+        count: Math.max(1, next.combat.count)
       });
     }
     // Phoenix Passage: leave a Heat-scaled ring copy at the Evade's origin.
@@ -1648,6 +1664,10 @@ export function planGongfaAttack(
         runtime.yujian.intentStacks >= 5
       ) {
         count += 3;
+      }
+      // Sword Crown: current Intent crowns the volley with spectral swords.
+      if (runtime.yujian && learnedMasteryIds.includes("sword-crown")) {
+        count += runtime.yujian.intentStacks;
       }
       const commands: GongfaRuntimeCommand[] = [
         {
