@@ -119,6 +119,35 @@ describe("mastery progression", () => {
     })).toEqual([]);
   });
 
+  it("offers exactly the Jinfeng rank-9 Transformation milestone choices", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "jinfeng-gong",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["golden-gale-fan", "unbroken-current"]
+    })).toEqual([
+      "endless-horizon",
+      "walking-storm",
+      "gale-step-severance"
+    ]);
+
+    expect(getMasteryChoiceDefinition("walking-storm")).toMatchObject({
+      name: "Walking Storm",
+      kind: "transformation",
+      milestoneRank: 9,
+      exclusivityGroup: "jinfeng-gong:rank-9"
+    });
+  });
+
+  it("excludes sibling Transformations once one rank-9 Jinfeng Transformation is learned", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "jinfeng-gong",
+      rank: 9,
+      seed: "seed-123",
+      learnedIds: ["golden-gale-fan", "unbroken-current", "walking-storm"]
+    })).toEqual([]);
+  });
+
   it("resolves mastery choice definitions across refinements, transformations, Skill 2, and unknown ids", () => {
     expect(getMasteryChoiceDefinition("sword-intent-sharpening")).toMatchObject({
       id: "sword-intent-sharpening",

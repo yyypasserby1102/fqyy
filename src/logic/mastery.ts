@@ -101,6 +101,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     requiredGongfaIds: ["jinfeng-gong"],
     milestoneRank: 6,
     exclusivityGroup: "jinfeng-gong:rank-6"
+  },
+  {
+    id: "endless-horizon",
+    name: "Endless Horizon",
+    lore: "Cutting Front keeps growing as it travels, scaled by Momentum.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 9,
+    exclusivityGroup: "jinfeng-gong:rank-9"
+  },
+  {
+    id: "walking-storm",
+    name: "Walking Storm",
+    lore: "At high Momentum, periodic radial cutting waves erupt around the Cultivator.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 9,
+    exclusivityGroup: "jinfeng-gong:rank-9"
+  },
+  {
+    id: "gale-step-severance",
+    name: "Gale-Step Severance",
+    lore: "Each Evade cuts a Momentum-scaled corridor along its path.",
+    kind: "transformation",
+    requiredGongfaIds: ["jinfeng-gong"],
+    milestoneRank: 9,
+    exclusivityGroup: "jinfeng-gong:rank-9"
   }
 ];
 

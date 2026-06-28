@@ -52,6 +52,7 @@ export interface JinfengState {
   momentumAppliedRangeBonus: number;
   momentumAppliedSpreadBonus: number;
   momentumAppliedLifetimeBonus: number;
+  walkingStormCooldownRemaining: number;
 }
 
 export interface GengjinState {
@@ -181,6 +182,7 @@ export type GongfaRuntimeCommand =
       count: number;
       returnShots: number;
       aimMode: "nearest" | "last";
+      growthScale?: number;
     }
   | {
       kind: "aura-burst";
@@ -540,7 +542,8 @@ const jinfengDefaults: JinfengState = {
   momentumWaveBonus: 0.08,
   momentumAppliedRangeBonus: 0,
   momentumAppliedSpreadBonus: 0,
-  momentumAppliedLifetimeBonus: 0
+  momentumAppliedLifetimeBonus: 0,
+  walkingStormCooldownRemaining: 0
 };
 
 const gengjinDefaults: GengjinState = {
@@ -1226,6 +1229,24 @@ export function advanceGongfaRuntime(
       commands.push({ kind: "wave-volley", count: 2, returnShots: 0, aimMode: "last" });
     }
 
+    // Walking Storm: periodic radial cutting waves while Momentum stays high.
+    next.jinfeng.walkingStormCooldownRemaining = Math.max(
+      0,
+      next.jinfeng.walkingStormCooldownRemaining - Math.max(0, event.deltaMs)
+    );
+    if (
+      learnedMasteryIds.includes("walking-storm") &&
+      next.jinfeng.momentum >= 4 &&
+      next.jinfeng.walkingStormCooldownRemaining === 0
+    ) {
+      next.jinfeng.walkingStormCooldownRemaining = 1600;
+      commands.push({
+        kind: "aura-burst",
+        damage: next.combat.damage,
+        count: 8
+      });
+    }
+
     syncJinfengCombat(next);
   }
 
@@ -1325,6 +1346,29 @@ export function advanceGongfaRuntime(
   return { runtime: next, commands };
 }
 
+/**
+ * Gale-Step Severance: each Evade cuts a Momentum-scaled corridor. Returns the
+ * corridor's pierce and wave count, or undefined when the Transformation is not
+ * learned or there is no Momentum to spend on it.
+ */
+export function galeStepSeveranceCorridor(
+  runtime: GongfaRuntime,
+  learnedMasteryIds: string[]
+): { pierce: number; count: number } | undefined {
+  if (
+    !runtime.jinfeng ||
+    !learnedMasteryIds.includes("gale-step-severance") ||
+    runtime.jinfeng.momentum <= 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    pierce: runtime.combat.pierce + 2,
+    count: Math.max(2, Math.round(runtime.jinfeng.momentum))
+  };
+}
+
 export function planGongfaAttack(
   runtime: GongfaRuntime,
   elapsedMs: number,
@@ -1367,12 +1411,18 @@ export function planGongfaAttack(
     }
     case "wave": {
       const learnedMasteryIds = options.learnedMasteryIds ?? [];
+      // Endless Horizon: the Cutting Front grows as it travels, scaled by Momentum.
+      const growthScale =
+        runtime.jinfeng && learnedMasteryIds.includes("endless-horizon")
+          ? 1 + runtime.jinfeng.momentum * 0.18
+          : undefined;
       const commands: GongfaRuntimeCommand[] = [
         {
           kind: "wave-volley",
           count: Math.max(1, runtime.combat.count),
           returnShots: runtime.combat.returnShots,
-          aimMode: runtime.jinfeng ? "last" : "nearest"
+          aimMode: runtime.jinfeng ? "last" : "nearest",
+          ...(growthScale !== undefined ? { growthScale } : {})
         }
       ];
 

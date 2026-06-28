@@ -6,6 +6,7 @@ import {
   applyGongfaImprovement,
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
+  galeStepSeveranceCorridor,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
@@ -891,5 +892,73 @@ describe("Gongfa runtime", () => {
       returnShots: 0,
       aimMode: "last"
     });
+  });
+
+  it("Endless Horizon grows the Cutting Front by Momentum", () => {
+    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 0,
+      isMoving: true
+    }).runtime;
+
+    const [wave] = planGongfaAttack(full, 0, { learnedMasteryIds: ["endless-horizon"] });
+    expect(wave.kind).toBe("wave-volley");
+    expect(wave.kind === "wave-volley" && wave.growthScale).toBeGreaterThan(1);
+
+    // No growth without the Transformation.
+    const [plain] = planGongfaAttack(full, 0);
+    expect(plain.kind === "wave-volley" && plain.growthScale).toBeUndefined();
+  });
+
+  it("Walking Storm erupts a cooldown-gated radial burst at high Momentum", () => {
+    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 0,
+      isMoving: true
+    }).runtime;
+
+    const first = advanceGongfaRuntime(full, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 0,
+      isMoving: true,
+      learnedMasteryIds: ["walking-storm"]
+    });
+    expect(first.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+    expect(first.runtime.jinfeng!.walkingStormCooldownRemaining).toBeGreaterThan(0);
+
+    // Still on cooldown the very next tick.
+    const second = advanceGongfaRuntime(first.runtime, {
+      kind: "tick",
+      deltaMs: 16,
+      nearbyEnemyCount: 0,
+      isMoving: true,
+      learnedMasteryIds: ["walking-storm"]
+    });
+    expect(second.commands.some((command) => command.kind === "aura-burst")).toBe(false);
+  });
+
+  it("Gale-Step Severance cuts a Momentum-scaled corridor only when learned", () => {
+    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick",
+      deltaMs: 8000,
+      nearbyEnemyCount: 0,
+      isMoving: true
+    }).runtime;
+
+    const corridor = galeStepSeveranceCorridor(full, ["gale-step-severance"]);
+    expect(corridor).toBeDefined();
+    expect(corridor!.pierce).toBe(full.combat.pierce + 2);
+    expect(corridor!.count).toBeGreaterThanOrEqual(2);
+
+    expect(galeStepSeveranceCorridor(full, [])).toBeUndefined();
+    expect(
+      galeStepSeveranceCorridor(
+        createGongfaRuntime({ gongfaId: "jinfeng-gong" }),
+        ["gale-step-severance"]
+      )
+    ).toBeUndefined();
   });
 });

@@ -51,6 +51,7 @@ import {
   applyGongfaImprovement,
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
+  galeStepSeveranceCorridor,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
@@ -329,7 +330,9 @@ export class GameScene extends Phaser.Scene {
 
     const movement = this.inputController.getMovementVector();
     if (this.inputController.evadePressed) {
-      this.evade.tryStart({ x: movement.x, y: movement.y });
+      if (this.evade.tryStart({ x: movement.x, y: movement.y })) {
+        this.maybeCutGaleStepCorridor();
+      }
     }
     const evadeState = this.evade.state;
     this.player.move(
@@ -867,7 +870,8 @@ export class GameScene extends Phaser.Scene {
         this.combatState.pierce,
         this.combatState.projectileSpeed,
         this.combatState.projectileLifetimeMs + Math.floor(this.combatState.range * 0.8),
-        1.05
+        1.05,
+        command.growthScale ?? 1
       );
     }
 
@@ -906,7 +910,8 @@ export class GameScene extends Phaser.Scene {
     pierce: number,
     speed: number,
     lifetimeMs: number,
-    scale: number
+    scale: number,
+    growthScale = 1
   ): void {
     const projectile = new Projectile(this, x, y, this.combatState.projectileTexture);
     projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
@@ -914,15 +919,61 @@ export class GameScene extends Phaser.Scene {
     projectile.pierceRemaining = pierce;
     projectile.setTint(this.combatState.tint);
     projectile.setAngle(Phaser.Math.RadToDeg(angle));
-    projectile.setScale(scale, Math.max(0.72, scale - 0.15));
+    const baseScaleX = scale;
+    const baseScaleY = Math.max(0.72, scale - 0.15);
+    projectile.setScale(baseScaleX, baseScaleY);
     this.projectiles.add(projectile);
     const body = projectile.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+    // Endless Horizon: grow the Cutting Front as it travels.
+    if (growthScale > 1) {
+      this.tweens.add({
+        targets: projectile,
+        scaleX: baseScaleX * growthScale,
+        scaleY: baseScaleY * growthScale,
+        duration: lifetimeMs,
+        ease: "Linear"
+      });
+    }
     this.time.delayedCall(lifetimeMs, () => {
       if (projectile.active) {
         projectile.destroy();
       }
     });
+  }
+
+  private maybeCutGaleStepCorridor(): void {
+    if (!this.gongfaRuntime) {
+      return;
+    }
+
+    const corridor = galeStepSeveranceCorridor(
+      this.gongfaRuntime,
+      this.runState.masteryLearnedIds
+    );
+    if (!corridor) {
+      return;
+    }
+
+    const direction = this.evade.state.direction;
+    const angle = Math.atan2(direction.y, direction.x);
+    for (let i = 0; i < corridor.count; i += 1) {
+      this.time.delayedCall(i * 40, () => {
+        if (!this.player.active) {
+          return;
+        }
+        this.spawnWaveProjectile(
+          this.player.x,
+          this.player.y,
+          angle,
+          Math.max(1, Math.floor(this.combatState.damage * 0.7)),
+          corridor.pierce,
+          this.combatState.projectileSpeed + 60,
+          this.combatState.projectileLifetimeMs + 220,
+          0.95
+        );
+      });
+    }
   }
 
   private emitAuraBurst(damage: number, count: number): void {
