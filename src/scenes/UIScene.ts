@@ -71,11 +71,13 @@ export class UIScene extends Phaser.Scene {
       .setDepth(220);
 
     this.messageText = this.add
-      .text(18, 148, "", {
+      .text(this.scale.width * 0.5, this.scale.height - 28, "", {
         fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
         fontSize: "17px",
-        color: "#f5e6a8"
+        color: "#f5e6a8",
+        align: "center"
       })
+      .setOrigin(0.5, 1)
       .setScrollFactor(0)
       .setDepth(220);
 
@@ -181,5 +183,6 @@ export class UIScene extends Phaser.Scene {
 
   private onResize(gameSize: Phaser.Structs.Size): void {
     this.pauseText.setPosition(gameSize.width * 0.5, 34);
+    this.messageText.setPosition(gameSize.width * 0.5, gameSize.height - 28);
   }
 }

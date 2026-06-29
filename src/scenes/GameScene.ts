@@ -446,6 +446,9 @@ export class GameScene extends Phaser.Scene {
   private handleProjectileHit(projectile: Projectile, enemy: Enemy): void {
     const hitMode = getGongfaProjectileHitMode(projectile.sourceGongfaId);
     const diedFromHit = hitMode.appliesBaseDamage ? enemy.receiveDamage(projectile.damage) : false;
+    if (hitMode.appliesBaseDamage) {
+      this.spawnDamageNumber(enemy.x, enemy.y, projectile.damage);
+    }
     let diedFromCommands = false;
 
     if (this.gongfaRuntime) {
@@ -485,6 +488,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.spawnDeathPop(enemy.x, enemy.y, enemy.config.tint);
     this.spawnOrb(enemy.x, enemy.y, enemy.config.xpDrop);
     const dropX = enemy.x;
     const dropY = enemy.y;
@@ -662,6 +666,39 @@ export class GameScene extends Phaser.Scene {
   private spawnOrb(x: number, y: number, qiValue: number): void {
     const orb = new QiOrb(this, x, y, qiValue);
     this.orbs.add(orb);
+  }
+
+  private spawnDamageNumber(x: number, y: number, amount: number): void {
+    const label = this.add
+      .text(x + randomInt(-6, 6), y - 8, String(Math.max(1, Math.round(amount))), {
+        fontFamily: "Trebuchet MS, sans-serif",
+        fontSize: "15px",
+        color: "#ffe6a0",
+        stroke: "#2a1c08",
+        strokeThickness: 3
+      })
+      .setOrigin(0.5)
+      .setDepth(30);
+    this.tweens.add({
+      targets: label,
+      y: y - 34,
+      alpha: 0,
+      duration: 520,
+      ease: "Cubic.out",
+      onComplete: () => label.destroy()
+    });
+  }
+
+  private spawnDeathPop(x: number, y: number, tint: number): void {
+    const ring = this.add.circle(x, y, 9, tint, 0.5).setDepth(6);
+    this.tweens.add({
+      targets: ring,
+      scale: 2.6,
+      alpha: 0,
+      duration: 240,
+      ease: "Quad.out",
+      onComplete: () => ring.destroy()
+    });
   }
 
   private spawnHealingPill(x: number, y: number, healAmount = 30): void {
@@ -2310,6 +2347,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePlayerDeath(message: string): void {
+    this.cameras.main.shake(280, 0.013);
     this.runState.gameOver = true;
     this.setPausedState(true);
     this.lastMessage = message;
@@ -2623,6 +2661,8 @@ export class GameScene extends Phaser.Scene {
     if (this.evade.state.invulnerable) {
       return;
     }
+
+    this.cameras.main.shake(110, 0.005);
 
     if (this.gongfaRuntime?.gengjin || this.gongfaRuntime?.yujian) {
       const result = advanceGongfaRuntime(this.gongfaRuntime, {
