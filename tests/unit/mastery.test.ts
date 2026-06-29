@@ -5,6 +5,7 @@ import {
   hasMasteryTransformation,
   getRank10Skill2Id
 } from "../../src/logic/mastery";
+import { surgeGongfaSpecs } from "../../src/data/surgeGongfa";
 
 describe("mastery progression", () => {
   it("returns deterministic capped choices for a rank and removes learned authored options", () => {
@@ -507,6 +508,29 @@ describe("mastery progression", () => {
       seed: "seed-123",
       learnedIds: ["feather-storm", "banked-embers", "searing-domain"]
     })).toEqual([]);
+  });
+
+  it("offers the Surge Transformation milestones for every lighter gongfa", () => {
+    for (const spec of surgeGongfaSpecs) {
+      expect(
+        getDeterministicMasteryChoiceIds({ gongfaId: spec.gongfaId, rank: 3, seed: "s", learnedIds: [] })
+      ).toEqual([spec.focus.id, spec.spread.id, spec.quicken.id]);
+      expect(
+        getDeterministicMasteryChoiceIds({ gongfaId: spec.gongfaId, rank: 6, seed: "s", learnedIds: [] })
+      ).toEqual([spec.hold.id, spec.cascade.id, spec.burst.id]);
+      expect(
+        getDeterministicMasteryChoiceIds({ gongfaId: spec.gongfaId, rank: 9, seed: "s", learnedIds: [] })
+      ).toEqual([spec.crown.id, spec.domain.id, spec.updraft.id]);
+      // One pick per milestone locks its siblings.
+      expect(
+        getDeterministicMasteryChoiceIds({
+          gongfaId: spec.gongfaId,
+          rank: 3,
+          seed: "s",
+          learnedIds: [spec.spread.id]
+        })
+      ).toEqual([]);
+    }
   });
 
   it("adds the rank-10 Skill 2 family into the post-rank-10 pool", () => {

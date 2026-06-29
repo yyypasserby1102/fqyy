@@ -1,5 +1,6 @@
 import { upgradeConfigs } from "../data/upgrades";
 import type { GongfaId } from "../data/gongfa";
+import { surgeGongfaSpecs, type SurgeTransformation } from "../data/surgeGongfa";
 
 export interface MasteryChoiceContext {
   gongfaId: GongfaId;
@@ -18,6 +19,25 @@ export interface MasteryChoiceDefinition {
   requiredGongfaIds?: GongfaId[];
   milestoneRank?: number;
   exclusivityGroup?: string;
+}
+
+function buildSurgeTransformations(): MasteryChoiceDefinition[] {
+  const result: MasteryChoiceDefinition[] = [];
+  for (const spec of surgeGongfaSpecs) {
+    const entry = (item: SurgeTransformation, rank: number): MasteryChoiceDefinition => ({
+      id: item.id,
+      name: item.name,
+      lore: item.lore,
+      kind: "transformation",
+      requiredGongfaIds: [spec.gongfaId],
+      milestoneRank: rank,
+      exclusivityGroup: `${spec.gongfaId}:rank-${rank}`
+    });
+    result.push(entry(spec.focus, 3), entry(spec.spread, 3), entry(spec.quicken, 3));
+    result.push(entry(spec.hold, 6), entry(spec.cascade, 6), entry(spec.burst, 6));
+    result.push(entry(spec.crown, 9), entry(spec.domain, 9), entry(spec.updraft, 9));
+  }
+  return result;
 }
 
 export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
@@ -102,6 +122,7 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     milestoneRank: 9,
     exclusivityGroup: "blazing-feather-art:rank-9"
   },
+  ...buildSurgeTransformations(),
   {
     id: "execution-seal",
     name: "Execution Seal",

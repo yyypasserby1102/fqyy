@@ -4,6 +4,18 @@ import {
   type GongfaPattern,
   type GongfaStageState
 } from "../data/gongfa";
+import {
+  surgeGongfaIds,
+  SURGE_BURST_IDS,
+  SURGE_CASCADE_IDS,
+  SURGE_CROWN_IDS,
+  SURGE_DOMAIN_IDS,
+  SURGE_FOCUS_IDS,
+  SURGE_HOLD_IDS,
+  SURGE_QUICKEN_IDS,
+  SURGE_SPREAD_IDS,
+  SURGE_UPDRAFT_IDS
+} from "../data/surgeGongfa";
 import { upgradeConfigs, type UpgradeEffect } from "../data/upgrades";
 
 export interface GongfaCombatState extends GongfaStageState {
@@ -21,6 +33,14 @@ export interface GongfaRuntime {
   burningRing?: BurningRingState;
   crimsonFurnace?: CrimsonFurnaceState;
   blazingFeather?: BlazingFeatherState;
+  surge?: SurgeState;
+}
+
+/** Shared passive for the lighter gongfa; see data/surgeGongfa.ts. */
+export interface SurgeState {
+  stacks: number;
+  durationRemaining: number;
+  appliedDamageBonus: number;
 }
 
 export interface BlazingFeatherState {
@@ -125,6 +145,7 @@ export type GongfaRuntimeEvent =
   | { kind: "projectile-hit"; damage: number; learnedMasteryIds?: string[] }
   | { kind: "jinfeng-wave-hit"; learnedMasteryIds: string[] }
   | { kind: "blazing-feather-hit"; learnedMasteryIds: string[] }
+  | { kind: "surge-hit"; learnedMasteryIds: string[] }
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds: string[] }
   | { kind: "evade"; learnedMasteryIds: string[] }
   | {
@@ -514,6 +535,7 @@ interface CreateGongfaRuntimeInput {
   burningRing?: Partial<BurningRingState>;
   crimsonFurnace?: Partial<CrimsonFurnaceState>;
   blazingFeather?: Partial<BlazingFeatherState>;
+  surge?: Partial<SurgeState>;
 }
 
 export interface GongfaRuntimeCheckpointFields {
@@ -647,6 +669,44 @@ function syncBlazingFeatherCombat(runtime: GongfaRuntime): void {
   state.emberAppliedDamageBonus = desiredDamageBonus;
 }
 
+const SURGE_DURATION_MS = 2600;
+const MAX_SURGE_STACKS = 6;
+const surgeGongfaIdSet = surgeGongfaIds();
+
+const surgeDefaults: SurgeState = {
+  stacks: 0,
+  durationRemaining: 0,
+  appliedDamageBonus: 0
+};
+
+const learned = (ids: string[], group: Set<string>): boolean => ids.some((id) => group.has(id));
+
+function syncSurgeCombat(runtime: GongfaRuntime): void {
+  const state = runtime.surge;
+  if (!state) {
+    return;
+  }
+  const desiredDamageBonus = state.stacks * 2;
+  runtime.combat.damage += desiredDamageBonus - state.appliedDamageBonus;
+  state.appliedDamageBonus = desiredDamageBonus;
+}
+
+/** Extra projectiles a Surge gongfa adds to its volley from current stacks. */
+function surgeBonusCount(runtime: GongfaRuntime, learnedMasteryIds: string[]): number {
+  const state = runtime.surge;
+  if (!state) {
+    return 0;
+  }
+  let bonus = Math.floor(state.stacks / 2);
+  if (state.stacks >= MAX_SURGE_STACKS && learned(learnedMasteryIds, SURGE_BURST_IDS)) {
+    bonus += 3;
+  }
+  if (learned(learnedMasteryIds, SURGE_CROWN_IDS)) {
+    bonus += state.stacks;
+  }
+  return bonus;
+}
+
 function syncYujianCombat(runtime: GongfaRuntime): void {
   const state = runtime.yujian;
   if (!state) {
@@ -684,7 +744,8 @@ function copyRuntime(runtime: GongfaRuntime): GongfaRuntime {
     gengjin: runtime.gengjin ? { ...runtime.gengjin } : undefined,
     burningRing: runtime.burningRing ? { ...runtime.burningRing } : undefined,
     crimsonFurnace: runtime.crimsonFurnace ? { ...runtime.crimsonFurnace } : undefined,
-    blazingFeather: runtime.blazingFeather ? { ...runtime.blazingFeather } : undefined
+    blazingFeather: runtime.blazingFeather ? { ...runtime.blazingFeather } : undefined,
+    surge: runtime.surge ? { ...runtime.surge } : undefined
   };
 }
 
@@ -839,7 +900,10 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
     blazingFeather:
       input.gongfaId === "blazing-feather-art"
         ? { ...blazingFeatherDefaults, ...input.blazingFeather }
-        : undefined
+        : undefined,
+    surge: surgeGongfaIdSet.has(input.gongfaId)
+      ? { ...surgeDefaults, ...input.surge }
+      : undefined
   };
 
   syncJinfengCombat(runtime);
@@ -847,6 +911,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
   syncBurningRingCombat(runtime);
   syncCrimsonFurnaceCombat(runtime);
   syncBlazingFeatherCombat(runtime);
+  syncSurgeCombat(runtime);
   return runtime;
 }
 
@@ -1049,6 +1114,15 @@ export function advanceGongfaRuntimeForProjectileHit(
     commands.push(...result.commands);
   }
 
+  if (facts.sourceGongfaId && surgeGongfaIdSet.has(facts.sourceGongfaId) && next.surge) {
+    const result = advanceGongfaRuntime(next, {
+      kind: "surge-hit",
+      learnedMasteryIds: facts.learnedMasteryIds
+    });
+    next = result.runtime;
+    commands.push(...result.commands);
+  }
+
   return { runtime: next, commands };
 }
 
@@ -1075,6 +1149,7 @@ export function advanceGongfaRuntime(
     !runtime.burningRing &&
     !runtime.crimsonFurnace &&
     !runtime.blazingFeather &&
+    !runtime.surge &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -1264,6 +1339,26 @@ export function advanceGongfaRuntime(
     return { runtime: next, commands };
   }
 
+  if (event.kind === "surge-hit") {
+    const state = next.surge;
+    if (!state) {
+      return { runtime: next, commands };
+    }
+    const gain = learned(event.learnedMasteryIds, SURGE_CASCADE_IDS) ? 2 : 1;
+    state.stacks = Math.min(MAX_SURGE_STACKS, state.stacks + gain);
+    state.durationRemaining = SURGE_DURATION_MS;
+    syncSurgeCombat(next);
+    // Domain: hits leave a stack-scaled field.
+    if (learned(event.learnedMasteryIds, SURGE_DOMAIN_IDS) && state.stacks > 0) {
+      commands.push({
+        kind: "aura-burst",
+        damage: Math.max(1, Math.floor(next.combat.damage * 0.35)),
+        count: 2 + Math.floor(state.stacks / 2)
+      });
+    }
+    return { runtime: next, commands };
+  }
+
   if (event.kind === "gengjin-defensive-hit") {
     // Ten-Thousand Armor Resonance: defensive-tagged Skill hits build Guard.
     if (next.gengjin && event.learnedMasteryIds.includes("ten-thousand-armor-resonance")) {
@@ -1301,6 +1396,17 @@ export function advanceGongfaRuntime(
         kind: "homing-volley",
         count: Math.max(1, next.combat.count + next.blazingFeather.emberStacks)
       });
+    }
+    // Surge "updraft": each Evade looses a stack-scaled volley of its pattern.
+    if (next.surge && learned(event.learnedMasteryIds, SURGE_UPDRAFT_IDS)) {
+      const count = Math.max(1, next.combat.count + next.surge.stacks);
+      if (next.combat.pattern === "wave") {
+        commands.push({ kind: "wave-volley", count, returnShots: 0, aimMode: "nearest" });
+      } else if (next.combat.pattern === "aura") {
+        commands.push({ kind: "aura-burst", damage: next.combat.damage, count });
+      } else {
+        commands.push({ kind: "homing-volley", count });
+      }
     }
     // Phoenix Passage: leave a Heat-scaled ring copy at the Evade's origin.
     if (next.burningRing && event.learnedMasteryIds.includes("phoenix-passage")) {
@@ -1439,6 +1545,23 @@ export function advanceGongfaRuntime(
         next.blazingFeather.emberDurationRemaining = EMBER_DURATION_MS;
       }
       syncBlazingFeatherCombat(next);
+    }
+  }
+
+  if (next.surge && next.surge.stacks > 0) {
+    const surgeLearned = event.learnedMasteryIds ?? [];
+    next.surge.durationRemaining = Math.max(
+      0,
+      next.surge.durationRemaining - Math.max(0, event.deltaMs)
+    );
+    if (next.surge.durationRemaining === 0) {
+      // A "hold" Transformation banks the resource at half once well stoked.
+      const floor = learned(surgeLearned, SURGE_HOLD_IDS) && next.surge.stacks >= 3 ? 3 : 0;
+      next.surge.stacks = Math.max(floor, next.surge.stacks - 1);
+      if (next.surge.stacks > 0) {
+        next.surge.durationRemaining = SURGE_DURATION_MS;
+      }
+      syncSurgeCombat(next);
     }
   }
 
@@ -1776,6 +1899,7 @@ export function planGongfaAttack(
           count += runtime.blazingFeather.emberStacks;
         }
       }
+      count += surgeBonusCount(runtime, learnedMasteryIds);
       const commands: GongfaRuntimeCommand[] = [
         {
           kind: "homing-volley",
@@ -1807,7 +1931,7 @@ export function planGongfaAttack(
       const commands: GongfaRuntimeCommand[] = [
         {
           kind: "wave-volley",
-          count: Math.max(1, runtime.combat.count),
+          count: Math.max(1, runtime.combat.count + surgeBonusCount(runtime, learnedMasteryIds)),
           returnShots: runtime.combat.returnShots,
           aimMode: runtime.jinfeng ? "last" : "nearest",
           ...(growthScale !== undefined ? { growthScale } : {})
@@ -1842,6 +1966,7 @@ export function planGongfaAttack(
         if (runtime.gengjin && learnedMasteryIds.includes("gengjin-fortress")) {
           count += Math.floor(runtime.gengjin.guardValue / 8);
         }
+        count += surgeBonusCount(runtime, learnedMasteryIds);
         return [
           {
             kind: "aura-burst",
@@ -2002,6 +2127,28 @@ function applyStructuralTransformation(
       const next = copyRuntime(runtime);
       next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.78));
       next.combat.projectileSpeed += 80;
+      return next;
+    }
+  }
+
+  if (runtime.surge) {
+    if (SURGE_FOCUS_IDS.has(transformationId)) {
+      const next = copyRuntime(runtime);
+      next.combat.pierce += 2;
+      next.combat.count = Math.max(1, next.combat.count - 1);
+      next.combat.damage += 4;
+      return next;
+    }
+    if (SURGE_SPREAD_IDS.has(transformationId)) {
+      const next = copyRuntime(runtime);
+      next.combat.count += 2;
+      next.combat.spreadDeg += 18;
+      return next;
+    }
+    if (SURGE_QUICKEN_IDS.has(transformationId)) {
+      const next = copyRuntime(runtime);
+      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.8));
+      next.combat.projectileSpeed += 60;
       return next;
     }
   }
