@@ -97,6 +97,7 @@ export interface GameTestHarness {
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnSpiritTreasure(treasureId: string): void;
+  forceClaimLingcao(): void;
   forceSpawnHealingPill(healAmount?: number): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
 }

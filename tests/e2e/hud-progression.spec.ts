@@ -48,26 +48,9 @@ async function collectQiOrb(page: Page, qiValue: number): Promise<void> {
 }
 
 async function claimOpeningLingcao(page: Page): Promise<void> {
-  for (let i = 0; i < 80; i += 1) {
-    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    if (snapshot.progression.lingcaoCollected) {
-      return;
-    }
-
-    const [lingcao] = snapshot.counts.lingcaoPositions;
-    if (!lingcao) {
-      await page.waitForTimeout(25);
-      continue;
-    }
-
-    const dx = lingcao.x - snapshot.player.x;
-    const dy = lingcao.y - snapshot.player.y;
-    const key = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "d" : "a") : dy >= 0 ? "s" : "w";
-    await page.keyboard.down(key);
-    await page.waitForTimeout(45);
-    await page.keyboard.up(key);
-  }
-
+  // Claim directly rather than keyboard-walking to the Lingcao (the walk's
+  // distance-per-frame is render-cadence dependent and flaked under load).
+  await page.evaluate(() => window.__gameTest!.forceClaimLingcao());
   await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.lingcaoCollected);
 }
 

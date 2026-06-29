@@ -2669,6 +2669,16 @@ export class GameScene extends Phaser.Scene {
     this.publishHud(this.lastMessage);
   }
 
+  forceClaimLingcao(): void {
+    const lingcao = (this.lingcaoGroup?.getChildren() as Lingcao[] | undefined)?.find(
+      (item) => item.active
+    );
+    if (lingcao) {
+      this.collectLingcao(lingcao);
+    }
+    this.publishHud(this.lastMessage);
+  }
+
   forceSpawnHealingPill(healAmount = 30, offsetX = 0, offsetY = 0): void {
     this.spawnHealingPill(this.player.x + offsetX, this.player.y + offsetY, healAmount);
     this.publishHud(this.lastMessage);

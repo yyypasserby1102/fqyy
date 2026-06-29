@@ -26,6 +26,7 @@ function attachGameTestHarness(game: Phaser.Game): void {
     forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
     forceSpawnSpiritTreasure: (treasureId: string) =>
       getGameScene().forceSpawnSpiritTreasure(treasureId as SpiritTreasureId),
+    forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
     forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
     forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs)
   };
