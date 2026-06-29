@@ -902,6 +902,17 @@ test("Spirit Treasures fill three slots, then offer replace-or-leave", async ({ 
     "windstep-talisman",
     "lodestone-charm"
   ]);
+
+  // Active treasures survive a save/resume.
+  await page.reload();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.waitForFunction(() => Boolean(window.__gameTest));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.spiritTreasureIds).toEqual([
+    "ironhide-seal",
+    "windstep-talisman",
+    "lodestone-charm"
+  ]);
 });
 
 test("Stage Breakthroughs preserve Yujian Jue instead of upgrading it", async ({ page }) => {

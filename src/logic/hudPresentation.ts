@@ -29,6 +29,7 @@ export interface HudPresentationState {
   evadeCooldownRemainingMs: number;
   kills: number;
   lingcaoCollected: boolean;
+  spiritTreasures: string;
 }
 
 export function buildHudLines(state: HudPresentationState): string[] {
@@ -60,6 +61,7 @@ export function buildHudLines(state: HudPresentationState): string[] {
       : state.evadeCooldownRemainingMs > 0
         ? `Evade: ${(state.evadeCooldownRemainingMs / 1_000).toFixed(1)}s`
         : "Evade: Ready",
-    `Lingcao: ${state.lingcaoCollected ? "claimed" : "unclaimed"}`
+    `Lingcao: ${state.lingcaoCollected ? "claimed" : "unclaimed"}`,
+    `Spirit Treasures: ${state.spiritTreasures || "none"}`
   ];
 }

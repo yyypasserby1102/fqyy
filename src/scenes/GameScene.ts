@@ -262,6 +262,8 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.maxHealth = checkpoint?.playerMaxHealth ?? this.player.stats.maxHealth;
     this.player.stats.moveSpeed = checkpoint?.playerMoveSpeed ?? this.player.stats.moveSpeed;
     this.player.stats.magnetRadius = checkpoint?.playerMagnetRadius ?? this.player.stats.magnetRadius;
+    this.player.stats.damageReduction =
+      checkpoint?.playerDamageReduction ?? this.player.stats.damageReduction;
     splitGongfaImprovementReplayIds([
       ...this.runState.upgradeSelectionIds,
       ...this.runState.masteryLearnedIds
@@ -757,6 +759,12 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.damageReduction += totals.mitigation - applied.mitigation;
 
     this.appliedSpiritTreasureEffects = { ...totals };
+  }
+
+  private spiritTreasureHudText(): string {
+    return this.runState.spiritTreasureIds
+      .map((id) => getSpiritTreasureConfig(id).name)
+      .join(", ");
   }
 
   private updateFinalBoss(delta: number, playerPosition: Phaser.Math.Vector2): void {
@@ -2188,6 +2196,12 @@ export class GameScene extends Phaser.Scene {
     this.runState.masteryChoiceActive = checkpoint.masteryChoiceActive;
     this.runState.masteryPendingRanks = [...checkpoint.masteryPendingRanks];
     this.runState.learnedGongfaIds = [...checkpoint.learnedGongfaIds];
+    this.runState.spiritTreasureIds = [...(checkpoint.spiritTreasureIds ?? [])];
+    // The restored player stats already include treasure bonuses, so seed the
+    // applied-effects baseline instead of re-applying (which would double-count).
+    this.appliedSpiritTreasureEffects = aggregateSpiritTreasureEffects(
+      this.runState.spiritTreasureIds
+    );
     this.runState.furnaceCascadeCooldownRemaining = checkpoint.furnaceCascadeCooldownRemaining;
     this.runState.hiddenLinggen = linggenConfigs[checkpoint.hiddenLinggenId];
     this.runState.revealedLinggen = checkpoint.revealedLinggenId
@@ -2221,6 +2235,7 @@ export class GameScene extends Phaser.Scene {
       playerMaxHealth: this.player?.stats.maxHealth,
       playerMoveSpeed: this.player?.stats.moveSpeed,
       playerMagnetRadius: this.player?.stats.magnetRadius,
+      playerDamageReduction: this.player?.stats.damageReduction,
       ...projectRunJourneyCheckpointFields(this.runState),
       masteryPoints: this.runState.masteryPoints,
       masteryRank: this.runState.masteryRank,
@@ -2232,6 +2247,7 @@ export class GameScene extends Phaser.Scene {
       masteryChoiceActive: this.runState.masteryChoiceActive,
       masteryPendingRanks: this.runState.masteryPendingRanks,
       learnedGongfaIds: this.runState.learnedGongfaIds,
+      spiritTreasureIds: this.runState.spiritTreasureIds,
       ...gongfaCheckpoint,
       hiddenLinggenId: this.runState.hiddenLinggen.id,
       revealedLinggenId: this.runState.revealedLinggen?.id,
@@ -2347,6 +2363,7 @@ export class GameScene extends Phaser.Scene {
       enemyCount: this.enemies?.countActive(true) ?? 0,
       orbCount: this.orbs?.countActive(true) ?? 0,
       lingcaoCollected: this.runState.lingcaoCollected,
+      spiritTreasures: this.spiritTreasureHudText(),
       message: message ?? this.lastMessage
     });
   }
@@ -2400,7 +2417,8 @@ export class GameScene extends Phaser.Scene {
           evadeActive: this.evade.state.active,
           evadeCooldownRemainingMs: this.evade.state.cooldownRemainingMs,
           kills: this.runState.kills,
-          lingcaoCollected: this.runState.lingcaoCollected
+          lingcaoCollected: this.runState.lingcaoCollected,
+          spiritTreasures: this.spiritTreasureHudText()
         })
       },
       player: {

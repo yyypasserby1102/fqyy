@@ -99,7 +99,8 @@ function createValidCheckpoint() {
     kills: 0,
     elapsedMs: 0,
     finalBossActive: false,
-    finalBossPhaseIndex: 0
+    finalBossPhaseIndex: 0,
+    spiritTreasureIds: []
   };
 }
 

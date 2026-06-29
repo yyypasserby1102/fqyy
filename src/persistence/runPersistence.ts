@@ -1,6 +1,7 @@
 import type { GongfaId } from "../data/gongfa";
 import type { LinggenId } from "../data/linggen";
 import type { RealmPhaseId, StageId } from "../data/stages";
+import type { SpiritTreasureId } from "../data/spiritTreasures";
 import {
   decodeActiveRunCheckpoint,
   decodeActiveRunSave,
@@ -22,6 +23,7 @@ export interface ActiveRunCheckpoint {
   playerMaxHealth?: number;
   playerMoveSpeed?: number;
   playerMagnetRadius?: number;
+  playerDamageReduction?: number;
   /** Legacy v1 fields. They are ignored by the Run journey. */
   level?: number;
   xp?: number;
@@ -87,6 +89,7 @@ export interface ActiveRunCheckpoint {
   lingcaoX: number;
   lingcaoY: number;
   healingPills: HealingPillCheckpoint[];
+  spiritTreasureIds?: SpiritTreasureId[];
   mainGongfaId?: GongfaId;
   kills: number;
   elapsedMs: number;

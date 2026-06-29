@@ -41,6 +41,7 @@ interface HudState {
   enemyCount: number;
   orbCount: number;
   lingcaoCollected: boolean;
+  spiritTreasures: string;
   message?: string;
 }
 
@@ -142,7 +143,8 @@ export class UIScene extends Phaser.Scene {
         evadeActive: hud.evadeActive,
         evadeCooldownRemainingMs: hud.evadeCooldownRemainingMs,
         kills: hud.kills,
-        lingcaoCollected: hud.lingcaoCollected
+        lingcaoCollected: hud.lingcaoCollected,
+        spiritTreasures: hud.spiritTreasures
       })
     );
 

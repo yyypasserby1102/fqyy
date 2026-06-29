@@ -1,6 +1,7 @@
 import { gongfaConfigs, type GongfaId } from "../data/gongfa";
 import { linggenConfigs, type LinggenId } from "../data/linggen";
 import { realmPhaseOrder, stageOrder } from "../data/stages";
+import { spiritTreasureConfigs, type SpiritTreasureId } from "../data/spiritTreasures";
 import type {
   ActiveRunCheckpoint,
   ActiveRunSave,
@@ -29,6 +30,11 @@ function isGongfaId(value: unknown): value is GongfaId {
 
 function isGongfaIdArray(value: unknown): value is GongfaId[] {
   return Array.isArray(value) && value.every(isGongfaId);
+}
+
+function isSpiritTreasureIdArray(value: unknown): value is SpiritTreasureId[] {
+  const ids = Object.keys(spiritTreasureConfigs) as SpiritTreasureId[];
+  return Array.isArray(value) && value.every((item) => isOneOf(item, ids));
 }
 
 function isLinggenId(value: unknown): value is LinggenId {
@@ -157,7 +163,8 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     !isOptionalNonNegativeNumber(value.playerHealth) ||
     !isOptionalPositiveNumber(value.playerMaxHealth) ||
     !isOptionalPositiveNumber(value.playerMoveSpeed) ||
-    !isOptionalNonNegativeNumber(value.playerMagnetRadius)
+    !isOptionalNonNegativeNumber(value.playerMagnetRadius) ||
+    !isOptionalNonNegativeNumber(value.playerDamageReduction)
   ) {
     return false;
   }
@@ -206,6 +213,10 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     return false;
   }
 
+  if (value.spiritTreasureIds !== undefined && !isSpiritTreasureIdArray(value.spiritTreasureIds)) {
+    return false;
+  }
+
   return true;
 }
 
@@ -215,7 +226,8 @@ function normalizeActiveRunCheckpoint(checkpoint: ActiveRunCheckpoint): ActiveRu
     upgradeSelectionIds: checkpoint.upgradeSelectionIds ?? [],
     guardMitigationBonus: checkpoint.guardMitigationBonus ?? 0,
     finalBossActive: checkpoint.finalBossActive ?? false,
-    finalBossPhaseIndex: checkpoint.finalBossPhaseIndex ?? 0
+    finalBossPhaseIndex: checkpoint.finalBossPhaseIndex ?? 0,
+    spiritTreasureIds: checkpoint.spiritTreasureIds ?? []
   };
 }
 

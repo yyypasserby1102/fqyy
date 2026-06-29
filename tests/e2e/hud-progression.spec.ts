@@ -113,7 +113,8 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Method: 1 | Damage: 9 | Cooldown: 1150ms",
     "Movement: 220 | Kills: 0",
     "Evade: Ready",
-    "Lingcao: unclaimed"
+    "Lingcao: unclaimed",
+    "Spirit Treasures: none"
   ]);
   await claimOpeningLingcao(page);
 
