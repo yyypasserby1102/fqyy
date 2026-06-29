@@ -5,6 +5,8 @@ import type { StageId } from "../data/stages";
 import { Enemy } from "../entities/Enemy";
 import { pickRandom, randomFloat, randomInt } from "../utils/random";
 
+const MAX_CONCURRENT_ENEMIES = 18;
+
 export class SpawnerSystem {
   private readonly scene: Phaser.Scene;
   private readonly group: Phaser.Physics.Arcade.Group;
@@ -68,6 +70,12 @@ export class SpawnerSystem {
     }
 
     this.accumulator = 0;
+
+    // Soft concurrency cap: stop adding pressure once the arena is full, so a
+    // low-DPS early build is not snowballed to death by unbounded accumulation.
+    if (this.group.countActive(true) >= MAX_CONCURRENT_ENEMIES) {
+      return;
+    }
 
     for (let i = 0; i < this.currentAmount; i += 1) {
       const enemyId = pickRandom(this.currentPool);

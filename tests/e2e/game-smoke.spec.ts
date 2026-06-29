@@ -262,7 +262,7 @@ test("evade prevents damage only during its invulnerability window", async ({ pa
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   const duringEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
-  expect(duringEvade.player.health).toBe(100);
+  expect(duringEvade.player.health).toBe(120);
 
   await page.waitForFunction(() => {
     const evade = window.__gameTest!.getSnapshot().player.evade;
@@ -270,7 +270,7 @@ test("evade prevents damage only during its invulnerability window", async ({ pa
   });
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   const afterEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(afterEvade.player.health).toBe(80);
+  expect(afterEvade.player.health).toBe(100);
 });
 
 test("evade cannot start while the Run is manually paused", async ({ page }) => {

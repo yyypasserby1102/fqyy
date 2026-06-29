@@ -11,8 +11,8 @@ export interface PlayerStats {
 export class Player extends Phaser.Physics.Arcade.Sprite {
   stats: PlayerStats = {
     moveSpeed: 220,
-    maxHealth: 100,
-    health: 100,
+    maxHealth: 120,
+    health: 120,
     magnetRadius: 90,
     damageReduction: 0
   };

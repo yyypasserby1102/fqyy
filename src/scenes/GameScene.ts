@@ -198,6 +198,7 @@ export class GameScene extends Phaser.Scene {
   private gongfaRuntime?: GongfaRuntime;
   private combatState: CombatState = { ...baselineState };
   private combatCooldownRemaining = 0;
+  private msSinceDamage = 0;
   private readonly evade = new Evade();
   private choiceActive = false;
   private currentChoiceTitle?: string;
@@ -362,6 +363,13 @@ export class GameScene extends Phaser.Scene {
     this.runState.elapsedMs += delta;
     this.combatCooldownRemaining -= delta;
     this.evade.advance(delta);
+
+    // Gentle out-of-combat regen: staying unhit for a few seconds recovers
+    // chip damage, so good dodging is rewarded and a fresh build can stabilise.
+    this.msSinceDamage += delta;
+    if (this.msSinceDamage > 3000 && this.player.stats.health < this.player.stats.maxHealth) {
+      this.player.heal(delta * 0.004);
+    }
 
     const movement = this.inputController.getMovementVector();
     if (this.inputController.evadePressed) {
@@ -2675,6 +2683,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    this.msSinceDamage = 0;
     this.cameras.main.shake(110, 0.005);
 
     if (this.gongfaRuntime?.gengjin || this.gongfaRuntime?.yujian) {

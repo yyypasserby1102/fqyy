@@ -101,7 +101,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
   expectHudLines(opening, [
     "Lianqi · Chuqi",
     "Qi: 0 / 100",
-    "Vitality: 100 / 100",
+    "Vitality: 120 / 120",
     "Gongfa: Crude Qi Thread",
     "Evade: Ready",
     "Lingcao: unclaimed — claim it to awaken your Linggen"
@@ -123,7 +123,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
   expectHudLines(afterChoice, [
     "Lianqi · Chuqi",
     "Qi: 0 / 100",
-    "Vitality: 100 / 100",
+    "Vitality: 120 / 120",
     "Gongfa: Yujian Jue",
     "Mastery: Rank 0 | Progress 0 / 100 | Skill 2: Locked | Casts: 0",
     "Linggen: Metal Linggen · Strong",
