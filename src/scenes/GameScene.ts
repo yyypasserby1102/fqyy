@@ -620,6 +620,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private collectOrb(orb: QiOrb): void {
+    this.spawnPickupPop(orb.x, orb.y);
     this.grantQi(orb.qiValue);
     orb.destroy();
     this.publishHud();
@@ -707,6 +708,54 @@ export class GameScene extends Phaser.Scene {
       ease: "Quad.out",
       onComplete: () => ring.destroy()
     });
+  }
+
+  private spawnPickupPop(x: number, y: number): void {
+    const pop = this.add.circle(x, y, 5, 0x9be7ff, 0.85).setDepth(7);
+    this.tweens.add({
+      targets: pop,
+      scale: 2.2,
+      alpha: 0,
+      duration: 200,
+      ease: "Quad.out",
+      onComplete: () => pop.destroy()
+    });
+  }
+
+  private spawnCastPulse(): void {
+    if (!this.player?.active) {
+      return;
+    }
+    const pulse = this.add
+      .circle(this.player.x, this.player.y, 14, undefined, 0)
+      .setStrokeStyle(2, this.combatState.tint, 0.45)
+      .setDepth(9);
+    this.tweens.add({
+      targets: pulse,
+      scale: 1.8,
+      alpha: 0,
+      duration: 170,
+      ease: "Quad.out",
+      onComplete: () => pulse.destroy()
+    });
+  }
+
+  private playFanfare(color: number): void {
+    this.cameras.main.flash(220, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, false);
+    if (this.player?.active) {
+      const ring = this.add
+        .circle(this.player.x, this.player.y, 16, undefined, 0)
+        .setStrokeStyle(3, color, 0.9)
+        .setDepth(20);
+      this.tweens.add({
+        targets: ring,
+        scale: 5,
+        alpha: 0,
+        duration: 440,
+        ease: "Cubic.out",
+        onComplete: () => ring.destroy()
+      });
+    }
   }
 
   private spawnHealingPill(x: number, y: number, healAmount = 30): void {
@@ -934,6 +983,7 @@ export class GameScene extends Phaser.Scene {
 
   private fireCurrentMethod(): void {
     if (this.gongfaRuntime) {
+      this.spawnCastPulse();
       this.executeGongfaRuntimeCommands(
         planGongfaAttack(this.gongfaRuntime, this.runState.elapsedMs, {
           learnedMasteryIds: this.runState.masteryLearnedIds
@@ -2070,6 +2120,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.resetGongfaPassiveState();
     this.applyGongfaStage();
+    this.playFanfare(0xffe08a);
     this.lastMessage = `${gongfaConfigs[gongfaId].name} circulates through your meridians.`;
     this.persistRunCheckpoint();
   }
@@ -2726,6 +2777,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.runState.masteryRank = targetRank;
+    this.playFanfare(0x8ec5ff);
     this.lastMessage = formatMasteryRankUpMessage(
       gongfaConfigs[this.runState.mainGongfaId].name,
       targetRank
