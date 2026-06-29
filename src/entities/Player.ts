@@ -5,6 +5,7 @@ export interface PlayerStats {
   maxHealth: number;
   health: number;
   magnetRadius: number;
+  damageReduction: number;
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -12,7 +13,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     moveSpeed: 220,
     maxHealth: 100,
     health: 100,
-    magnetRadius: 90
+    magnetRadius: 90,
+    damageReduction: 0
   };
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -33,7 +35,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   applyDamage(amount: number): void {
-    this.stats.health = Math.max(0, this.stats.health - amount);
+    const mitigated = Math.max(1, Math.floor(amount * (1 - this.stats.damageReduction)));
+    this.stats.health = Math.max(0, this.stats.health - mitigated);
     this.setTint(0xff8d8d);
     this.scene.time.delayedCall(70, () => {
       if (this.active) {

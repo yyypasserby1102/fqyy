@@ -866,6 +866,44 @@ test("Healing Pills heal on contact, persist when untouched, and survive phase c
   expect(snapshot.counts.healingPillPositions).toEqual(positionsBefore);
 });
 
+test("Spirit Treasures fill three slots, then offer replace-or-leave", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+
+  for (const id of ["jade-heart-pendant", "windstep-talisman", "lodestone-charm"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(150);
+  }
+
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.spiritTreasureIds).toEqual([
+    "jade-heart-pendant",
+    "windstep-talisman",
+    "lodestone-charm"
+  ]);
+
+  // A fourth treasure with all slots full pauses for a replace-or-leave choice.
+  await page.evaluate(() => window.__gameTest!.forceSpawnSpiritTreasure("ironhide-seal"));
+  await page.waitForFunction(() =>
+    Boolean(window.__gameTest!.getSnapshot().choice?.title.includes("found"))
+  );
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice?.options).toHaveLength(4);
+
+  // Replacing the first held treasure swaps it in place.
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice).toBeUndefined();
+  expect(snapshot.progression.spiritTreasureIds).toEqual([
+    "ironhide-seal",
+    "windstep-talisman",
+    "lodestone-charm"
+  ]);
+});
+
 test("Stage Breakthroughs preserve Yujian Jue instead of upgrading it", async ({ page }) => {
   await startNewRun(page);
   await claimOpeningLingcao(page);

@@ -4,7 +4,9 @@ export type ChoiceKind =
   | "continue"
   | "return-to-title"
   | "abandon-run"
-  | "mastery";
+  | "mastery"
+  | "spirit-treasure-replace"
+  | "spirit-treasure-leave";
 
 export interface ChoiceOption {
   id: string;

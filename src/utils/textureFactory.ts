@@ -16,6 +16,7 @@ export const textureSpecs = {
   "enemy-construct": { width: 34, height: 34 },
   "enemy-shade": { width: 34, height: 34 },
   "healing-pill": { width: 20, height: 20 },
+  "spirit-treasure": { width: 18, height: 18 },
   panel: { width: 360, height: 200 }
 } as const;
 
@@ -111,6 +112,14 @@ export function createGrayboxTextures(scene: Phaser.Scene): void {
   graphics.fillStyle(0xfff3f8);
   graphics.fillRect(8, 6, 4, 8);
   graphics.generateTexture("healing-pill", textureSpecs["healing-pill"].width, textureSpecs["healing-pill"].height);
+  graphics.clear();
+
+  graphics.fillStyle(0xffe08a);
+  graphics.fillTriangle(9, 0, 18, 9, 0, 9);
+  graphics.fillTriangle(0, 9, 18, 9, 9, 18);
+  graphics.fillStyle(0xfff6d8);
+  graphics.fillRect(7, 6, 4, 6);
+  graphics.generateTexture("spirit-treasure", textureSpecs["spirit-treasure"].width, textureSpecs["spirit-treasure"].height);
   graphics.clear();
 
   graphics.fillStyle(0x24313d, 0.9);

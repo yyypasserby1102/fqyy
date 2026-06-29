@@ -28,6 +28,7 @@ export interface GameSnapshot {
     masterySkill2?: string;
     masterySkill2Casts: number;
     learnedGongfaIds: string[];
+    spiritTreasureIds: string[];
     masteryTransformationTriggers: {
       executionSeal: number;
       swordBloom: number;
@@ -95,6 +96,7 @@ export interface GameTestHarness {
   forceDamagePlayer(amount: number): void;
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
+  forceSpawnSpiritTreasure(treasureId: string): void;
   forceSpawnHealingPill(healAmount?: number): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
 }

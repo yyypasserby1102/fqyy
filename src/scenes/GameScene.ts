@@ -20,6 +20,16 @@ import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
 import { HealingPill } from "../entities/HealingPill";
 import { Player } from "../entities/Player";
+import { SpiritTreasure } from "../entities/SpiritTreasure";
+import {
+  getSpiritTreasureConfig,
+  type SpiritTreasureId
+} from "../data/spiritTreasures";
+import {
+  aggregateSpiritTreasureEffects,
+  offerSpiritTreasure,
+  replaceSpiritTreasure
+} from "../logic/spiritTreasures";
 import { Projectile } from "../entities/Projectile";
 import { QiOrb } from "../entities/QiOrb";
 import {
@@ -120,6 +130,7 @@ interface RunState {
   lingcaoX: number;
   lingcaoY: number;
   healingPills: HealingPillCheckpoint[];
+  spiritTreasureIds: SpiritTreasureId[];
   finalBossActive: boolean;
   finalBossPhaseIndex: number;
 }
@@ -174,6 +185,14 @@ export class GameScene extends Phaser.Scene {
   private orbs!: Phaser.Physics.Arcade.Group;
   private lingcaoGroup!: Phaser.Physics.Arcade.Group;
   private healingPills!: Phaser.Physics.Arcade.Group;
+  private spiritTreasures!: Phaser.Physics.Arcade.Group;
+  private pendingSpiritTreasure?: SpiritTreasure;
+  private appliedSpiritTreasureEffects = {
+    maxHealth: 0,
+    moveSpeed: 0,
+    magnetRadius: 0,
+    mitigation: 0
+  };
   private spawner!: SpawnerSystem;
   private gongfaRuntime?: GongfaRuntime;
   private combatState: CombatState = { ...baselineState };
@@ -219,6 +238,7 @@ export class GameScene extends Phaser.Scene {
     lingcaoX: 260,
     lingcaoY: -140,
     healingPills: [],
+    spiritTreasureIds: [],
     finalBossActive: false,
     finalBossPhaseIndex: 0
   };
@@ -254,6 +274,7 @@ export class GameScene extends Phaser.Scene {
     this.orbs = this.physics.add.group({ runChildUpdate: false });
     this.lingcaoGroup = this.physics.add.group({ runChildUpdate: false });
     this.healingPills = this.physics.add.group({ runChildUpdate: false });
+    this.spiritTreasures = this.physics.add.group({ runChildUpdate: false });
     this.inputController = new InputController(this);
     this.spawner = new SpawnerSystem(this, this.enemies, (enemy) =>
       this.assignCombatTargetId(enemy)
@@ -303,6 +324,15 @@ export class GameScene extends Phaser.Scene {
       this.healingPills,
       (_playerObj, pillObj) => {
         this.collectHealingPill(pillObj as HealingPill);
+      },
+      undefined,
+      this
+    );
+    this.physics.add.overlap(
+      this.player,
+      this.spiritTreasures,
+      (_playerObj, treasureObj) => {
+        this.collectSpiritTreasure(treasureObj as SpiritTreasure);
       },
       undefined,
       this
@@ -634,6 +664,99 @@ export class GameScene extends Phaser.Scene {
     pills.forEach((pill) => {
       this.spawnHealingPill(pill.x, pill.y, pill.healAmount);
     });
+  }
+
+  private spawnSpiritTreasure(treasureId: SpiritTreasureId, x: number, y: number): void {
+    this.spiritTreasures.add(new SpiritTreasure(this, x, y, treasureId));
+  }
+
+  private collectSpiritTreasure(treasure: SpiritTreasure): void {
+    if (!treasure.active || this.choiceActive) {
+      return;
+    }
+
+    const result = offerSpiritTreasure(this.runState.spiritTreasureIds, treasure.treasureId);
+    if (result.kind === "stored") {
+      this.runState.spiritTreasureIds = result.activeIds;
+      this.applySpiritTreasureEffects();
+      this.lastMessage = `${getSpiritTreasureConfig(treasure.treasureId).name} attunes to you.`;
+      treasure.destroy();
+      this.persistRunCheckpoint();
+      this.publishHud(this.lastMessage);
+      return;
+    }
+
+    // All three slots are full: pause for a replace-or-leave choice.
+    this.offerSpiritTreasureChoice(treasure);
+  }
+
+  private offerSpiritTreasureChoice(treasure: SpiritTreasure): void {
+    this.pendingSpiritTreasure = treasure;
+    this.choiceActive = true;
+    this.currentChoiceTitle = `${getSpiritTreasureConfig(treasure.treasureId).name} found`;
+    this.currentChoiceOptions = [
+      ...this.runState.spiritTreasureIds.map<ChoiceOption>((heldId) => ({
+        id: heldId,
+        kind: "spirit-treasure-replace",
+        title: `Replace ${getSpiritTreasureConfig(heldId).name}`,
+        description: getSpiritTreasureConfig(heldId).lore
+      })),
+      {
+        id: "leave",
+        kind: "spirit-treasure-leave",
+        title: "Leave it behind",
+        description: "Keep your current three Spirit Treasures."
+      }
+    ];
+    this.setPausedState(true);
+    this.scene.get("ui").events.emit("show-choice-panel", {
+      title: this.currentChoiceTitle,
+      subtitle: "All three Spirit Treasure slots are full.",
+      options: this.currentChoiceOptions
+    });
+    this.publishHud(this.lastMessage);
+  }
+
+  private resolveSpiritTreasureReplace(replacedId: SpiritTreasureId): void {
+    const treasure = this.pendingSpiritTreasure;
+    if (!treasure) {
+      return;
+    }
+    this.runState.spiritTreasureIds = replaceSpiritTreasure(
+      this.runState.spiritTreasureIds,
+      replacedId,
+      treasure.treasureId
+    );
+    this.applySpiritTreasureEffects();
+    this.lastMessage = `${getSpiritTreasureConfig(treasure.treasureId).name} supplants ${getSpiritTreasureConfig(replacedId).name}.`;
+    treasure.destroy();
+    this.pendingSpiritTreasure = undefined;
+    this.persistRunCheckpoint();
+  }
+
+  private resolveSpiritTreasureLeave(): void {
+    this.pendingSpiritTreasure?.destroy();
+    this.pendingSpiritTreasure = undefined;
+    this.lastMessage = "You leave the Spirit Treasure behind.";
+  }
+
+  private applySpiritTreasureEffects(): void {
+    if (!this.player) {
+      return;
+    }
+    const totals = aggregateSpiritTreasureEffects(this.runState.spiritTreasureIds);
+    const applied = this.appliedSpiritTreasureEffects;
+
+    const maxHealthDelta = totals.maxHealth - applied.maxHealth;
+    this.player.stats.maxHealth += maxHealthDelta;
+    if (maxHealthDelta > 0) {
+      this.player.heal(maxHealthDelta);
+    }
+    this.player.stats.moveSpeed += totals.moveSpeed - applied.moveSpeed;
+    this.player.stats.magnetRadius += totals.magnetRadius - applied.magnetRadius;
+    this.player.stats.damageReduction += totals.mitigation - applied.mitigation;
+
+    this.appliedSpiritTreasureEffects = { ...totals };
   }
 
   private updateFinalBoss(delta: number, playerPosition: Phaser.Math.Vector2): void {
@@ -1808,7 +1931,11 @@ export class GameScene extends Phaser.Scene {
     const acceptedJourneyDecision =
       option.kind === "continue" ? this.pendingJourneyDecision : undefined;
 
-    if (option.kind === "gongfa") {
+    if (option.kind === "spirit-treasure-replace") {
+      this.resolveSpiritTreasureReplace(option.id as SpiritTreasureId);
+    } else if (option.kind === "spirit-treasure-leave") {
+      this.resolveSpiritTreasureLeave();
+    } else if (option.kind === "gongfa") {
       this.applyGongfaChoice(option.id as keyof typeof gongfaConfigs, !this.runState.mainGongfaId);
     } else if (option.kind === "mastery") {
       this.applyMasteryChoice(option.id);
@@ -2299,6 +2426,7 @@ export class GameScene extends Phaser.Scene {
         masterySkill2: this.runState.masterySkill2Id,
         masterySkill2Casts: this.runState.masterySkill2Casts,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
+        spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
           executionSeal: yujian?.executionSealTriggers ?? 0,
           swordBloom: yujian?.swordBloomTriggers ?? 0,
@@ -2441,6 +2569,11 @@ export class GameScene extends Phaser.Scene {
 
   forceSpawnQiOrb(qiValue: number): void {
     this.spawnOrb(this.player.x, this.player.y, qiValue);
+    this.publishHud(this.lastMessage);
+  }
+
+  forceSpawnSpiritTreasure(treasureId: SpiritTreasureId): void {
+    this.spawnSpiritTreasure(treasureId, this.player.x, this.player.y);
     this.publishHud(this.lastMessage);
   }
 
