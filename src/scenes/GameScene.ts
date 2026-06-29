@@ -1841,6 +1841,19 @@ export class GameScene extends Phaser.Scene {
   private assignCombatTargetId(enemy: Enemy): void {
     enemy.combatTargetId = this.nextCombatTargetId;
     this.nextCombatTargetId += 1;
+    this.spawnTelegraphRing(enemy.x, enemy.y, enemy.config.tint);
+  }
+
+  private spawnTelegraphRing(x: number, y: number, tint: number): void {
+    const ring = this.add.circle(x, y, 22, undefined, 0).setStrokeStyle(2, tint, 0.8).setDepth(4);
+    this.tweens.add({
+      targets: ring,
+      scale: 0.4,
+      alpha: 0,
+      duration: 240,
+      ease: "Quad.in",
+      onComplete: () => ring.destroy()
+    });
   }
 
   private getEnemyByCombatTargetId(targetId: number): Enemy | undefined {

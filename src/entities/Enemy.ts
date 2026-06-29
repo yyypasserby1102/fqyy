@@ -21,6 +21,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.setScale(config.scale);
     this.setDepth(5);
     this.setCircle(Math.max(this.width, this.height) * 0.35);
+
+    // Spawn telegraph: materialize in over a moment so incoming threats read.
+    this.setAlpha(0.2);
+    scene.tweens.add({ targets: this, alpha: 1, duration: 220, ease: "Quad.out" });
   }
 
   chase(target: Phaser.Math.Vector2): void {
