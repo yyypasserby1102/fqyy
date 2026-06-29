@@ -1555,6 +1555,39 @@ describe("Gongfa runtime", () => {
     expect(burstCount).toBe(plainCount + 3);
   });
 
+  it("Blazing Feather rank-9: Phoenix Ascendant, Searing Domain, Molten Updraft", () => {
+    const stoked = createGongfaRuntime({
+      gongfaId: "blazing-feather-art",
+      blazingFeather: { emberStacks: 4 }
+    });
+
+    // Phoenix Ascendant adds spectral feathers by current Embers.
+    const [crowned] = planGongfaAttack(stoked, 0, { learnedMasteryIds: ["phoenix-ascendant"] });
+    const [plain] = planGongfaAttack(stoked, 0);
+    const crownedCount = crowned.kind === "homing-volley" ? crowned.count : 0;
+    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
+    expect(crownedCount).toBe(plainCount + 4);
+
+    // Searing Domain leaves a blazing field (aura-burst) on hit.
+    const domainHit = advanceGongfaRuntimeForProjectileHit(stoked, {
+      sourceGongfaId: "blazing-feather-art",
+      targetId: 1,
+      damage: 10,
+      learnedMasteryIds: ["searing-domain"],
+      baseDamageKilledTarget: false,
+      embedStacks: 0,
+      embedPower: 0
+    });
+    expect(domainHit.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+
+    // Molten Updraft looses an extra feather volley on Evade.
+    const evaded = advanceGongfaRuntime(stoked, {
+      kind: "evade",
+      learnedMasteryIds: ["molten-updraft"]
+    });
+    expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+  });
+
   it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {
     let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
     for (let i = 0; i < 3; i += 1) {

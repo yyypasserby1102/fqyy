@@ -1253,6 +1253,14 @@ export function advanceGongfaRuntime(
     state.emberStacks = Math.min(MAX_EMBER_STACKS, state.emberStacks + gain);
     state.emberDurationRemaining = EMBER_DURATION_MS;
     syncBlazingFeatherCombat(next);
+    // Searing Domain: hits leave an Ember-scaled blazing field.
+    if (event.learnedMasteryIds.includes("searing-domain") && state.emberStacks > 0) {
+      commands.push({
+        kind: "aura-burst",
+        damage: Math.max(1, Math.floor(next.combat.damage * 0.35)),
+        count: 2 + Math.floor(state.emberStacks / 2)
+      });
+    }
     return { runtime: next, commands };
   }
 
@@ -1285,6 +1293,13 @@ export function advanceGongfaRuntime(
       commands.push({
         kind: "homing-volley",
         count: Math.max(1, next.combat.count)
+      });
+    }
+    // Molten Updraft: each Evade looses an Ember-scaled feather volley.
+    if (next.blazingFeather && event.learnedMasteryIds.includes("molten-updraft")) {
+      commands.push({
+        kind: "homing-volley",
+        count: Math.max(1, next.combat.count + next.blazingFeather.emberStacks)
       });
     }
     // Phoenix Passage: leave a Heat-scaled ring copy at the Evade's origin.
@@ -1755,6 +1770,10 @@ export function planGongfaAttack(
           runtime.blazingFeather.emberStacks >= MAX_EMBER_STACKS
         ) {
           count += 3;
+        }
+        // Phoenix Ascendant: Embers crown the volley with spectral feathers.
+        if (learnedMasteryIds.includes("phoenix-ascendant")) {
+          count += runtime.blazingFeather.emberStacks;
         }
       }
       const commands: GongfaRuntimeCommand[] = [

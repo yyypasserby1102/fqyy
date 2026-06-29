@@ -76,6 +76,33 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     exclusivityGroup: "blazing-feather-art:rank-6"
   },
   {
+    id: "phoenix-ascendant",
+    name: "Phoenix Ascendant",
+    lore: "Embers crown every volley with spectral blazing feathers.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "blazing-feather-art:rank-9"
+  },
+  {
+    id: "searing-domain",
+    name: "Searing Domain",
+    lore: "Feather hits leave Ember-scaled blazing fields.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "blazing-feather-art:rank-9"
+  },
+  {
+    id: "molten-updraft",
+    name: "Molten Updraft",
+    lore: "Each Evade looses an Ember-scaled burst of feathers.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 9,
+    exclusivityGroup: "blazing-feather-art:rank-9"
+  },
+  {
     id: "execution-seal",
     name: "Execution Seal",
     lore: "Repeated Yujian Skill 1 hits escalate against a marked priority target.",
