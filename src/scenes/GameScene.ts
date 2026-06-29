@@ -28,7 +28,8 @@ import {
 import {
   aggregateSpiritTreasureEffects,
   offerSpiritTreasure,
-  replaceSpiritTreasure
+  replaceSpiritTreasure,
+  spiritTreasureDropForKill
 } from "../logic/spiritTreasures";
 import { Projectile } from "../entities/Projectile";
 import { QiOrb } from "../entities/QiOrb";
@@ -485,8 +486,15 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.spawnOrb(enemy.x, enemy.y, enemy.config.xpDrop);
+    const dropX = enemy.x;
+    const dropY = enemy.y;
     enemy.destroy();
     this.runState.kills += 1;
+
+    const droppedTreasure = spiritTreasureDropForKill(this.runState.kills);
+    if (droppedTreasure) {
+      this.spawnSpiritTreasure(droppedTreasure, dropX, dropY);
+    }
   }
 
   private executeProjectileHitCommands(

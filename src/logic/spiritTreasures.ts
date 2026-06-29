@@ -5,6 +5,23 @@ import {
   type SpiritTreasureId
 } from "../data/spiritTreasures";
 
+/** A Spirit Treasure drops every this-many enemy defeats. */
+export const SPIRIT_TREASURE_DROP_INTERVAL = 30;
+
+/**
+ * Deterministic Spirit Treasure loot: every SPIRIT_TREASURE_DROP_INTERVAL
+ * defeats drops the next treasure in a fixed rotation. Deterministic (no RNG)
+ * so it never perturbs the run's seeded sequence. Returns undefined on
+ * non-drop kills.
+ */
+export function spiritTreasureDropForKill(killCount: number): SpiritTreasureId | undefined {
+  if (killCount <= 0 || killCount % SPIRIT_TREASURE_DROP_INTERVAL !== 0) {
+    return undefined;
+  }
+  const ids = Object.keys(spiritTreasureConfigs) as SpiritTreasureId[];
+  return ids[(killCount / SPIRIT_TREASURE_DROP_INTERVAL - 1) % ids.length];
+}
+
 export type SpiritTreasureEffectTotals = Record<SpiritTreasureEffectKind, number>;
 
 export type SpiritTreasureAcquisition =

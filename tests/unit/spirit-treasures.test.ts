@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateSpiritTreasureEffects,
   offerSpiritTreasure,
-  replaceSpiritTreasure
+  replaceSpiritTreasure,
+  spiritTreasureDropForKill,
+  SPIRIT_TREASURE_DROP_INTERVAL
 } from "../../src/logic/spiritTreasures";
 
 describe("Spirit Treasures", () => {
@@ -69,5 +71,21 @@ describe("Spirit Treasures", () => {
       magnetRadius: 0,
       mitigation: 0
     });
+  });
+
+  it("drops a treasure every interval and rotates deterministically", () => {
+    const n = SPIRIT_TREASURE_DROP_INTERVAL;
+    expect(spiritTreasureDropForKill(0)).toBeUndefined();
+    expect(spiritTreasureDropForKill(n - 1)).toBeUndefined();
+    expect(spiritTreasureDropForKill(n + 1)).toBeUndefined();
+
+    const first = spiritTreasureDropForKill(n);
+    const second = spiritTreasureDropForKill(n * 2);
+    expect(first).toBeDefined();
+    expect(second).toBeDefined();
+    expect(first).not.toBe(second);
+
+    // The rotation is stable for a given kill count.
+    expect(spiritTreasureDropForKill(n)).toBe(first);
   });
 });
