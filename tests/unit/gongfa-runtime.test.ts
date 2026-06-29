@@ -1465,6 +1465,23 @@ describe("Gongfa runtime", () => {
     expect(unleashedCount).toBeGreaterThan(plainCount);
   });
 
+  it("applies Blazing Feather rank-3 structural Transformations", () => {
+    const base = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+
+    const searing = applyGongfaImprovement(base, "searing-feathers").runtime;
+    expect(searing.combat.pierce).toBe(base.combat.pierce + 2);
+    expect(searing.combat.count).toBe(Math.max(1, base.combat.count - 1));
+    expect(searing.combat.damage).toBeGreaterThan(base.combat.damage);
+
+    const storm = applyGongfaImprovement(base, "feather-storm").runtime;
+    expect(storm.combat.count).toBe(base.combat.count + 3);
+    expect(storm.combat.spreadDeg).toBe(base.combat.spreadDeg + 18);
+
+    const swift = applyGongfaImprovement(base, "swift-molt").runtime;
+    expect(swift.combat.cooldownMs).toBeLessThan(base.combat.cooldownMs);
+    expect(swift.combat.projectileSpeed).toBe(base.combat.projectileSpeed + 80);
+  });
+
   it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {
     let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
     for (let i = 0; i < 3; i += 1) {

@@ -22,6 +22,33 @@ export interface MasteryChoiceDefinition {
 
 export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
   {
+    id: "searing-feathers",
+    name: "Searing Feathers",
+    lore: "Condense the feathers into fewer, armor-piercing blazing shafts.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "blazing-feather-art:rank-3"
+  },
+  {
+    id: "feather-storm",
+    name: "Feather Storm",
+    lore: "Loose a wide flurry of blazing feathers each cycle.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "blazing-feather-art:rank-3"
+  },
+  {
+    id: "swift-molt",
+    name: "Swift Molt",
+    lore: "Shed feathers faster and swifter, quickening the barrage.",
+    kind: "transformation",
+    requiredGongfaIds: ["blazing-feather-art"],
+    milestoneRank: 3,
+    exclusivityGroup: "blazing-feather-art:rank-3"
+  },
+  {
     id: "execution-seal",
     name: "Execution Seal",
     lore: "Repeated Yujian Skill 1 hits escalate against a marked priority target.",

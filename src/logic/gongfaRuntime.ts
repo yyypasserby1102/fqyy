@@ -1875,6 +1875,30 @@ function applyStructuralTransformation(
     }
   }
 
+  if (runtime.gongfaId === "blazing-feather-art") {
+    if (transformationId === "searing-feathers") {
+      const next = copyRuntime(runtime);
+      next.combat.pierce += 2;
+      next.combat.count = Math.max(1, next.combat.count - 1);
+      next.combat.damage += 4;
+      return next;
+    }
+
+    if (transformationId === "feather-storm") {
+      const next = copyRuntime(runtime);
+      next.combat.count += 3;
+      next.combat.spreadDeg += 18;
+      return next;
+    }
+
+    if (transformationId === "swift-molt") {
+      const next = copyRuntime(runtime);
+      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.78));
+      next.combat.projectileSpeed += 80;
+      return next;
+    }
+  }
+
   if (runtime.crimsonFurnace) {
     if (transformationId === "crimson-piercing-needles") {
       const next = copyRuntime(runtime);
