@@ -73,6 +73,7 @@ import {
   planGongfaAttack,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
+  recordMasterySkill2Cast,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds,
   type GongfaRuntimeCommand,
@@ -1683,14 +1684,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   private recordMasterySkill2Cast(command: GongfaRuntimeCommand): void {
-    if (!("masteryCast" in command)) {
-      return;
-    }
-
-    this.runState.masterySkill2Casts += 1;
-    if (command.masteryCast.cooldownMs !== undefined) {
-      this.runState.masterySkill2CooldownRemaining = command.masteryCast.cooldownMs;
-    }
+    const next = recordMasterySkill2Cast(
+      {
+        masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
+        masterySkill2Casts: this.runState.masterySkill2Casts
+      },
+      command
+    );
+    this.runState.masterySkill2CooldownRemaining = next.masterySkill2CooldownRemaining;
+    this.runState.masterySkill2Casts = next.masterySkill2Casts;
   }
 
   private fireSolarFlareCycle(

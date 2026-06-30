@@ -482,6 +482,11 @@ export interface MasterySkill2CooldownTick {
   readySkill2Id?: AuthoredSkill2Intent;
 }
 
+export interface MasterySkill2CastState {
+  masterySkill2CooldownRemaining: number;
+  masterySkill2Casts: number;
+}
+
 export function advanceTimedMasterySkill2Cooldown(
   skill2Id: string | undefined,
   cooldownRemainingMs: number,
@@ -500,6 +505,21 @@ export function advanceTimedMasterySkill2Cooldown(
   return {
     cooldownRemainingMs: nextCooldownRemainingMs,
     readySkill2Id: plan.intent
+  };
+}
+
+export function recordMasterySkill2Cast(
+  state: MasterySkill2CastState,
+  command: GongfaRuntimeCommand
+): MasterySkill2CastState {
+  if (!("masteryCast" in command)) {
+    return state;
+  }
+
+  return {
+    masterySkill2Casts: state.masterySkill2Casts + 1,
+    masterySkill2CooldownRemaining:
+      command.masteryCast.cooldownMs ?? state.masterySkill2CooldownRemaining
   };
 }
 

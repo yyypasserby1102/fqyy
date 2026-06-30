@@ -18,6 +18,7 @@ import {
   planGongfaAttack,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
+  recordMasterySkill2Cast,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds
 } from "../../src/logic/gongfaRuntime";
@@ -63,6 +64,43 @@ describe("Gongfa runtime", () => {
     });
     expect(advanceTimedMasterySkill2Cooldown("solar-flare-cycle", 1000, 1000)).toEqual({
       cooldownRemainingMs: 1000
+    });
+  });
+
+  it("records successful Skill 2 casts through the runtime command interface", () => {
+    const state = {
+      masterySkill2CooldownRemaining: 25,
+      masterySkill2Casts: 2
+    };
+
+    expect(recordMasterySkill2Cast(state, { kind: "aura-burst", damage: 10, count: 3 })).toBe(
+      state
+    );
+    expect(
+      recordMasterySkill2Cast(state, {
+        kind: "returning-sword-formation",
+        count: 1,
+        opening: {
+          damage: 10,
+          pierce: 2,
+          speed: 485,
+          lifetimeMs: 1680
+        },
+        returnPath: {
+          delayMs: 240,
+          damage: 8,
+          pierce: 2,
+          speed: 505,
+          lifetimeMs: 1740
+        },
+        masteryCast: {
+          skill2Id: "returning-sword-formation",
+          cooldownMs: 2400
+        }
+      })
+    ).toEqual({
+      masterySkill2CooldownRemaining: 2400,
+      masterySkill2Casts: 3
     });
   });
 
