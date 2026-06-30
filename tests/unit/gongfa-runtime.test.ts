@@ -772,6 +772,21 @@ describe("Gongfa runtime", () => {
     ]);
   });
 
+  it("keeps Crimson detonation inert for non-Crimson runtimes", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "crimson-detonation",
+      x: 12,
+      y: 34,
+      damage: 20,
+      fromEmbed: true
+    });
+
+    expect(result.runtime).toEqual(runtime);
+    expect(result.commands).toEqual([]);
+  });
+
   it("restores Crimson state, decays pressure, and records Furnace Cascade casts", () => {
     const restored = createGongfaRuntime({
       gongfaId: "crimson-furnace-sword-art",

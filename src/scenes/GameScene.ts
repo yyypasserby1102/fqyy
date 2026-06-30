@@ -1972,7 +1972,7 @@ export class GameScene extends Phaser.Scene {
     damage: number,
     fromEmbed: boolean
   ): void {
-    if (!this.gongfaRuntime?.crimsonFurnace) {
+    if (!this.gongfaRuntime) {
       return;
     }
 
