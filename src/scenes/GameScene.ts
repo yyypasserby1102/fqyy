@@ -60,13 +60,14 @@ import {
 import {
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
+  advanceTimedMasterySkill2Cooldown,
   applyGongfaImprovement,
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
   reboundingEdgeBlade,
-  getAuthoredSkill2Plan,
+  getAuthoredSkill2CooldownMs,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
@@ -1550,36 +1551,31 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const plan = getAuthoredSkill2Plan(this.runState.masterySkill2Id);
-    if (!plan || plan.trigger !== "timed") {
+    const tick = advanceTimedMasterySkill2Cooldown(
+      this.runState.masterySkill2Id,
+      this.runState.masterySkill2CooldownRemaining,
+      delta
+    );
+    this.runState.masterySkill2CooldownRemaining = tick.cooldownRemainingMs;
+    if (!tick.readySkill2Id) {
       return;
     }
 
-    this.runState.masterySkill2CooldownRemaining -= delta;
-    if (this.runState.masterySkill2CooldownRemaining > 0) {
-      return;
-    }
-
-    this.fireMasterySkill2();
+    this.fireMasterySkill2(tick.readySkill2Id);
   }
 
   private getMasterySkill2CooldownMs(): number {
-    return getAuthoredSkill2Plan(this.runState.masterySkill2Id)?.cooldownMs ?? 0;
+    return getAuthoredSkill2CooldownMs(this.runState.masterySkill2Id);
   }
 
-  private fireMasterySkill2(): void {
-    const plan = getAuthoredSkill2Plan(this.runState.masterySkill2Id);
-    if (!plan) {
-      return;
-    }
-
+  private fireMasterySkill2(skill2Id: string): void {
     if (!this.gongfaRuntime) {
       return;
     }
 
     const result = advanceGongfaRuntime(this.gongfaRuntime, {
       kind: "skill2",
-      skill2Id: plan.intent
+      skill2Id
     });
     this.gongfaRuntime = result.runtime;
     this.combatState = result.runtime.combat;

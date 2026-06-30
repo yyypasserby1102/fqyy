@@ -473,6 +473,36 @@ export function getAuthoredSkill2Plan(skill2Id: string | undefined): AuthoredSki
   return authoredSkill2Plans[skill2Id as AuthoredSkill2Intent];
 }
 
+export function getAuthoredSkill2CooldownMs(skill2Id: string | undefined): number {
+  return getAuthoredSkill2Plan(skill2Id)?.cooldownMs ?? 0;
+}
+
+export interface MasterySkill2CooldownTick {
+  cooldownRemainingMs: number;
+  readySkill2Id?: AuthoredSkill2Intent;
+}
+
+export function advanceTimedMasterySkill2Cooldown(
+  skill2Id: string | undefined,
+  cooldownRemainingMs: number,
+  deltaMs: number
+): MasterySkill2CooldownTick {
+  const plan = getAuthoredSkill2Plan(skill2Id);
+  if (!plan || plan.trigger !== "timed") {
+    return { cooldownRemainingMs };
+  }
+
+  const nextCooldownRemainingMs = cooldownRemainingMs - deltaMs;
+  if (nextCooldownRemainingMs > 0) {
+    return { cooldownRemainingMs: nextCooldownRemainingMs };
+  }
+
+  return {
+    cooldownRemainingMs: nextCooldownRemainingMs,
+    readySkill2Id: plan.intent
+  };
+}
+
 function buildGenericTimedSkill2Commands(
   runtime: GongfaRuntime,
   skill2: AuthoredSkill2Plan

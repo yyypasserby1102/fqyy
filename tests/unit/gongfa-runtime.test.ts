@@ -3,12 +3,14 @@ import { gongfaConfigs, type GongfaId } from "../../src/data/gongfa";
 import {
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
+  advanceTimedMasterySkill2Cooldown,
   applyGongfaImprovement,
   createGongfaRuntime,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
   reboundingEdgeBlade,
+  getAuthoredSkill2CooldownMs,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
@@ -46,6 +48,22 @@ describe("Gongfa runtime", () => {
     expect(getAuthoredSkill2Plan("blade-shell-rebound")?.trigger).toBe("threshold");
     expect(getAuthoredSkill2Plan("feather-rain-formation")?.trigger).toBe("timed");
     expect(getAuthoredSkill2Plan("missing-skill-2")).toBeUndefined();
+  });
+
+  it("owns timed Skill 2 cooldown interpretation", () => {
+    expect(getAuthoredSkill2CooldownMs("returning-sword-formation")).toBe(2400);
+    expect(getAuthoredSkill2CooldownMs("missing-skill-2")).toBe(0);
+
+    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 400)).toEqual({
+      cooldownRemainingMs: 600
+    });
+    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 1000)).toEqual({
+      cooldownRemainingMs: 0,
+      readySkill2Id: "returning-sword-formation"
+    });
+    expect(advanceTimedMasterySkill2Cooldown("solar-flare-cycle", 1000, 1000)).toEqual({
+      cooldownRemainingMs: 1000
+    });
   });
 
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
