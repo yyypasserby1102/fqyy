@@ -2149,7 +2149,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.runState.learnedGongfaIds.includes(gongfaId)) {
       this.runState.learnedGongfaIds.push(gongfaId);
     }
-    this.resetGongfaPassiveState();
+    this.runState.furnaceCascadeCooldownRemaining = 0;
     this.applyGongfaStage();
     this.playFanfare(0xffe08a);
     this.sfx.breakthrough();
@@ -2296,15 +2296,6 @@ export class GameScene extends Phaser.Scene {
     const result = applyGongfaImprovement(this.gongfaRuntime, upgradeId);
     this.gongfaRuntime = result.runtime;
     this.combatState = result.runtime.combat;
-  }
-
-  private resetGongfaPassiveState(): void {
-    if (this.runState.mainGongfaId === "crimson-furnace-sword-art") {
-      this.runState.furnaceCascadeCooldownRemaining = 0;
-      return;
-    }
-
-    this.runState.furnaceCascadeCooldownRemaining = 0;
   }
 
   private applyGongfaStage(restoredRuntime?: GongfaRuntime): void {
