@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gongfaConfigs, type GongfaId } from "../../src/data/gongfa";
 import {
+  advanceGongfaMasteryProgress,
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
   advanceTimedMasterySkill2Cooldown,
@@ -101,6 +102,82 @@ describe("Gongfa runtime", () => {
     ).toEqual({
       masterySkill2CooldownRemaining: 2400,
       masterySkill2Casts: 3
+    });
+  });
+
+  it("advances Gongfa Mastery progress, pending choices, and rank-10 Skill 2 unlocks", () => {
+    const base = {
+      masteryPoints: 90,
+      masteryRank: 0,
+      masterySkill2CooldownRemaining: 0,
+      masteryChoiceActive: false,
+      masteryPendingRanks: [] as number[]
+    };
+
+    expect(
+      advanceGongfaMasteryProgress(base, {
+        gongfaId: "yujian-jue",
+        points: 5,
+        finalBossActive: false
+      })
+    ).toEqual({
+      state: {
+        ...base,
+        masteryPoints: 95,
+        masteryPendingRanks: []
+      }
+    });
+
+    const rankTwo = advanceGongfaMasteryProgress(base, {
+      gongfaId: "yujian-jue",
+      points: 120,
+      finalBossActive: false
+    });
+    expect(rankTwo).toEqual({
+      state: {
+        masteryPoints: 210,
+        masteryRank: 2,
+        masterySkill2CooldownRemaining: 0,
+        masteryChoiceActive: true,
+        masteryPendingRanks: [1, 2]
+      },
+      rankUp: {
+        previousRank: 0,
+        targetRank: 2
+      }
+    });
+
+    expect(
+      advanceGongfaMasteryProgress(
+        {
+          ...base,
+          masteryPoints: 990,
+          masteryRank: 9
+        },
+        {
+          gongfaId: "yujian-jue",
+          points: 10,
+          finalBossActive: false
+        }
+      ).state
+    ).toMatchObject({
+      masteryPoints: 1000,
+      masteryRank: 10,
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 2400,
+      masteryChoiceActive: false,
+      masteryPendingRanks: []
+    });
+
+    expect(
+      advanceGongfaMasteryProgress(base, {
+        gongfaId: "yujian-jue",
+        points: 120,
+        finalBossActive: true
+      }).state
+    ).toMatchObject({
+      masteryChoiceActive: false,
+      masteryPendingRanks: [1, 2]
     });
   });
 

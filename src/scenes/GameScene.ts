@@ -54,10 +54,10 @@ import {
 } from "../logic/runJourney";
 import {
   getDeterministicMasteryChoiceIds,
-  getMasteryChoiceDefinition,
-  getRank10Skill2Id
+  getMasteryChoiceDefinition
 } from "../logic/mastery";
 import {
+  advanceGongfaMasteryProgress,
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
   advanceTimedMasterySkill2Cooldown,
@@ -67,7 +67,6 @@ import {
   galeStepSeveranceCorridor,
   ironWakeWall,
   reboundingEdgeBlade,
-  getAuthoredSkill2CooldownMs,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
@@ -1565,10 +1564,6 @@ export class GameScene extends Phaser.Scene {
     this.fireMasterySkill2(tick.readySkill2Id);
   }
 
-  private getMasterySkill2CooldownMs(): number {
-    return getAuthoredSkill2CooldownMs(this.runState.masterySkill2Id);
-  }
-
   private fireMasterySkill2(skill2Id: string): void {
     if (!this.gongfaRuntime) {
       return;
@@ -2772,38 +2767,42 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const previousRank = this.runState.masteryRank;
-    this.runState.masteryPoints += points;
-    const targetRank = Math.floor(this.runState.masteryPoints / 100);
-    if (targetRank <= this.runState.masteryRank) {
+    const result = advanceGongfaMasteryProgress(
+      {
+        masteryPoints: this.runState.masteryPoints,
+        masteryRank: this.runState.masteryRank,
+        masterySkill2Id: this.runState.masterySkill2Id,
+        masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
+        masteryChoiceActive: this.runState.masteryChoiceActive,
+        masteryPendingRanks: this.runState.masteryPendingRanks
+      },
+      {
+        gongfaId: this.runState.mainGongfaId,
+        points,
+        finalBossActive: this.runState.finalBossActive
+      }
+    );
+    this.runState.masteryPoints = result.state.masteryPoints;
+    this.runState.masteryRank = result.state.masteryRank;
+    this.runState.masterySkill2Id = result.state.masterySkill2Id;
+    this.runState.masterySkill2CooldownRemaining =
+      result.state.masterySkill2CooldownRemaining;
+    this.runState.masteryChoiceActive = result.state.masteryChoiceActive;
+    this.runState.masteryPendingRanks = result.state.masteryPendingRanks;
+
+    if (!result.rankUp) {
       return;
     }
 
-    this.runState.masteryRank = targetRank;
     this.playFanfare(0x8ec5ff);
     this.sfx.rankUp();
     this.lastMessage = formatMasteryRankUpMessage(
       gongfaConfigs[this.runState.mainGongfaId].name,
-      targetRank
+      result.rankUp.targetRank
     );
-    for (let rank = previousRank + 1; rank <= targetRank; rank += 1) {
-      if (rank === 10) {
-        this.runState.masterySkill2Id = getRank10Skill2Id(this.runState.mainGongfaId);
-        this.runState.masterySkill2CooldownRemaining = this.getMasterySkill2CooldownMs();
-        continue;
-      }
 
-      if (!this.runState.masteryPendingRanks.includes(rank)) {
-        this.runState.masteryPendingRanks.push(rank);
-      }
-    }
-
-    if (this.runState.finalBossActive) {
-      this.runState.masteryChoiceActive = false;
-    } else if (this.runState.masteryPendingRanks.length > 0) {
+    if (this.runState.masteryChoiceActive) {
       this.offerMasteryChoice();
-    } else {
-      this.runState.masteryChoiceActive = false;
     }
 
     this.persistRunCheckpoint();

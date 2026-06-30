@@ -17,6 +17,7 @@ import {
   SURGE_UPDRAFT_IDS
 } from "../data/surgeGongfa";
 import { upgradeConfigs, type UpgradeEffect } from "../data/upgrades";
+import { getRank10Skill2Id } from "./mastery";
 
 export interface GongfaCombatState extends GongfaStageState {
   pattern: GongfaPattern;
@@ -487,6 +488,23 @@ export interface MasterySkill2CastState {
   masterySkill2Casts: number;
 }
 
+export interface GongfaMasteryProgressState {
+  masteryPoints: number;
+  masteryRank: number;
+  masterySkill2Id?: string;
+  masterySkill2CooldownRemaining: number;
+  masteryChoiceActive: boolean;
+  masteryPendingRanks: number[];
+}
+
+export interface GongfaMasteryProgressResult {
+  state: GongfaMasteryProgressState;
+  rankUp?: {
+    previousRank: number;
+    targetRank: number;
+  };
+}
+
 export function advanceTimedMasterySkill2Cooldown(
   skill2Id: string | undefined,
   cooldownRemainingMs: number,
@@ -520,6 +538,53 @@ export function recordMasterySkill2Cast(
     masterySkill2Casts: state.masterySkill2Casts + 1,
     masterySkill2CooldownRemaining:
       command.masteryCast.cooldownMs ?? state.masterySkill2CooldownRemaining
+  };
+}
+
+export function advanceGongfaMasteryProgress(
+  state: GongfaMasteryProgressState,
+  context: {
+    gongfaId: GongfaId;
+    points: number;
+    finalBossActive: boolean;
+  }
+): GongfaMasteryProgressResult {
+  if (context.points <= 0) {
+    return { state };
+  }
+
+  const next: GongfaMasteryProgressState = {
+    ...state,
+    masteryPoints: state.masteryPoints + context.points,
+    masteryPendingRanks: [...state.masteryPendingRanks]
+  };
+  const previousRank = state.masteryRank;
+  const targetRank = Math.floor(next.masteryPoints / 100);
+  if (targetRank <= state.masteryRank) {
+    return { state: next };
+  }
+
+  next.masteryRank = targetRank;
+  for (let rank = previousRank + 1; rank <= targetRank; rank += 1) {
+    if (rank === 10) {
+      next.masterySkill2Id = getRank10Skill2Id(context.gongfaId);
+      next.masterySkill2CooldownRemaining = getAuthoredSkill2CooldownMs(next.masterySkill2Id);
+      continue;
+    }
+
+    if (!next.masteryPendingRanks.includes(rank)) {
+      next.masteryPendingRanks.push(rank);
+    }
+  }
+
+  next.masteryChoiceActive = context.finalBossActive ? false : next.masteryPendingRanks.length > 0;
+
+  return {
+    state: next,
+    rankUp: {
+      previousRank,
+      targetRank
+    }
   };
 }
 
