@@ -511,6 +511,13 @@ export interface GongfaMasteryChoiceState {
   masteryPendingRanks: number[];
 }
 
+export interface GongfaMasteryCheckpointFields
+  extends GongfaMasteryProgressState,
+    GongfaMasteryChoiceState {
+  upgradeSelectionIds: string[];
+  masterySkill2Casts: number;
+}
+
 export function advanceTimedMasterySkill2Cooldown(
   skill2Id: string | undefined,
   cooldownRemainingMs: number,
@@ -604,6 +611,28 @@ export function applyGongfaMasteryChoice(
     masteryChoiceActive: false,
     masteryPendingRanks: remainingPendingRanks
   };
+}
+
+export function createGongfaMasteryStateFromCheckpoint(
+  checkpoint: GongfaMasteryCheckpointFields
+): GongfaMasteryCheckpointFields {
+  return {
+    masteryPoints: checkpoint.masteryPoints,
+    masteryRank: checkpoint.masteryRank,
+    masteryLearnedIds: [...checkpoint.masteryLearnedIds],
+    upgradeSelectionIds: [...checkpoint.upgradeSelectionIds],
+    masterySkill2Id: checkpoint.masterySkill2Id,
+    masterySkill2CooldownRemaining: checkpoint.masterySkill2CooldownRemaining,
+    masterySkill2Casts: checkpoint.masterySkill2Casts,
+    masteryChoiceActive: checkpoint.masteryChoiceActive,
+    masteryPendingRanks: [...checkpoint.masteryPendingRanks]
+  };
+}
+
+export function projectGongfaMasteryCheckpoint(
+  state: GongfaMasteryCheckpointFields
+): GongfaMasteryCheckpointFields {
+  return createGongfaMasteryStateFromCheckpoint(state);
 }
 
 function buildGenericTimedSkill2Commands(

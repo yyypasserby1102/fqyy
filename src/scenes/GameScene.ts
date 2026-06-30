@@ -64,6 +64,7 @@ import {
   applyGongfaMasteryChoice,
   applyGongfaImprovement,
   createGongfaRuntime,
+  createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
@@ -71,6 +72,7 @@ import {
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
+  projectGongfaMasteryCheckpoint,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
   recordMasterySkill2Cast,
@@ -2335,15 +2337,19 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.applyRunJourneyState(createRunJourneyStateFromCheckpoint(checkpoint));
-    this.runState.masteryPoints = checkpoint.masteryPoints;
-    this.runState.masteryRank = checkpoint.masteryRank;
-    this.runState.masteryLearnedIds = [...checkpoint.masteryLearnedIds];
-    this.runState.upgradeSelectionIds = [...(checkpoint.upgradeSelectionIds ?? [])];
-    this.runState.masterySkill2Id = checkpoint.masterySkill2Id;
-    this.runState.masterySkill2CooldownRemaining = checkpoint.masterySkill2CooldownRemaining;
-    this.runState.masterySkill2Casts = checkpoint.masterySkill2Casts;
-    this.runState.masteryChoiceActive = checkpoint.masteryChoiceActive;
-    this.runState.masteryPendingRanks = [...checkpoint.masteryPendingRanks];
+    const mastery = createGongfaMasteryStateFromCheckpoint({
+      ...checkpoint,
+      upgradeSelectionIds: checkpoint.upgradeSelectionIds ?? []
+    });
+    this.runState.masteryPoints = mastery.masteryPoints;
+    this.runState.masteryRank = mastery.masteryRank;
+    this.runState.masteryLearnedIds = mastery.masteryLearnedIds;
+    this.runState.upgradeSelectionIds = mastery.upgradeSelectionIds;
+    this.runState.masterySkill2Id = mastery.masterySkill2Id;
+    this.runState.masterySkill2CooldownRemaining = mastery.masterySkill2CooldownRemaining;
+    this.runState.masterySkill2Casts = mastery.masterySkill2Casts;
+    this.runState.masteryChoiceActive = mastery.masteryChoiceActive;
+    this.runState.masteryPendingRanks = mastery.masteryPendingRanks;
     this.runState.learnedGongfaIds = [...checkpoint.learnedGongfaIds];
     this.runState.spiritTreasureIds = [...(checkpoint.spiritTreasureIds ?? [])];
     // The restored player stats already include treasure bonuses, so seed the
@@ -2379,13 +2385,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const gongfaCheckpoint = projectGongfaRuntimeCheckpoint(this.gongfaRuntime);
-    const checkpoint = createActiveRunCheckpoint({
-      playerHealth: this.player?.stats.health,
-      playerMaxHealth: this.player?.stats.maxHealth,
-      playerMoveSpeed: this.player?.stats.moveSpeed,
-      playerMagnetRadius: this.player?.stats.magnetRadius,
-      playerDamageReduction: this.player?.stats.damageReduction,
-      ...projectRunJourneyCheckpointFields(this.runState),
+    const masteryCheckpoint = projectGongfaMasteryCheckpoint({
       masteryPoints: this.runState.masteryPoints,
       masteryRank: this.runState.masteryRank,
       masteryLearnedIds: this.runState.masteryLearnedIds,
@@ -2394,7 +2394,16 @@ export class GameScene extends Phaser.Scene {
       masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
       masterySkill2Casts: this.runState.masterySkill2Casts,
       masteryChoiceActive: this.runState.masteryChoiceActive,
-      masteryPendingRanks: this.runState.masteryPendingRanks,
+      masteryPendingRanks: this.runState.masteryPendingRanks
+    });
+    const checkpoint = createActiveRunCheckpoint({
+      playerHealth: this.player?.stats.health,
+      playerMaxHealth: this.player?.stats.maxHealth,
+      playerMoveSpeed: this.player?.stats.moveSpeed,
+      playerMagnetRadius: this.player?.stats.magnetRadius,
+      playerDamageReduction: this.player?.stats.damageReduction,
+      ...projectRunJourneyCheckpointFields(this.runState),
+      ...masteryCheckpoint,
       learnedGongfaIds: this.runState.learnedGongfaIds,
       spiritTreasureIds: this.runState.spiritTreasureIds,
       ...gongfaCheckpoint,

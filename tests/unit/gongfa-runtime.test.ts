@@ -8,6 +8,7 @@ import {
   applyGongfaMasteryChoice,
   applyGongfaImprovement,
   createGongfaRuntime,
+  createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
@@ -18,6 +19,7 @@ import {
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
+  projectGongfaMasteryCheckpoint,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
   recordMasterySkill2Cast,
@@ -196,6 +198,48 @@ describe("Gongfa runtime", () => {
       masteryLearnedIds: ["sword-bloom", "execution-seal"],
       masteryChoiceActive: false,
       masteryPendingRanks: [3]
+    });
+  });
+
+  it("hydrates and projects Gongfa Mastery checkpoint fields without sharing arrays", () => {
+    const checkpoint = {
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom"],
+      upgradeSelectionIds: ["tempered-meridians"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [4, 5]
+    };
+
+    const restored = createGongfaMasteryStateFromCheckpoint(checkpoint);
+    restored.masteryLearnedIds.push("execution-seal");
+    restored.upgradeSelectionIds.push("jade-meridian");
+    restored.masteryPendingRanks.shift();
+
+    expect(checkpoint).toEqual({
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom"],
+      upgradeSelectionIds: ["tempered-meridians"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [4, 5]
+    });
+    expect(projectGongfaMasteryCheckpoint(restored)).toEqual({
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom", "execution-seal"],
+      upgradeSelectionIds: ["tempered-meridians", "jade-meridian"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [5]
     });
   });
 
