@@ -82,10 +82,39 @@ async function collectQiOrb(page: Page, qiValue: number): Promise<void> {
 }
 
 async function claimOpeningLingcao(page: Page): Promise<void> {
-  // Claim directly rather than keyboard-walking the player to the Lingcao —
-  // the walk's distance-per-frame depends on render cadence, so it flaked
-  // under parallel-worker load. The claim is position-independent.
-  await page.evaluate(() => window.__gameTest!.forceClaimLingcao());
+  for (let i = 0; i < 120; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.progression.lingcaoCollected) {
+      return;
+    }
+
+    const [lingcao] = snapshot.counts.lingcaoPositions;
+    if (!lingcao) {
+      await page.waitForTimeout(25);
+      continue;
+    }
+
+    const keys = [
+      Math.abs(lingcao.x - snapshot.player.x) > 8
+        ? lingcao.x >= snapshot.player.x
+          ? "d"
+          : "a"
+        : undefined,
+      Math.abs(lingcao.y - snapshot.player.y) > 8
+        ? lingcao.y >= snapshot.player.y
+          ? "s"
+          : "w"
+        : undefined
+    ].filter((key): key is string => Boolean(key));
+    for (const key of keys) {
+      await page.keyboard.down(key);
+    }
+    await page.waitForTimeout(55);
+    for (const key of keys) {
+      await page.keyboard.up(key);
+    }
+  }
+
   await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.lingcaoCollected);
 }
 
@@ -320,18 +349,16 @@ test("the Mortal opening only spawns slow melee pursuers before Gongfa 1", async
 test("Lingcao reveal pauses the scene until a Gongfa is chosen", async ({ page }) => {
   await startNewRun(page);
 
+  await claimOpeningLingcao(page);
   await page.evaluate(() => {
     window.__gameTest!.forceSpawnEnemies(2);
   });
-
-  const beforeReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  await claimOpeningLingcao(page);
   const afterReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
   await page.waitForTimeout(1000);
 
   const duringReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(afterReveal.counts.enemies).toBeGreaterThanOrEqual(beforeReveal.counts.enemies);
+  expect(afterReveal.counts.enemies).toBeGreaterThanOrEqual(2);
   expect(duringReveal.counts.enemies).toBe(afterReveal.counts.enemies);
   expect(duringReveal.counts.orbs).toBe(afterReveal.counts.orbs);
   expect(duringReveal.choice?.title).toContain("Revealed");
@@ -497,12 +524,11 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
 
   await page.evaluate(() => {
     window.__gameTest!.setRngSeed(9);
-    window.__gameTest!.forceSpawnEnemies(2);
   });
-  const beforeReveal = await page.evaluate(() => window.__gameTest!.getSnapshot());
   await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.counts.enemies).toBeGreaterThanOrEqual(beforeReveal.counts.enemies);
+  expect(snapshot.counts.enemies).toBeGreaterThanOrEqual(2);
   expect(snapshot.choice?.title).toContain("Revealed");
   expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
     "yujian-jue",

@@ -71,6 +71,7 @@ import {
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
   projectGongfaRuntimeCheckpoint,
+  projectGongfaRuntimeView,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds,
   type GongfaRuntimeCommand,
@@ -2460,10 +2461,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private publishHud(message?: string): void {
-    const jinfeng = this.gongfaRuntime?.jinfeng;
-    const gengjin = this.gongfaRuntime?.gengjin;
-    const burningRing = this.gongfaRuntime?.burningRing;
-    const crimsonFurnace = this.gongfaRuntime?.crimsonFurnace;
+    const gongfaView = projectGongfaRuntimeView(this.gongfaRuntime);
     this.registry.set("hud", {
       health: this.player?.stats.health ?? 100,
       maxHealth: this.player?.stats.maxHealth ?? 100,
@@ -2479,21 +2477,21 @@ export class GameScene extends Phaser.Scene {
       masteryRank: this.runState.masteryRank,
       masterySkill2: this.runState.masterySkill2Id,
       masterySkill2Casts: this.runState.masterySkill2Casts,
-      galeMomentum: jinfeng?.momentum ?? 0,
-      heat: burningRing?.heat ?? 0,
-      ringSegments: burningRing?.ringSegments ?? 0,
-      counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
-      solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
-      pressure: crimsonFurnace?.pressure ?? 0,
+      galeMomentum: gongfaView.galeMomentum,
+      heat: gongfaView.heat,
+      ringSegments: gongfaView.ringSegments,
+      counterflowRingSegments: gongfaView.counterflowRingSegments,
+      solarFlareCasts: gongfaView.solarFlareCasts,
+      pressure: gongfaView.pressure,
       embeddedEnemies: (this.enemies?.getChildren() as Enemy[] | undefined)?.filter(
         (enemy) => enemy.active && enemy.embedStacks > 0
       ).length ?? 0,
-      furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
-      crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
-      guard: gengjin?.guardValue ?? 0,
-      guardMitigation: gengjin?.guardMitigation ?? 0,
-      bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
-      bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
+      furnaceCascadeCasts: gongfaView.furnaceCascadeCasts,
+      crimsonPressureRadiusScale: gongfaView.crimsonPressureRadiusScale,
+      guard: gongfaView.guard,
+      guardMitigation: gongfaView.guardMitigation,
+      bladeShellCharge: gongfaView.bladeShellCharge,
+      bladeShellCasts: gongfaView.bladeShellCasts,
       skillTags: this.runState.mainGongfaId
         ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
         : "",
@@ -2526,11 +2524,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   getTestSnapshot(): GameSnapshot {
-    const jinfeng = this.gongfaRuntime?.jinfeng;
-    const gengjin = this.gongfaRuntime?.gengjin;
-    const burningRing = this.gongfaRuntime?.burningRing;
-    const crimsonFurnace = this.gongfaRuntime?.crimsonFurnace;
-    const yujian = this.gongfaRuntime?.yujian;
+    const gongfaView = projectGongfaRuntimeView(this.gongfaRuntime);
     return {
       sceneName: this.scene.key,
       activeScenes: this.scene.manager.getScenes(true).map((scene) => scene.scene.key),
@@ -2549,14 +2543,14 @@ export class GameScene extends Phaser.Scene {
           ),
           masterySkill2: this.runState.masterySkill2Id,
           masterySkill2Casts: this.runState.masterySkill2Casts,
-          galeMomentum: jinfeng?.momentum ?? 0,
+          galeMomentum: gongfaView.galeMomentum,
           skillTags: this.runState.mainGongfaId
             ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
             : "",
-          guard: gengjin?.guardValue ?? 0,
-          guardMitigation: gengjin?.guardMitigation ?? 0,
-          bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
-          bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
+          guard: gongfaView.guard,
+          guardMitigation: gongfaView.guardMitigation,
+          bladeShellCasts: gongfaView.bladeShellCasts,
+          bladeShellCharge: gongfaView.bladeShellCharge,
           linggenName: this.runState.revealedLinggen?.name ?? "Unrevealed",
           linggenGrades: this.runState.revealedLinggen
             ? getLinggenAffinityGradeSummary(this.runState.revealedLinggen.id).join(", ")
@@ -2603,28 +2597,26 @@ export class GameScene extends Phaser.Scene {
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
-          executionSeal: yujian?.executionSealTriggers ?? 0,
-          swordBloom: yujian?.swordBloomTriggers ?? 0,
-          reversingSwordPath: yujian?.reversingSwordPathTriggers ?? 0
+          ...gongfaView.masteryTransformationTriggers
         },
         skillTags: this.runState.mainGongfaId
           ? getGongfaSkillTags(this.runState.mainGongfaId)
           : [],
-        galeMomentum: jinfeng?.momentum ?? 0,
-        heat: burningRing?.heat ?? 0,
-        ringSegments: burningRing?.ringSegments ?? 0,
-        counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
-        solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
-        pressure: crimsonFurnace?.pressure ?? 0,
+        galeMomentum: gongfaView.galeMomentum,
+        heat: gongfaView.heat,
+        ringSegments: gongfaView.ringSegments,
+        counterflowRingSegments: gongfaView.counterflowRingSegments,
+        solarFlareCasts: gongfaView.solarFlareCasts,
+        pressure: gongfaView.pressure,
         embeddedEnemies: (this.enemies?.getChildren() as Enemy[] | undefined)?.filter(
           (enemy) => enemy.active && enemy.embedStacks > 0
         ).length ?? 0,
-        furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
-        crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
-        guard: gengjin?.guardValue ?? 0,
-        guardMitigation: gengjin?.guardMitigation ?? 0,
-        bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
-        bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
+        furnaceCascadeCasts: gongfaView.furnaceCascadeCasts,
+        crimsonPressureRadiusScale: gongfaView.crimsonPressureRadiusScale,
+        guard: gongfaView.guard,
+        guardMitigation: gongfaView.guardMitigation,
+        bladeShellCharge: gongfaView.bladeShellCharge,
+        bladeShellCasts: gongfaView.bladeShellCasts,
         linggen: this.runState.revealedLinggen?.id ?? "unrevealed",
         linggenGrades: this.runState.revealedLinggen
           ? getLinggenAffinityGradeSummary(this.runState.revealedLinggen.id).join(", ")
@@ -2642,7 +2634,7 @@ export class GameScene extends Phaser.Scene {
         cooldownMs: this.combatState.cooldownMs,
         pierce: this.combatState.pierce,
         segmentCount: this.combatState.count,
-        counterflowSegments: burningRing?.counterflowRingSegments ?? 0,
+        counterflowSegments: gongfaView.counterflowRingSegments,
         spreadDeg: this.combatState.spreadDeg,
         range: this.combatState.range,
         auraRadius: this.combatState.auraRadius,
@@ -2749,16 +2741,6 @@ export class GameScene extends Phaser.Scene {
 
   forceSpawnSpiritTreasure(treasureId: SpiritTreasureId): void {
     this.spawnSpiritTreasure(treasureId, this.player.x, this.player.y);
-    this.publishHud(this.lastMessage);
-  }
-
-  forceClaimLingcao(): void {
-    const lingcao = (this.lingcaoGroup?.getChildren() as Lingcao[] | undefined)?.find(
-      (item) => item.active
-    );
-    if (lingcao) {
-      this.collectLingcao(lingcao);
-    }
     this.publishHud(this.lastMessage);
   }
 

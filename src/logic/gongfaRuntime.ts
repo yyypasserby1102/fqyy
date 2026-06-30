@@ -582,6 +582,26 @@ export interface GongfaRuntimeCheckpointFields {
 
 export type GongfaRuntimeCheckpointInput = Partial<GongfaRuntimeCheckpointFields>;
 
+export interface GongfaRuntimeView {
+  galeMomentum: number;
+  heat: number;
+  ringSegments: number;
+  counterflowRingSegments: number;
+  solarFlareCasts: number;
+  pressure: number;
+  furnaceCascadeCasts: number;
+  crimsonPressureRadiusScale: number;
+  guard: number;
+  guardMitigation: number;
+  bladeShellCharge: number;
+  bladeShellCasts: number;
+  masteryTransformationTriggers: {
+    executionSeal: number;
+    swordBloom: number;
+    reversingSwordPath: number;
+  };
+}
+
 const jinfengDefaults: JinfengState = {
   momentum: 0,
   momentumBuildRate: 0.72,
@@ -1031,6 +1051,34 @@ export function projectGongfaRuntimeCheckpoint(
     bladeShellThreshold: gengjin?.bladeShellThreshold ?? 100,
     bladeShellCooldownRemaining: gengjin?.bladeShellCooldownRemaining ?? 0,
     bladeShellCasts: gengjin?.bladeShellCasts ?? 0
+  };
+}
+
+export function projectGongfaRuntimeView(runtime: GongfaRuntime | undefined): GongfaRuntimeView {
+  const jinfeng = runtime?.jinfeng;
+  const gengjin = runtime?.gengjin;
+  const burningRing = runtime?.burningRing;
+  const crimsonFurnace = runtime?.crimsonFurnace;
+  const yujian = runtime?.yujian;
+
+  return {
+    galeMomentum: jinfeng?.momentum ?? 0,
+    heat: burningRing?.heat ?? 0,
+    ringSegments: burningRing?.ringSegments ?? 0,
+    counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
+    solarFlareCasts: burningRing?.solarFlareCasts ?? 0,
+    pressure: crimsonFurnace?.pressure ?? 0,
+    furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
+    crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
+    guard: gengjin?.guardValue ?? 0,
+    guardMitigation: gengjin?.guardMitigation ?? 0,
+    bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
+    bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
+    masteryTransformationTriggers: {
+      executionSeal: yujian?.executionSealTriggers ?? 0,
+      swordBloom: yujian?.swordBloomTriggers ?? 0,
+      reversingSwordPath: yujian?.reversingSwordPathTriggers ?? 0
+    }
   };
 }
 

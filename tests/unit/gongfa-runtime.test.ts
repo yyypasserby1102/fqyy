@@ -15,6 +15,7 @@ import {
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
   projectGongfaRuntimeCheckpoint,
+  projectGongfaRuntimeView,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds
 } from "../../src/logic/gongfaRuntime";
@@ -399,6 +400,53 @@ describe("Gongfa runtime", () => {
       guardBuildRate: 2,
       bladeShellCharge: 75,
       bladeShellCasts: 3
+    });
+  });
+
+  it("projects UI-visible runtime meters without exposing Gongfa subtype state", () => {
+    const yujian = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "yujian-jue" }), {
+      kind: "yujian-projectile-hit",
+      targetId: 10,
+      damage: 15,
+      learnedMasteryIds: ["execution-seal", "sword-bloom", "reversing-sword-path"]
+    }).runtime;
+
+    expect(projectGongfaRuntimeView(yujian)).toMatchObject({
+      galeMomentum: 0,
+      heat: 0,
+      guard: 0,
+      masteryTransformationTriggers: {
+        executionSeal: 0,
+        swordBloom: 1,
+        reversingSwordPath: 0
+      }
+    });
+
+    const gengjin = advanceGongfaRuntime(
+      createGongfaRuntime({ gongfaId: "gengjin-huti" }),
+      {
+        kind: "tick",
+        deltaMs: 1000,
+        nearbyEnemyCount: 2,
+        skill2Id: "blade-shell-rebound"
+      }
+    ).runtime;
+
+    expect(projectGongfaRuntimeView(gengjin)).toMatchObject({
+      guard: 1.24,
+      guardMitigation: 1.24 / 220,
+      bladeShellCharge: 14.062,
+      bladeShellCasts: 0,
+      crimsonPressureRadiusScale: 0.45
+    });
+
+    expect(projectGongfaRuntimeView(undefined)).toMatchObject({
+      galeMomentum: 0,
+      heat: 0,
+      ringSegments: 0,
+      pressure: 0,
+      guard: 0,
+      crimsonPressureRadiusScale: 0.45
     });
   });
 
