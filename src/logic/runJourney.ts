@@ -9,6 +9,7 @@ export interface RunJourneyState {
   finalBossActive?: boolean;
   finalBossPhaseIndex?: number;
   gameOver?: boolean;
+  pendingDecision?: RunJourneyDecision;
 }
 
 export type CleanupDecision =
@@ -23,11 +24,12 @@ export type RunJourneyDecision =
 export type RunJourneyEvent =
   | { kind: "realm-qi-gained"; amount: number }
   | { kind: "cleanup-finished" }
-  | { kind: "journey-choice-accepted"; decision: RunJourneyDecision }
-  | { kind: "final-boss-phase-cleared" };
+  | { kind: "journey-choice-accepted" }
+  | { kind: "final-boss-phase-cleared" }
+  | { kind: "player-died" };
 
 export type RunJourneyCommand =
-  | { kind: "present-journey-choice"; decision: RunJourneyDecision }
+  | { kind: "present-journey-choice" }
   | { kind: "persist-checkpoint" }
   | { kind: "start-final-boss"; phaseIndex: number }
   | { kind: "advance-final-boss-phase"; phaseIndex: number }
@@ -46,6 +48,7 @@ export interface RunJourneyCheckpointFields {
   foundationGrowthTransactions: number;
   finalBossActive: boolean;
   finalBossPhaseIndex: number;
+  pendingDecision?: RunJourneyDecision;
 }
 
 const nextRealmPhase: Partial<Record<RealmPhaseId, RealmPhaseId>> = {
@@ -60,6 +63,10 @@ const nextStage: Partial<Record<StageId, StageId>> = {
   jindan: "yuanying"
 };
 
+export function getStageBreakthroughDestination(stage: StageId): StageId | undefined {
+  return nextStage[stage];
+}
+
 function incrementFoundationGrowth(state: RunJourneyState): RunJourneyState {
   return {
     ...state,
@@ -73,9 +80,20 @@ function completeRun(state: RunJourneyState): RunJourneyResult {
       ...state,
       phaseCleanupActive: false,
       finalBossActive: false,
-      gameOver: true
+      gameOver: true,
+      pendingDecision: undefined
     },
     commands: [{ kind: "complete-run" }]
+  };
+}
+
+function presentJourneyDecision(
+  state: RunJourneyState,
+  decision: RunJourneyDecision
+): RunJourneyResult {
+  return {
+    state: { ...state, pendingDecision: decision },
+    commands: [{ kind: "persist-checkpoint" }, { kind: "present-journey-choice" }]
   };
 }
 
@@ -89,7 +107,8 @@ export function projectRunJourneyCheckpointFields(
     phaseCleanupActive: state.phaseCleanupActive,
     foundationGrowthTransactions: state.foundationGrowthTransactions ?? 0,
     finalBossActive: state.finalBossActive ?? false,
-    finalBossPhaseIndex: state.finalBossPhaseIndex ?? 0
+    finalBossPhaseIndex: state.finalBossPhaseIndex ?? 0,
+    pendingDecision: state.pendingDecision
   };
 }
 
@@ -102,10 +121,47 @@ export function createRunJourneyStateFromCheckpoint(
   };
 }
 
+export function isRunJourneyDecisionLegal(
+  state: RunJourneyState,
+  decision: RunJourneyDecision
+): boolean {
+  if (decision.kind === "final-boss-phase") {
+    return (
+      state.finalBossActive === true &&
+      state.phaseCleanupActive &&
+      decision.nextPhaseIndex === (state.finalBossPhaseIndex ?? 0) + 1 &&
+      decision.nextPhaseIndex <= 2
+    );
+  }
+
+  const cleanupDecision = getCleanupDecision(state);
+  if (decision.kind === "yuanying-tribulation") {
+    return cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === "yuanying";
+  }
+
+  if (decision.kind === "phase-transition") {
+    return cleanupDecision?.kind === "phase-transition" && cleanupDecision.nextPhase === decision.nextPhase;
+  }
+  return cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === decision.stage;
+}
+
 export function advanceRunJourney(
   state: RunJourneyState,
   event: RunJourneyEvent
 ): RunJourneyResult {
+  if (event.kind === "player-died") {
+    return {
+      state: {
+        ...state,
+        phaseCleanupActive: false,
+        finalBossActive: false,
+        gameOver: true,
+        pendingDecision: undefined
+      },
+      commands: []
+    };
+  }
+
   if (event.kind === "realm-qi-gained") {
     return {
       state: grantRealmQi(state, event.amount),
@@ -114,21 +170,19 @@ export function advanceRunJourney(
   }
 
   if (event.kind === "cleanup-finished") {
+    if (state.pendingDecision) {
+      return { state, commands: [{ kind: "present-journey-choice" }] };
+    }
     if (state.finalBossActive) {
       if ((state.finalBossPhaseIndex ?? 0) >= 2) {
         return completeRun(state);
       }
 
       const nextPhaseIndex = (state.finalBossPhaseIndex ?? 0) + 1;
-      return {
-        state,
-        commands: [
-          {
-            kind: "present-journey-choice",
-            decision: { kind: "final-boss-phase", nextPhaseIndex }
-          }
-        ]
-      };
+      return presentJourneyDecision(state, {
+        kind: "final-boss-phase",
+        nextPhaseIndex
+      });
     }
 
     const cleanupDecision = getCleanupDecision(state);
@@ -136,31 +190,39 @@ export function advanceRunJourney(
       cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === "yuanying"
         ? ({ kind: "yuanying-tribulation" } as const)
         : cleanupDecision;
-    return {
-      state,
-      commands: decision ? [{ kind: "present-journey-choice", decision }] : []
-    };
+    return decision ? presentJourneyDecision(state, decision) : { state, commands: [] };
   }
 
   if (event.kind === "journey-choice-accepted") {
-    if (event.decision.kind === "phase-transition") {
+    const decision = state.pendingDecision;
+    if (!decision) {
+      return { state, commands: [] };
+    }
+
+    if (decision.kind === "phase-transition") {
       return {
-        state: incrementFoundationGrowth(completePhaseTransition(state)),
+        state: {
+          ...incrementFoundationGrowth(completePhaseTransition(state)),
+          pendingDecision: undefined
+        },
         commands: [{ kind: "persist-checkpoint" }]
       };
     }
 
-    if (event.decision.kind === "tribulation") {
+    if (decision.kind === "tribulation") {
       const result = completeStageTribulation(state);
       if (result.outcome === "breakthrough") {
         return {
-          state: incrementFoundationGrowth(result.state),
+          state: {
+            ...incrementFoundationGrowth(result.state),
+            pendingDecision: undefined
+          },
           commands: [{ kind: "persist-checkpoint" }]
         };
       }
     }
 
-    if (event.decision.kind === "yuanying-tribulation") {
+    if (decision.kind === "yuanying-tribulation") {
       return {
         state: {
           ...state,
@@ -168,7 +230,8 @@ export function advanceRunJourney(
           phaseCleanupActive: false,
           finalBossActive: true,
           finalBossPhaseIndex: 0,
-          gameOver: false
+          gameOver: false,
+          pendingDecision: undefined
         },
         commands: [
           { kind: "start-final-boss", phaseIndex: 0 },
@@ -177,17 +240,18 @@ export function advanceRunJourney(
       };
     }
 
-    if (event.decision.kind === "final-boss-phase") {
+    if (decision.kind === "final-boss-phase") {
       return {
         state: {
           ...state,
           phaseCleanupActive: false,
           finalBossActive: true,
-          finalBossPhaseIndex: event.decision.nextPhaseIndex,
-          gameOver: false
+          finalBossPhaseIndex: decision.nextPhaseIndex,
+          gameOver: false,
+          pendingDecision: undefined
         },
         commands: [
-          { kind: "advance-final-boss-phase", phaseIndex: event.decision.nextPhaseIndex },
+          { kind: "advance-final-boss-phase", phaseIndex: decision.nextPhaseIndex },
           { kind: "persist-checkpoint" }
         ]
       };
@@ -195,6 +259,9 @@ export function advanceRunJourney(
   }
 
   if (event.kind === "final-boss-phase-cleared") {
+    if (!state.finalBossActive) {
+      return { state, commands: [] };
+    }
     if (state.finalBossActive && (state.finalBossPhaseIndex ?? 0) >= 2) {
       return completeRun(state);
     }
@@ -257,7 +324,7 @@ export function completeStageTribulation(
     throw new Error("The Run is not ready to complete a Stage Tribulation.");
   }
 
-  const destination = nextStage[state.stage];
+  const destination = getStageBreakthroughDestination(state.stage);
   if (!destination) {
     return { outcome: "normal-ending", state };
   }

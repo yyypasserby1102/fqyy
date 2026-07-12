@@ -3,6 +3,7 @@ import type { LinggenId } from "../data/linggen";
 import type { RealmPhaseId, StageId } from "../data/stages";
 import type { SpiritTreasureId } from "../data/spiritTreasures";
 import type { GongfaMasteryCheckpoint, GongfaRuntime } from "../logic/gongfaRuntime";
+import type { RunJourneyDecision } from "../logic/runJourney";
 import {
   decodeActiveRunCheckpoint,
   decodeActiveRunSave,
@@ -98,6 +99,7 @@ export interface ActiveRunCheckpoint {
   elapsedMs: number;
   finalBossActive: boolean;
   finalBossPhaseIndex: number;
+  pendingDecision?: RunJourneyDecision;
 }
 
 export interface ActiveRunSave {

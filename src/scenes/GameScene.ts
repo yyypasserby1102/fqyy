@@ -16,7 +16,7 @@ import {
   rollLinggen,
   type LinggenConfig
 } from "../data/linggen";
-import { stageConfigs, type StageId } from "../data/stages";
+import { stageConfigs } from "../data/stages";
 import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
 import { HealingPill } from "../entities/HealingPill";
@@ -48,6 +48,7 @@ import { Evade } from "../logic/evade";
 import {
   advanceRunJourney,
   createRunJourneyStateFromCheckpoint,
+  getStageBreakthroughDestination,
   projectRunJourneyCheckpointFields,
   type RunJourneyCommand,
   type RunJourneyDecision,
@@ -111,16 +112,14 @@ interface CombatState extends GongfaStageState {
   tint: number;
 }
 
-interface RunState {
+interface RunState extends RunJourneyState {
   kills: number;
   elapsedMs: number;
   paused: boolean;
   gameOver: boolean;
-  stage: StageId;
-  realmPhase: "chuqi" | "zhongqi" | "houqi" | "dayuanman";
-  realmProgress: number;
-  phaseCleanupActive: boolean;
   foundationGrowthTransactions: number;
+  finalBossActive: boolean;
+  finalBossPhaseIndex: number;
   learnedGongfaIds: GongfaId[];
   hiddenLinggen: LinggenConfig;
   revealedLinggen?: LinggenConfig;
@@ -131,8 +130,6 @@ interface RunState {
   lingcaoY: number;
   healingPills: HealingPillCheckpoint[];
   spiritTreasureIds: SpiritTreasureId[];
-  finalBossActive: boolean;
-  finalBossPhaseIndex: number;
 }
 
 const baselineState: CombatState = {
@@ -219,7 +216,6 @@ export class GameScene extends Phaser.Scene {
   private choiceActive = false;
   private currentChoiceTitle?: string;
   private currentChoiceOptions: ChoiceOption[] = [];
-  private pendingJourneyDecision?: RunJourneyDecision;
   private lastMessage?: string;
   private lastAimAngle = 0;
   private finalBossWaveAccumulator = 0;
@@ -935,7 +931,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
-      this.runState.phaseCleanupActive = true;
+      this.reportFinalBossPhaseCleared();
       return;
     }
 
@@ -982,7 +978,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
-      this.runState.phaseCleanupActive = true;
+      this.reportFinalBossPhaseCleared();
     }
   }
 
@@ -2165,7 +2161,7 @@ export class GameScene extends Phaser.Scene {
 
   private resolveChoice(option: ChoiceOption): void {
     const acceptedJourneyDecision =
-      option.kind === "continue" ? this.pendingJourneyDecision : undefined;
+      option.kind === "continue" ? this.runState.pendingDecision : undefined;
 
     if (option.kind === "spirit-treasure-replace") {
       this.resolveSpiritTreasureReplace(option.id as SpiritTreasureId);
@@ -2177,10 +2173,8 @@ export class GameScene extends Phaser.Scene {
       this.applyMasteryChoice(option.id);
       return;
     } else if (acceptedJourneyDecision) {
-      this.pendingJourneyDecision = undefined;
       const result = advanceRunJourney(this.runState, {
-        kind: "journey-choice-accepted",
-        decision: acceptedJourneyDecision
+        kind: "journey-choice-accepted"
       });
       this.applyRunJourneyState(result.state);
       this.applyJourneyChoiceMessage(acceptedJourneyDecision);
@@ -2203,6 +2197,10 @@ export class GameScene extends Phaser.Scene {
     if (acceptedJourneyDecision?.kind === "tribulation") {
       this.offerGongfaChoice();
       return;
+    }
+
+    if (this.runState.pendingDecision) {
+      this.offerJourneyChoice();
     }
   }
 
@@ -2319,6 +2317,7 @@ export class GameScene extends Phaser.Scene {
     this.runState.finalBossActive = state.finalBossActive ?? false;
     this.runState.finalBossPhaseIndex = state.finalBossPhaseIndex ?? 0;
     this.runState.gameOver = state.gameOver ?? false;
+    this.runState.pendingDecision = state.pendingDecision;
   }
 
   private applyJourneyChoiceMessage(decision: RunJourneyDecision): void {
@@ -2345,7 +2344,7 @@ export class GameScene extends Phaser.Scene {
       }
 
       if (command.kind === "present-journey-choice") {
-        this.offerJourneyChoice(command.decision);
+        this.offerJourneyChoice();
         return;
       }
 
@@ -2521,7 +2520,8 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerDeath(message: string): void {
     this.cameras.main.shake(280, 0.013);
     this.sfx.death();
-    this.runState.gameOver = true;
+    const result = advanceRunJourney(this.runState, { kind: "player-died" });
+    this.applyRunJourneyState(result.state);
     this.setPausedState(true);
     this.lastMessage = message;
     this.clearActiveRunSave();
@@ -2982,7 +2982,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private maybeResolvePhaseTransition(): void {
-    if (!this.runState.phaseCleanupActive) {
+    if (!this.runState.phaseCleanupActive || this.runState.gameOver) {
+      return;
+    }
+
+    if (this.runState.pendingDecision) {
+      this.offerJourneyChoice();
       return;
     }
 
@@ -3007,12 +3012,20 @@ export class GameScene extends Phaser.Scene {
     this.executeRunJourneyCommands(result.commands);
   }
 
-  private offerJourneyChoice(decision: RunJourneyDecision): void {
-    if (this.choiceActive || this.pendingJourneyDecision) {
+  private reportFinalBossPhaseCleared(): void {
+    const result = advanceRunJourney(this.runState, {
+      kind: "final-boss-phase-cleared"
+    });
+    this.applyRunJourneyState(result.state);
+    this.executeRunJourneyCommands(result.commands);
+  }
+
+  private offerJourneyChoice(): void {
+    const decision = this.runState.pendingDecision;
+    if (!decision || this.choiceActive) {
       return;
     }
 
-    this.pendingJourneyDecision = decision;
     this.choiceActive = true;
     this.currentChoiceTitle = this.getJourneyChoiceTitle(decision);
     this.currentChoiceOptions = this.getJourneyChoiceOptions(decision);
@@ -3079,12 +3092,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
-      const destination =
-        decision.stage === "lianqi"
-          ? "zhuji"
-          : decision.stage === "zhuji"
-            ? "jindan"
-            : "yuanying";
+      const destination = getStageBreakthroughDestination(decision.stage);
+      if (!destination) {
+        return [];
+      }
       const destinationName = stageConfigs[destination].name;
       const currentName = stageConfigs[decision.stage].name;
       return [

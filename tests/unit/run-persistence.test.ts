@@ -141,6 +141,33 @@ describe("run persistence", () => {
     ).toThrow("Invalid active Run checkpoint");
   });
 
+  it("persists only legal pending Run journey decisions", () => {
+    const checkpoint = {
+      ...createValidCheckpoint(),
+      realmProgress: 100,
+      phaseCleanupActive: true,
+      pendingDecision: { kind: "phase-transition" as const, nextPhase: "zhongqi" as const }
+    };
+
+    expect(createActiveRunCheckpoint(checkpoint).pendingDecision).toEqual(
+      checkpoint.pendingDecision
+    );
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        pendingDecision: { kind: "phase-transition", nextPhase: "chuqi" }
+      })
+    ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        realmPhase: "dayuanman",
+        pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
+      })
+    ).toThrow("Invalid active Run checkpoint");
+  });
+
   it("creates a durable active-run record without transient combat fields", () => {
     const save = createActiveRunSave(42, 1234567890);
 

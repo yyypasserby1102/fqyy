@@ -4,12 +4,20 @@ import {
   completePhaseTransition,
   completeStageTribulation,
   createRunJourneyStateFromCheckpoint,
+  getStageBreakthroughDestination,
   getCleanupDecision,
   grantRealmQi,
   projectRunJourneyCheckpointFields
 } from "../../src/logic/runJourney";
 
 describe("Run journey", () => {
+  it("owns the legal Stage breakthrough destinations", () => {
+    expect(getStageBreakthroughDestination("lianqi")).toBe("zhuji");
+    expect(getStageBreakthroughDestination("zhuji")).toBe("jindan");
+    expect(getStageBreakthroughDestination("jindan")).toBe("yuanying");
+    expect(getStageBreakthroughDestination("yuanying")).toBeUndefined();
+  });
+
   it("owns durable journey checkpoint projection and restoration", () => {
     const state = {
       stage: "jindan" as const,
@@ -19,6 +27,7 @@ describe("Run journey", () => {
       foundationGrowthTransactions: 5,
       finalBossActive: true,
       finalBossPhaseIndex: 1,
+      pendingDecision: { kind: "final-boss-phase" as const, nextPhaseIndex: 2 },
       gameOver: false
     };
 
@@ -31,7 +40,8 @@ describe("Run journey", () => {
       phaseCleanupActive: false,
       foundationGrowthTransactions: 5,
       finalBossActive: true,
-      finalBossPhaseIndex: 1
+      finalBossPhaseIndex: 1,
+      pendingDecision: { kind: "final-boss-phase", nextPhaseIndex: 2 }
     });
     expect(createRunJourneyStateFromCheckpoint(checkpoint)).toEqual(state);
   });
@@ -64,21 +74,12 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      {
-        kind: "present-journey-choice",
-        decision: {
-          kind: "phase-transition",
-          nextPhase: "zhongqi"
-        }
-      }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
-      kind: "journey-choice-accepted",
-      decision: {
-        kind: "phase-transition",
-        nextPhase: "zhongqi"
-      }
+      kind: "journey-choice-accepted"
     });
 
     expect(accepted.state).toMatchObject({
@@ -89,6 +90,79 @@ describe("Run journey", () => {
       foundationGrowthTransactions: 1
     });
     expect(accepted.commands).toEqual([{ kind: "persist-checkpoint" }]);
+  });
+
+  it("owns a pending journey decision until its legal acceptance", () => {
+    const cleanupReady = {
+      stage: "lianqi" as const,
+      realmPhase: "chuqi" as const,
+      realmProgress: 100,
+      phaseCleanupActive: true,
+      foundationGrowthTransactions: 0,
+      finalBossActive: false,
+      finalBossPhaseIndex: 0,
+      gameOver: false
+    };
+
+    const presented = advanceRunJourney(cleanupReady, { kind: "cleanup-finished" });
+    expect(presented.state).toMatchObject({
+      pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
+    });
+    expect(presented.commands).toEqual([
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
+    ]);
+
+    const accepted = advanceRunJourney(presented.state, {
+      kind: "journey-choice-accepted"
+    });
+    expect(accepted.state).toMatchObject({
+      realmPhase: "zhongqi",
+      pendingDecision: undefined
+    });
+
+    expect(
+      advanceRunJourney(cleanupReady, { kind: "journey-choice-accepted" })
+    ).toEqual({ state: cleanupReady, commands: [] });
+  });
+
+  it("owns the terminal death transition", () => {
+    const alive = {
+      stage: "jindan" as const,
+      realmPhase: "houqi" as const,
+      realmProgress: 56,
+      phaseCleanupActive: false,
+      foundationGrowthTransactions: 4,
+      finalBossActive: false,
+      finalBossPhaseIndex: 0,
+      gameOver: false
+    };
+
+    expect(advanceRunJourney(alive, { kind: "player-died" })).toEqual({
+      state: {
+        ...alive,
+        phaseCleanupActive: false,
+        finalBossActive: false,
+        gameOver: true,
+        pendingDecision: undefined
+      },
+      commands: []
+    });
+  });
+
+  it("ignores a final-boss phase fact outside an active final boss", () => {
+    const state = {
+      stage: "lianqi" as const,
+      realmPhase: "chuqi" as const,
+      realmProgress: 20,
+      phaseCleanupActive: false,
+      finalBossActive: false
+    };
+
+    expect(advanceRunJourney(state, { kind: "final-boss-phase-cleared" })).toEqual({
+      state,
+      commands: []
+    });
   });
 
   it("drives Stage Tribulation breakthroughs through runtime events", () => {
@@ -108,21 +182,12 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      {
-        kind: "present-journey-choice",
-        decision: {
-          kind: "tribulation",
-          stage: "lianqi"
-        }
-      }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
-      kind: "journey-choice-accepted",
-      decision: {
-        kind: "tribulation",
-        stage: "lianqi"
-      }
+      kind: "journey-choice-accepted"
     });
 
     expect(accepted.state).toMatchObject({
@@ -152,19 +217,12 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      {
-        kind: "present-journey-choice",
-        decision: {
-          kind: "yuanying-tribulation"
-        }
-      }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
-      kind: "journey-choice-accepted",
-      decision: {
-        kind: "yuanying-tribulation"
-      }
+      kind: "journey-choice-accepted"
     });
 
     expect(accepted.state).toMatchObject({
@@ -205,21 +263,12 @@ describe("Run journey", () => {
       phaseCleanupActive: true
     });
     expect(cleanup.commands).toEqual([
-      {
-        kind: "present-journey-choice",
-        decision: {
-          kind: "final-boss-phase",
-          nextPhaseIndex: 1
-        }
-      }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
-      kind: "journey-choice-accepted",
-      decision: {
-        kind: "final-boss-phase",
-        nextPhaseIndex: 1
-      }
+      kind: "journey-choice-accepted"
     });
 
     expect(accepted.state).toMatchObject({
