@@ -65,6 +65,26 @@ describe("Gongfa runtime", () => {
     ]);
   });
 
+  it("advances a secondary Gongfa through the same runtime interface as the primary", () => {
+    const collection = learnGongfa(
+      learnGongfa(createGongfaCollectionRuntime(), "burning-ring-scripture", true),
+      "crimson-furnace-sword-art"
+    );
+    const secondary = collection.byId["crimson-furnace-sword-art"]!;
+
+    const advanced = advanceGongfaRuntime(secondary, {
+      kind: "crimson-detonation",
+      x: 10,
+      y: 20,
+      damage: 20,
+      fromEmbed: true
+    });
+
+    expect(collection.primaryGongfaId).toBe("burning-ring-scripture");
+    expect(advanced.runtime.gongfaId).toBe("crimson-furnace-sword-art");
+    expect(advanced.runtime.crimsonFurnace!.pressure).toBeGreaterThan(0);
+  });
+
   it("can advance learned Gongfa at different affinity-derived rates", () => {
     const learned = learnGongfa(
       learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true),
