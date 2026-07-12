@@ -25,7 +25,8 @@ export type RunJourneyEvent =
   | { kind: "realm-qi-gained"; amount: number }
   | { kind: "cleanup-finished" }
   | { kind: "journey-choice-accepted" }
-  | { kind: "final-boss-phase-cleared" };
+  | { kind: "final-boss-phase-cleared" }
+  | { kind: "player-died" };
 
 export type RunJourneyCommand =
   | { kind: "present-journey-choice" }
@@ -124,6 +125,19 @@ export function advanceRunJourney(
   state: RunJourneyState,
   event: RunJourneyEvent
 ): RunJourneyResult {
+  if (event.kind === "player-died") {
+    return {
+      state: {
+        ...state,
+        phaseCleanupActive: false,
+        finalBossActive: false,
+        gameOver: true,
+        pendingDecision: undefined
+      },
+      commands: []
+    };
+  }
+
   if (event.kind === "realm-qi-gained") {
     return {
       state: grantRealmQi(state, event.amount),

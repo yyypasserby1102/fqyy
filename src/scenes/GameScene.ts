@@ -931,7 +931,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
-      this.runState.phaseCleanupActive = true;
+      this.reportFinalBossPhaseCleared();
       return;
     }
 
@@ -978,7 +978,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
-      this.runState.phaseCleanupActive = true;
+      this.reportFinalBossPhaseCleared();
     }
   }
 
@@ -2198,6 +2198,10 @@ export class GameScene extends Phaser.Scene {
       this.offerGongfaChoice();
       return;
     }
+
+    if (this.runState.pendingDecision) {
+      this.offerJourneyChoice();
+    }
   }
 
   private applyGongfaChoice(gongfaId: keyof typeof gongfaConfigs, replaceCurrent = false): void {
@@ -2516,7 +2520,8 @@ export class GameScene extends Phaser.Scene {
   private handlePlayerDeath(message: string): void {
     this.cameras.main.shake(280, 0.013);
     this.sfx.death();
-    this.runState.gameOver = true;
+    const result = advanceRunJourney(this.runState, { kind: "player-died" });
+    this.applyRunJourneyState(result.state);
     this.setPausedState(true);
     this.lastMessage = message;
     this.clearActiveRunSave();
@@ -2977,7 +2982,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private maybeResolvePhaseTransition(): void {
-    if (!this.runState.phaseCleanupActive) {
+    if (!this.runState.phaseCleanupActive || this.runState.gameOver) {
+      return;
+    }
+
+    if (this.runState.pendingDecision) {
+      this.offerJourneyChoice();
       return;
     }
 
@@ -2997,6 +3007,14 @@ export class GameScene extends Phaser.Scene {
 
     const result = advanceRunJourney(this.runState, {
       kind: "cleanup-finished"
+    });
+    this.applyRunJourneyState(result.state);
+    this.executeRunJourneyCommands(result.commands);
+  }
+
+  private reportFinalBossPhaseCleared(): void {
+    const result = advanceRunJourney(this.runState, {
+      kind: "final-boss-phase-cleared"
     });
     this.applyRunJourneyState(result.state);
     this.executeRunJourneyCommands(result.commands);

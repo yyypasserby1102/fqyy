@@ -126,6 +126,30 @@ describe("Run journey", () => {
     ).toEqual({ state: cleanupReady, commands: [] });
   });
 
+  it("owns the terminal death transition", () => {
+    const alive = {
+      stage: "jindan" as const,
+      realmPhase: "houqi" as const,
+      realmProgress: 56,
+      phaseCleanupActive: false,
+      foundationGrowthTransactions: 4,
+      finalBossActive: false,
+      finalBossPhaseIndex: 0,
+      gameOver: false
+    };
+
+    expect(advanceRunJourney(alive, { kind: "player-died" })).toEqual({
+      state: {
+        ...alive,
+        phaseCleanupActive: false,
+        finalBossActive: false,
+        gameOver: true,
+        pendingDecision: undefined
+      },
+      commands: []
+    });
+  });
+
   it("drives Stage Tribulation breakthroughs through runtime events", () => {
     const ready = {
       stage: "lianqi" as const,
