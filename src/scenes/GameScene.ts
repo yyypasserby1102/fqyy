@@ -637,7 +637,9 @@ export class GameScene extends Phaser.Scene {
   private spawnYujianReversalProjectiles(
     command: Extract<GongfaRuntimeCommand, { kind: "spawn-yujian-reversal" }>
   ): void {
-    const targets = this.getNearestEnemies(Math.max(1, this.combatState.count));
+    const runtime = this.gongfaRuntime;
+    const combat = { ...this.combatState };
+    const targets = this.getNearestEnemies(Math.max(1, combat.count));
     targets.forEach((enemy, index) => {
       this.time.delayedCall(command.delayMs + index * 35, () => {
         if (!enemy.active || !this.player.active) {
@@ -653,16 +655,18 @@ export class GameScene extends Phaser.Scene {
           command.pierce,
           command.speed,
           command.lifetimeMs,
-          this.combatState.projectileTexture,
-          this.combatState.tint,
-          { sourceGongfaId: this.gongfaRuntime?.gongfaId }
+          combat.projectileTexture,
+          combat.tint,
+          { sourceGongfaId: runtime?.gongfaId }
         );
 
-        if (this.gongfaRuntime) {
-          const result = advanceGongfaRuntime(this.gongfaRuntime, {
+        if (runtime) {
+          const currentRuntime = this.gongfaCollection.byId[runtime.gongfaId] ?? runtime;
+          const result = advanceGongfaRuntime(currentRuntime, {
             kind: "yujian-reversal-spawned"
           });
-          this.adoptPrimaryRuntime(result.runtime);
+          this.gongfaCollection.byId[result.runtime.gongfaId] = result.runtime;
+          this.restorePrimaryRuntimeAdapter();
         }
       });
     });
@@ -1062,6 +1066,8 @@ export class GameScene extends Phaser.Scene {
   private fireHomingVolley(
     command: Extract<GongfaRuntimeCommand, { kind: "homing-volley" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const targets = this.getNearestEnemies(command.count);
     if (targets.length === 0) {
       return;
@@ -1072,19 +1078,19 @@ export class GameScene extends Phaser.Scene {
         this.player.x,
         this.player.y - 10 + index * 4,
         enemy,
-        this.combatState.damage,
-        this.combatState.pierce,
-        this.combatState.projectileSpeed,
-        this.combatState.projectileLifetimeMs,
-        this.combatState.projectileTexture,
-        this.combatState.tint,
+        combat.damage,
+        combat.pierce,
+        combat.projectileSpeed,
+        combat.projectileLifetimeMs,
+        combat.projectileTexture,
+        combat.tint,
         {
-          sourceGongfaId: this.gongfaRuntime?.gongfaId
+          sourceGongfaId
         }
       );
     });
 
-    for (let i = 0; i < this.combatState.returnShots; i += 1) {
+    for (let i = 0; i < combat.returnShots; i += 1) {
       targets.forEach((enemy, index) => {
         this.time.delayedCall(140 + i * 90, () => {
           if (!enemy.active || !this.player.active) {
@@ -1095,14 +1101,14 @@ export class GameScene extends Phaser.Scene {
             this.player.x,
             this.player.y + 12 + index * 5,
             enemy,
-            Math.floor(this.combatState.damage * 0.65),
-            this.combatState.pierce,
-            this.combatState.projectileSpeed + 40,
-            this.combatState.projectileLifetimeMs,
-            this.combatState.projectileTexture,
-            this.combatState.tint,
+            Math.floor(combat.damage * 0.65),
+            combat.pierce,
+            combat.projectileSpeed + 40,
+            combat.projectileLifetimeMs,
+            combat.projectileTexture,
+            combat.tint,
             {
-              sourceGongfaId: this.gongfaRuntime?.gongfaId
+              sourceGongfaId
             }
           );
         });
@@ -1113,6 +1119,7 @@ export class GameScene extends Phaser.Scene {
   private fireCrimsonFurnaceVolley(
     command: Extract<GongfaRuntimeCommand, { kind: "crimson-furnace-volley" }>
   ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const targets = this.getCrimsonFurnaceTargets(command.count);
     if (targets.length === 0) {
       return;
@@ -1127,7 +1134,8 @@ export class GameScene extends Phaser.Scene {
         this.combatState.projectileSpeed,
         this.combatState.projectileLifetimeMs,
         this.combatState.projectileTexture,
-        this.combatState.tint
+        this.combatState.tint,
+        sourceGongfaId
       );
     });
   }
@@ -1140,11 +1148,12 @@ export class GameScene extends Phaser.Scene {
     speed: number,
     lifetimeMs: number,
     texture: string,
-    tint: number
+    tint: number,
+    sourceGongfaId: GongfaId | undefined
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.damage = damage;
-    projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    projectile.sourceGongfaId = sourceGongfaId;
     projectile.setTint(tint);
     projectile.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y)));
     this.projectiles.add(projectile);
@@ -1161,7 +1170,13 @@ export class GameScene extends Phaser.Scene {
           projectile.lodgedEnemy.embedPower - projectile.damage
         );
       }
-      this.triggerCrimsonDetonation(projectile.x, projectile.y, projectile.damage, false);
+      this.triggerCrimsonDetonation(
+        sourceGongfaId,
+        projectile.x,
+        projectile.y,
+        projectile.damage,
+        false
+      );
       projectile.destroy();
     });
   }
@@ -1169,9 +1184,11 @@ export class GameScene extends Phaser.Scene {
   private fireWaveVolley(
     command: Extract<GongfaRuntimeCommand, { kind: "wave-volley" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const angle = this.getWaveAimAngle(command.aimMode);
     const count = command.count;
-    const spreadRad = Phaser.Math.DegToRad(this.combatState.spreadDeg);
+    const spreadRad = Phaser.Math.DegToRad(combat.spreadDeg);
 
     for (let i = 0; i < count; i += 1) {
       const offset = count === 1 ? 0 : Phaser.Math.Linear(-spreadRad / 2, spreadRad / 2, i / (count - 1));
@@ -1179,12 +1196,15 @@ export class GameScene extends Phaser.Scene {
         this.player.x,
         this.player.y,
         angle + offset,
-        this.combatState.damage,
-        this.combatState.pierce,
-        this.combatState.projectileSpeed,
-        this.combatState.projectileLifetimeMs + Math.floor(this.combatState.range * 0.8),
+        combat.damage,
+        combat.pierce,
+        combat.projectileSpeed,
+        combat.projectileLifetimeMs + Math.floor(combat.range * 0.8),
         1.05,
-        command.growthScale ?? 1
+        command.growthScale ?? 1,
+        sourceGongfaId,
+        combat.projectileTexture,
+        combat.tint
       );
     }
 
@@ -1204,11 +1224,15 @@ export class GameScene extends Phaser.Scene {
             this.player.x + Math.cos(delayedAngle) * (28 + trail * 16),
             this.player.y + Math.sin(delayedAngle) * (28 + trail * 16),
             delayedAngle + offset,
-            Math.floor(this.combatState.damage * 0.55),
-            this.combatState.pierce,
-            this.combatState.projectileSpeed + 30,
-            Math.max(420, this.combatState.projectileLifetimeMs + Math.floor(this.combatState.range * 0.45)),
-            0.85
+            Math.floor(combat.damage * 0.55),
+            combat.pierce,
+            combat.projectileSpeed + 30,
+            Math.max(420, combat.projectileLifetimeMs + Math.floor(combat.range * 0.45)),
+            0.85,
+            1,
+            sourceGongfaId,
+            combat.projectileTexture,
+            combat.tint
           );
         }
       });
@@ -1224,13 +1248,16 @@ export class GameScene extends Phaser.Scene {
     speed: number,
     lifetimeMs: number,
     scale: number,
-    growthScale = 1
+    growthScale = 1,
+    sourceGongfaId = this.gongfaRuntime?.gongfaId,
+    texture = this.combatState.projectileTexture,
+    tint = this.combatState.tint
   ): void {
-    const projectile = new Projectile(this, x, y, this.combatState.projectileTexture);
-    projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const projectile = new Projectile(this, x, y, texture);
+    projectile.sourceGongfaId = sourceGongfaId;
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
-    projectile.setTint(this.combatState.tint);
+    projectile.setTint(tint);
     projectile.setAngle(Phaser.Math.RadToDeg(angle));
     const baseScaleX = scale;
     const baseScaleY = Math.max(0.72, scale - 0.15);
@@ -1385,6 +1412,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private emitAuraBurst(damage: number, count: number): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const projectileCount = Math.max(4, count);
     for (let i = 0; i < projectileCount; i += 1) {
       const angle = (Math.PI * 2 * i) / projectileCount;
@@ -1392,27 +1421,27 @@ export class GameScene extends Phaser.Scene {
         this,
         this.player.x + Math.cos(angle) * 10,
         this.player.y + Math.sin(angle) * 10,
-        this.combatState.projectileTexture
+        combat.projectileTexture
       );
-      projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
+      projectile.sourceGongfaId = sourceGongfaId;
       projectile.damage = damage;
-      projectile.pierceRemaining = this.combatState.pierce;
-      projectile.setTint(this.combatState.tint);
+      projectile.pierceRemaining = combat.pierce;
+      projectile.setTint(combat.tint);
       projectile.setScale(0.85);
       this.projectiles.add(projectile);
       const body = projectile.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(
-        Math.cos(angle) * this.combatState.projectileSpeed,
-        Math.sin(angle) * this.combatState.projectileSpeed
+        Math.cos(angle) * combat.projectileSpeed,
+        Math.sin(angle) * combat.projectileSpeed
       );
-      this.time.delayedCall(this.combatState.projectileLifetimeMs, () => {
+      this.time.delayedCall(combat.projectileLifetimeMs, () => {
         if (projectile.active) {
           projectile.destroy();
         }
       });
     }
 
-    for (let burst = 0; burst < this.combatState.shellBursts; burst += 1) {
+    for (let burst = 0; burst < combat.shellBursts; burst += 1) {
       this.time.delayedCall(150 + burst * 110, () => {
         if (!this.player.active) {
           return;
@@ -1421,32 +1450,41 @@ export class GameScene extends Phaser.Scene {
         this.emitAuraShell(
           Math.floor(damage * 0.75),
           projectileCount + 2 + burst * 2,
-          1 + burst * 0.18
+          1 + burst * 0.18,
+          combat,
+          sourceGongfaId
         );
       });
     }
   }
 
-  private emitAuraShell(damage: number, count: number, scale: number): void {
+  private emitAuraShell(
+    damage: number,
+    count: number,
+    scale: number,
+    combat: CombatState = this.combatState,
+    sourceGongfaId = this.gongfaRuntime?.gongfaId
+  ): void {
     for (let i = 0; i < count; i += 1) {
       const angle = (Math.PI * 2 * i) / count;
       const projectile = new Projectile(
         this,
         this.player.x + Math.cos(angle) * 16,
         this.player.y + Math.sin(angle) * 16,
-        this.combatState.projectileTexture
+        combat.projectileTexture
       );
+      projectile.sourceGongfaId = sourceGongfaId;
       projectile.damage = damage;
-      projectile.pierceRemaining = this.combatState.pierce + 1;
-      projectile.setTint(this.combatState.tint);
+      projectile.pierceRemaining = combat.pierce + 1;
+      projectile.setTint(combat.tint);
       projectile.setScale(Math.max(0.95, scale));
       this.projectiles.add(projectile);
       const body = projectile.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(
-        Math.cos(angle) * (this.combatState.projectileSpeed + 55),
-        Math.sin(angle) * (this.combatState.projectileSpeed + 55)
+        Math.cos(angle) * (combat.projectileSpeed + 55),
+        Math.sin(angle) * (combat.projectileSpeed + 55)
       );
-      this.time.delayedCall(this.combatState.projectileLifetimeMs + 120, () => {
+      this.time.delayedCall(combat.projectileLifetimeMs + 120, () => {
         if (projectile.active) {
           projectile.destroy();
         }
@@ -1692,6 +1730,8 @@ export class GameScene extends Phaser.Scene {
   private fireSolarFlareCycle(
     command: Extract<GongfaRuntimeCommand, { kind: "solar-flare-cycle" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const baseAngle = this.getAimAngle();
 
     for (let ring = 0; ring < 2; ring += 1) {
@@ -1704,19 +1744,20 @@ export class GameScene extends Phaser.Scene {
           this,
           this.player.x + Math.cos(angle) * ringRadius,
           this.player.y + Math.sin(angle) * ringRadius,
-          this.combatState.projectileTexture
+          combat.projectileTexture
         );
-        projectile.damage = Math.floor(this.combatState.damage * 0.85);
-        projectile.pierceRemaining = this.combatState.pierce + 1;
-        projectile.setTint(this.combatState.tint);
+        projectile.sourceGongfaId = sourceGongfaId;
+        projectile.damage = Math.floor(combat.damage * 0.85);
+        projectile.pierceRemaining = combat.pierce + 1;
+        projectile.setTint(combat.tint);
         projectile.setScale(0.9);
         this.projectiles.add(projectile);
         const body = projectile.body as Phaser.Physics.Arcade.Body;
         body.setVelocity(
-          Math.cos(angle + Math.PI / 2 * direction) * (this.combatState.projectileSpeed + 35),
-          Math.sin(angle + Math.PI / 2 * direction) * (this.combatState.projectileSpeed + 35)
+          Math.cos(angle + Math.PI / 2 * direction) * (combat.projectileSpeed + 35),
+          Math.sin(angle + Math.PI / 2 * direction) * (combat.projectileSpeed + 35)
         );
-        this.time.delayedCall(this.combatState.projectileLifetimeMs + 160, () => {
+        this.time.delayedCall(combat.projectileLifetimeMs + 160, () => {
           if (projectile.active) {
             projectile.destroy();
           }
@@ -1746,6 +1787,8 @@ export class GameScene extends Phaser.Scene {
   private fireGoldenGaleCorridor(
     command: Extract<GongfaRuntimeCommand, { kind: "golden-gale-corridor" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const angle = this.getWaveAimAngle();
     const laneCount = command.laneCount;
     const spreadRad = Phaser.Math.DegToRad(command.spreadDeg);
@@ -1777,7 +1820,11 @@ export class GameScene extends Phaser.Scene {
             command.projectile.pierce,
             command.projectile.speed,
             command.projectile.lifetimeMs,
-            command.projectile.scale
+            command.projectile.scale,
+            1,
+            sourceGongfaId,
+            combat.projectileTexture,
+            combat.tint
           );
         }
       });
@@ -1787,6 +1834,8 @@ export class GameScene extends Phaser.Scene {
   private fireReturningSwordFormation(
     command: Extract<GongfaRuntimeCommand, { kind: "returning-sword-formation" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const targets = this.getNearestEnemies(command.count);
     if (targets.length === 0) {
       return;
@@ -1801,8 +1850,9 @@ export class GameScene extends Phaser.Scene {
         command.opening.pierce,
         command.opening.speed,
         command.opening.lifetimeMs,
-        this.combatState.projectileTexture,
-        this.combatState.tint
+        combat.projectileTexture,
+        combat.tint,
+        { sourceGongfaId }
       );
     });
 
@@ -1824,8 +1874,9 @@ export class GameScene extends Phaser.Scene {
           command.returnPath.pierce,
           command.returnPath.speed,
           command.returnPath.lifetimeMs,
-          this.combatState.projectileTexture,
-          this.combatState.tint
+          combat.projectileTexture,
+          combat.tint,
+          { sourceGongfaId }
         );
       });
     });
@@ -1841,6 +1892,8 @@ export class GameScene extends Phaser.Scene {
   private fireBurningRingVolley(
     command: Extract<GongfaRuntimeCommand, { kind: "burning-ring-volley" }>
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const baseAngle = this.getAimAngle();
 
     for (let ring = 0; ring < 2; ring += 1) {
@@ -1858,22 +1911,23 @@ export class GameScene extends Phaser.Scene {
           this,
           this.player.x + Math.cos(angle) * radius,
           this.player.y + Math.sin(angle) * radius,
-          this.combatState.projectileTexture
+          combat.projectileTexture
         );
+        projectile.sourceGongfaId = sourceGongfaId;
         projectile.damage = Math.max(
           1,
-          Math.floor(this.combatState.damage * (ring === 0 ? 1 : 0.9) * (command.damageScale ?? 1))
+          Math.floor(combat.damage * (ring === 0 ? 1 : 0.9) * (command.damageScale ?? 1))
         );
-        projectile.pierceRemaining = this.combatState.pierce;
-        projectile.setTint(this.combatState.tint);
+        projectile.pierceRemaining = combat.pierce;
+        projectile.setTint(combat.tint);
         projectile.setScale(ring === 0 ? 1 : 0.84);
         this.projectiles.add(projectile);
         const body = projectile.body as Phaser.Physics.Arcade.Body;
         body.setVelocity(
-          Math.cos(angle + direction * Math.PI / 2) * (this.combatState.projectileSpeed + 50),
-          Math.sin(angle + direction * Math.PI / 2) * (this.combatState.projectileSpeed + 50)
+          Math.cos(angle + direction * Math.PI / 2) * (combat.projectileSpeed + 50),
+          Math.sin(angle + direction * Math.PI / 2) * (combat.projectileSpeed + 50)
         );
-        this.time.delayedCall(this.combatState.projectileLifetimeMs + 120, () => {
+        this.time.delayedCall(combat.projectileLifetimeMs + 120, () => {
           if (projectile.active) {
             projectile.destroy();
           }
@@ -1883,19 +1937,26 @@ export class GameScene extends Phaser.Scene {
         if (command.scatterEmbers && ring === 0) {
           this.spawnEmberPatch(
             this.player.x + Math.cos(angle) * radius,
-            this.player.y + Math.sin(angle) * radius
+            this.player.y + Math.sin(angle) * radius,
+            combat,
+            sourceGongfaId
           );
         }
       }
     }
   }
 
-  private spawnEmberPatch(x: number, y: number): void {
-    const ember = new Projectile(this, x, y, this.combatState.projectileTexture);
-    ember.sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    ember.damage = Math.max(1, Math.floor(this.combatState.damage * 0.4));
+  private spawnEmberPatch(
+    x: number,
+    y: number,
+    combat: CombatState = this.combatState,
+    sourceGongfaId = this.gongfaRuntime?.gongfaId
+  ): void {
+    const ember = new Projectile(this, x, y, combat.projectileTexture);
+    ember.sourceGongfaId = sourceGongfaId;
+    ember.damage = Math.max(1, Math.floor(combat.damage * 0.4));
     ember.pierceRemaining = 999;
-    ember.setTint(this.combatState.tint);
+    ember.setTint(combat.tint);
     ember.setScale(0.7);
     this.projectiles.add(ember);
     const body = ember.body as Phaser.Physics.Arcade.Body;
@@ -1959,16 +2020,20 @@ export class GameScene extends Phaser.Scene {
   }
 
   private triggerCrimsonDetonation(
+    sourceGongfaId: GongfaId | undefined,
     x: number,
     y: number,
     damage: number,
     fromEmbed: boolean
   ): void {
-    if (!this.gongfaRuntime) {
+    const runtime = sourceGongfaId
+      ? this.gongfaCollection.byId[sourceGongfaId]
+      : this.gongfaRuntime;
+    if (!runtime) {
       return;
     }
 
-    const result = advanceGongfaRuntime(this.gongfaRuntime, {
+    const result = advanceGongfaRuntime(runtime, {
       kind: "crimson-detonation",
       x,
       y,
@@ -1976,7 +2041,8 @@ export class GameScene extends Phaser.Scene {
       fromEmbed
     });
     this.adoptPrimaryRuntime(result.runtime);
-    this.executeGongfaRuntimeCommands(result.commands);
+    this.executeGongfaRuntimeCommands(result.commands, result.runtime);
+    this.restorePrimaryRuntimeAdapter();
   }
 
   private applyCrimsonDetonation(
@@ -2003,13 +2069,14 @@ export class GameScene extends Phaser.Scene {
     const embedPower = enemy.embedPower;
     enemy.embedStacks = 0;
     enemy.embedPower = 0;
+    this.spawnCrimsonFragments(enemy.x, enemy.y, fragment);
     this.triggerCrimsonDetonation(
+      this.gongfaRuntime?.gongfaId,
       enemy.x,
       enemy.y,
       Math.max(sourceDamage, embedPower + embedStacks * 2),
       true
     );
-    this.spawnCrimsonFragments(enemy.x, enemy.y, fragment);
   }
 
   private destroyLodgedCrimsonNeedles(enemy: Enemy): void {
@@ -2025,6 +2092,8 @@ export class GameScene extends Phaser.Scene {
     y: number,
     fragment: Extract<GongfaRuntimeCommand, { kind: "detonate-crimson-embed" }>["fragment"]
   ): void {
+    const combat = { ...this.combatState };
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const fragments = this.getEnemiesWithinRadiusFrom(x, y, fragment.radius).slice(
       0,
       fragment.maxTargets
@@ -2042,8 +2111,9 @@ export class GameScene extends Phaser.Scene {
           fragment.damage,
           fragment.speed,
           fragment.lifetimeMs,
-          this.combatState.projectileTexture,
-          this.combatState.tint
+          combat.projectileTexture,
+          combat.tint,
+          sourceGongfaId
         );
       });
     });
@@ -2580,6 +2650,15 @@ export class GameScene extends Phaser.Scene {
         masterySkill2: this.primaryMastery.masterySkill2Id,
         masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
+        gongfaRuntimeStates: Object.fromEntries(
+          this.learnedGongfaRuntimes.map((runtime) => [
+            runtime.gongfaId,
+            {
+              pressure: runtime.crimsonFurnace?.pressure ?? 0,
+              masteryRank: runtime.mastery.masteryRank
+            }
+          ])
+        ),
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
           ...gongfaView.masteryTransformationTriggers
@@ -2748,6 +2827,11 @@ export class GameScene extends Phaser.Scene {
     if (lingcao) {
       this.collectLingcao(lingcao);
     }
+    this.publishHud(this.lastMessage);
+  }
+
+  forceLearnGongfa(gongfaId: GongfaId): void {
+    this.applyGongfaChoice(gongfaId);
     this.publishHud(this.lastMessage);
   }
 

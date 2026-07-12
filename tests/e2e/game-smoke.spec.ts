@@ -1184,6 +1184,40 @@ test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unloc
   expect(snapshot.progression.pressure).toBeGreaterThan(beforeCascadePressure);
 });
 
+test("a secondary Crimson Furnace timeout advances its own runtime", async ({ page }) => {
+  await startNewRun(page, "fire-metal");
+  await claimOpeningLingcao(page);
+
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  const burningRingIndex = snapshot.choice?.options.findIndex(
+    (option) => option.id === "burning-ring-scripture"
+  ) ?? -1;
+  expect(burningRingIndex).toBeGreaterThanOrEqual(0);
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), burningRingIndex);
+  await page.evaluate(() => {
+    window.__gameTest!.forceLearnGongfa("crimson-furnace-sword-art");
+    window.__gameTest!.forceSpawnEnemies(20);
+  });
+
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().counts.projectileSourceGongfaIds.includes(
+      "crimson-furnace-sword-art"
+    )
+  );
+  await page.waitForFunction(
+    () =>
+      window.__gameTest!.getSnapshot().progression.gongfaRuntimeStates[
+        "crimson-furnace-sword-art"
+      ]?.pressure > 0
+  );
+
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.gongfa).toBe("burning-ring-scripture");
+  expect(
+    snapshot.progression.gongfaRuntimeStates["crimson-furnace-sword-art"].pressure
+  ).toBeGreaterThan(0);
+});
+
 test("Start New Run persists a mortal shell that Continue restores after reload", async ({
   page
 }) => {

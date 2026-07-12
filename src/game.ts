@@ -4,6 +4,7 @@ import { GameScene } from "./scenes/GameScene";
 import { UIScene } from "./scenes/UIScene";
 import type { GameTestHarness } from "./types/gameTest";
 import type { SpiritTreasureId } from "./data/spiritTreasures";
+import type { GongfaId } from "./data/gongfa";
 import { setRandomSeed } from "./utils/random";
 
 export const GAME_WIDTH = 1280;
@@ -26,6 +27,8 @@ function attachGameTestHarness(game: Phaser.Game): void {
     forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
     forceSpawnSpiritTreasure: (treasureId: string) =>
       getGameScene().forceSpawnSpiritTreasure(treasureId as SpiritTreasureId),
+    forceLearnGongfa: (gongfaId: string) =>
+      getGameScene().forceLearnGongfa(gongfaId as GongfaId),
     forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
     forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
     forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs)

@@ -28,6 +28,7 @@ export interface GameSnapshot {
     masterySkill2?: string;
     masterySkill2Casts: number;
     learnedGongfaIds: string[];
+    gongfaRuntimeStates: Record<string, { pressure: number; masteryRank: number }>;
     spiritTreasureIds: string[];
     masteryTransformationTriggers: {
       executionSeal: number;
@@ -98,6 +99,7 @@ export interface GameTestHarness {
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnSpiritTreasure(treasureId: string): void;
+  forceLearnGongfa(gongfaId: string): void;
   forceClaimLingcao(): void;
   forceSpawnHealingPill(healAmount?: number): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
