@@ -314,10 +314,12 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.magnetRadius = checkpoint?.playerMagnetRadius ?? this.player.stats.magnetRadius;
     this.player.stats.damageReduction =
       checkpoint?.playerDamageReduction ?? this.player.stats.damageReduction;
-    splitGongfaImprovementReplayIds([
-      ...this.primaryMastery.upgradeSelectionIds,
-      ...this.primaryMastery.masteryLearnedIds
-    ]).runtimeUpgradeIds.forEach((upgradeId) => this.replayCombatImprovement(upgradeId));
+    if (!checkpoint?.gongfaRuntimes) {
+      splitGongfaImprovementReplayIds([
+        ...this.primaryMastery.upgradeSelectionIds,
+        ...this.primaryMastery.masteryLearnedIds
+      ]).runtimeUpgradeIds.forEach((upgradeId) => this.replayCombatImprovement(upgradeId));
+    }
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setZoom(1);
     this.cameras.main.setBounds(-ARENA_HALF_WIDTH, -ARENA_HALF_HEIGHT, ARENA_HALF_WIDTH * 2, ARENA_HALF_HEIGHT * 2);
