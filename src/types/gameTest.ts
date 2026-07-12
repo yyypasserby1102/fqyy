@@ -74,6 +74,7 @@ export interface GameSnapshot {
   counts: {
     enemies: number;
     projectiles: number;
+    projectileSourceGongfaIds: string[];
     orbs: number;
     orbPositions: Array<{ x: number; y: number }>;
     healingPills: number;
@@ -97,6 +98,7 @@ export interface GameTestHarness {
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnSpiritTreasure(treasureId: string): void;
+  forceClaimLingcao(): void;
   forceSpawnHealingPill(healAmount?: number): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
 }

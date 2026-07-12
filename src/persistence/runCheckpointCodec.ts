@@ -7,7 +7,7 @@ import type {
   ActiveRunSave,
   HealingPillCheckpoint
 } from "./runPersistence";
-import type { GongfaMasteryCheckpoint } from "../logic/gongfaRuntime";
+import type { GongfaMasteryCheckpoint, GongfaRuntime } from "../logic/gongfaRuntime";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -46,24 +46,52 @@ function isNumberArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every(isNumber);
 }
 
-function isGongfaMasteryCheckpointArray(
-  value: unknown
-): value is GongfaMasteryCheckpoint[] {
+function isGongfaMasteryCheckpoint(value: unknown): value is GongfaMasteryCheckpoint {
+  return (
+    isRecord(value) &&
+    isGongfaId(value.gongfaId) &&
+    isNonNegativeNumber(value.masteryPoints) &&
+    isNonNegativeNumber(value.masteryRank) &&
+    isStringArray(value.masteryLearnedIds) &&
+    isStringArray(value.upgradeSelectionIds) &&
+    (value.masterySkill2Id === undefined || typeof value.masterySkill2Id === "string") &&
+    isNonNegativeNumber(value.masterySkill2CooldownRemaining) &&
+    isNonNegativeNumber(value.masterySkill2Casts) &&
+    typeof value.masteryChoiceActive === "boolean" &&
+    isNumberArray(value.masteryPendingRanks)
+  );
+}
+
+function isGongfaMasteryCheckpointArray(value: unknown): value is GongfaMasteryCheckpoint[] {
+  return Array.isArray(value) && value.every(isGongfaMasteryCheckpoint);
+}
+
+function isGongfaRuntimeArray(value: unknown): value is GongfaRuntime[] {
   return (
     Array.isArray(value) &&
     value.every(
-      (item) =>
-        isRecord(item) &&
-        isGongfaId(item.gongfaId) &&
-        isNonNegativeNumber(item.masteryPoints) &&
-        isNonNegativeNumber(item.masteryRank) &&
-        isStringArray(item.masteryLearnedIds) &&
-        isStringArray(item.upgradeSelectionIds) &&
-        (item.masterySkill2Id === undefined || typeof item.masterySkill2Id === "string") &&
-        isNonNegativeNumber(item.masterySkill2CooldownRemaining) &&
-        isNonNegativeNumber(item.masterySkill2Casts) &&
-        typeof item.masteryChoiceActive === "boolean" &&
-        isNumberArray(item.masteryPendingRanks)
+      (runtime) =>
+        isRecord(runtime) &&
+        isGongfaId(runtime.gongfaId) &&
+        isNumber(runtime.attackCooldownRemaining) &&
+        isRecord(runtime.combat) &&
+        typeof runtime.combat.pattern === "string" &&
+        typeof runtime.combat.projectileTexture === "string" &&
+        Object.entries(runtime.combat).every(
+          ([key, field]) =>
+            key === "pattern" || key === "projectileTexture" || isNumber(field)
+        ) &&
+        isRecord(runtime.mastery) &&
+        isGongfaMasteryCheckpoint({ gongfaId: runtime.gongfaId, ...runtime.mastery }) &&
+        [
+          runtime.yujian,
+          runtime.jinfeng,
+          runtime.gengjin,
+          runtime.burningRing,
+          runtime.crimsonFurnace,
+          runtime.blazingFeather,
+          runtime.surge
+        ].every((state) => state === undefined || isRecord(state))
     )
   );
 }
@@ -216,6 +244,10 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     value.gongfaMasteries !== undefined &&
     !isGongfaMasteryCheckpointArray(value.gongfaMasteries)
   ) {
+    return false;
+  }
+
+  if (value.gongfaRuntimes !== undefined && !isGongfaRuntimeArray(value.gongfaRuntimes)) {
     return false;
   }
 

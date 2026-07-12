@@ -28,6 +28,7 @@ export interface GongfaCombatState extends GongfaStageState {
 export interface GongfaRuntime {
   gongfaId: GongfaId;
   combat: GongfaCombatState;
+  attackCooldownRemaining: number;
   mastery: GongfaMasteryCheckpointFields;
   yujian?: YujianState;
   jinfeng?: JinfengState;
@@ -1159,6 +1160,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
 
   const runtime: GongfaRuntime = {
     gongfaId: input.gongfaId,
+    attackCooldownRemaining: 0,
     mastery: {
       ...createEmptyGongfaMastery(),
       ...input.mastery,
@@ -1359,6 +1361,67 @@ export function projectGongfaRuntimeCheckpoint(
     bladeShellThreshold: gengjin?.bladeShellThreshold ?? 100,
     bladeShellCooldownRemaining: gengjin?.bladeShellCooldownRemaining ?? 0,
     bladeShellCasts: gengjin?.bladeShellCasts ?? 0
+  };
+}
+
+export interface GongfaCollectionPersistenceFields
+  extends GongfaMasteryCheckpointFields,
+    GongfaRuntimeCheckpointFields {
+  gongfaMasteries: GongfaMasteryCheckpoint[];
+  gongfaRuntimes: GongfaRuntime[];
+}
+
+export function restoreGongfaCollection(input: {
+  primaryGongfaId?: GongfaId;
+  learnedGongfaIds: GongfaId[];
+  gongfaRuntimes?: GongfaRuntime[];
+  gongfaMasteries?: GongfaMasteryCheckpoint[];
+  legacyPrimary?: GongfaMasteryCheckpointFields & GongfaRuntimeCheckpointInput;
+}): GongfaCollectionRuntime {
+  let collection = input.gongfaRuntimes
+    ? createGongfaCollectionFromCheckpoint({
+        primaryGongfaId: input.primaryGongfaId,
+        runtimes: input.gongfaRuntimes
+      })
+    : createGongfaCollectionRuntimeFromCheckpoint({
+        primaryGongfaId: input.primaryGongfaId,
+        masteries: input.gongfaMasteries ?? []
+      });
+
+  for (const gongfaId of input.learnedGongfaIds) {
+    collection = learnGongfa(
+      collection,
+      gongfaId,
+      gongfaId === input.primaryGongfaId
+    );
+  }
+
+  if (input.primaryGongfaId && !input.gongfaRuntimes && input.legacyPrimary) {
+    const primary = createGongfaRuntimeFromCheckpoint(
+      input.primaryGongfaId,
+      input.legacyPrimary
+    );
+    primary.mastery = collection.byId[input.primaryGongfaId]?.mastery ??
+      createGongfaMasteryStateFromCheckpoint(input.legacyPrimary);
+    collection.byId[input.primaryGongfaId] = primary;
+  }
+
+  return collection;
+}
+
+export function projectGongfaCollectionPersistence(
+  collection: GongfaCollectionRuntime
+): GongfaCollectionPersistenceFields {
+  const primaryId = collection.primaryGongfaId;
+  const primary = primaryId ? collection.byId[primaryId] : undefined;
+  const mastery = projectGongfaMasteryCheckpoint(
+    primary?.mastery ?? createEmptyGongfaMastery()
+  );
+  return {
+    ...projectGongfaRuntimeCheckpoint(primary),
+    ...mastery,
+    gongfaMasteries: projectGongfaCollectionMasteryCheckpoint(collection).masteries,
+    gongfaRuntimes: projectGongfaCollectionCheckpoint(collection).runtimes
   };
 }
 

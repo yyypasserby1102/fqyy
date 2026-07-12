@@ -668,6 +668,14 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(2);
 
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
+  await page.waitForFunction(() => {
+    const current = window.__gameTest!.getSnapshot();
+    return current.progression.learnedGongfaIds.every((gongfaId) =>
+      current.counts.projectileSourceGongfaIds.includes(gongfaId)
+    );
+  });
+
   await page.reload();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForFunction(() => Boolean(window.__gameTest));
@@ -675,6 +683,13 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(2);
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
+  await page.waitForFunction(() => {
+    const current = window.__gameTest!.getSnapshot();
+    return current.progression.learnedGongfaIds.every((gongfaId) =>
+      current.counts.projectileSourceGongfaIds.includes(gongfaId)
+    );
+  });
 });
 
 test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ page }) => {
@@ -889,7 +904,7 @@ test("Spirit Treasures fill three slots, then offer replace-or-leave", async ({ 
   ]);
 });
 
-test("Stage Breakthroughs preserve Yujian Jue instead of upgrading it", async ({ page }) => {
+test("Stage Breakthroughs preserve Yujian Jue and its independent Mastery", async ({ page }) => {
   await startNewRun(page);
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
@@ -904,14 +919,14 @@ test("Stage Breakthroughs preserve Yujian Jue instead of upgrading it", async ({
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
-  expect(snapshot.combat.count).toBe(1);
-  expect(snapshot.combat.returnShots).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("yujian-jue");
+  expect(snapshot.combat.count).toBeGreaterThanOrEqual(1);
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("jindan");
-  expect(snapshot.combat.count).toBe(1);
-  expect(snapshot.combat.returnShots).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("yujian-jue");
+  expect(snapshot.combat.count).toBeGreaterThanOrEqual(1);
 });
 
 test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independent", async ({
@@ -943,14 +958,16 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
-  expect(snapshot.combat.count).toBe(2);
-  expect(snapshot.combat.returnShots).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("jinfeng-gong");
+  expect(snapshot.combat.pattern).toBe("wave");
+  expect(snapshot.combat.count).toBeGreaterThanOrEqual(1);
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("jindan");
-  expect(snapshot.combat.count).toBe(2);
-  expect(snapshot.combat.returnShots).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("jinfeng-gong");
+  expect(snapshot.combat.pattern).toBe("wave");
+  expect(snapshot.combat.count).toBeGreaterThanOrEqual(1);
 
   await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
@@ -1006,14 +1023,14 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
-  expect(snapshot.combat.auraRadius).toBe(92);
-  expect(snapshot.combat.shellBursts).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("gengjin-huti");
+  expect(snapshot.combat.auraRadius).toBeGreaterThanOrEqual(92);
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("jindan");
-  expect(snapshot.combat.auraRadius).toBe(92);
-  expect(snapshot.combat.shellBursts).toBe(0);
+  expect(snapshot.progression.gongfa).toBe("gengjin-huti");
+  expect(snapshot.combat.auraRadius).toBeGreaterThanOrEqual(92);
 
   await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);

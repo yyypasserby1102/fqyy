@@ -8,6 +8,7 @@ import {
   loadActiveRun,
   saveActiveRun
 } from "../../src/persistence/runPersistence";
+import { createGongfaRuntime } from "../../src/logic/gongfaRuntime";
 
 function createMemoryStorage(): Storage {
   const entries = new Map<string, string>();
@@ -123,6 +124,23 @@ function withMigratedGongfaMastery(checkpoint: ReturnType<typeof createValidChec
 }
 
 describe("run persistence", () => {
+  it("validates complete learned Gongfa runtime checkpoints", () => {
+    const checkpoint = {
+      ...createValidCheckpoint(),
+      gongfaRuntimes: [createGongfaRuntime({ gongfaId: "yujian-jue" })]
+    };
+
+    expect(createActiveRunCheckpoint(checkpoint).gongfaRuntimes).toEqual(
+      checkpoint.gongfaRuntimes
+    );
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{ ...checkpoint.gongfaRuntimes[0], combat: null }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
+  });
+
   it("creates a durable active-run record without transient combat fields", () => {
     const save = createActiveRunSave(42, 1234567890);
 
