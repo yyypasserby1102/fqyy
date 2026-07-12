@@ -4,12 +4,20 @@ import {
   completePhaseTransition,
   completeStageTribulation,
   createRunJourneyStateFromCheckpoint,
+  getStageBreakthroughDestination,
   getCleanupDecision,
   grantRealmQi,
   projectRunJourneyCheckpointFields
 } from "../../src/logic/runJourney";
 
 describe("Run journey", () => {
+  it("owns the legal Stage breakthrough destinations", () => {
+    expect(getStageBreakthroughDestination("lianqi")).toBe("zhuji");
+    expect(getStageBreakthroughDestination("zhuji")).toBe("jindan");
+    expect(getStageBreakthroughDestination("jindan")).toBe("yuanying");
+    expect(getStageBreakthroughDestination("yuanying")).toBeUndefined();
+  });
+
   it("owns durable journey checkpoint projection and restoration", () => {
     const state = {
       stage: "jindan" as const,
@@ -65,7 +73,10 @@ describe("Run journey", () => {
       kind: "cleanup-finished"
     });
 
-    expect(cleanup.commands).toEqual([{ kind: "present-journey-choice" }]);
+    expect(cleanup.commands).toEqual([
+      { kind: "present-journey-choice" },
+      { kind: "persist-checkpoint" }
+    ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
       kind: "journey-choice-accepted"
@@ -97,7 +108,10 @@ describe("Run journey", () => {
     expect(presented.state).toMatchObject({
       pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
     });
-    expect(presented.commands).toEqual([{ kind: "present-journey-choice" }]);
+    expect(presented.commands).toEqual([
+      { kind: "present-journey-choice" },
+      { kind: "persist-checkpoint" }
+    ]);
 
     const accepted = advanceRunJourney(presented.state, {
       kind: "journey-choice-accepted"
@@ -128,7 +142,10 @@ describe("Run journey", () => {
       kind: "cleanup-finished"
     });
 
-    expect(cleanup.commands).toEqual([{ kind: "present-journey-choice" }]);
+    expect(cleanup.commands).toEqual([
+      { kind: "present-journey-choice" },
+      { kind: "persist-checkpoint" }
+    ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
       kind: "journey-choice-accepted"
@@ -160,7 +177,10 @@ describe("Run journey", () => {
       kind: "cleanup-finished"
     });
 
-    expect(cleanup.commands).toEqual([{ kind: "present-journey-choice" }]);
+    expect(cleanup.commands).toEqual([
+      { kind: "present-journey-choice" },
+      { kind: "persist-checkpoint" }
+    ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
       kind: "journey-choice-accepted"
@@ -203,7 +223,10 @@ describe("Run journey", () => {
       finalBossPhaseIndex: 0,
       phaseCleanupActive: true
     });
-    expect(cleanup.commands).toEqual([{ kind: "present-journey-choice" }]);
+    expect(cleanup.commands).toEqual([
+      { kind: "present-journey-choice" },
+      { kind: "persist-checkpoint" }
+    ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
       kind: "journey-choice-accepted"

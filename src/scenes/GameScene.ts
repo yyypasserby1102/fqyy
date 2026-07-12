@@ -48,6 +48,7 @@ import { Evade } from "../logic/evade";
 import {
   advanceRunJourney,
   createRunJourneyStateFromCheckpoint,
+  getStageBreakthroughDestination,
   projectRunJourneyCheckpointFields,
   type RunJourneyCommand,
   type RunJourneyDecision,
@@ -3073,12 +3074,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
-      const destination =
-        decision.stage === "lianqi"
-          ? "zhuji"
-          : decision.stage === "zhuji"
-            ? "jindan"
-            : "yuanying";
+      const destination = getStageBreakthroughDestination(decision.stage);
+      if (!destination) {
+        return [];
+      }
       const destinationName = stageConfigs[destination].name;
       const currentName = stageConfigs[decision.stage].name;
       return [

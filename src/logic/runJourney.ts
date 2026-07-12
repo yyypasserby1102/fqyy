@@ -62,6 +62,10 @@ const nextStage: Partial<Record<StageId, StageId>> = {
   jindan: "yuanying"
 };
 
+export function getStageBreakthroughDestination(stage: StageId): StageId | undefined {
+  return nextStage[stage];
+}
+
 function incrementFoundationGrowth(state: RunJourneyState): RunJourneyState {
   return {
     ...state,
@@ -88,7 +92,7 @@ function presentJourneyDecision(
 ): RunJourneyResult {
   return {
     state: { ...state, pendingDecision: decision },
-    commands: [{ kind: "present-journey-choice" }]
+    commands: [{ kind: "present-journey-choice" }, { kind: "persist-checkpoint" }]
   };
 }
 
@@ -279,7 +283,7 @@ export function completeStageTribulation(
     throw new Error("The Run is not ready to complete a Stage Tribulation.");
   }
 
-  const destination = nextStage[state.stage];
+  const destination = getStageBreakthroughDestination(state.stage);
   if (!destination) {
     return { outcome: "normal-ending", state };
   }
