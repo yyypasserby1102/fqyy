@@ -299,6 +299,74 @@ Pre-rank-10 Mastery pool:
 - `Rising Pressure`: Pressure builds faster
 - `Sealed Crucible`: Pressure decays slower and gives a stronger global `explosive` radius bonus
 
+### Additional Rank-10 Skill 2 Designs
+
+These eight designs complete the declared Skill-2 contract for the remaining Gongfa. Each Skill operates independently while Skill 1 continues, produces a visible combat event, and interacts with the owning resource. A successful cast is counted only when its described world effect is emitted.
+
+#### Blazing Feather Art — Feather Rain Formation
+
+- Trigger: independent timed activation.
+- Effect: mark the densest enemy cluster, then rain successive fans of homing fire feathers into that area. Each fan retargets living enemies before falling.
+- Tags and interaction: `projectile`, `fire`; Embers add feathers and damage. Formation hits stoke Embers at most once per target per activation.
+- Observable cast: at least one rain fan containing one or more feathers is emitted. With no target, cooldown remains ready and the cast is not counted.
+- Two-tier Refinements: `Rain Tempering` increases damage; `Expanded Plumage` increases fan count and area; `Swift Descent` reduces cooldown and delay between fans.
+
+#### Scarlet Wave Manual — Sunset Wave Apex
+
+- Trigger: independent timed activation.
+- Effect: launch two long scarlet crescent walls from opposite sides of the Cultivator's facing lane. They cross at the densest enemy line and deal a second hit where they overlap.
+- Tags and interaction: `wave`, `fire`; Scorch increases width, distance, and overlap damage. A hit refreshes Scorch once per activation.
+- Observable cast: both opposing walls are emitted. With no valid lane target, cooldown remains ready and the cast is not counted.
+- Two-tier Refinements: `Apex Tempering` increases damage; `Broadened Sunset` increases width and distance; `Hastened Dusk` reduces cooldown and increases speed.
+
+#### Drifting Frost Needle — Mirror Needle Constellation
+
+- Trigger: independent timed activation.
+- Effect: form a visible orbit of frost needles, distribute them across nearby enemies, then release staggered homing volleys. Needles retarget if their target dies before launch.
+- Tags and interaction: `projectile`, `water`; Frost adds needles and pierce. Each enemy hit contributes Frost at most once per activation.
+- Observable cast: the orbit appears and releases at least one needle. With no target, cooldown remains ready and the cast is not counted.
+- Two-tier Refinements: `Constellation Tempering` increases damage; `Expanded Constellation` increases needle count and coverage; `Swift Alignment` reduces cooldown and stagger delay.
+
+#### Black Tide Scripture — Moon Tide Vault
+
+- Trigger: independent timed activation.
+- Effect: send a circular tide outward, then pull it back toward the Cultivator. The outward surge pushes enemies away; the return pulls survivors inward and damages them again.
+- Tags and interaction: `wave`, `water`; Tide increases radius, control strength, and return damage. Each leg refreshes Tide at most once per enemy.
+- Observable cast: both outward and return phases are scheduled. It may cast without a target because it creates immediate defensive space.
+- Two-tier Refinements: `Vault Tempering` increases damage; `Rising Moon` increases radius and control; `Turning Tide` reduces cooldown and reversal delay.
+
+#### Ice Mirror Guard — Frozen Lotus Shell
+
+- Trigger: independent timed activation.
+- Effect: assemble a rotating lotus of mirror petals around the Cultivator. Petals damage and push nearby enemies, then shatter outward as aimed frost shards when the duration ends or all petals strike.
+- Tags and interaction: `aura`, `water`, `defensive`; Reflection adds petals, radius, and shard damage. Hits refresh Reflection at most once per target per activation.
+- Observable cast: at least one lotus petal is created, so the Skill always establishes visible defensive space.
+- Two-tier Refinements: `Lotus Tempering` increases damage; `Layered Lotus` increases petals and radius; `Rapid Reflection` reduces cooldown and time before shattering.
+
+#### Green Vine Art — Verdant Root Network
+
+- Trigger: independent timed activation requiring a nearby enemy.
+- Effect: root the nearest enemy and spread visible vine links to additional enemies. Pulses damage every linked target; when one dies, its link seeks a new enemy in range.
+- Tags and interaction: `projectile`, `wood`; Vinegrowth increases links, damage, and reach. Each pulse stokes Vinegrowth once if any link hits.
+- Observable cast: a root anchor and at least one damaging link are created. With no target, cooldown remains ready and the cast is not counted.
+- Two-tier Refinements: `Root Tempering` increases damage; `Branching Network` increases links and reach; `Quickened Sap` reduces cooldown and pulse interval.
+
+#### Verdant Ring Scripture — Sprout-Sun Circle
+
+- Trigger: independent timed activation.
+- Effect: plant a stationary circle at the Cultivator's location. It repeatedly raises thorn spokes, then ends in a full blooming ring that damages enemies across the circle.
+- Tags and interaction: `aura`, `wood`; Bloom increases radius, spoke count, and final damage. Each activation stokes Bloom at most once per enemy.
+- Observable cast: the circle and at least one thorn spoke appear even when no enemy is inside it.
+- Two-tier Refinements: `Sunroot Tempering` increases damage; `Fuller Circle` increases radius and spokes; `Early Spring` reduces cooldown and time to the final bloom.
+
+#### Ironwood Wave Form — Ironwood Surge Form
+
+- Trigger: independent timed activation.
+- Effect: drive a thick ironwood rampart in the held movement direction. It repeatedly damages and pushes enemies, then splinters into two diagonal return waves at maximum range.
+- Tags and interaction: `wave`, `wood`; Heartwood increases width, push strength, and splinter damage. Hits refresh Heartwood once per activation.
+- Observable cast: the rampart and scheduled splinter waves are emitted. Without held movement, use the last movement direction; if none exists, cooldown remains ready and the cast is not counted.
+- Two-tier Refinements: `Heartwood Tempering` increases damage; `Broad Trunk` increases width, distance, and push; `Surging Rings` reduces cooldown and increases speed.
+
 Linggen can evolve through exceptional progression that adds roots without removing existing ones. Initial Linggen contain one or two roots, while an evolved Linggen can eventually contain all five. Adding a root should immediately expand compatible offerings but should not mutate any learned Gongfa. At the next Stage Breakthrough, the new Gongfa offering should be generated from the cultivator's current Linggen, including any roots added since the previous selection. The hidden and difficult route to obtaining enough roots for Huashen is intentionally deferred while the normal Yuanying path is designed.
 
 Gongfa are not transformed by Stage changes. Existing packages improve only through their own Mastery tracks; a Breakthrough expands the build by adding another Gongfa. Baseline cultivator strength grows separately through automatic Foundation Growth at each Phase Transition.

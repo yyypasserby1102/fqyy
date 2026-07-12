@@ -460,7 +460,8 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - required roots: `fire`
   - pattern: `homing`
   - fantasy: blazing feather shots
-  - status: scaffold content
+  - rank-10 Skill 2: `Feather Rain Formation`, successive fans of retargeting homing feathers whose count and damage scale from Embers
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 - `Burning Ring Scripture`
   - required roots: `fire`
   - Skill 1: `Revolving Flame Ring`
@@ -508,7 +509,8 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - required roots: `fire`
   - pattern: `wave`
   - fantasy: scorching crescents
-  - status: scaffold content
+  - rank-10 Skill 2: `Sunset Wave Apex`, opposing crescent walls that cross for a second hit and scale from Scorch
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 
 ### Water Root
 
@@ -516,17 +518,20 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - required roots: `water`
   - pattern: `homing`
   - fantasy: curved frost needles
-  - status: scaffold content
+  - rank-10 Skill 2: `Mirror Needle Constellation`, an orbit that releases staggered retargeting frost needles and scales from Frost
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 - `Black Tide Scripture`
   - required roots: `water`
   - pattern: `wave`
   - fantasy: layered water tides
-  - status: scaffold content
+  - rank-10 Skill 2: `Moon Tide Vault`, an expanding push wave followed by a returning pull wave that scales from Tide
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 - `Ice Mirror Guard`
   - required roots: `water`
   - pattern: `aura`
   - fantasy: defensive cold mirrors
-  - status: scaffold content
+  - rank-10 Skill 2: `Frozen Lotus Shell`, a defensive mirror-petal lotus that shatters into aimed frost shards
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 
 ### Wood Root
 
@@ -536,17 +541,20 @@ Wood is deferred content for the future `Water-Wood` dual-root profile.
   - required roots: `wood`
   - pattern: `homing`
   - fantasy: living vine lashes
-  - status: scaffold content
+  - rank-10 Skill 2: `Verdant Root Network`, a pulsing, retargeting network of damaging vine links that scales from Vinegrowth
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 - `Verdant Ring Scripture`
   - required roots: `wood`
   - pattern: `aura`
   - fantasy: thorned growth ring
-  - status: scaffold content
+  - rank-10 Skill 2: `Sprout-Sun Circle`, a planted thorn circle ending in a full Bloom-scaled damaging ring
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 - `Ironwood Wave Form`
   - required roots: `wood`
   - pattern: `wave`
   - fantasy: rib-like slashing fronts
-  - status: scaffold content
+  - rank-10 Skill 2: `Ironwood Surge Form`, a pushing rampart that splinters into diagonal return waves and scales from Heartwood
+  - status: Skill-2 behavior authored; full package implementation remains incomplete
 
 ### Hybrid Gongfa
 
