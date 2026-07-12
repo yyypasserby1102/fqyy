@@ -8,6 +8,10 @@ import type {
   HealingPillCheckpoint
 } from "./runPersistence";
 import type { GongfaMasteryCheckpoint, GongfaRuntime } from "../logic/gongfaRuntime";
+import {
+  isRunJourneyDecisionLegal,
+  type RunJourneyDecision
+} from "../logic/runJourney";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -114,7 +118,7 @@ function isFinalBossPhaseIndex(value: unknown): value is number {
   return isNumber(value) && Number.isInteger(value) && value >= 0 && value <= 2;
 }
 
-function isPendingJourneyDecision(value: unknown): boolean {
+function isPendingJourneyDecision(value: unknown): value is RunJourneyDecision | undefined {
   if (value === undefined) {
     return true;
   }
@@ -295,6 +299,22 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
   }
 
   if (!isPendingJourneyDecision(value.pendingDecision)) {
+    return false;
+  }
+  if (
+    value.pendingDecision !== undefined &&
+    !isRunJourneyDecisionLegal(
+      {
+        stage: value.stage,
+        realmPhase: value.realmPhase,
+        realmProgress: value.realmProgress,
+        phaseCleanupActive: value.phaseCleanupActive,
+        finalBossActive: value.finalBossActive as boolean | undefined,
+        finalBossPhaseIndex: value.finalBossPhaseIndex as number | undefined
+      },
+      value.pendingDecision
+    )
+  ) {
     return false;
   }
 

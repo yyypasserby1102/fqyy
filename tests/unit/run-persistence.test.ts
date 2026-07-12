@@ -144,6 +144,8 @@ describe("run persistence", () => {
   it("persists only legal pending Run journey decisions", () => {
     const checkpoint = {
       ...createValidCheckpoint(),
+      realmProgress: 100,
+      phaseCleanupActive: true,
       pendingDecision: { kind: "phase-transition" as const, nextPhase: "zhongqi" as const }
     };
 
@@ -154,6 +156,14 @@ describe("run persistence", () => {
       createActiveRunCheckpoint({
         ...checkpoint,
         pendingDecision: { kind: "phase-transition", nextPhase: "chuqi" }
+      })
+    ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        realmPhase: "dayuanman",
+        pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
       })
     ).toThrow("Invalid active Run checkpoint");
   });

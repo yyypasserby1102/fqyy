@@ -93,7 +93,7 @@ function presentJourneyDecision(
 ): RunJourneyResult {
   return {
     state: { ...state, pendingDecision: decision },
-    commands: [{ kind: "present-journey-choice" }, { kind: "persist-checkpoint" }]
+    commands: [{ kind: "persist-checkpoint" }, { kind: "present-journey-choice" }]
   };
 }
 
@@ -119,6 +119,30 @@ export function createRunJourneyStateFromCheckpoint(
     ...checkpoint,
     gameOver: false
   };
+}
+
+export function isRunJourneyDecisionLegal(
+  state: RunJourneyState,
+  decision: RunJourneyDecision
+): boolean {
+  if (decision.kind === "final-boss-phase") {
+    return (
+      state.finalBossActive === true &&
+      state.phaseCleanupActive &&
+      decision.nextPhaseIndex === (state.finalBossPhaseIndex ?? 0) + 1 &&
+      decision.nextPhaseIndex <= 2
+    );
+  }
+
+  const cleanupDecision = getCleanupDecision(state);
+  if (decision.kind === "yuanying-tribulation") {
+    return cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === "yuanying";
+  }
+
+  if (decision.kind === "phase-transition") {
+    return cleanupDecision?.kind === "phase-transition" && cleanupDecision.nextPhase === decision.nextPhase;
+  }
+  return cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === decision.stage;
 }
 
 export function advanceRunJourney(
@@ -235,6 +259,9 @@ export function advanceRunJourney(
   }
 
   if (event.kind === "final-boss-phase-cleared") {
+    if (!state.finalBossActive) {
+      return { state, commands: [] };
+    }
     if (state.finalBossActive && (state.finalBossPhaseIndex ?? 0) >= 2) {
       return completeRun(state);
     }

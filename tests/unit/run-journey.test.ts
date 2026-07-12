@@ -74,8 +74,8 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      { kind: "present-journey-choice" },
-      { kind: "persist-checkpoint" }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
@@ -109,8 +109,8 @@ describe("Run journey", () => {
       pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
     });
     expect(presented.commands).toEqual([
-      { kind: "present-journey-choice" },
-      { kind: "persist-checkpoint" }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(presented.state, {
@@ -150,6 +150,21 @@ describe("Run journey", () => {
     });
   });
 
+  it("ignores a final-boss phase fact outside an active final boss", () => {
+    const state = {
+      stage: "lianqi" as const,
+      realmPhase: "chuqi" as const,
+      realmProgress: 20,
+      phaseCleanupActive: false,
+      finalBossActive: false
+    };
+
+    expect(advanceRunJourney(state, { kind: "final-boss-phase-cleared" })).toEqual({
+      state,
+      commands: []
+    });
+  });
+
   it("drives Stage Tribulation breakthroughs through runtime events", () => {
     const ready = {
       stage: "lianqi" as const,
@@ -167,8 +182,8 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      { kind: "present-journey-choice" },
-      { kind: "persist-checkpoint" }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
@@ -202,8 +217,8 @@ describe("Run journey", () => {
     });
 
     expect(cleanup.commands).toEqual([
-      { kind: "present-journey-choice" },
-      { kind: "persist-checkpoint" }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
@@ -248,8 +263,8 @@ describe("Run journey", () => {
       phaseCleanupActive: true
     });
     expect(cleanup.commands).toEqual([
-      { kind: "present-journey-choice" },
-      { kind: "persist-checkpoint" }
+      { kind: "persist-checkpoint" },
+      { kind: "present-journey-choice" }
     ]);
 
     const accepted = advanceRunJourney(cleanup.state, {
