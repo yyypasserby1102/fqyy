@@ -57,14 +57,14 @@ import {
   getMasteryChoiceDefinition
 } from "../logic/mastery";
 import {
-  advanceGongfaMasteryProgress,
+  advanceGongfaCollectionMastery,
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
-  advanceTimedMasterySkill2Cooldown,
   applyGongfaMasteryChoice,
   applyGongfaImprovement,
   createGongfaRuntime,
-  createGongfaMasteryStateFromCheckpoint,
+  createGongfaCollectionRuntime,
+  createGongfaCollectionRuntimeFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
@@ -73,13 +73,18 @@ import {
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
   projectGongfaMasteryCheckpoint,
+  projectGongfaCollectionMasteryCheckpoint,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
   recordMasterySkill2Cast,
+  learnGongfa,
+  replaceGongfaCollection,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds,
   type GongfaRuntimeCommand,
   type GongfaRuntime,
+  type GongfaCollectionRuntime,
+  type GongfaMasteryCheckpointFields,
   type PassiveImprovementEffect,
   type PlayerImprovementEffect
 } from "../logic/gongfaRuntime";
@@ -118,17 +123,7 @@ interface RunState {
   realmProgress: number;
   phaseCleanupActive: boolean;
   foundationGrowthTransactions: number;
-  masteryPoints: number;
-  masteryRank: number;
-  masteryLearnedIds: string[];
-  upgradeSelectionIds: string[];
-  masterySkill2Id?: string;
-  masterySkill2CooldownRemaining: number;
-  masterySkill2Casts: number;
-  masteryChoiceActive: boolean;
-  masteryPendingRanks: number[];
   learnedGongfaIds: GongfaId[];
-  furnaceCascadeCooldownRemaining: number;
   hiddenLinggen: LinggenConfig;
   revealedLinggen?: LinggenConfig;
   lingcaoCollected: boolean;
@@ -208,6 +203,17 @@ export class GameScene extends Phaser.Scene {
   };
   private spawner!: SpawnerSystem;
   private gongfaRuntime?: GongfaRuntime;
+  private gongfaCollection: GongfaCollectionRuntime = createGongfaCollectionRuntime();
+  private readonly mortalMastery: GongfaMasteryCheckpointFields = {
+    masteryPoints: 0,
+    masteryRank: 0,
+    masteryLearnedIds: [],
+    upgradeSelectionIds: [],
+    masterySkill2CooldownRemaining: 0,
+    masterySkill2Casts: 0,
+    masteryChoiceActive: false,
+    masteryPendingRanks: []
+  };
   private combatState: CombatState = { ...baselineState };
   private combatCooldownRemaining = 0;
   private msSinceDamage = 0;
@@ -237,16 +243,7 @@ export class GameScene extends Phaser.Scene {
     realmProgress: 0,
     phaseCleanupActive: false,
     foundationGrowthTransactions: 0,
-    masteryPoints: 0,
-    masteryRank: 0,
-    masteryLearnedIds: [],
-    upgradeSelectionIds: [],
-    masteryChoiceActive: false,
-    masteryPendingRanks: [],
     learnedGongfaIds: [],
-    masterySkill2CooldownRemaining: 0,
-    masterySkill2Casts: 0,
-    furnaceCascadeCooldownRemaining: 0,
     hiddenLinggen: rollLinggen(),
     lingcaoCollected: false,
     lingcaoMarker: "",
@@ -260,6 +257,24 @@ export class GameScene extends Phaser.Scene {
 
   constructor() {
     super("game");
+  }
+
+  private get primaryMastery(): GongfaMasteryCheckpointFields {
+    const primaryId = this.gongfaCollection.primaryGongfaId;
+    return (primaryId ? this.gongfaCollection.byId[primaryId]?.mastery : undefined) ??
+      this.mortalMastery;
+  }
+
+  private get masteryChoiceRuntime(): GongfaRuntime | undefined {
+    return this.runState.learnedGongfaIds
+      .map((gongfaId) => this.gongfaCollection.byId[gongfaId])
+      .find((runtime) => runtime?.mastery.masteryPendingRanks.length);
+  }
+
+  private adoptPrimaryRuntime(runtime: GongfaRuntime): void {
+    this.gongfaCollection.byId[runtime.gongfaId] = runtime;
+    this.gongfaRuntime = runtime;
+    this.combatState = runtime.combat;
   }
 
   create(): void {
@@ -289,8 +304,8 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.damageReduction =
       checkpoint?.playerDamageReduction ?? this.player.stats.damageReduction;
     splitGongfaImprovementReplayIds([
-      ...this.runState.upgradeSelectionIds,
-      ...this.runState.masteryLearnedIds
+      ...this.primaryMastery.upgradeSelectionIds,
+      ...this.primaryMastery.masteryLearnedIds
     ]).runtimeUpgradeIds.forEach((upgradeId) => this.replayCombatImprovement(upgradeId));
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setZoom(1);
@@ -311,7 +326,7 @@ export class GameScene extends Phaser.Scene {
       this.spawnOpeningLingcao();
     }
     this.restoreHealingPillsFromCheckpoint();
-    if (this.runState.masteryChoiceActive) {
+    if (this.primaryMastery.masteryChoiceActive) {
       this.offerMasteryChoice();
     }
     this.persistRunCheckpoint();
@@ -440,7 +455,6 @@ export class GameScene extends Phaser.Scene {
       this.combatCooldownRemaining = this.combatState.cooldownMs;
     }
 
-    this.tickMasterySkill2(delta);
 
     this.publishHud();
   }
@@ -489,13 +503,11 @@ export class GameScene extends Phaser.Scene {
         sourceGongfaId: projectile.sourceGongfaId,
         targetId: enemy.combatTargetId,
         damage: projectile.damage,
-        learnedMasteryIds: this.runState.masteryLearnedIds,
         baseDamageKilledTarget: diedFromHit,
         embedStacks: enemy.embedStacks,
         embedPower: enemy.embedPower
       });
-      this.gongfaRuntime = result.runtime;
-      this.combatState = result.runtime.combat;
+      this.adoptPrimaryRuntime(result.runtime);
       diedFromCommands = this.executeProjectileHitCommands(projectile, enemy, result.commands);
     }
 
@@ -604,7 +616,7 @@ export class GameScene extends Phaser.Scene {
         this.combatState.projectileLifetimeMs,
         this.combatState.projectileTexture,
         this.combatState.tint,
-        { sourceGongfaId: "yujian-jue" }
+        { sourceGongfaId: this.gongfaRuntime?.gongfaId }
       );
     });
   }
@@ -630,15 +642,14 @@ export class GameScene extends Phaser.Scene {
           command.lifetimeMs,
           this.combatState.projectileTexture,
           this.combatState.tint,
-          { sourceGongfaId: "yujian-jue" }
+          { sourceGongfaId: this.gongfaRuntime?.gongfaId }
         );
 
         if (this.gongfaRuntime) {
           const result = advanceGongfaRuntime(this.gongfaRuntime, {
             kind: "yujian-reversal-spawned"
           });
-          this.gongfaRuntime = result.runtime;
-          this.combatState = result.runtime.combat;
+          this.adoptPrimaryRuntime(result.runtime);
         }
       });
     });
@@ -1020,9 +1031,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gongfaRuntime) {
       this.spawnCastPulse();
       this.executeGongfaRuntimeCommands(
-        planGongfaAttack(this.gongfaRuntime, this.runState.elapsedMs, {
-          learnedMasteryIds: this.runState.masteryLearnedIds
-        })
+        planGongfaAttack(this.gongfaRuntime, this.runState.elapsedMs)
       );
     }
   }
@@ -1112,7 +1121,7 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.damage = damage;
-    projectile.sourceGongfaId = "crimson-furnace-sword-art";
+    projectile.sourceGongfaId = this.gongfaRuntime?.gongfaId;
     projectile.setTint(tint);
     projectile.setAngle(Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y)));
     this.projectiles.add(projectile);
@@ -1228,10 +1237,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const corridor = galeStepSeveranceCorridor(
-      this.gongfaRuntime,
-      this.runState.masteryLearnedIds
-    );
+    const corridor = galeStepSeveranceCorridor(this.gongfaRuntime);
     if (!corridor) {
       return;
     }
@@ -1262,7 +1268,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const wall = ironWakeWall(this.gongfaRuntime, this.runState.masteryLearnedIds);
+    const wall = ironWakeWall(this.gongfaRuntime);
     if (!wall) {
       return;
     }
@@ -1293,12 +1299,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const result = advanceGongfaRuntime(this.gongfaRuntime, {
-      kind: "evade",
-      learnedMasteryIds: this.runState.masteryLearnedIds
-    });
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
+    const result = advanceGongfaRuntime(this.gongfaRuntime, { kind: "evade" });
+    this.adoptPrimaryRuntime(result.runtime);
     this.executeGongfaRuntimeCommands(result.commands);
   }
 
@@ -1307,7 +1309,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const blade = reboundingEdgeBlade(this.gongfaRuntime, this.runState.masteryLearnedIds);
+    const blade = reboundingEdgeBlade(this.gongfaRuntime);
     if (!blade) {
       return;
     }
@@ -1525,11 +1527,10 @@ export class GameScene extends Phaser.Scene {
       deltaMs: delta,
       nearbyEnemyCount: threatRadius > 0 ? this.getEnemiesWithinRadius(threatRadius).length : 0,
       isMoving: movement.lengthSq() > 0,
-      skill2Id: this.runState.masterySkill2Id,
-      learnedMasteryIds: this.runState.masteryLearnedIds
+      skill2Enabled:
+        !this.choiceActive && !this.runState.paused && !this.runState.gameOver
     });
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
+    this.adoptPrimaryRuntime(result.runtime);
     this.executeGongfaRuntimeCommands(result.commands);
   }
 
@@ -1541,44 +1542,6 @@ export class GameScene extends Phaser.Scene {
     return (this.enemies.getChildren() as Enemy[])
       .filter((enemy) => enemy.active)
       .filter((enemy) => Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y) <= radius);
-  }
-
-  private tickMasterySkill2(delta: number): void {
-    if (
-      !this.runState.mainGongfaId ||
-      !this.runState.masterySkill2Id ||
-      this.choiceActive ||
-      this.runState.paused ||
-      this.runState.gameOver
-    ) {
-      return;
-    }
-
-    const tick = advanceTimedMasterySkill2Cooldown(
-      this.runState.masterySkill2Id,
-      this.runState.masterySkill2CooldownRemaining,
-      delta
-    );
-    this.runState.masterySkill2CooldownRemaining = tick.cooldownRemainingMs;
-    if (!tick.readySkill2Id) {
-      return;
-    }
-
-    this.fireMasterySkill2(tick.readySkill2Id);
-  }
-
-  private fireMasterySkill2(skill2Id: string): void {
-    if (!this.gongfaRuntime) {
-      return;
-    }
-
-    const result = advanceGongfaRuntime(this.gongfaRuntime, {
-      kind: "skill2",
-      skill2Id
-    });
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
-    this.executeGongfaRuntimeCommands(result.commands);
   }
 
   private executeGongfaRuntimeCommands(commands: GongfaRuntimeCommand[]): void {
@@ -1684,13 +1647,13 @@ export class GameScene extends Phaser.Scene {
   private recordMasterySkill2Cast(command: GongfaRuntimeCommand): void {
     const next = recordMasterySkill2Cast(
       {
-        masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
-        masterySkill2Casts: this.runState.masterySkill2Casts
+        masterySkill2CooldownRemaining: this.primaryMastery.masterySkill2CooldownRemaining,
+        masterySkill2Casts: this.primaryMastery.masterySkill2Casts
       },
       command
     );
-    this.runState.masterySkill2CooldownRemaining = next.masterySkill2CooldownRemaining;
-    this.runState.masterySkill2Casts = next.masterySkill2Casts;
+    this.primaryMastery.masterySkill2CooldownRemaining = next.masterySkill2CooldownRemaining;
+    this.primaryMastery.masterySkill2Casts = next.masterySkill2Casts;
   }
 
   private fireSolarFlareCycle(
@@ -1979,8 +1942,7 @@ export class GameScene extends Phaser.Scene {
       damage,
       fromEmbed
     });
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
+    this.adoptPrimaryRuntime(result.runtime);
     this.executeGongfaRuntimeCommands(result.commands);
   }
 
@@ -2132,21 +2094,29 @@ export class GameScene extends Phaser.Scene {
     this.runState.revealedLinggen = this.runState.hiddenLinggen;
     if (replaceCurrent || !this.runState.mainGongfaId) {
       this.runState.mainGongfaId = gongfaId;
-      this.runState.masteryPoints = 0;
-      this.runState.masteryRank = 0;
-      this.runState.masteryLearnedIds = [];
-      this.runState.masterySkill2Id = undefined;
-      this.runState.masterySkill2CooldownRemaining = 0;
-      this.runState.masterySkill2Casts = 0;
-      this.runState.masteryChoiceActive = false;
-      this.runState.masteryPendingRanks = [];
+      this.gongfaCollection = replaceGongfaCollection(gongfaId);
       this.runState.learnedGongfaIds = [];
     }
     if (!this.runState.learnedGongfaIds.includes(gongfaId)) {
       this.runState.learnedGongfaIds.push(gongfaId);
     }
-    this.runState.furnaceCascadeCooldownRemaining = 0;
-    this.applyGongfaStage();
+    const learnedSecondaryGongfa = !this.gongfaCollection.byId[gongfaId];
+    if (learnedSecondaryGongfa) {
+      this.gongfaCollection = learnGongfa(
+        this.gongfaCollection,
+        gongfaId,
+        gongfaId === this.runState.mainGongfaId
+      );
+    }
+    if (learnedSecondaryGongfa && gongfaId !== this.runState.mainGongfaId) {
+      const resetPrimary = createGongfaRuntime({
+        gongfaId: this.runState.mainGongfaId,
+        mastery: this.primaryMastery
+      });
+      this.applyGongfaStage(resetPrimary);
+    } else {
+      this.applyGongfaStage();
+    }
     this.playFanfare(0xffe08a);
     this.sfx.breakthrough();
     this.lastMessage = `${gongfaConfigs[gongfaId].name} circulates through your meridians.`;
@@ -2154,23 +2124,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyMasteryChoice(choiceId: string): void {
-    if (!this.runState.mainGongfaId) {
+    const runtime = this.masteryChoiceRuntime;
+    if (!runtime) {
       return;
     }
 
     const mastery = applyGongfaMasteryChoice(
       {
-        masteryLearnedIds: this.runState.masteryLearnedIds,
-        masteryChoiceActive: this.runState.masteryChoiceActive,
-        masteryPendingRanks: this.runState.masteryPendingRanks
+        masteryLearnedIds: runtime.mastery.masteryLearnedIds,
+        masteryChoiceActive: runtime.mastery.masteryChoiceActive,
+        masteryPendingRanks: runtime.mastery.masteryPendingRanks
       },
       choiceId
     );
-    this.runState.masteryLearnedIds = mastery.masteryLearnedIds;
-    this.runState.masteryChoiceActive = mastery.masteryChoiceActive;
-    this.runState.masteryPendingRanks = mastery.masteryPendingRanks;
-    this.applyMasteryUpgradeEffect(choiceId);
-    this.lastMessage = `${gongfaConfigs[this.runState.mainGongfaId].name} mastery deepens.`;
+    runtime.mastery.masteryLearnedIds = mastery.masteryLearnedIds;
+    runtime.mastery.masteryChoiceActive = mastery.masteryChoiceActive;
+    runtime.mastery.masteryPendingRanks = mastery.masteryPendingRanks;
+    this.applyMasteryUpgradeEffect(runtime, choiceId);
+    this.lastMessage = `${gongfaConfigs[runtime.gongfaId].name} mastery deepens.`;
     this.choiceActive = false;
     this.currentChoiceTitle = undefined;
     this.currentChoiceOptions = [];
@@ -2178,23 +2149,25 @@ export class GameScene extends Phaser.Scene {
     this.scene.get("ui").events.emit("hide-choice-panel");
     this.persistRunCheckpoint();
 
-    if (this.runState.masteryPendingRanks.length > 0) {
+    if (this.masteryChoiceRuntime) {
       this.offerMasteryChoice();
     }
   }
 
-  private applyMasteryUpgradeEffect(upgradeId: string): void {
-    this.applyImprovementEffect(upgradeId);
+  private applyMasteryUpgradeEffect(runtime: GongfaRuntime, upgradeId: string): void {
+    this.applyImprovementEffect(upgradeId, runtime);
   }
 
-  private applyImprovementEffect(upgradeId: string): void {
-    if (!this.gongfaRuntime) {
+  private applyImprovementEffect(upgradeId: string, runtime = this.gongfaRuntime): void {
+    if (!runtime) {
       return;
     }
 
-    const result = applyGongfaImprovement(this.gongfaRuntime, upgradeId);
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
+    const result = applyGongfaImprovement(runtime, upgradeId);
+    this.gongfaCollection.byId[result.runtime.gongfaId] = result.runtime;
+    if (result.runtime.gongfaId === this.gongfaCollection.primaryGongfaId) {
+      this.adoptPrimaryRuntime(result.runtime);
+    }
 
     if (result.playerEffect) {
       this.applyPlayerImprovement(result.playerEffect);
@@ -2298,8 +2271,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     const result = applyGongfaImprovement(this.gongfaRuntime, upgradeId);
-    this.gongfaRuntime = result.runtime;
-    this.combatState = result.runtime.combat;
+    this.adoptPrimaryRuntime(result.runtime);
   }
 
   private applyGongfaStage(restoredRuntime?: GongfaRuntime): void {
@@ -2308,7 +2280,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.gongfaRuntime = restoredRuntime ?? createGongfaRuntime({ gongfaId });
+    if (restoredRuntime) {
+      this.gongfaCollection.byId[gongfaId] = restoredRuntime;
+    }
+    this.gongfaRuntime = this.gongfaCollection.byId[gongfaId] ?? createGongfaRuntime({ gongfaId });
+    this.gongfaCollection.byId[gongfaId] = this.gongfaRuntime;
     this.combatState = this.gongfaRuntime.combat;
   }
 
@@ -2337,27 +2313,24 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.applyRunJourneyState(createRunJourneyStateFromCheckpoint(checkpoint));
-    const mastery = createGongfaMasteryStateFromCheckpoint({
-      ...checkpoint,
-      upgradeSelectionIds: checkpoint.upgradeSelectionIds ?? []
-    });
-    this.runState.masteryPoints = mastery.masteryPoints;
-    this.runState.masteryRank = mastery.masteryRank;
-    this.runState.masteryLearnedIds = mastery.masteryLearnedIds;
-    this.runState.upgradeSelectionIds = mastery.upgradeSelectionIds;
-    this.runState.masterySkill2Id = mastery.masterySkill2Id;
-    this.runState.masterySkill2CooldownRemaining = mastery.masterySkill2CooldownRemaining;
-    this.runState.masterySkill2Casts = mastery.masterySkill2Casts;
-    this.runState.masteryChoiceActive = mastery.masteryChoiceActive;
-    this.runState.masteryPendingRanks = mastery.masteryPendingRanks;
     this.runState.learnedGongfaIds = [...checkpoint.learnedGongfaIds];
+    this.gongfaCollection = createGongfaCollectionRuntimeFromCheckpoint({
+      primaryGongfaId: checkpoint.mainGongfaId,
+      masteries: checkpoint.gongfaMasteries ?? []
+    });
+    for (const gongfaId of this.runState.learnedGongfaIds) {
+      this.gongfaCollection = learnGongfa(
+        this.gongfaCollection,
+        gongfaId,
+        gongfaId === checkpoint.mainGongfaId
+      );
+    }
     this.runState.spiritTreasureIds = [...(checkpoint.spiritTreasureIds ?? [])];
     // The restored player stats already include treasure bonuses, so seed the
     // applied-effects baseline instead of re-applying (which would double-count).
     this.appliedSpiritTreasureEffects = aggregateSpiritTreasureEffects(
       this.runState.spiritTreasureIds
     );
-    this.runState.furnaceCascadeCooldownRemaining = checkpoint.furnaceCascadeCooldownRemaining;
     this.runState.hiddenLinggen = linggenConfigs[checkpoint.hiddenLinggenId];
     this.runState.revealedLinggen = checkpoint.revealedLinggenId
       ? linggenConfigs[checkpoint.revealedLinggenId]
@@ -2373,9 +2346,12 @@ export class GameScene extends Phaser.Scene {
     this.runState.kills = checkpoint.kills;
     this.runState.elapsedMs = checkpoint.elapsedMs;
     if (this.runState.mainGongfaId) {
-      this.applyGongfaStage(
-        createGongfaRuntimeFromCheckpoint(this.runState.mainGongfaId, checkpoint)
+      const restoredRuntime = createGongfaRuntimeFromCheckpoint(
+        this.runState.mainGongfaId,
+        checkpoint
       );
+      restoredRuntime.mastery = this.primaryMastery;
+      this.applyGongfaStage(restoredRuntime);
     }
   }
 
@@ -2385,17 +2361,10 @@ export class GameScene extends Phaser.Scene {
     }
 
     const gongfaCheckpoint = projectGongfaRuntimeCheckpoint(this.gongfaRuntime);
-    const masteryCheckpoint = projectGongfaMasteryCheckpoint({
-      masteryPoints: this.runState.masteryPoints,
-      masteryRank: this.runState.masteryRank,
-      masteryLearnedIds: this.runState.masteryLearnedIds,
-      upgradeSelectionIds: this.runState.upgradeSelectionIds,
-      masterySkill2Id: this.runState.masterySkill2Id,
-      masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
-      masterySkill2Casts: this.runState.masterySkill2Casts,
-      masteryChoiceActive: this.runState.masteryChoiceActive,
-      masteryPendingRanks: this.runState.masteryPendingRanks
-    });
+    const masteryCheckpoint = projectGongfaMasteryCheckpoint(this.primaryMastery);
+    const gongfaCollectionCheckpoint = projectGongfaCollectionMasteryCheckpoint(
+      this.gongfaCollection
+    );
     const checkpoint = createActiveRunCheckpoint({
       playerHealth: this.player?.stats.health,
       playerMaxHealth: this.player?.stats.maxHealth,
@@ -2404,6 +2373,7 @@ export class GameScene extends Phaser.Scene {
       playerDamageReduction: this.player?.stats.damageReduction,
       ...projectRunJourneyCheckpointFields(this.runState),
       ...masteryCheckpoint,
+      gongfaMasteries: gongfaCollectionCheckpoint.masteries,
       learnedGongfaIds: this.runState.learnedGongfaIds,
       spiritTreasureIds: this.runState.spiritTreasureIds,
       ...gongfaCheckpoint,
@@ -2471,14 +2441,14 @@ export class GameScene extends Phaser.Scene {
       realmProgress: this.runState.realmProgress,
       stageBreakthroughReady: this.runState.realmProgress >= 100,
       foundationGrowthTransactions: this.runState.foundationGrowthTransactions,
-      masteryPoints: this.runState.masteryPoints,
+      masteryPoints: this.primaryMastery.masteryPoints,
       masteryProgress: getMasteryProgressWithinRank(
-        this.runState.masteryPoints,
-        this.runState.masteryRank
+        this.primaryMastery.masteryPoints,
+        this.primaryMastery.masteryRank
       ),
-      masteryRank: this.runState.masteryRank,
-      masterySkill2: this.runState.masterySkill2Id,
-      masterySkill2Casts: this.runState.masterySkill2Casts,
+      masteryRank: this.primaryMastery.masteryRank,
+      masterySkill2: this.primaryMastery.masterySkill2Id,
+      masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
       galeMomentum: gongfaView.galeMomentum,
       heat: gongfaView.heat,
       ringSegments: gongfaView.ringSegments,
@@ -2538,13 +2508,13 @@ export class GameScene extends Phaser.Scene {
       realmProgress: this.runState.realmProgress,
       stageBreakthroughReady: this.runState.realmProgress >= 100,
       foundationGrowthTransactions: this.runState.foundationGrowthTransactions,
-          masteryRank: this.runState.masteryRank,
+          masteryRank: this.primaryMastery.masteryRank,
           masteryProgress: getMasteryProgressWithinRank(
-            this.runState.masteryPoints,
-            this.runState.masteryRank
+            this.primaryMastery.masteryPoints,
+            this.primaryMastery.masteryRank
           ),
-          masterySkill2: this.runState.masterySkill2Id,
-          masterySkill2Casts: this.runState.masterySkill2Casts,
+          masterySkill2: this.primaryMastery.masterySkill2Id,
+          masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
           galeMomentum: gongfaView.galeMomentum,
           skillTags: this.runState.mainGongfaId
             ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
@@ -2588,14 +2558,14 @@ export class GameScene extends Phaser.Scene {
         realmProgress: this.runState.realmProgress,
         stageBreakthroughReady: this.runState.realmProgress >= 100,
         foundationGrowthTransactions: this.runState.foundationGrowthTransactions,
-        masteryPoints: this.runState.masteryPoints,
+        masteryPoints: this.primaryMastery.masteryPoints,
         masteryProgress: getMasteryProgressWithinRank(
-          this.runState.masteryPoints,
-          this.runState.masteryRank
+          this.primaryMastery.masteryPoints,
+          this.primaryMastery.masteryRank
         ),
-        masteryRank: this.runState.masteryRank,
-        masterySkill2: this.runState.masterySkill2Id,
-        masterySkill2Casts: this.runState.masterySkill2Casts,
+        masteryRank: this.primaryMastery.masteryRank,
+        masterySkill2: this.primaryMastery.masterySkill2Id,
+        masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
@@ -2766,12 +2736,9 @@ export class GameScene extends Phaser.Scene {
     if (this.gongfaRuntime) {
       const result = advanceGongfaRuntime(this.gongfaRuntime, {
         kind: "incoming-damage",
-        amount,
-        skill2Id: this.runState.masterySkill2Id,
-        learnedMasteryIds: this.runState.masteryLearnedIds
+        amount
       });
-      this.gongfaRuntime = result.runtime;
-      this.combatState = result.runtime.combat;
+      this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands);
       this.persistRunCheckpoint();
       return;
@@ -2781,45 +2748,34 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceMasteryProgress(points: number): void {
-    if (!this.runState.mainGongfaId || points <= 0) {
+    const primaryGongfaId = this.gongfaCollection.primaryGongfaId;
+    if (!primaryGongfaId || points <= 0) {
       return;
     }
 
-    const result = advanceGongfaMasteryProgress(
-      {
-        masteryPoints: this.runState.masteryPoints,
-        masteryRank: this.runState.masteryRank,
-        masterySkill2Id: this.runState.masterySkill2Id,
-        masterySkill2CooldownRemaining: this.runState.masterySkill2CooldownRemaining,
-        masteryChoiceActive: this.runState.masteryChoiceActive,
-        masteryPendingRanks: this.runState.masteryPendingRanks
-      },
-      {
-        gongfaId: this.runState.mainGongfaId,
-        points,
-        finalBossActive: this.runState.finalBossActive
-      }
-    );
-    this.runState.masteryPoints = result.state.masteryPoints;
-    this.runState.masteryRank = result.state.masteryRank;
-    this.runState.masterySkill2Id = result.state.masterySkill2Id;
-    this.runState.masterySkill2CooldownRemaining =
-      result.state.masterySkill2CooldownRemaining;
-    this.runState.masteryChoiceActive = result.state.masteryChoiceActive;
-    this.runState.masteryPendingRanks = result.state.masteryPendingRanks;
+    const result = advanceGongfaCollectionMastery(this.gongfaCollection, {
+      points,
+      finalBossActive: this.runState.finalBossActive
+    });
+    this.gongfaCollection = result.runtime;
+    this.gongfaRuntime = this.gongfaCollection.byId[primaryGongfaId];
+    if (this.gongfaRuntime) {
+      this.combatState = this.gongfaRuntime.combat;
+    }
 
-    if (!result.rankUp) {
+    const rankUp = result.rankUps[0];
+    if (!rankUp) {
       return;
     }
 
     this.playFanfare(0x8ec5ff);
     this.sfx.rankUp();
     this.lastMessage = formatMasteryRankUpMessage(
-      gongfaConfigs[this.runState.mainGongfaId].name,
-      result.rankUp.targetRank
+      gongfaConfigs[rankUp.gongfaId].name,
+      rankUp.targetRank
     );
 
-    if (this.runState.masteryChoiceActive) {
+    if (this.masteryChoiceRuntime) {
       this.offerMasteryChoice();
     }
 
@@ -2837,16 +2793,17 @@ export class GameScene extends Phaser.Scene {
   }
 
   private offerMasteryChoice(): void {
-    if (!this.runState.mainGongfaId) {
+    const runtime = this.masteryChoiceRuntime;
+    if (!runtime) {
       return;
     }
 
-    const rank = this.runState.masteryPendingRanks[0] ?? this.runState.masteryRank;
+    const rank = runtime.mastery.masteryPendingRanks[0] ?? runtime.mastery.masteryRank;
     const options = getDeterministicMasteryChoiceIds({
-      gongfaId: this.runState.mainGongfaId,
+      gongfaId: runtime.gongfaId,
       rank,
       seed: String(this.getRunSeed()),
-      learnedIds: this.runState.masteryLearnedIds
+      learnedIds: runtime.mastery.masteryLearnedIds
     }).map<ChoiceOption>((id) => {
       const definition = getMasteryChoiceDefinition(id);
       return {
@@ -2862,8 +2819,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.choiceActive = true;
-    this.runState.masteryChoiceActive = true;
-    this.currentChoiceTitle = `${gongfaConfigs[this.runState.mainGongfaId].name} Mastery Rank ${rank}`;
+    runtime.mastery.masteryChoiceActive = true;
+    this.currentChoiceTitle = `${gongfaConfigs[runtime.gongfaId].name} Mastery Rank ${rank}`;
     this.currentChoiceOptions = options;
     this.setPausedState(true);
     this.scene.get("ui").events.emit("show-choice-panel", {
@@ -2894,7 +2851,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.runState.finalBossActive) {
-      if (this.runState.masteryPendingRanks.length > 0) {
+      if (this.masteryChoiceRuntime) {
         this.offerMasteryChoice();
         return;
       }

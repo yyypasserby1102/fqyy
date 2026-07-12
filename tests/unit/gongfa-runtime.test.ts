@@ -9,6 +9,7 @@ import {
   applyGongfaImprovement,
   advanceGongfaCollectionMastery,
   createGongfaCollectionRuntime,
+  createGongfaCollectionRuntimeFromCheckpoint,
   learnGongfa,
   createGongfaRuntime,
   createGongfaMasteryStateFromCheckpoint,
@@ -23,6 +24,7 @@ import {
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
   projectGongfaMasteryCheckpoint,
+  projectGongfaCollectionMasteryCheckpoint,
   projectGongfaRuntimeCheckpoint,
   projectGongfaRuntimeView,
   recordMasterySkill2Cast,
@@ -59,6 +61,33 @@ describe("Gongfa runtime", () => {
       "yujian-jue",
       "jinfeng-gong"
     ]);
+  });
+
+  it("persists every learned Gongfa Mastery track without sharing checkpoint arrays", () => {
+    const learned = learnGongfa(
+      learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true),
+      "jinfeng-gong"
+    );
+    learned.byId["yujian-jue"]!.mastery.masteryLearnedIds.push("sword-bloom");
+    learned.byId["jinfeng-gong"]!.mastery.masteryPoints = 240;
+
+    const checkpoint = projectGongfaCollectionMasteryCheckpoint(learned);
+    const restored = createGongfaCollectionRuntimeFromCheckpoint(checkpoint);
+    restored.byId["yujian-jue"]!.mastery.masteryLearnedIds.push("execution-seal");
+
+    expect(checkpoint).toEqual({
+      primaryGongfaId: "yujian-jue",
+      masteries: [
+        expect.objectContaining({
+          gongfaId: "yujian-jue",
+          masteryLearnedIds: ["sword-bloom"]
+        }),
+        expect.objectContaining({
+          gongfaId: "jinfeng-gong",
+          masteryPoints: 240
+        })
+      ]
+    });
   });
 
   it("constructs and refines a complete Gongfa combat package through one interface", () => {

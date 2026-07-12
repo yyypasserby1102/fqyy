@@ -7,6 +7,7 @@ import type {
   ActiveRunSave,
   HealingPillCheckpoint
 } from "./runPersistence";
+import type { GongfaMasteryCheckpoint } from "../logic/gongfaRuntime";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -43,6 +44,28 @@ function isLinggenId(value: unknown): value is LinggenId {
 
 function isNumberArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every(isNumber);
+}
+
+function isGongfaMasteryCheckpointArray(
+  value: unknown
+): value is GongfaMasteryCheckpoint[] {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        isGongfaId(item.gongfaId) &&
+        isNonNegativeNumber(item.masteryPoints) &&
+        isNonNegativeNumber(item.masteryRank) &&
+        isStringArray(item.masteryLearnedIds) &&
+        isStringArray(item.upgradeSelectionIds) &&
+        (item.masterySkill2Id === undefined || typeof item.masterySkill2Id === "string") &&
+        isNonNegativeNumber(item.masterySkill2CooldownRemaining) &&
+        isNonNegativeNumber(item.masterySkill2Casts) &&
+        typeof item.masteryChoiceActive === "boolean" &&
+        isNumberArray(item.masteryPendingRanks)
+    )
+  );
 }
 
 function isHealingPillCheckpointArray(value: unknown): value is HealingPillCheckpoint[] {
@@ -189,6 +212,13 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     return false;
   }
 
+  if (
+    value.gongfaMasteries !== undefined &&
+    !isGongfaMasteryCheckpointArray(value.gongfaMasteries)
+  ) {
+    return false;
+  }
+
   if (value.masterySkill2Id !== undefined && typeof value.masterySkill2Id !== "string") {
     return false;
   }
@@ -221,13 +251,28 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
 }
 
 function normalizeActiveRunCheckpoint(checkpoint: ActiveRunCheckpoint): ActiveRunCheckpoint {
+  const legacyPrimaryMastery = checkpoint.mainGongfaId
+    ? [{
+        gongfaId: checkpoint.mainGongfaId,
+        masteryPoints: checkpoint.masteryPoints,
+        masteryRank: checkpoint.masteryRank,
+        masteryLearnedIds: [...checkpoint.masteryLearnedIds],
+        upgradeSelectionIds: [...(checkpoint.upgradeSelectionIds ?? [])],
+        masterySkill2Id: checkpoint.masterySkill2Id,
+        masterySkill2CooldownRemaining: checkpoint.masterySkill2CooldownRemaining,
+        masterySkill2Casts: checkpoint.masterySkill2Casts,
+        masteryChoiceActive: checkpoint.masteryChoiceActive,
+        masteryPendingRanks: [...checkpoint.masteryPendingRanks]
+      }]
+    : [];
   return {
     ...checkpoint,
     upgradeSelectionIds: checkpoint.upgradeSelectionIds ?? [],
     guardMitigationBonus: checkpoint.guardMitigationBonus ?? 0,
     finalBossActive: checkpoint.finalBossActive ?? false,
     finalBossPhaseIndex: checkpoint.finalBossPhaseIndex ?? 0,
-    spiritTreasureIds: checkpoint.spiritTreasureIds ?? []
+    spiritTreasureIds: checkpoint.spiritTreasureIds ?? [],
+    gongfaMasteries: checkpoint.gongfaMasteries ?? legacyPrimaryMastery
   };
 }
 

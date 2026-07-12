@@ -104,6 +104,24 @@ function createValidCheckpoint() {
   };
 }
 
+function withMigratedGongfaMastery(checkpoint: ReturnType<typeof createValidCheckpoint>) {
+  return {
+    ...checkpoint,
+    gongfaMasteries: [{
+      gongfaId: "yujian-jue",
+      masteryPoints: checkpoint.masteryPoints,
+      masteryRank: checkpoint.masteryRank,
+      masteryLearnedIds: checkpoint.masteryLearnedIds,
+      upgradeSelectionIds: checkpoint.upgradeSelectionIds,
+      masterySkill2Id: undefined,
+      masterySkill2CooldownRemaining: checkpoint.masterySkill2CooldownRemaining,
+      masterySkill2Casts: checkpoint.masterySkill2Casts,
+      masteryChoiceActive: checkpoint.masteryChoiceActive,
+      masteryPendingRanks: checkpoint.masteryPendingRanks
+    }]
+  };
+}
+
 describe("run persistence", () => {
   it("creates a durable active-run record without transient combat fields", () => {
     const save = createActiveRunSave(42, 1234567890);
@@ -229,7 +247,7 @@ describe("run persistence", () => {
       seed: 7,
       startedAt: 99,
       lifecycle: "mortal",
-      checkpoint
+      checkpoint: withMigratedGongfaMastery(checkpoint)
     });
   });
 
@@ -449,7 +467,7 @@ describe("run persistence", () => {
       seed: 7,
       startedAt: 99,
       lifecycle: "mortal",
-      checkpoint
+      checkpoint: withMigratedGongfaMastery(checkpoint)
     });
 
     storage.setItem(activeRunStorageKey, "{bad json");

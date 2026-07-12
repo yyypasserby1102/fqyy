@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { claimOpeningLingcao } from "./helpers/claimOpeningLingcao";
 
 async function startNewRun(page: Page) {
   await page.addInitScript((runSeed) => {
@@ -45,43 +46,6 @@ async function collectQiOrb(page: Page, qiValue: number): Promise<void> {
   }
 
   await page.waitForFunction(() => window.__gameTest!.getSnapshot().counts.orbs === 0);
-}
-
-async function claimOpeningLingcao(page: Page): Promise<void> {
-  for (let i = 0; i < 120; i += 1) {
-    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    if (snapshot.progression.lingcaoCollected) {
-      return;
-    }
-
-    const [lingcao] = snapshot.counts.lingcaoPositions;
-    if (!lingcao) {
-      await page.waitForTimeout(25);
-      continue;
-    }
-
-    const keys = [
-      Math.abs(lingcao.x - snapshot.player.x) > 8
-        ? lingcao.x >= snapshot.player.x
-          ? "d"
-          : "a"
-        : undefined,
-      Math.abs(lingcao.y - snapshot.player.y) > 8
-        ? lingcao.y >= snapshot.player.y
-          ? "s"
-          : "w"
-        : undefined
-    ].filter((key): key is string => Boolean(key));
-    for (const key of keys) {
-      await page.keyboard.down(key);
-    }
-    await page.waitForTimeout(55);
-    for (const key of keys) {
-      await page.keyboard.up(key);
-    }
-  }
-
-  await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.lingcaoCollected);
 }
 
 async function resolveMasteryChoices(page: Page): Promise<void> {

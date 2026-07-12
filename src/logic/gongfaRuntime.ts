@@ -62,7 +62,7 @@ export interface GongfaProjectileHitFacts {
   sourceGongfaId?: GongfaId;
   targetId: number;
   damage: number;
-  learnedMasteryIds: string[];
+  learnedMasteryIds?: string[];
   baseDamageKilledTarget: boolean;
   embedStacks: number;
   embedPower: number;
@@ -141,20 +141,21 @@ export type GongfaRuntimeEvent =
       deltaMs: number;
       nearbyEnemyCount: number;
       isMoving?: boolean;
+      skill2Enabled?: boolean;
       skill2Id?: string;
       learnedMasteryIds?: string[];
     }
   | { kind: "projectile-hit"; damage: number; learnedMasteryIds?: string[] }
-  | { kind: "jinfeng-wave-hit"; learnedMasteryIds: string[] }
-  | { kind: "blazing-feather-hit"; learnedMasteryIds: string[] }
-  | { kind: "surge-hit"; learnedMasteryIds: string[] }
-  | { kind: "gengjin-defensive-hit"; learnedMasteryIds: string[] }
-  | { kind: "evade"; learnedMasteryIds: string[] }
+  | { kind: "jinfeng-wave-hit"; learnedMasteryIds?: string[] }
+  | { kind: "blazing-feather-hit"; learnedMasteryIds?: string[] }
+  | { kind: "surge-hit"; learnedMasteryIds?: string[] }
+  | { kind: "gengjin-defensive-hit"; learnedMasteryIds?: string[] }
+  | { kind: "evade"; learnedMasteryIds?: string[] }
   | {
       kind: "yujian-projectile-hit";
       targetId: number;
       damage: number;
-      learnedMasteryIds: string[];
+      learnedMasteryIds?: string[];
     }
   | {
       kind: "crimson-projectile-hit";
@@ -164,7 +165,7 @@ export type GongfaRuntimeEvent =
       embedPower: number;
     }
   | { kind: "yujian-reversal-spawned" }
-  | { kind: "skill2"; skill2Id: string }
+  | { kind: "skill2"; skill2Id?: string }
   | { kind: "incoming-damage"; amount: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean };
 
@@ -533,6 +534,15 @@ export interface GongfaCollectionMasteryResult {
   }>;
 }
 
+export interface GongfaMasteryCheckpoint extends GongfaMasteryCheckpointFields {
+  gongfaId: GongfaId;
+}
+
+export interface GongfaCollectionMasteryCheckpoint {
+  primaryGongfaId?: GongfaId;
+  masteries: GongfaMasteryCheckpoint[];
+}
+
 function createEmptyGongfaMastery(): GongfaMasteryCheckpointFields {
   return {
     masteryPoints: 0,
@@ -565,6 +575,12 @@ export function learnGongfa(
   };
 }
 
+export function replaceGongfaCollection(
+  gongfaId: GongfaId
+): GongfaCollectionRuntime {
+  return learnGongfa(createGongfaCollectionRuntime(), gongfaId, true);
+}
+
 export function advanceGongfaCollectionMastery(
   collection: GongfaCollectionRuntime,
   context: { points: number; finalBossActive: boolean }
@@ -587,6 +603,31 @@ export function advanceGongfaCollectionMastery(
   }
 
   return { runtime: { ...collection, byId }, rankUps };
+}
+
+export function projectGongfaCollectionMasteryCheckpoint(
+  collection: GongfaCollectionRuntime
+): GongfaCollectionMasteryCheckpoint {
+  return {
+    primaryGongfaId: collection.primaryGongfaId,
+    masteries: (Object.entries(collection.byId) as Array<[GongfaId, GongfaRuntime]>).map(
+      ([gongfaId, runtime]) => ({
+        gongfaId,
+        ...projectGongfaMasteryCheckpoint(runtime.mastery)
+      })
+    )
+  };
+}
+
+export function createGongfaCollectionRuntimeFromCheckpoint(
+  checkpoint: GongfaCollectionMasteryCheckpoint
+): GongfaCollectionRuntime {
+  let collection = createGongfaCollectionRuntime();
+  for (const { gongfaId, ...mastery } of checkpoint.masteries) {
+    collection = learnGongfa(collection, gongfaId, gongfaId === checkpoint.primaryGongfaId);
+    collection.byId[gongfaId] = createGongfaRuntime({ gongfaId, mastery });
+  }
+  return collection;
 }
 
 export function advanceTimedMasterySkill2Cooldown(
@@ -1429,8 +1470,17 @@ export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number
 
 export function advanceGongfaRuntime(
   runtime: GongfaRuntime,
-  event: GongfaRuntimeEvent
+  inputEvent: GongfaRuntimeEvent
 ): GongfaRuntimeResult {
+  const event = {
+    ...inputEvent,
+    learnedMasteryIds:
+      ("learnedMasteryIds" in inputEvent ? inputEvent.learnedMasteryIds : undefined) ??
+      runtime.mastery.masteryLearnedIds,
+    skill2Id:
+      ("skill2Id" in inputEvent ? inputEvent.skill2Id : undefined) ??
+      runtime.mastery.masterySkill2Id
+  };
   if (
     !runtime.yujian &&
     !runtime.jinfeng &&
@@ -1444,8 +1494,26 @@ export function advanceGongfaRuntime(
     return { runtime, commands: [] };
   }
 
-  const next = copyRuntime(runtime);
+  let next = copyRuntime(runtime);
   const commands: GongfaRuntimeCommand[] = [];
+
+  if (
+    event.kind === "tick" &&
+    event.skill2Enabled !== false &&
+    next.mastery.masterySkill2Id
+  ) {
+    const cooldown = advanceTimedMasterySkill2Cooldown(
+      next.mastery.masterySkill2Id,
+      next.mastery.masterySkill2CooldownRemaining,
+      event.deltaMs
+    );
+    next.mastery.masterySkill2CooldownRemaining = cooldown.cooldownRemainingMs;
+    if (cooldown.readySkill2Id) {
+      const skillResult = advanceGongfaRuntime(next, { kind: "skill2" });
+      next = skillResult.runtime;
+      commands.push(...skillResult.commands);
+    }
+  }
 
   if (event.kind === "yujian-projectile-hit") {
     const state = next.yujian;
@@ -2067,7 +2135,7 @@ export function advanceGongfaRuntime(
  */
 export function galeStepSeveranceCorridor(
   runtime: GongfaRuntime,
-  learnedMasteryIds: string[]
+  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
 ): { pierce: number; count: number } | undefined {
   if (
     !runtime.jinfeng ||
@@ -2090,7 +2158,7 @@ export function galeStepSeveranceCorridor(
  */
 export function reboundingEdgeBlade(
   runtime: GongfaRuntime,
-  learnedMasteryIds: string[]
+  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
 ): { damage: number; pierce: number } | undefined {
   if (
     !runtime.gengjin ||
@@ -2113,7 +2181,7 @@ export function reboundingEdgeBlade(
  */
 export function ironWakeWall(
   runtime: GongfaRuntime,
-  learnedMasteryIds: string[]
+  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
 ): { pierce: number; count: number } | undefined {
   if (
     !runtime.gengjin ||
@@ -2134,6 +2202,9 @@ export function planGongfaAttack(
   elapsedMs: number,
   options: { learnedMasteryIds?: string[] } = {}
 ): GongfaRuntimeCommand[] {
+  options = {
+    learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
+  };
   if (runtime.crimsonFurnace) {
     const learnedMasteryIds = options.learnedMasteryIds ?? [];
     let count = runtime.combat.count;
