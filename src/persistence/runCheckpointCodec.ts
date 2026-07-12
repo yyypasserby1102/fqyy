@@ -46,8 +46,8 @@ function isLinggenId(value: unknown): value is LinggenId {
   return isOneOf(value, Object.keys(linggenConfigs) as LinggenId[]);
 }
 
-function isNumberArray(value: unknown): value is number[] {
-  return Array.isArray(value) && value.every(isNumber);
+function isPositiveIntegerArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => Number.isInteger(item) && item > 0);
 }
 
 function isGongfaMasteryCheckpoint(value: unknown): value is GongfaMasteryCheckpoint {
@@ -55,19 +55,71 @@ function isGongfaMasteryCheckpoint(value: unknown): value is GongfaMasteryCheckp
     isRecord(value) &&
     isGongfaId(value.gongfaId) &&
     isNonNegativeNumber(value.masteryPoints) &&
-    isNonNegativeNumber(value.masteryRank) &&
+    isNonNegativeNumber(value.masteryRank) && Number.isInteger(value.masteryRank) &&
     isStringArray(value.masteryLearnedIds) &&
     isStringArray(value.upgradeSelectionIds) &&
     (value.masterySkill2Id === undefined || typeof value.masterySkill2Id === "string") &&
     isNonNegativeNumber(value.masterySkill2CooldownRemaining) &&
     isNonNegativeNumber(value.masterySkill2Casts) &&
     typeof value.masteryChoiceActive === "boolean" &&
-    isNumberArray(value.masteryPendingRanks)
+    isPositiveIntegerArray(value.masteryPendingRanks)
   );
 }
 
 function isGongfaMasteryCheckpointArray(value: unknown): value is GongfaMasteryCheckpoint[] {
   return Array.isArray(value) && value.every(isGongfaMasteryCheckpoint);
+}
+
+const combatNumberFields = [
+  "tint", "damage", "cooldownMs", "count", "pierce", "projectileSpeed",
+  "projectileLifetimeMs", "spreadDeg", "auraRadius", "retaliationDamage", "range",
+  "returnShots", "shellBursts"
+] as const;
+
+const subtypeNumberFields = {
+  yujian: ["executionSealTriggers", "swordBloomTriggers", "reversingSwordPathTriggers", "intentStacks", "intentDurationRemaining", "intentAppliedDamageBonus", "intentAppliedSpeedBonus", "intentAppliedPierceBonus"],
+  jinfeng: ["momentum", "momentumBuildRate", "momentumDecayRate", "momentumWaveBonus", "momentumAppliedRangeBonus", "momentumAppliedSpreadBonus", "momentumAppliedLifetimeBonus", "walkingStormCooldownRemaining"],
+  gengjin: ["guardValue", "guardBuildRate", "guardDecayRate", "guardMitigation", "guardMitigationBonus", "guardAppliedRetaliationBonus", "guardAppliedAuraBonus", "guardAppliedDamageBonus", "bladeShellCharge", "bladeShellThreshold", "bladeShellCooldownRemaining", "bladeShellCasts", "gengjinPulseCooldownRemaining"],
+  burningRing: ["heat", "heatBuildRate", "heatDecayRate", "heatAppliedCooldownBonus", "heatAuraSpeedBonus", "ringSegments", "counterflowRingSegments", "counterflowRingAppliedSegments", "counterflowRingRadiusBonus", "counterflowRingCooldownRemaining", "solarFlareCooldownRemaining", "solarFlareCasts", "sunspotCooldownRemaining"],
+  crimsonFurnace: ["pressure", "pressureBuildRate", "pressureDecayRate", "pressureAppliedRadiusBonus", "pressureRadiusScale", "embedThreshold", "furnaceCascadeCooldownRemaining", "furnaceCascadeCasts"],
+  blazingFeather: ["emberStacks", "emberDurationRemaining", "emberAppliedDamageBonus"],
+  surge: ["stacks", "durationRemaining", "appliedDamageBonus"]
+} as const;
+
+type RuntimeSubtype = keyof typeof subtypeNumberFields;
+
+const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype> = {
+  "yujian-jue": "yujian",
+  "jinfeng-gong": "jinfeng",
+  "gengjin-huti": "gengjin",
+  "burning-ring-scripture": "burningRing",
+  "crimson-furnace-sword-art": "crimsonFurnace",
+  "blazing-feather-art": "blazingFeather",
+  "scarlet-wave-manual": "surge",
+  "drifting-frost-needle": "surge",
+  "black-tide-scripture": "surge",
+  "ice-mirror-guard": "surge",
+  "green-vine-art": "surge",
+  "verdant-ring-scripture": "surge",
+  "ironwood-wave-form": "surge"
+};
+
+function hasNonNegativeFields(value: unknown, fields: readonly string[]): value is Record<string, unknown> {
+  return isRecord(value) && fields.every((field) => isNonNegativeNumber(value[field]));
+}
+
+function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: GongfaId): boolean {
+  const expectedSubtype = runtimeSubtypeByGongfa[gongfaId];
+  const presentSubtypes = (Object.keys(subtypeNumberFields) as RuntimeSubtype[])
+    .filter((subtype) => runtime[subtype] !== undefined);
+  if (presentSubtypes.length !== 1 || presentSubtypes[0] !== expectedSubtype) return false;
+  const state = runtime[expectedSubtype];
+  if (!hasNonNegativeFields(state, subtypeNumberFields[expectedSubtype])) return false;
+  if (expectedSubtype === "yujian") {
+    const stacks = state.executionSealStacksByTarget;
+    return isRecord(stacks) && Object.values(stacks).every(isNonNegativeNumber);
+  }
+  return true;
 }
 
 function isGongfaRuntimeArray(value: unknown): value is GongfaRuntime[] {
@@ -77,25 +129,14 @@ function isGongfaRuntimeArray(value: unknown): value is GongfaRuntime[] {
       (runtime) =>
         isRecord(runtime) &&
         isGongfaId(runtime.gongfaId) &&
-        isNumber(runtime.attackCooldownRemaining) &&
+        isNonNegativeNumber(runtime.attackCooldownRemaining) &&
         isRecord(runtime.combat) &&
-        typeof runtime.combat.pattern === "string" &&
+        runtime.combat.pattern === gongfaConfigs[runtime.gongfaId].pattern &&
         typeof runtime.combat.projectileTexture === "string" &&
-        Object.entries(runtime.combat).every(
-          ([key, field]) =>
-            key === "pattern" || key === "projectileTexture" || isNumber(field)
-        ) &&
+        hasNonNegativeFields(runtime.combat, combatNumberFields) &&
         isRecord(runtime.mastery) &&
         isGongfaMasteryCheckpoint({ gongfaId: runtime.gongfaId, ...runtime.mastery }) &&
-        [
-          runtime.yujian,
-          runtime.jinfeng,
-          runtime.gengjin,
-          runtime.burningRing,
-          runtime.crimsonFurnace,
-          runtime.blazingFeather,
-          runtime.surge
-        ].every((state) => state === undefined || isRecord(state))
+        isRuntimeSubtypeState(runtime, runtime.gongfaId)
     )
   );
 }
@@ -253,7 +294,7 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     typeof value.lingcaoMarker !== "string" ||
     !isStringArray(value.masteryLearnedIds) ||
     !isGongfaIdArray(value.learnedGongfaIds) ||
-    !isNumberArray(value.masteryPendingRanks) ||
+    !isPositiveIntegerArray(value.masteryPendingRanks) ||
     !isHealingPillCheckpointArray(value.healingPills)
   ) {
     return false;

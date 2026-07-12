@@ -139,6 +139,43 @@ describe("run persistence", () => {
         gongfaRuntimes: [{ ...checkpoint.gongfaRuntimes[0], combat: null }]
       })
     ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{
+          ...checkpoint.gongfaRuntimes[0],
+          combat: { ...checkpoint.gongfaRuntimes[0].combat, pattern: "teleport" }
+        }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{
+          ...checkpoint.gongfaRuntimes[0],
+          yujian: {
+            ...checkpoint.gongfaRuntimes[0].yujian,
+            intentStacks: "many"
+          }
+        }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{ ...checkpoint.gongfaRuntimes[0], attackCooldownRemaining: -1 }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
+
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{ ...checkpoint.gongfaRuntimes[0], gengjin: { guardValue: "bad" } }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
   });
 
   it("persists only legal pending Run journey decisions", () => {
