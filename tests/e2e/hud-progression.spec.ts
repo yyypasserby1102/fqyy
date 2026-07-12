@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { claimOpeningLingcao } from "./helpers/claimOpeningLingcao";
 
 async function startNewRun(page: Page) {
   await page.addInitScript((runSeed) => {
@@ -45,13 +46,6 @@ async function collectQiOrb(page: Page, qiValue: number): Promise<void> {
   }
 
   await page.waitForFunction(() => window.__gameTest!.getSnapshot().counts.orbs === 0);
-}
-
-async function claimOpeningLingcao(page: Page): Promise<void> {
-  // Claim directly rather than keyboard-walking to the Lingcao (the walk's
-  // distance-per-frame is render-cadence dependent and flaked under load).
-  await page.evaluate(() => window.__gameTest!.forceClaimLingcao());
-  await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.lingcaoCollected);
 }
 
 async function resolveMasteryChoices(page: Page): Promise<void> {

@@ -2,6 +2,7 @@ import type { GongfaId } from "../data/gongfa";
 import type { LinggenId } from "../data/linggen";
 import type { RealmPhaseId, StageId } from "../data/stages";
 import type { SpiritTreasureId } from "../data/spiritTreasures";
+import type { GongfaMasteryCheckpoint, GongfaRuntime } from "../logic/gongfaRuntime";
 import {
   decodeActiveRunCheckpoint,
   decodeActiveRunSave,
@@ -42,6 +43,8 @@ export interface ActiveRunCheckpoint {
   masterySkill2Casts: number;
   masteryChoiceActive: boolean;
   masteryPendingRanks: number[];
+  gongfaMasteries?: GongfaMasteryCheckpoint[];
+  gongfaRuntimes?: GongfaRuntime[];
   learnedGongfaIds: GongfaId[];
   galeMomentum: number;
   galeMomentumBuildRate: number;

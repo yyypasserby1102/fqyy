@@ -206,15 +206,22 @@ export function getGongfaMasterySpeedLabel(
   linggenId: LinggenId,
   gongfaId: GongfaId
 ): "Slow" | "Normal" | "Fast" {
-  const linggen = linggenConfigs[linggenId];
-  const requiredRoots = gongfaConfigs[gongfaId].requiredRoots;
-  const effective =
-    requiredRoots.length === 1
-      ? linggen.rootAffinities[requiredRoots[0]]
-      : Math.round(
-          requiredRoots.reduce((total, root) => total + linggen.rootAffinities[root], 0) /
-            requiredRoots.length
-        );
+  const effective = getGongfaEffectiveAffinity(linggenId, gongfaId);
 
   return getMasterySpeedLabelFromValue(effective);
+}
+
+export function getGongfaEffectiveAffinity(linggenId: LinggenId, gongfaId: GongfaId): number {
+  const linggen = linggenConfigs[linggenId];
+  const requiredRoots = gongfaConfigs[gongfaId].requiredRoots;
+  return (
+    requiredRoots.reduce((total, root) => total + linggen.rootAffinities[root], 0) /
+    requiredRoots.length
+  );
+}
+
+export function getGongfaMasteryEfficiency(linggenId: LinggenId, gongfaId: GongfaId): number {
+  const linggen = linggenConfigs[linggenId];
+  const strongestAffinity = Math.max(...Object.values(linggen.rootAffinities));
+  return getGongfaEffectiveAffinity(linggenId, gongfaId) / strongestAffinity;
 }

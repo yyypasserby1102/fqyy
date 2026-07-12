@@ -1,26 +1,134 @@
 import { describe, expect, it } from "vitest";
 import { gongfaConfigs, type GongfaId } from "../../src/data/gongfa";
 import {
+  advanceGongfaMasteryProgress,
   advanceGongfaRuntimeForProjectileHit,
   advanceGongfaRuntime,
+  advanceTimedMasterySkill2Cooldown,
+  applyGongfaMasteryChoice,
   applyGongfaImprovement,
+  advanceGongfaCollectionMastery,
+  createGongfaCollectionRuntime,
+  createGongfaCollectionRuntimeFromCheckpoint,
+  createGongfaCollectionFromCheckpoint,
+  learnGongfa,
   createGongfaRuntime,
+  createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
   ironWakeWall,
   reboundingEdgeBlade,
+  getAuthoredSkill2CooldownMs,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
+  projectGongfaMasteryCheckpoint,
+  projectGongfaCollectionMasteryCheckpoint,
+  projectGongfaCollectionCheckpoint,
   projectGongfaRuntimeCheckpoint,
+  projectGongfaRuntimeView,
+  recordMasterySkill2Cast,
   selectCrimsonFurnaceTargetIndexes,
   splitGongfaImprovementReplayIds
 } from "../../src/logic/gongfaRuntime";
 import { getRank10Skill2Id } from "../../src/logic/mastery";
 
 describe("Gongfa runtime", () => {
+  it("advances every learned Gongfa on an independent Mastery track", () => {
+    const yujian = learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true);
+    const twoGongfa = learnGongfa(yujian, "jinfeng-gong");
+
+    const firstGain = advanceGongfaCollectionMastery(twoGongfa, {
+      points: 120,
+      finalBossActive: false
+    });
+    const secondGain = advanceGongfaCollectionMastery(firstGain.runtime, {
+      points: 80,
+      finalBossActive: false
+    });
+
+    expect(secondGain.runtime.byId["yujian-jue"]?.mastery).toMatchObject({
+      masteryPoints: 200,
+      masteryRank: 2,
+      masteryPendingRanks: [1, 2]
+    });
+    expect(secondGain.runtime.byId["jinfeng-gong"]?.mastery).toMatchObject({
+      masteryPoints: 200,
+      masteryRank: 2,
+      masteryPendingRanks: [1, 2]
+    });
+    expect(secondGain.rankUps.map(({ gongfaId }) => gongfaId)).toEqual([
+      "yujian-jue",
+      "jinfeng-gong"
+    ]);
+  });
+
+  it("can advance learned Gongfa at different affinity-derived rates", () => {
+    const learned = learnGongfa(
+      learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true),
+      "burning-ring-scripture"
+    );
+
+    const result = advanceGongfaCollectionMastery(learned, {
+      points: (gongfaId) => gongfaId === "yujian-jue" ? 80 : 120,
+      finalBossActive: false
+    });
+
+    expect(result.runtime.byId["yujian-jue"]?.mastery.masteryPoints).toBe(80);
+    expect(result.runtime.byId["burning-ring-scripture"]?.mastery.masteryPoints).toBe(120);
+  });
+
+  it("persists every learned Gongfa Mastery track without sharing checkpoint arrays", () => {
+    const learned = learnGongfa(
+      learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true),
+      "jinfeng-gong"
+    );
+    learned.byId["yujian-jue"]!.mastery.masteryLearnedIds.push("sword-bloom");
+    learned.byId["jinfeng-gong"]!.mastery.masteryPoints = 240;
+
+    const checkpoint = projectGongfaCollectionMasteryCheckpoint(learned);
+    const restored = createGongfaCollectionRuntimeFromCheckpoint(checkpoint);
+    restored.byId["yujian-jue"]!.mastery.masteryLearnedIds.push("execution-seal");
+
+    expect(checkpoint).toEqual({
+      primaryGongfaId: "yujian-jue",
+      masteries: [
+        expect.objectContaining({
+          gongfaId: "yujian-jue",
+          masteryLearnedIds: ["sword-bloom"]
+        }),
+        expect.objectContaining({
+          gongfaId: "jinfeng-gong",
+          masteryPoints: 240
+        })
+      ]
+    });
+  });
+
+  it("checkpoints every learned Gongfa combat and passive state", () => {
+    let collection = learnGongfa(createGongfaCollectionRuntime(), "jinfeng-gong", true);
+    collection = learnGongfa(collection, "burning-ring-scripture");
+    collection.byId["jinfeng-gong"]!.jinfeng!.momentum = 4;
+    collection.byId["jinfeng-gong"]!.attackCooldownRemaining = 320;
+    collection.byId["jinfeng-gong"]!.jinfeng!.walkingStormCooldownRemaining = 450;
+    collection.byId["jinfeng-gong"]!.combat.range = 188;
+    collection.byId["burning-ring-scripture"]!.burningRing!.heat = 72;
+
+    const checkpoint = projectGongfaCollectionCheckpoint(collection);
+    const restored = createGongfaCollectionFromCheckpoint(checkpoint);
+
+    expect(restored.byId["jinfeng-gong"]!.jinfeng!.momentum).toBe(4);
+    expect(restored.byId["jinfeng-gong"]!.attackCooldownRemaining).toBe(0);
+    expect(restored.byId["jinfeng-gong"]!.jinfeng!.walkingStormCooldownRemaining).toBe(0);
+    expect(restored.byId["jinfeng-gong"]!.combat.range).toBe(188);
+    expect(restored.byId["burning-ring-scripture"]!.burningRing!.heat).toBe(72);
+
+    restored.byId["jinfeng-gong"]!.jinfeng!.momentum = 1;
+    expect(checkpoint.runtimes[0].jinfeng!.momentum).toBe(4);
+  });
+
   it("constructs and refines a complete Gongfa combat package through one interface", () => {
     const initial = createGongfaRuntime({
       gongfaId: "yujian-jue"
@@ -45,6 +153,235 @@ describe("Gongfa runtime", () => {
     expect(getAuthoredSkill2Plan("blade-shell-rebound")?.trigger).toBe("threshold");
     expect(getAuthoredSkill2Plan("feather-rain-formation")?.trigger).toBe("timed");
     expect(getAuthoredSkill2Plan("missing-skill-2")).toBeUndefined();
+  });
+
+  it("owns timed Skill 2 cooldown interpretation", () => {
+    expect(getAuthoredSkill2CooldownMs("returning-sword-formation")).toBe(2400);
+    expect(getAuthoredSkill2CooldownMs("missing-skill-2")).toBe(0);
+
+    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 400)).toEqual({
+      cooldownRemainingMs: 600
+    });
+    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 1000)).toEqual({
+      cooldownRemainingMs: 0,
+      readySkill2Id: "returning-sword-formation"
+    });
+    expect(advanceTimedMasterySkill2Cooldown("solar-flare-cycle", 1000, 1000)).toEqual({
+      cooldownRemainingMs: 1000
+    });
+  });
+
+  it("records successful Skill 2 casts through the runtime command interface", () => {
+    const state = {
+      masterySkill2CooldownRemaining: 25,
+      masterySkill2Casts: 2
+    };
+
+    expect(recordMasterySkill2Cast(state, { kind: "aura-burst", damage: 10, count: 3 })).toBe(
+      state
+    );
+    expect(
+      recordMasterySkill2Cast(state, {
+        kind: "returning-sword-formation",
+        count: 1,
+        opening: {
+          damage: 10,
+          pierce: 2,
+          speed: 485,
+          lifetimeMs: 1680
+        },
+        returnPath: {
+          delayMs: 240,
+          damage: 8,
+          pierce: 2,
+          speed: 505,
+          lifetimeMs: 1740
+        },
+        masteryCast: {
+          skill2Id: "returning-sword-formation",
+          cooldownMs: 2400
+        }
+      })
+    ).toEqual({
+      masterySkill2CooldownRemaining: 2400,
+      masterySkill2Casts: 3
+    });
+  });
+
+  it("advances Gongfa Mastery progress, pending choices, and rank-10 Skill 2 unlocks", () => {
+    const base = {
+      masteryPoints: 90,
+      masteryRank: 0,
+      masterySkill2CooldownRemaining: 0,
+      masteryChoiceActive: false,
+      masteryPendingRanks: [] as number[]
+    };
+
+    expect(
+      advanceGongfaMasteryProgress(base, {
+        gongfaId: "yujian-jue",
+        points: 5,
+        finalBossActive: false
+      })
+    ).toEqual({
+      state: {
+        ...base,
+        masteryPoints: 95,
+        masteryPendingRanks: []
+      }
+    });
+
+    const rankTwo = advanceGongfaMasteryProgress(base, {
+      gongfaId: "yujian-jue",
+      points: 120,
+      finalBossActive: false
+    });
+    expect(rankTwo).toEqual({
+      state: {
+        masteryPoints: 210,
+        masteryRank: 2,
+        masterySkill2CooldownRemaining: 0,
+        masteryChoiceActive: true,
+        masteryPendingRanks: [1, 2]
+      },
+      rankUp: {
+        previousRank: 0,
+        targetRank: 2
+      }
+    });
+
+    expect(
+      advanceGongfaMasteryProgress(
+        {
+          ...base,
+          masteryPoints: 990,
+          masteryRank: 9
+        },
+        {
+          gongfaId: "yujian-jue",
+          points: 10,
+          finalBossActive: false
+        }
+      ).state
+    ).toMatchObject({
+      masteryPoints: 1000,
+      masteryRank: 10,
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 2400,
+      masteryChoiceActive: false,
+      masteryPendingRanks: []
+    });
+
+    expect(
+      advanceGongfaMasteryProgress(base, {
+        gongfaId: "yujian-jue",
+        points: 120,
+        finalBossActive: true
+      }).state
+    ).toMatchObject({
+      masteryChoiceActive: false,
+      masteryPendingRanks: [1, 2]
+    });
+  });
+
+  it("continues after rank 10 until the authored Refinement pool is exhausted", () => {
+    const mastered = {
+      masteryPoints: 1000,
+      masteryRank: 10,
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 0,
+      masteryChoiceActive: false,
+      masteryPendingRanks: [] as number[]
+    };
+
+    expect(
+      advanceGongfaMasteryProgress(mastered, {
+        gongfaId: "yujian-jue",
+        points: 500,
+        finalBossActive: false,
+        learnedIds: []
+      })
+    ).toMatchObject({
+      state: { masteryPoints: 1500, masteryRank: 15, masteryPendingRanks: [11, 12, 13, 14, 15] }
+    });
+
+    const exhausted = {
+      ...mastered,
+      masteryRank: 22,
+      masteryPoints: 2200,
+      masteryPendingRanks: [] as number[]
+    };
+    expect(
+      advanceGongfaMasteryProgress(exhausted, {
+        gongfaId: "yujian-jue",
+        points: 100,
+        finalBossActive: false,
+        learnedIds: [
+          "sword-intent-sharpening", "sword-intent-sharpening", "sword-intent-sharpening",
+          "twin-sword-split", "twin-sword-split", "twin-sword-split",
+          "refined-sword-channel", "refined-sword-channel", "refined-sword-channel"
+        ]
+      })
+    ).toEqual({ state: exhausted });
+  });
+
+  it("applies a Gongfa Mastery choice and advances the pending-rank queue", () => {
+    expect(
+      applyGongfaMasteryChoice(
+        {
+          masteryLearnedIds: ["sword-bloom"],
+          masteryChoiceActive: true,
+          masteryPendingRanks: [2, 3]
+        },
+        "execution-seal"
+      )
+    ).toEqual({
+      masteryLearnedIds: ["sword-bloom", "execution-seal"],
+      masteryChoiceActive: false,
+      masteryPendingRanks: [3]
+    });
+  });
+
+  it("hydrates and projects Gongfa Mastery checkpoint fields without sharing arrays", () => {
+    const checkpoint = {
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom"],
+      upgradeSelectionIds: ["tempered-meridians"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [4, 5]
+    };
+
+    const restored = createGongfaMasteryStateFromCheckpoint(checkpoint);
+    restored.masteryLearnedIds.push("execution-seal");
+    restored.upgradeSelectionIds.push("jade-meridian");
+    restored.masteryPendingRanks.shift();
+
+    expect(checkpoint).toEqual({
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom"],
+      upgradeSelectionIds: ["tempered-meridians"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [4, 5]
+    });
+    expect(projectGongfaMasteryCheckpoint(restored)).toEqual({
+      masteryPoints: 320,
+      masteryRank: 3,
+      masteryLearnedIds: ["sword-bloom", "execution-seal"],
+      upgradeSelectionIds: ["tempered-meridians", "jade-meridian"],
+      masterySkill2Id: "returning-sword-formation",
+      masterySkill2CooldownRemaining: 1200,
+      masterySkill2Casts: 4,
+      masteryChoiceActive: true,
+      masteryPendingRanks: [5]
+    });
   });
 
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
@@ -320,6 +657,17 @@ describe("Gongfa runtime", () => {
     });
   });
 
+  it("keeps Yujian reversal accounting inert for non-Yujian runtimes", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
+
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "yujian-reversal-spawned"
+    });
+
+    expect(result.runtime).toEqual(runtime);
+    expect(result.commands).toEqual([]);
+  });
+
   it("routes generic player improvements without leaking them into combat state", () => {
     const initial = createGongfaRuntime({ gongfaId: "yujian-jue" });
     const improved = applyGongfaImprovement(initial, "tempered-meridians");
@@ -399,6 +747,53 @@ describe("Gongfa runtime", () => {
       guardBuildRate: 2,
       bladeShellCharge: 75,
       bladeShellCasts: 3
+    });
+  });
+
+  it("projects UI-visible runtime meters without exposing Gongfa subtype state", () => {
+    const yujian = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "yujian-jue" }), {
+      kind: "yujian-projectile-hit",
+      targetId: 10,
+      damage: 15,
+      learnedMasteryIds: ["execution-seal", "sword-bloom", "reversing-sword-path"]
+    }).runtime;
+
+    expect(projectGongfaRuntimeView(yujian)).toMatchObject({
+      galeMomentum: 0,
+      heat: 0,
+      guard: 0,
+      masteryTransformationTriggers: {
+        executionSeal: 0,
+        swordBloom: 1,
+        reversingSwordPath: 0
+      }
+    });
+
+    const gengjin = advanceGongfaRuntime(
+      createGongfaRuntime({ gongfaId: "gengjin-huti" }),
+      {
+        kind: "tick",
+        deltaMs: 1000,
+        nearbyEnemyCount: 2,
+        skill2Id: "blade-shell-rebound"
+      }
+    ).runtime;
+
+    expect(projectGongfaRuntimeView(gengjin)).toMatchObject({
+      guard: 1.24,
+      guardMitigation: 1.24 / 220,
+      bladeShellCharge: 14.062,
+      bladeShellCasts: 0,
+      crimsonPressureRadiusScale: 0.45
+    });
+
+    expect(projectGongfaRuntimeView(undefined)).toMatchObject({
+      galeMomentum: 0,
+      heat: 0,
+      ringSegments: 0,
+      pressure: 0,
+      guard: 0,
+      crimsonPressureRadiusScale: 0.45
     });
   });
 
@@ -583,6 +978,20 @@ describe("Gongfa runtime", () => {
     ]);
   });
 
+  it("returns ordinary incoming damage for runtimes without defensive state", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
+
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "incoming-damage",
+      amount: 12.8,
+      skill2Id: "solar-flare-cycle",
+      learnedMasteryIds: []
+    });
+
+    expect(result.runtime).toEqual(runtime);
+    expect(result.commands).toEqual([{ kind: "incoming-damage", finalDamage: 12 }]);
+  });
+
   it("interprets the authored Gengjin refinement families in the runtime", () => {
     const initial = createGongfaRuntime({ gongfaId: "gengjin-huti" });
     const strongerGuard = applyGongfaImprovement(initial, "lasting-temper").runtime;
@@ -722,6 +1131,21 @@ describe("Gongfa runtime", () => {
         }
       }
     ]);
+  });
+
+  it("keeps Crimson detonation inert for non-Crimson runtimes", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "crimson-detonation",
+      x: 12,
+      y: 34,
+      damage: 20,
+      fromEmbed: true
+    });
+
+    expect(result.runtime).toEqual(runtime);
+    expect(result.commands).toEqual([]);
   });
 
   it("restores Crimson state, decays pressure, and records Furnace Cascade casts", () => {

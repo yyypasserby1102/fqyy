@@ -701,3 +701,18 @@ export function getDeterministicMasteryChoiceIds(
 
   return result;
 }
+
+export function hasAvailableGongfaRefinement(
+  gongfaId: GongfaId,
+  learnedIds: string[]
+): boolean {
+  const learnedCounts = learnedIds.reduce<Record<string, number>>((counts, id) => {
+    counts[id] = (counts[id] ?? 0) + 1;
+    return counts;
+  }, {});
+
+  return upgradeConfigs
+    .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId))
+    .filter((upgrade) => !transformationIdSet.has(upgrade.id))
+    .some((upgrade) => (learnedCounts[upgrade.id] ?? 0) < (upgrade.maxSelections ?? Infinity));
+}

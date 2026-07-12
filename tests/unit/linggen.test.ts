@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getGongfaMasteryEfficiency,
   getCultivatorCandidates,
   getGongfaMasterySpeedLabel,
   getLinggenAffinityGradeSummary,
@@ -11,6 +12,14 @@ import {
 import { setRandomSeed } from "../../src/utils/random";
 
 describe("Linggen affinity rules", () => {
+  it("derives per-Gongfa Mastery efficiency from required-root affinity", () => {
+    expect(getGongfaMasteryEfficiency("fire-metal", "burning-ring-scripture")).toBe(1);
+    expect(getGongfaMasteryEfficiency("fire-metal", "yujian-jue")).toBeCloseTo(4 / 6);
+    expect(getGongfaMasteryEfficiency("fire-metal", "crimson-furnace-sword-art")).toBeCloseTo(
+      5 / 6
+    );
+  });
+
   it("keeps each authored Linggen at a total affinity of 10 and exposes grade labels", () => {
     for (const linggen of Object.values(linggenConfigs)) {
       expect(getLinggenAffinityTotal(linggen.id)).toBe(10);

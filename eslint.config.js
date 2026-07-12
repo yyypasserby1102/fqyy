@@ -9,13 +9,18 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["scripts/**/*.mjs", "*.config.ts", "*.config.js"],
+    files: ["scripts/**/*.mjs", "*.config.ts", "*.config.js", "**/*.config.cjs"],
     languageOptions: {
       ecmaVersion: "latest",
-      sourceType: "module",
       globals: {
         ...globals.node
       }
+    }
+  },
+  {
+    files: ["**/*.config.cjs"],
+    languageOptions: {
+      sourceType: "commonjs"
     }
   },
   {

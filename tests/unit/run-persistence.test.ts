@@ -8,6 +8,7 @@ import {
   loadActiveRun,
   saveActiveRun
 } from "../../src/persistence/runPersistence";
+import { createGongfaRuntime } from "../../src/logic/gongfaRuntime";
 
 function createMemoryStorage(): Storage {
   const entries = new Map<string, string>();
@@ -104,7 +105,42 @@ function createValidCheckpoint() {
   };
 }
 
+function withMigratedGongfaMastery(checkpoint: ReturnType<typeof createValidCheckpoint>) {
+  return {
+    ...checkpoint,
+    gongfaMasteries: [{
+      gongfaId: "yujian-jue",
+      masteryPoints: checkpoint.masteryPoints,
+      masteryRank: checkpoint.masteryRank,
+      masteryLearnedIds: checkpoint.masteryLearnedIds,
+      upgradeSelectionIds: checkpoint.upgradeSelectionIds,
+      masterySkill2Id: undefined,
+      masterySkill2CooldownRemaining: checkpoint.masterySkill2CooldownRemaining,
+      masterySkill2Casts: checkpoint.masterySkill2Casts,
+      masteryChoiceActive: checkpoint.masteryChoiceActive,
+      masteryPendingRanks: checkpoint.masteryPendingRanks
+    }]
+  };
+}
+
 describe("run persistence", () => {
+  it("validates complete learned Gongfa runtime checkpoints", () => {
+    const checkpoint = {
+      ...createValidCheckpoint(),
+      gongfaRuntimes: [createGongfaRuntime({ gongfaId: "yujian-jue" })]
+    };
+
+    expect(createActiveRunCheckpoint(checkpoint).gongfaRuntimes).toEqual(
+      checkpoint.gongfaRuntimes
+    );
+    expect(() =>
+      createActiveRunCheckpoint({
+        ...checkpoint,
+        gongfaRuntimes: [{ ...checkpoint.gongfaRuntimes[0], combat: null }]
+      })
+    ).toThrow("Invalid active Run checkpoint");
+  });
+
   it("creates a durable active-run record without transient combat fields", () => {
     const save = createActiveRunSave(42, 1234567890);
 
@@ -229,7 +265,7 @@ describe("run persistence", () => {
       seed: 7,
       startedAt: 99,
       lifecycle: "mortal",
-      checkpoint
+      checkpoint: withMigratedGongfaMastery(checkpoint)
     });
   });
 
@@ -449,7 +485,7 @@ describe("run persistence", () => {
       seed: 7,
       startedAt: 99,
       lifecycle: "mortal",
-      checkpoint
+      checkpoint: withMigratedGongfaMastery(checkpoint)
     });
 
     storage.setItem(activeRunStorageKey, "{bad json");
