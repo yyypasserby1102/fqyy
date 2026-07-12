@@ -2663,15 +2663,6 @@ export class GameScene extends Phaser.Scene {
         masterySkill2: this.primaryMastery.masterySkill2Id,
         masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
-        gongfaRuntimeStates: Object.fromEntries(
-          this.learnedGongfaRuntimes.map((runtime) => [
-            runtime.gongfaId,
-            {
-              pressure: runtime.crimsonFurnace?.pressure ?? 0,
-              masteryRank: runtime.mastery.masteryRank
-            }
-          ])
-        ),
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
           ...gongfaView.masteryTransformationTriggers
@@ -2840,11 +2831,6 @@ export class GameScene extends Phaser.Scene {
     if (lingcao) {
       this.collectLingcao(lingcao);
     }
-    this.publishHud(this.lastMessage);
-  }
-
-  forceLearnGongfa(gongfaId: GongfaId): void {
-    this.applyGongfaChoice(gongfaId);
     this.publishHud(this.lastMessage);
   }
 

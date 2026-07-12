@@ -4,6 +4,7 @@ import { InputController } from "../systems/InputController";
 import { DebugOverlay } from "../ui/DebugOverlay";
 import { LevelUpPanel } from "../ui/LevelUpPanel";
 import { buildHudLines } from "../logic/hudPresentation";
+import type { UiSnapshot } from "../types/gameTest";
 
 interface HudState {
   health: number;
@@ -171,6 +172,14 @@ export class UIScene extends Phaser.Scene {
       `paused=${hud.paused}`,
       `game_over=${hud.gameOver}`
     ]);
+  }
+
+  getTestSnapshot(): UiSnapshot {
+    const hud = this.registry.get("hud") as HudState | undefined;
+    return {
+      masteryProgress: hud?.masteryProgress,
+      hudText: this.hudText?.text ?? ""
+    };
   }
 
   private onShowChoicePanel(payload: ChoicePayload): void {

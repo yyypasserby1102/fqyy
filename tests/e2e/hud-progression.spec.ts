@@ -142,7 +142,7 @@ test("HUD shows evade readiness, active invulnerability, and cooldown", async ({
   );
 });
 
-test("HUD registry state exposes masteryProgress to the live UI payload", async ({ page }) => {
+test("HUD snapshot exposes mastery progress from the live UI payload", async ({ page }) => {
   await startNewRun(page);
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
@@ -150,9 +150,9 @@ test("HUD registry state exposes masteryProgress to the live UI payload", async 
   });
   await collectQiOrb(page, 10);
 
-  const hud = await page.evaluate(() => window.__gameTest!.getHudState());
-  expect(hud.masteryProgress).toBeDefined();
-  expect(hud.masteryProgress).not.toBe("undefined");
+  const ui = await page.evaluate(() => window.__gameTest!.getUiSnapshot());
+  expect(ui.masteryProgress).toBeGreaterThanOrEqual(0);
+  expect(ui.hudText).toContain("Mastery");
 });
 
 test("Qi at 100 marks the current Stage as breakthrough-ready in the live HUD", async ({ page }) => {

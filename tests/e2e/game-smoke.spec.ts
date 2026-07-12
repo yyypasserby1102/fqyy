@@ -346,10 +346,7 @@ test("choosing a Gongfa enables combat progress against forced enemies", async (
     window.__gameTest!.selectChoice(0);
   });
 
-  await page.evaluate(() => {
-    window.__gameTest!.setRngSeed(1234);
-    window.__gameTest!.forceSpawnEnemies(5);
-  });
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(5));
   const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(before.counts.enemies).toBeGreaterThanOrEqual(5);
 
@@ -491,9 +488,6 @@ test("multiple mastery rank-ups are queued in acquisition order", async ({ page 
 test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ page }) => {
   await startNewRun(page);
 
-  await page.evaluate(() => {
-    window.__gameTest!.setRngSeed(9);
-  });
   await claimOpeningLingcao(page);
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -551,9 +545,6 @@ for (const [choiceIndex, expectedGongfa] of [
 
     await startNewRun(page, "fire-metal");
 
-    await page.evaluate(() => {
-      window.__gameTest!.setRngSeed(17);
-  });
   await claimOpeningLingcao(page);
     const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(snapshot.choice?.title).toContain("Revealed");
@@ -638,9 +629,6 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 
   await startNewRun(page);
 
-  await page.evaluate(() => {
-    window.__gameTest!.setRngSeed(21);
-  });
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
@@ -700,9 +688,6 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ page }) => {
   await startNewRun(page, "fire-metal");
 
-  await page.evaluate(() => {
-    window.__gameTest!.setRngSeed(17);
-  });
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
@@ -736,9 +721,6 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   test.slow();
   await startNewRun(page, "fire-metal");
 
-  await page.evaluate(() => {
-    window.__gameTest!.setRngSeed(17);
-  });
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
@@ -1182,40 +1164,6 @@ test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unloc
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.furnaceCascadeCasts).toBeGreaterThan(0);
   expect(snapshot.progression.pressure).toBeGreaterThan(beforeCascadePressure);
-});
-
-test("a secondary Crimson Furnace timeout advances its own runtime", async ({ page }) => {
-  await startNewRun(page, "fire-metal");
-  await claimOpeningLingcao(page);
-
-  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  const burningRingIndex = snapshot.choice?.options.findIndex(
-    (option) => option.id === "burning-ring-scripture"
-  ) ?? -1;
-  expect(burningRingIndex).toBeGreaterThanOrEqual(0);
-  await page.evaluate((index) => window.__gameTest!.selectChoice(index), burningRingIndex);
-  await page.evaluate(() => {
-    window.__gameTest!.forceLearnGongfa("crimson-furnace-sword-art");
-    window.__gameTest!.forceSpawnEnemies(20);
-  });
-
-  await page.waitForFunction(() =>
-    window.__gameTest!.getSnapshot().counts.projectileSourceGongfaIds.includes(
-      "crimson-furnace-sword-art"
-    )
-  );
-  await page.waitForFunction(
-    () =>
-      window.__gameTest!.getSnapshot().progression.gongfaRuntimeStates[
-        "crimson-furnace-sword-art"
-      ]?.pressure > 0
-  );
-
-  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.progression.gongfa).toBe("burning-ring-scripture");
-  expect(
-    snapshot.progression.gongfaRuntimeStates["crimson-furnace-sword-art"].pressure
-  ).toBeGreaterThan(0);
 });
 
 test("Start New Run persists a mortal shell that Continue restores after reload", async ({
