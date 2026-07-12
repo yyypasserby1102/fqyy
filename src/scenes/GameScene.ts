@@ -1304,7 +1304,11 @@ export class GameScene extends Phaser.Scene {
             corridor.pierce,
             combat.projectileSpeed + 60,
             combat.projectileLifetimeMs + 220,
-            0.95
+            0.95,
+            1,
+            runtime.gongfaId,
+            combat.projectileTexture,
+            combat.tint
           );
         });
       }
@@ -1333,7 +1337,11 @@ export class GameScene extends Phaser.Scene {
             wall.pierce,
             combat.projectileSpeed,
             combat.projectileLifetimeMs + 260,
-            0.9
+            0.9,
+            1,
+            runtime.gongfaId,
+            combat.projectileTexture,
+            combat.tint
           );
         });
       }
@@ -1371,7 +1379,11 @@ export class GameScene extends Phaser.Scene {
       blade.pierce,
       runtime.combat.projectileSpeed + 80,
       runtime.combat.projectileLifetimeMs + 200,
-      1.0
+      1.0,
+      1,
+      runtime.gongfaId,
+      runtime.combat.projectileTexture,
+      runtime.combat.tint
     );
   }
 
