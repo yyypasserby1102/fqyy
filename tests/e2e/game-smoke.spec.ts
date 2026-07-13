@@ -195,6 +195,75 @@ test("boots into game/ui scenes with the dev test harness exposed", async ({ pag
   expect(snapshot.activeScenes).toContain("game");
   expect(snapshot.activeScenes).toContain("ui");
   expect(snapshot.progression.stage).toBe("lianqi");
+  expect(snapshot.player.visual.mode).toBe("idle");
+  expect(snapshot.player.visual.animationKey).toBe("cultivator-idle");
+});
+
+test("production protagonist atlases keep every frame padded and registered", async ({ page }) => {
+  await startNewRun(page);
+
+  const atlases = await page.evaluate(async () => {
+    const measure = async (resourcePattern: string) => {
+      const resourceUrl = performance
+        .getEntriesByType("resource")
+        .map((entry) => entry.name)
+        .find((name) => name.includes(resourcePattern) && !name.includes("import"));
+      if (!resourceUrl) throw new Error(`Missing loaded atlas: ${resourcePattern}`);
+
+      const bitmap = await createImageBitmap(await (await fetch(resourceUrl)).blob());
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Canvas 2D unavailable");
+      context.drawImage(bitmap, 0, 0);
+      const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+      const frames = [];
+      for (let frame = 0; frame < 16; frame += 1) {
+        const originX = (frame % 4) * 256;
+        const originY = Math.floor(frame / 4) * 256;
+        let left = 256;
+        let top = 256;
+        let right = -1;
+        let bottom = -1;
+        for (let y = 0; y < 256; y += 1) {
+          for (let x = 0; x < 256; x += 1) {
+            const alpha = pixels[((originY + y) * bitmap.width + originX + x) * 4 + 3];
+            if (alpha <= 10) continue;
+            left = Math.min(left, x);
+            top = Math.min(top, y);
+            right = Math.max(right, x);
+            bottom = Math.max(bottom, y);
+          }
+        }
+        frames.push({ left, top, right, bottom });
+      }
+      return { width: bitmap.width, height: bitmap.height, frames };
+    };
+
+    return {
+      locomotion: await measure("player-locomotion"),
+      actions: await measure("player-actions")
+    };
+  });
+
+  expect(atlases.locomotion.width).toBe(1024);
+  expect(atlases.locomotion.height).toBe(1024);
+  expect(atlases.actions.width).toBe(1024);
+  expect(atlases.actions.height).toBe(1024);
+  for (const frame of [...atlases.locomotion.frames, ...atlases.actions.frames]) {
+    expect(frame.left).toBeGreaterThan(0);
+    expect(frame.top).toBeGreaterThan(0);
+    expect(frame.right).toBeLessThan(255);
+    expect(frame.bottom).toBeLessThan(255);
+  }
+  expect(atlases.locomotion.frames.map((frame) => frame.bottom)).toEqual(
+    Array(16).fill(209)
+  );
+  expect(atlases.actions.frames.map((frame) => frame.bottom)).toEqual([
+    ...Array(14).fill(209),
+    ...Array(2).fill(217)
+  ]);
 });
 
 test("movement updates player position in the real browser game", async ({ page }) => {
@@ -202,11 +271,40 @@ test("movement updates player position in the real browser game", async ({ page 
 
   const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
   await page.keyboard.down("d");
+  await page.waitForFunction(() => {
+    const visual = window.__gameTest!.getSnapshot().player.visual;
+    return visual.mode === "run" && visual.facing === "east";
+  });
+  const whileMoving = await page.evaluate(() => window.__gameTest!.getSnapshot());
   await page.waitForTimeout(250);
   await page.keyboard.up("d");
   const after = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
   expect(after.player.x).toBeGreaterThan(before.player.x);
+  expect(whileMoving.player.visual.animationKey).toBe("cultivator-run-east");
+});
+
+test("locomotion selects every authored facing family and mirrors west", async ({ page }) => {
+  await startNewRun(page);
+
+  const directions = [
+    { key: "w", facing: "north", animationKey: "cultivator-run-north" },
+    { key: "s", facing: "south", animationKey: "cultivator-run-south" },
+    { key: "a", facing: "west", animationKey: "cultivator-run-east" },
+    { key: "d", facing: "east", animationKey: "cultivator-run-east" }
+  ] as const;
+
+  for (const direction of directions) {
+    await page.keyboard.down(direction.key);
+    await page.waitForFunction(
+      ({ facing, animationKey }) => {
+        const visual = window.__gameTest!.getSnapshot().player.visual;
+        return visual.facing === facing && visual.animationKey === animationKey;
+      },
+      direction
+    );
+    await page.keyboard.up(direction.key);
+  }
 });
 
 test("Space evades in the held movement direction", async ({ page }) => {
@@ -215,7 +313,10 @@ test("Space evades in the held movement direction", async ({ page }) => {
   const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
   await page.keyboard.down("d");
   await page.keyboard.down("Space");
-  await page.waitForTimeout(30);
+  await page.waitForFunction(() => {
+    const evade = window.__gameTest!.getSnapshot().player.evade;
+    return evade.active && evade.invulnerable;
+  });
   await page.keyboard.up("Space");
   await page.waitForFunction((startX) => {
     const snapshot = window.__gameTest!.getSnapshot();
@@ -231,6 +332,8 @@ test("Space evades in the held movement direction", async ({ page }) => {
   expect(duringEvade.player.x - before.player.x).toBeGreaterThan(25);
   expect(duringEvade.player.evade.active).toBe(true);
   expect(duringEvade.player.evade.invulnerable).toBe(true);
+  expect(duringEvade.player.visual.mode).toBe("evade");
+  expect(duringEvade.player.visual.animationKey).toBe("cultivator-evade");
 });
 
 test("evade prevents damage only during its invulnerability window", async ({ page }) => {
@@ -238,7 +341,10 @@ test("evade prevents damage only during its invulnerability window", async ({ pa
 
   await page.keyboard.down("d");
   await page.keyboard.down("Space");
-  await page.waitForTimeout(30);
+  await page.waitForFunction(() => {
+    const evade = window.__gameTest!.getSnapshot().player.evade;
+    return evade.active && evade.invulnerable;
+  });
   await page.keyboard.up("Space");
   await page.keyboard.up("d");
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
@@ -253,6 +359,8 @@ test("evade prevents damage only during its invulnerability window", async ({ pa
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   const afterEvade = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterEvade.player.health).toBe(100);
+  expect(afterEvade.player.visual.mode).toBe("hit");
+  expect(afterEvade.player.visual.activeVfx).toContain("cultivator-hit-vfx");
 });
 
 test("evade cannot start while the Run is manually paused", async ({ page }) => {
@@ -350,6 +458,11 @@ test("choosing a Gongfa enables combat progress against forced enemies", async (
   const before = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(before.counts.enemies).toBeGreaterThanOrEqual(5);
 
+  await page.waitForFunction(() => {
+    const visual = window.__gameTest!.getSnapshot().player.visual;
+    return visual.mode === "attack" && visual.activeVfx.includes("cultivator-attack-vfx");
+  });
+
   await page.waitForTimeout(5000);
   const after = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(after.progression.realmProgress).toBeGreaterThanOrEqual(before.progression.realmProgress);
@@ -382,12 +495,16 @@ test("Yujian Jue shows deterministic mastery rank-ups and a rank-10 skill unlock
   await chooseUntil(page, () => false);
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
   await page.waitForFunction(
-    () => window.__gameTest!.getSnapshot().progression.masterySkill2Casts > 0
+    () => {
+      const snapshot = window.__gameTest!.getSnapshot();
+      return snapshot.progression.masterySkill2Casts > 0 && snapshot.player.visual.mode === "skill";
+    }
   );
 
   const afterSkill2 = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterSkill2.progression.masterySkill2Casts).toBeGreaterThan(0);
   expect(afterSkill2.counts.projectiles).toBeGreaterThan(0);
+  expect(afterSkill2.player.visual.activeVfx).toContain("cultivator-skill-gather-vfx");
 });
 
 test("Yujian rank-3 Sword Bloom Transformation splits Skill 1 hits", async ({ page }) => {
@@ -1227,6 +1344,8 @@ test("death removes the active run save so Continue disappears after reload", as
   const afterDeath = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterDeath.progression.stage).toBe("lianqi");
   expect(afterDeath.player.health).toBe(0);
+  expect(afterDeath.player.visual.mode).toBe("defeat");
+  expect(afterDeath.player.visual.animationKey).toBe("cultivator-defeat");
 
   await page.reload();
   await page.waitForFunction(() => document.querySelector("button"));

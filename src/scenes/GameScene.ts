@@ -424,6 +424,7 @@ export class GameScene extends Phaser.Scene {
     const movement = this.inputController.getMovementVector();
     if (this.inputController.evadePressed) {
       if (this.evade.tryStart({ x: movement.x, y: movement.y })) {
+        this.player.presentEvade(this.evade.state.direction);
         this.sfx.evade();
         this.maybeCutGaleStepCorridor();
         this.maybeCutIronWake();
@@ -431,12 +432,14 @@ export class GameScene extends Phaser.Scene {
       }
     }
     const evadeState = this.evade.state;
+    const presentedMovement = evadeState.active
+      ? new Phaser.Math.Vector2(evadeState.direction.x, evadeState.direction.y)
+      : movement;
     this.player.move(
-      evadeState.active
-        ? new Phaser.Math.Vector2(evadeState.direction.x, evadeState.direction.y)
-        : movement,
+      presentedMovement,
       evadeState.active ? evadeState.speed : this.player.stats.moveSpeed
     );
+    this.player.advanceVisual(delta, presentedMovement);
     if (movement.lengthSq() > 0) {
       this.lastAimAngle = Phaser.Math.Angle.Between(0, 0, movement.x, movement.y);
       this.hasMovementDirection = true;
@@ -1056,12 +1059,14 @@ export class GameScene extends Phaser.Scene {
         continue;
       }
 
-      this.spawnCastPulse();
       this.adoptPrimaryRuntime(runtime);
-      this.executeGongfaRuntimeCommands(
-        planGongfaAttack(runtime, this.runState.elapsedMs),
-        runtime
-      );
+      const commands = planGongfaAttack(runtime, this.runState.elapsedMs);
+      if (commands.length > 0) {
+        const aimAngle = this.getAimAngle();
+        this.player.presentAttack({ x: Math.cos(aimAngle), y: Math.sin(aimAngle) });
+        this.spawnCastPulse();
+        this.executeGongfaRuntimeCommands(commands, runtime);
+      }
       const updatedRuntime = this.gongfaCollection.byId[runtime.gongfaId] ?? runtime;
       updatedRuntime.attackCooldownRemaining = updatedRuntime.combat.cooldownMs;
     }
@@ -1647,8 +1652,15 @@ export class GameScene extends Phaser.Scene {
     if (runtime) {
       this.adoptPrimaryRuntime(runtime);
     }
+    let skillPresented = false;
     commands.forEach((command) => {
       this.recordMasterySkill2Cast(command, runtime);
+
+      if (!skillPresented && command.kind !== "mastery-skill2-cast" && "masteryCast" in command) {
+        const aimAngle = this.getAimAngle();
+        this.player.presentSkill({ x: Math.cos(aimAngle), y: Math.sin(aimAngle) });
+        skillPresented = true;
+      }
 
       if (command.kind === "homing-volley") {
         this.fireHomingVolley(command);
@@ -3010,7 +3022,10 @@ export class GameScene extends Phaser.Scene {
     this.sfx.death();
     const result = advanceRunJourney(this.runState, { kind: "player-died" });
     this.applyRunJourneyState(result.state);
-    this.setPausedState(true);
+    this.player.presentDefeat();
+    this.physics.world.isPaused = true;
+    this.player.move(new Phaser.Math.Vector2(0, 0));
+    this.time.delayedCall(520, () => this.setPausedState(true));
     this.lastMessage = message;
     this.clearActiveRunSave();
     this.publishHud(message);
@@ -3134,7 +3149,13 @@ export class GameScene extends Phaser.Scene {
         health: this.player?.stats.health ?? 0,
         maxHealth: this.player?.stats.maxHealth ?? 0,
         moveSpeed: this.player?.stats.moveSpeed ?? 0,
-        evade: this.evade.state
+        evade: this.evade.state,
+        visual: this.player?.getVisualSnapshot() ?? {
+          mode: "idle",
+          facing: "east",
+          animationKey: "",
+          activeVfx: []
+        }
       },
       progression: {
         stage: this.runState.stage,

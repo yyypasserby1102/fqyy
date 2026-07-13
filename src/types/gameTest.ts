@@ -1,5 +1,6 @@
 import type { ChoiceOption } from "../data/choices";
 import type { EvadeState } from "../logic/evade";
+import type { PlayerVisualSnapshot } from "../entities/Player";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -15,6 +16,7 @@ export interface GameSnapshot {
     maxHealth: number;
     moveSpeed: number;
     evade: EvadeState;
+    visual: PlayerVisualSnapshot;
   };
   progression: {
     stage: string;
