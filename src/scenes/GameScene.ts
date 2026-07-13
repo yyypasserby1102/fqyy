@@ -218,6 +218,7 @@ export class GameScene extends Phaser.Scene {
   private currentChoiceOptions: ChoiceOption[] = [];
   private lastMessage?: string;
   private lastAimAngle = 0;
+  private hasMovementDirection = false;
   private finalBossWaveAccumulator = 0;
   private finalBossHazardAccumulator = 0;
   private finalBossSafeZoneX = 0;
@@ -226,6 +227,8 @@ export class GameScene extends Phaser.Scene {
   private finalBossPhaseSpawned = false;
   private activeRunSave: ActiveRunSave | null = null;
   private nextCombatTargetId = 1;
+  private nextSkill2ActivationId = 1;
+  private readonly skill2HitTargets = new Map<number, Set<number>>();
   private runState: RunState = {
     kills: 0,
     elapsedMs: 0,
@@ -436,6 +439,7 @@ export class GameScene extends Phaser.Scene {
     );
     if (movement.lengthSq() > 0) {
       this.lastAimAngle = Phaser.Math.Angle.Between(0, 0, movement.x, movement.y);
+      this.hasMovementDirection = true;
     }
     this.updateGongfaRuntimeTick(movement, delta);
 
@@ -508,13 +512,17 @@ export class GameScene extends Phaser.Scene {
       ? this.gongfaCollection.byId[projectile.sourceGongfaId]
       : this.gongfaRuntime;
     if (sourceRuntime) {
+      const resourceGainEligible = projectile.skill2ActivationId
+        ? this.registerSkill2TargetHit(projectile.skill2ActivationId, enemy.combatTargetId)
+        : true;
       const result = advanceGongfaRuntimeForProjectileHit(sourceRuntime, {
         sourceGongfaId: projectile.sourceGongfaId,
         targetId: enemy.combatTargetId,
         damage: projectile.damage,
         baseDamageKilledTarget: diedFromHit,
         embedStacks: enemy.embedStacks,
-        embedPower: enemy.embedPower
+        embedPower: enemy.embedPower,
+        resourceGainEligible
       });
       this.adoptPrimaryRuntime(result.runtime);
       diedFromCommands = this.executeProjectileHitCommands(projectile, enemy, result.commands);
@@ -1248,10 +1256,12 @@ export class GameScene extends Phaser.Scene {
     growthScale = 1,
     sourceGongfaId = this.gongfaRuntime?.gongfaId,
     texture = this.combatState.projectileTexture,
-    tint = this.combatState.tint
+    tint = this.combatState.tint,
+    skill2ActivationId?: number
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.sourceGongfaId = sourceGongfaId;
+    projectile.skill2ActivationId = skill2ActivationId;
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
     projectile.setTint(tint);
@@ -1420,9 +1430,13 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private emitAuraBurst(damage: number, count: number): void {
-    const combat = { ...this.combatState };
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+  private emitAuraBurst(
+    damage: number,
+    count: number,
+    skill2ActivationId?: number,
+    combat: CombatState = this.combatState,
+    sourceGongfaId = this.gongfaRuntime?.gongfaId
+  ): void {
     const projectileCount = Math.max(4, count);
     for (let i = 0; i < projectileCount; i += 1) {
       const angle = (Math.PI * 2 * i) / projectileCount;
@@ -1433,6 +1447,7 @@ export class GameScene extends Phaser.Scene {
         combat.projectileTexture
       );
       projectile.sourceGongfaId = sourceGongfaId;
+      projectile.skill2ActivationId = skill2ActivationId;
       projectile.damage = damage;
       projectile.pierceRemaining = combat.pierce;
       projectile.setTint(combat.tint);
@@ -1461,7 +1476,8 @@ export class GameScene extends Phaser.Scene {
           projectileCount + 2 + burst * 2,
           1 + burst * 0.18,
           combat,
-          sourceGongfaId
+          sourceGongfaId,
+          skill2ActivationId
         );
       });
     }
@@ -1472,7 +1488,8 @@ export class GameScene extends Phaser.Scene {
     count: number,
     scale: number,
     combat: CombatState = this.combatState,
-    sourceGongfaId = this.gongfaRuntime?.gongfaId
+    sourceGongfaId = this.gongfaRuntime?.gongfaId,
+    skill2ActivationId?: number
   ): void {
     for (let i = 0; i < count; i += 1) {
       const angle = (Math.PI * 2 * i) / count;
@@ -1483,6 +1500,7 @@ export class GameScene extends Phaser.Scene {
         combat.projectileTexture
       );
       projectile.sourceGongfaId = sourceGongfaId;
+      projectile.skill2ActivationId = skill2ActivationId;
       projectile.damage = damage;
       projectile.pierceRemaining = combat.pierce + 1;
       projectile.setTint(combat.tint);
@@ -1513,12 +1531,14 @@ export class GameScene extends Phaser.Scene {
     tint: number,
     options: {
       sourceGongfaId?: GongfaId;
+      skill2ActivationId?: number;
     } = {}
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
     projectile.sourceGongfaId = options.sourceGongfaId;
+    projectile.skill2ActivationId = options.skill2ActivationId;
     projectile.setTint(tint);
     projectile.setAngle(
       Phaser.Math.RadToDeg(Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y))
@@ -1544,12 +1564,14 @@ export class GameScene extends Phaser.Scene {
     tint: number,
     options: {
       sourceGongfaId?: GongfaId;
+      skill2ActivationId?: number;
     } = {}
   ): void {
     const projectile = new Projectile(this, x, y, texture);
     projectile.damage = damage;
     projectile.pierceRemaining = pierce;
     projectile.sourceGongfaId = options.sourceGongfaId;
+    projectile.skill2ActivationId = options.skill2ActivationId;
     projectile.setTint(tint);
     projectile.setAngle(Phaser.Math.RadToDeg(angle));
     this.projectiles.add(projectile);
@@ -1592,6 +1614,12 @@ export class GameScene extends Phaser.Scene {
         deltaMs: delta,
         nearbyEnemyCount:
           threatRadius > 0 ? this.getEnemiesWithinRadius(threatRadius).length : 0,
+        eligibleTargetCount: runtime.crimsonFurnace
+          ? (this.enemies.getChildren() as Enemy[]).filter(
+              (enemy) => enemy.active && enemy.embedStacks > 0
+            ).length
+          : this.getNearestEnemies(64).length,
+        hasMovementDirection: this.hasMovementDirection,
         isMoving: movement.lengthSq() > 0,
         skill2Enabled:
           !this.choiceActive && !this.runState.paused && !this.runState.gameOver
@@ -1714,8 +1742,468 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "solar-flare-cycle") {
         this.fireSolarFlareCycle(command);
+        return;
+      }
+
+      if (command.kind === "feather-rain-formation") {
+        this.fireFeatherRainFormation(command);
+        return;
+      }
+
+      if (command.kind === "sunset-wave-apex") {
+        this.fireSunsetWaveApex(command);
+        return;
+      }
+
+      if (command.kind === "mirror-needle-constellation") {
+        this.fireMirrorNeedleConstellation(command);
+        return;
+      }
+
+      if (command.kind === "moon-tide-vault") {
+        this.fireMoonTideVault(command);
+        return;
+      }
+
+      if (command.kind === "frozen-lotus-shell") {
+        this.fireFrozenLotusShell(command);
+        return;
+      }
+
+      if (command.kind === "verdant-root-network") {
+        this.fireVerdantRootNetwork(command);
+        return;
+      }
+
+      if (command.kind === "sprout-sun-circle") {
+        this.fireSproutSunCircle(command);
+        return;
+      }
+
+      if (command.kind === "ironwood-surge-form") {
+        this.fireIronwoodSurgeForm(command);
       }
     });
+  }
+
+  private fireFeatherRainFormation(
+    command: Extract<GongfaRuntimeCommand, { kind: "feather-rain-formation" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const combat = { ...this.combatState };
+    const activationId = this.beginSkill2Activation();
+    for (let fan = 0; fan < command.fanCount; fan += 1) {
+      this.time.delayedCall(fan * command.fanDelayMs, () => {
+        const targets = this.getDensestClusterTargets(command.feathersPerFan, 140);
+        for (let feather = 0; feather < command.feathersPerFan; feather += 1) {
+          const target = targets[feather % targets.length];
+          if (!target) break;
+          this.spawnProjectileAtTarget(
+            target.x + (feather - (command.feathersPerFan - 1) / 2) * 14,
+            target.y - 180 - fan * 10,
+            target,
+            command.damage,
+            command.pierce,
+            combat.projectileSpeed + 80,
+            combat.projectileLifetimeMs,
+            combat.projectileTexture,
+            combat.tint,
+            { sourceGongfaId, skill2ActivationId: activationId }
+          );
+        }
+      });
+    }
+  }
+
+  private fireSunsetWaveApex(
+    command: Extract<GongfaRuntimeCommand, { kind: "sunset-wave-apex" }>
+  ): void {
+    const activationId = this.beginSkill2Activation();
+    const angle = this.getWaveAimAngle("nearest");
+    const crossingX = this.player.x + Math.cos(angle) * 180;
+    const crossingY = this.player.y + Math.sin(angle) * 180;
+    for (let wall = 0; wall < command.wallCount; wall += 1) {
+      const side = wall % 2 === 0 ? -1 : 1;
+      const startX = this.player.x + Math.cos(angle + Math.PI / 2) * side * command.width;
+      const startY = this.player.y + Math.sin(angle + Math.PI / 2) * side * command.width;
+      this.spawnWaveProjectile(
+        startX,
+        startY,
+        Phaser.Math.Angle.Between(startX, startY, crossingX, crossingY),
+        command.damage,
+        this.combatState.pierce + 1,
+        this.combatState.projectileSpeed,
+        this.combatState.projectileLifetimeMs + 300,
+        command.overlapScale,
+        1,
+        this.gongfaRuntime?.gongfaId,
+        this.combatState.projectileTexture,
+        this.combatState.tint,
+        activationId
+      );
+    }
+  }
+
+  private fireMirrorNeedleConstellation(
+    command: Extract<GongfaRuntimeCommand, { kind: "mirror-needle-constellation" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const combat = { ...this.combatState };
+    const activationId = this.beginSkill2Activation();
+    const orbit = this.add.graphics().setDepth(120);
+    orbit.lineStyle(2, this.combatState.tint, 0.8);
+    orbit.strokeCircle(this.player.x, this.player.y, 54);
+    for (let needle = 0; needle < command.needleCount; needle += 1) {
+      this.time.delayedCall(needle * command.staggerMs, () => {
+        const livingTargets = this.getNearestEnemies(command.needleCount);
+        const target = livingTargets[needle % Math.max(1, livingTargets.length)];
+        if (!target?.active) return;
+        const angle = (Math.PI * 2 * needle) / command.needleCount;
+        this.spawnProjectileAtTarget(
+          this.player.x + Math.cos(angle) * 54,
+          this.player.y + Math.sin(angle) * 54,
+          target,
+          command.damage,
+          command.pierce,
+          combat.projectileSpeed + 60,
+          combat.projectileLifetimeMs,
+          combat.projectileTexture,
+          combat.tint,
+          { sourceGongfaId, skill2ActivationId: activationId }
+        );
+      });
+    }
+    this.time.delayedCall(command.needleCount * command.staggerMs + 80, () => orbit.destroy());
+  }
+
+  private fireMoonTideVault(
+    command: Extract<GongfaRuntimeCommand, { kind: "moon-tide-vault" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const combat = { ...this.combatState };
+    const outwardActivationId = this.beginSkill2Activation();
+    this.emitAuraBurst(
+      command.damage,
+      Math.max(8, Math.floor(command.radius / 20)),
+      outwardActivationId,
+      combat,
+      sourceGongfaId
+    );
+    this.pushEnemiesAwayFrom(this.player.x, this.player.y, command.radius, command.controlStrength);
+    this.time.delayedCall(command.returnDelayMs, () => {
+      this.pullEnemiesToward(command.radius, command.controlStrength);
+      const returnActivationId = this.beginSkill2Activation();
+      this.emitAuraBurst(
+        Math.floor(command.damage * 1.25),
+        Math.max(8, Math.floor(command.radius / 20)),
+        returnActivationId,
+        combat,
+        sourceGongfaId
+      );
+    });
+  }
+
+  private fireFrozenLotusShell(
+    command: Extract<GongfaRuntimeCommand, { kind: "frozen-lotus-shell" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const combat = { ...this.combatState };
+    const activationId = this.beginSkill2Activation();
+    const lotus = this.add.graphics().setDepth(121);
+    lotus.lineStyle(3, combat.tint, 0.9);
+    for (let petal = 0; petal < command.petalCount; petal += 1) {
+      const angle = (Math.PI * 2 * petal) / command.petalCount;
+      lotus.strokeEllipse(
+        this.player.x + Math.cos(angle) * command.radius * 0.55,
+        this.player.y + Math.sin(angle) * command.radius * 0.55,
+        22,
+        46
+      );
+    }
+    this.tweens.add({ targets: lotus, angle: 90, duration: command.shatterDelayMs });
+    const petalTargets = this.getEnemiesWithinRadius(command.radius).slice(0, command.petalCount);
+    for (const enemy of petalTargets) {
+      if (sourceGongfaId && this.registerSkill2TargetHit(activationId, enemy.combatTargetId)) {
+        this.stokeSkill2Resource(sourceGongfaId);
+      }
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.pushEnemiesAwayFrom(this.player.x, this.player.y, command.radius, 190);
+    let shattered = false;
+    const shatter = () => {
+      if (shattered) return;
+      shattered = true;
+      lotus.destroy();
+      const targets = this.getNearestEnemies(command.petalCount);
+      for (let petal = 0; petal < command.petalCount; petal += 1) {
+        const angle = (Math.PI * 2 * petal) / command.petalCount;
+        const x = this.player.x + Math.cos(angle) * command.radius;
+        const y = this.player.y + Math.sin(angle) * command.radius;
+        const target = targets[petal % targets.length];
+        if (target) {
+          this.spawnProjectileAtTarget(
+            x,
+            y,
+            target,
+            command.damage,
+            combat.pierce,
+            combat.projectileSpeed + 70,
+            combat.projectileLifetimeMs,
+            combat.projectileTexture,
+            combat.tint,
+            { sourceGongfaId, skill2ActivationId: activationId }
+          );
+        } else {
+          this.spawnProjectileAlongAngle(
+            x,
+            y,
+            angle,
+            command.damage,
+            combat.pierce,
+            combat.projectileSpeed + 70,
+            combat.projectileLifetimeMs,
+            combat.projectileTexture,
+            combat.tint,
+            { sourceGongfaId, skill2ActivationId: activationId }
+          );
+        }
+      }
+    };
+    if (petalTargets.length === command.petalCount) shatter();
+    else this.time.delayedCall(command.shatterDelayMs, shatter);
+  }
+
+  private fireVerdantRootNetwork(
+    command: Extract<GongfaRuntimeCommand, { kind: "verdant-root-network" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const tint = this.combatState.tint;
+    for (let pulse = 0; pulse < command.pulseCount; pulse += 1) {
+      this.time.delayedCall(pulse * command.pulseDelayMs, () => {
+        const linked = this.getNearestEnemies(command.linkCount).filter(
+          (enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) <= command.reach
+        );
+        const vines = this.add.graphics().setDepth(119);
+        vines.lineStyle(3, tint, 0.75);
+        let fromX = this.player.x;
+        let fromY = this.player.y;
+        linked.forEach((enemy) => {
+          vines.lineBetween(fromX, fromY, enemy.x, enemy.y);
+          fromX = enemy.x;
+          fromY = enemy.y;
+          const body = enemy.body as Phaser.Physics.Arcade.Body;
+          body.setVelocity(0, 0);
+          if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+        });
+        if (linked.length > 0 && sourceGongfaId) {
+          this.stokeSkill2Resource(sourceGongfaId);
+        }
+        this.time.delayedCall(command.pulseDelayMs - 20, () => vines.destroy());
+      });
+    }
+  }
+
+  private fireSproutSunCircle(
+    command: Extract<GongfaRuntimeCommand, { kind: "sprout-sun-circle" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const tint = this.combatState.tint;
+    const activationId = this.beginSkill2Activation();
+    const originX = this.player.x;
+    const originY = this.player.y;
+    const circle = this.add.graphics().setDepth(118);
+    circle.lineStyle(3, tint, 0.85);
+    circle.strokeCircle(originX, originY, command.radius);
+    for (let pulse = 0; pulse < command.pulseCount; pulse += 1) {
+      this.time.delayedCall(pulse * command.pulseDelayMs, () => {
+        for (let spoke = 0; spoke < command.spokeCount; spoke += 1) {
+          const angle = (Math.PI * 2 * spoke) / command.spokeCount;
+          circle.lineBetween(
+            originX,
+            originY,
+            originX + Math.cos(angle) * command.radius,
+            originY + Math.sin(angle) * command.radius
+          );
+        }
+        const isFinalBloom = pulse === command.pulseCount - 1;
+        this.damageEnemiesWithin(
+          originX,
+          originY,
+          command.radius,
+          Math.floor(command.damage * (isFinalBloom ? 1.6 : 1)),
+          sourceGongfaId,
+          activationId
+        );
+        if (isFinalBloom) {
+          circle.fillStyle(tint, 0.18);
+          circle.fillCircle(originX, originY, command.radius);
+          this.time.delayedCall(180, () => circle.destroy());
+        }
+      });
+    }
+  }
+
+  private fireIronwoodSurgeForm(
+    command: Extract<GongfaRuntimeCommand, { kind: "ironwood-surge-form" }>
+  ): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    const combat = { ...this.combatState };
+    const activationId = this.beginSkill2Activation();
+    const angle = this.getWaveAimAngle("last");
+    const originX = this.player.x;
+    const originY = this.player.y;
+    const travelDurationMs = combat.projectileLifetimeMs + 360;
+    const maximumRange = (combat.projectileSpeed * travelDurationMs) / 1000;
+    for (let wave = 0; wave < command.waveCount; wave += 1) {
+      const sideways = (wave - (command.waveCount - 1) / 2) * (command.width / command.waveCount);
+      this.spawnWaveProjectile(
+        originX + Math.cos(angle + Math.PI / 2) * sideways,
+        originY + Math.sin(angle + Math.PI / 2) * sideways,
+        angle,
+        command.damage,
+        combat.pierce + 1,
+        combat.projectileSpeed,
+        travelDurationMs,
+        1.2,
+        command.growthScale,
+        sourceGongfaId,
+        combat.projectileTexture,
+        combat.tint,
+        activationId
+      );
+    }
+    for (let pulse = 0; pulse < 3; pulse += 1) {
+      this.time.delayedCall(pulse * 120, () => {
+        this.pushEnemiesAlongLane(
+          angle,
+          command.width,
+          maximumRange,
+          command.pushStrength,
+          originX,
+          originY
+        );
+      });
+    }
+    this.time.delayedCall(travelDurationMs, () => {
+      for (const side of [-1, 1]) {
+        this.spawnWaveProjectile(
+          originX + Math.cos(angle) * maximumRange,
+          originY + Math.sin(angle) * maximumRange,
+          angle + Math.PI + side * 0.45,
+          Math.floor(command.damage * 0.75),
+          combat.pierce,
+          combat.projectileSpeed + 35,
+          combat.projectileLifetimeMs,
+          1,
+          1,
+          sourceGongfaId,
+          combat.projectileTexture,
+          combat.tint,
+          activationId
+        );
+      }
+    });
+  }
+
+  private getDensestClusterTargets(limit: number, radius: number): Enemy[] {
+    const active = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+    const center = active.reduce<Enemy | undefined>((best, candidate) => {
+      const density = active.filter(
+        (enemy) => Phaser.Math.Distance.Between(candidate.x, candidate.y, enemy.x, enemy.y) <= radius
+      ).length;
+      const bestDensity = best
+        ? active.filter((enemy) => Phaser.Math.Distance.Between(best.x, best.y, enemy.x, enemy.y) <= radius).length
+        : -1;
+      return density > bestDensity ? candidate : best;
+    }, undefined);
+    if (!center) return [];
+    return active
+      .sort(
+        (a, b) =>
+          Phaser.Math.Distance.Between(center.x, center.y, a.x, a.y) -
+          Phaser.Math.Distance.Between(center.x, center.y, b.x, b.y)
+      )
+      .slice(0, limit);
+  }
+
+  private damageEnemiesWithin(
+    x: number,
+    y: number,
+    radius: number,
+    damage: number,
+    sourceGongfaId?: GongfaId,
+    skill2ActivationId?: number
+  ): void {
+    for (const enemy of this.getEnemiesWithinRadiusFrom(x, y, radius)) {
+      if (!enemy.active) continue;
+      if (
+        sourceGongfaId &&
+        (!skill2ActivationId ||
+          this.registerSkill2TargetHit(skill2ActivationId, enemy.combatTargetId))
+      ) {
+        this.stokeSkill2Resource(sourceGongfaId);
+      }
+      if (enemy.receiveDamage(damage)) this.resolveEnemyDeath(enemy);
+    }
+  }
+
+  private beginSkill2Activation(): number {
+    const activationId = this.nextSkill2ActivationId;
+    this.nextSkill2ActivationId += 1;
+    this.skill2HitTargets.set(activationId, new Set());
+    this.time.delayedCall(6000, () => this.skill2HitTargets.delete(activationId));
+    return activationId;
+  }
+
+  private registerSkill2TargetHit(activationId: number, targetId: number): boolean {
+    const targets = this.skill2HitTargets.get(activationId);
+    if (!targets || targets.has(targetId)) return false;
+    targets.add(targetId);
+    return true;
+  }
+
+  private stokeSkill2Resource(sourceGongfaId: GongfaId): void {
+    const runtime = this.gongfaCollection.byId[sourceGongfaId];
+    if (!runtime) return;
+    const event = runtime.blazingFeather
+      ? ({ kind: "blazing-feather-hit" } as const)
+      : runtime.surge
+        ? ({ kind: "surge-hit" } as const)
+        : undefined;
+    if (!event) return;
+    const result = advanceGongfaRuntime(runtime, event);
+    this.adoptPrimaryRuntime(result.runtime);
+    this.restorePrimaryRuntimeAdapter();
+  }
+
+  private pushEnemiesAwayFrom(x: number, y: number, radius: number, strength: number): void {
+    for (const enemy of this.getEnemiesWithinRadiusFrom(x, y, radius)) {
+      const angle = Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y);
+      const body = enemy.body as Phaser.Physics.Arcade.Body;
+      body.setVelocity(Math.cos(angle) * strength, Math.sin(angle) * strength);
+    }
+  }
+
+  private pushEnemiesAlongLane(
+    angle: number,
+    width: number,
+    length: number,
+    strength: number,
+    originX = this.player.x,
+    originY = this.player.y
+  ): void {
+    const forwardX = Math.cos(angle);
+    const forwardY = Math.sin(angle);
+    for (const enemy of this.getEnemiesWithinRadiusFrom(originX, originY, length)) {
+      const dx = enemy.x - originX;
+      const dy = enemy.y - originY;
+      const forward = dx * forwardX + dy * forwardY;
+      const sideways = Math.abs(dx * -forwardY + dy * forwardX);
+      if (forward >= 0 && forward <= length && sideways <= width / 2) {
+        const body = enemy.body as Phaser.Physics.Arcade.Body;
+        body.setVelocity(forwardX * strength, forwardY * strength);
+      }
+    }
   }
 
   private recordMasterySkill2Cast(

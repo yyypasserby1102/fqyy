@@ -186,6 +186,10 @@ describe("Gongfa runtime", () => {
       cooldownRemainingMs: 0,
       readySkill2Id: "returning-sword-formation"
     });
+    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 100, 250)).toEqual({
+      cooldownRemainingMs: 0,
+      readySkill2Id: "returning-sword-formation"
+    });
     expect(advanceTimedMasterySkill2Cooldown("solar-flare-cycle", 1000, 1000)).toEqual({
       cooldownRemainingMs: 1000
     });
@@ -405,6 +409,16 @@ describe("Gongfa runtime", () => {
   });
 
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
+    const expectedEffectKinds: Partial<Record<GongfaId, string>> = {
+      "blazing-feather-art": "feather-rain-formation",
+      "scarlet-wave-manual": "sunset-wave-apex",
+      "drifting-frost-needle": "mirror-needle-constellation",
+      "black-tide-scripture": "moon-tide-vault",
+      "ice-mirror-guard": "frozen-lotus-shell",
+      "green-vine-art": "verdant-root-network",
+      "verdant-ring-scripture": "sprout-sun-circle",
+      "ironwood-wave-form": "ironwood-surge-form"
+    };
     (Object.keys(gongfaConfigs) as GongfaId[]).forEach((gongfaId) => {
       const skill2Id = getRank10Skill2Id(gongfaId);
       const plan = getAuthoredSkill2Plan(skill2Id);
@@ -427,7 +441,11 @@ describe("Gongfa runtime", () => {
               })
             : advanceGongfaRuntime(runtime, {
                 kind: "skill2",
-                skill2Id
+                skill2Id,
+                nearbyEnemyCount: 3,
+                eligibleTargetCount: 3,
+                hasMovementDirection: true,
+                isMoving: true
               });
 
       const castCommands = result.commands.filter((command) => "masteryCast" in command);
@@ -437,6 +455,122 @@ describe("Gongfa runtime", () => {
         result.commands.some((command) => command.kind !== "mastery-skill2-cast"),
         `${skill2Id} did not produce an observable effect command`
       ).toBe(true);
+      if (expectedEffectKinds[gongfaId]) {
+        expect(result.commands.map((command) => command.kind)).toContain(
+          expectedEffectKinds[gongfaId]
+        );
+        expect(result.commands.map((command) => command.kind)).not.toContain(
+          "mastery-skill2-cast"
+        );
+      }
+    });
+  });
+
+  it("does not count or cool down unknown and mismatched Skill 2 identifiers", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+    runtime.mastery.masterySkill2CooldownRemaining = 0;
+
+    for (const skill2Id of ["missing-skill-2", "moon-tide-vault"]) {
+      const result = advanceGongfaRuntime(runtime, { kind: "skill2", skill2Id });
+      expect(result.commands).toEqual([]);
+      expect(result.runtime.mastery.masterySkill2CooldownRemaining).toBe(0);
+      expect(result.runtime.mastery.masterySkill2Casts).toBe(0);
+    }
+  });
+
+  it("keeps target-dependent Skill 2 cooldowns ready when no effect can be emitted", () => {
+    const targetDependent = [
+      "yujian-jue",
+      "crimson-furnace-sword-art",
+      "blazing-feather-art",
+      "scarlet-wave-manual",
+      "drifting-frost-needle",
+      "green-vine-art"
+    ] as const;
+
+    for (const gongfaId of targetDependent) {
+      const runtime = createGongfaRuntime({ gongfaId });
+      const skill2Id = getRank10Skill2Id(gongfaId);
+      const result = advanceGongfaRuntime(runtime, {
+        kind: "skill2",
+        skill2Id,
+        nearbyEnemyCount: 0,
+        eligibleTargetCount: 0
+      });
+
+      expect(result.commands, `${skill2Id} silently counted without a target`).toEqual([]);
+      expect(result.runtime.mastery.masterySkill2Casts).toBe(0);
+      expect(result.runtime.mastery.masterySkill2CooldownRemaining).toBe(0);
+    }
+  });
+
+  it("keeps Ironwood Surge Form ready until a movement direction exists", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "ironwood-wave-form" });
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2",
+      skill2Id: "ironwood-surge-form",
+      hasMovementDirection: false
+    });
+
+    expect(result.commands).toEqual([]);
+    expect(result.runtime.mastery.masterySkill2CooldownRemaining).toBe(0);
+    expect(result.runtime.mastery.masterySkill2Casts).toBe(0);
+  });
+
+  it("projects defining resource-scaled behavior for every newly authored Skill 2", () => {
+    const cast = (gongfaId: GongfaId) => {
+      const runtime = createGongfaRuntime({ gongfaId });
+      if (runtime.blazingFeather) runtime.blazingFeather.emberStacks = 6;
+      if (runtime.surge) runtime.surge.stacks = 6;
+      return advanceGongfaRuntime(runtime, {
+        kind: "skill2",
+        skill2Id: getRank10Skill2Id(gongfaId),
+        eligibleTargetCount: 4,
+        hasMovementDirection: true
+      }).commands[0];
+    };
+
+    expect(cast("blazing-feather-art")).toMatchObject({
+      kind: "feather-rain-formation",
+      fanCount: 3,
+      feathersPerFan: 7,
+      damage: 22
+    });
+    expect(cast("scarlet-wave-manual")).toMatchObject({
+      kind: "sunset-wave-apex",
+      wallCount: 2,
+      width: 130
+    });
+    expect(cast("drifting-frost-needle")).toMatchObject({
+      kind: "mirror-needle-constellation",
+      needleCount: 10,
+      pierce: 3
+    });
+    expect(cast("black-tide-scripture")).toMatchObject({
+      kind: "moon-tide-vault",
+      radius: 252,
+      controlStrength: 270
+    });
+    expect(cast("ice-mirror-guard")).toMatchObject({
+      kind: "frozen-lotus-shell",
+      radius: 162,
+      petalCount: 16
+    });
+    expect(cast("green-vine-art")).toMatchObject({
+      kind: "verdant-root-network",
+      reach: 340,
+      linkCount: 7
+    });
+    expect(cast("verdant-ring-scripture")).toMatchObject({
+      kind: "sprout-sun-circle",
+      radius: 172,
+      spokeCount: 17
+    });
+    expect(cast("ironwood-wave-form")).toMatchObject({
+      kind: "ironwood-surge-form",
+      width: 152,
+      pushStrength: 278,
+      returnShots: 2
     });
   });
 
@@ -568,7 +702,8 @@ describe("Gongfa runtime", () => {
 
     expect(advanceGongfaRuntime(runtime, {
       kind: "skill2",
-      skill2Id: "returning-sword-formation"
+      skill2Id: "returning-sword-formation",
+      eligibleTargetCount: 1
     }).commands).toEqual([
       {
         kind: "returning-sword-formation",
@@ -1192,7 +1327,8 @@ describe("Gongfa runtime", () => {
 
     const cascaded = advanceGongfaRuntime(decayed, {
       kind: "skill2",
-      skill2Id: "furnace-cascade"
+      skill2Id: "furnace-cascade",
+      eligibleTargetCount: 1
     });
     expect(cascaded.runtime.crimsonFurnace?.furnaceCascadeCasts).toBe(5);
     expect(cascaded.commands).toEqual([
@@ -1956,6 +2092,28 @@ describe("Gongfa runtime", () => {
       isMoving: false
     }).runtime;
     expect(faded.blazingFeather!.emberStacks).toBeLessThan(4);
+  });
+
+  it("does not stoke an owning resource for a repeated Skill 2 activation hit", () => {
+    const hitFacts = {
+      targetId: 1,
+      damage: 10,
+      baseDamageKilledTarget: false,
+      embedStacks: 0,
+      embedPower: 0,
+      resourceGainEligible: false
+    };
+    const feather = advanceGongfaRuntimeForProjectileHit(
+      createGongfaRuntime({ gongfaId: "blazing-feather-art" }),
+      { ...hitFacts, sourceGongfaId: "blazing-feather-art" }
+    ).runtime;
+    const wave = advanceGongfaRuntimeForProjectileHit(
+      createGongfaRuntime({ gongfaId: "scarlet-wave-manual" }),
+      { ...hitFacts, sourceGongfaId: "scarlet-wave-manual" }
+    ).runtime;
+
+    expect(feather.blazingFeather!.emberStacks).toBe(0);
+    expect(wave.surge!.stacks).toBe(0);
   });
 
   it("Ember Cascade builds Embers faster; Banked Embers holds them at half", () => {
