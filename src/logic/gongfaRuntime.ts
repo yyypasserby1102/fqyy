@@ -67,6 +67,7 @@ export interface GongfaProjectileHitFacts {
   baseDamageKilledTarget: boolean;
   embedStacks: number;
   embedPower: number;
+  resourceGainEligible?: boolean;
 }
 
 export interface YujianState {
@@ -141,6 +142,8 @@ export type GongfaRuntimeEvent =
       kind: "tick";
       deltaMs: number;
       nearbyEnemyCount: number;
+      eligibleTargetCount?: number;
+      hasMovementDirection?: boolean;
       isMoving?: boolean;
       skill2Enabled?: boolean;
       skill2Id?: string;
@@ -166,7 +169,14 @@ export type GongfaRuntimeEvent =
       embedPower: number;
     }
   | { kind: "yujian-reversal-spawned" }
-  | { kind: "skill2"; skill2Id?: string }
+  | {
+      kind: "skill2";
+      skill2Id?: string;
+      nearbyEnemyCount?: number;
+      eligibleTargetCount?: number;
+      hasMovementDirection?: boolean;
+      isMoving?: boolean;
+    }
   | { kind: "incoming-damage"; amount: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean };
 
@@ -289,6 +299,75 @@ export type GongfaRuntimeCommand =
         stackDamage: number;
       };
       fragment: CrimsonFragmentSpec;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "feather-rain-formation";
+      fanCount: number;
+      feathersPerFan: number;
+      fanDelayMs: number;
+      damage: number;
+      pierce: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "sunset-wave-apex";
+      wallCount: number;
+      overlapScale: number;
+      damage: number;
+      width: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "mirror-needle-constellation";
+      needleCount: number;
+      staggerMs: number;
+      damage: number;
+      pierce: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "moon-tide-vault";
+      radius: number;
+      damage: number;
+      controlStrength: number;
+      returnDelayMs: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "frozen-lotus-shell";
+      petalCount: number;
+      damage: number;
+      radius: number;
+      shatterDelayMs: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "verdant-root-network";
+      linkCount: number;
+      pulseCount: number;
+      pulseDelayMs: number;
+      damage: number;
+      reach: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "sprout-sun-circle";
+      spokeCount: number;
+      pulseCount: number;
+      pulseDelayMs: number;
+      damage: number;
+      radius: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "ironwood-surge-form";
+      waveCount: number;
+      returnShots: number;
+      growthScale: number;
+      damage: number;
+      width: number;
+      pushStrength: number;
       masteryCast: MasterySkill2Cast;
     };
 
@@ -699,7 +778,7 @@ export function advanceTimedMasterySkill2Cooldown(
   }
 
   return {
-    cooldownRemainingMs: nextCooldownRemainingMs,
+    cooldownRemainingMs: 0,
     readySkill2Id: plan.intent
   };
 }
@@ -806,46 +885,36 @@ export function projectGongfaMasteryCheckpoint(
   return createGongfaMasteryStateFromCheckpoint(state);
 }
 
-function buildGenericTimedSkill2Commands(
+function buildExplicitTimedSkill2Command(
   runtime: GongfaRuntime,
   skill2: AuthoredSkill2Plan
-): GongfaRuntimeCommand[] {
+): GongfaRuntimeCommand | undefined {
   const masteryCast: MasterySkill2Cast = {
     skill2Id: skill2.intent,
     cooldownMs: skill2.cooldownMs
   };
-  const commands: GongfaRuntimeCommand[] = [
-    {
-      kind: "mastery-skill2-cast",
-      masteryCast
-    }
-  ];
+  const resource = runtime.blazingFeather?.emberStacks ?? runtime.surge?.stacks ?? 0;
 
-  if (runtime.combat.pattern === "homing") {
-    commands.push({
-      kind: "homing-volley",
-      count: Math.max(2, runtime.combat.count + 2),
-      transformationTriggers: emptyYujianTransformationTriggers
-    });
-    return commands;
+  switch (skill2.intent) {
+    case "feather-rain-formation":
+      return { kind: skill2.intent, fanCount: 3, feathersPerFan: Math.max(3, runtime.combat.count + resource), fanDelayMs: 140, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.08))), pierce: runtime.combat.pierce, masteryCast };
+    case "sunset-wave-apex":
+      return { kind: skill2.intent, wallCount: 2, overlapScale: 1.4 + resource * 0.08, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.15 + resource * 0.07))), width: 70 + resource * 10, masteryCast };
+    case "mirror-needle-constellation":
+      return { kind: skill2.intent, needleCount: Math.max(5, runtime.combat.count + 3 + resource), staggerMs: 75, damage: Math.max(1, Math.floor(runtime.combat.damage * 1.05)), pierce: runtime.combat.pierce + Math.floor(resource / 3), masteryCast };
+    case "moon-tide-vault":
+      return { kind: skill2.intent, radius: 180 + resource * 12, damage: Math.max(1, Math.floor(runtime.combat.damage * 1.2)), controlStrength: 180 + resource * 15, returnDelayMs: 320, masteryCast };
+    case "frozen-lotus-shell":
+      return { kind: skill2.intent, petalCount: Math.max(6, runtime.combat.count + 4 + resource), damage: Math.max(1, Math.floor(runtime.combat.damage * (1.15 + resource * 0.08))), radius: 90 + resource * 12, shatterDelayMs: 520, masteryCast };
+    case "verdant-root-network":
+      return { kind: skill2.intent, linkCount: Math.max(3, runtime.combat.count + resource), pulseCount: 3, pulseDelayMs: 180, damage: Math.max(1, Math.floor(runtime.combat.damage * (0.7 + resource * 0.08))), reach: 220 + resource * 20, masteryCast };
+    case "sprout-sun-circle":
+      return { kind: skill2.intent, spokeCount: Math.max(8, runtime.combat.count + 5 + resource), pulseCount: 3, pulseDelayMs: 220, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.07))), radius: 100 + resource * 12, masteryCast };
+    case "ironwood-surge-form":
+      return { kind: skill2.intent, waveCount: Math.max(3, runtime.combat.count + 1), returnShots: 2, growthScale: 1.25 + resource * 0.05, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.08))), width: 80 + resource * 12, pushStrength: 170 + resource * 18, masteryCast };
+    default:
+      return undefined;
   }
-
-  if (runtime.combat.pattern === "wave") {
-    commands.push({
-      kind: "wave-volley",
-      count: Math.max(3, runtime.combat.count + 2),
-      returnShots: runtime.combat.returnShots + 1,
-      aimMode: "nearest"
-    });
-    return commands;
-  }
-
-  commands.push({
-    kind: "aura-burst",
-    damage: Math.max(1, Math.floor(runtime.combat.damage * 1.35)),
-    count: Math.max(8, runtime.combat.count + 4)
-  });
-  return commands;
 }
 
 function buildCrimsonFragmentSpec(runtime: GongfaRuntime): CrimsonFragmentSpec {
@@ -1548,7 +1617,11 @@ export function advanceGongfaRuntimeForProjectileHit(
     commands.push(...result.commands);
   }
 
-  if (facts.sourceGongfaId === "blazing-feather-art" && next.blazingFeather) {
+  if (
+    facts.resourceGainEligible !== false &&
+    facts.sourceGongfaId === "blazing-feather-art" &&
+    next.blazingFeather
+  ) {
     const result = advanceGongfaRuntime(next, {
       kind: "blazing-feather-hit",
       learnedMasteryIds: facts.learnedMasteryIds
@@ -1566,7 +1639,12 @@ export function advanceGongfaRuntimeForProjectileHit(
     commands.push(...result.commands);
   }
 
-  if (facts.sourceGongfaId && surgeGongfaIdSet.has(facts.sourceGongfaId) && next.surge) {
+  if (
+    facts.resourceGainEligible !== false &&
+    facts.sourceGongfaId &&
+    surgeGongfaIdSet.has(facts.sourceGongfaId) &&
+    next.surge
+  ) {
     const result = advanceGongfaRuntime(next, {
       kind: "surge-hit",
       learnedMasteryIds: facts.learnedMasteryIds
@@ -1585,6 +1663,10 @@ export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number
 
   if (runtime.gengjin) {
     return 160;
+  }
+
+  if (runtime.mastery.masterySkill2Id) {
+    return 640;
   }
 
   return 0;
@@ -1631,7 +1713,13 @@ export function advanceGongfaRuntime(
     );
     next.mastery.masterySkill2CooldownRemaining = cooldown.cooldownRemainingMs;
     if (cooldown.readySkill2Id) {
-      const skillResult = advanceGongfaRuntime(next, { kind: "skill2" });
+      const skillResult = advanceGongfaRuntime(next, {
+        kind: "skill2",
+        nearbyEnemyCount: event.nearbyEnemyCount,
+        eligibleTargetCount: event.eligibleTargetCount,
+        hasMovementDirection: event.hasMovementDirection,
+        isMoving: event.isMoving
+      });
       next = skillResult.runtime;
       commands.push(...skillResult.commands);
     }
@@ -1702,7 +1790,11 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "skill2") {
-    if (event.skill2Id === "returning-sword-formation" && next.yujian) {
+    if (
+      event.skill2Id === "returning-sword-formation" &&
+      next.yujian &&
+      (event.eligibleTargetCount ?? 0) > 0
+    ) {
       commands.push({
         kind: "returning-sword-formation",
         count: Math.max(1, next.combat.count),
@@ -1750,7 +1842,11 @@ export function advanceGongfaRuntime(
         }
       });
     }
-    if (event.skill2Id === "furnace-cascade" && next.crimsonFurnace) {
+    if (
+      event.skill2Id === "furnace-cascade" &&
+      next.crimsonFurnace &&
+      (event.eligibleTargetCount ?? 0) > 0
+    ) {
       next.crimsonFurnace.furnaceCascadeCasts += 1;
       commands.push({
         kind: "furnace-cascade",
@@ -1771,7 +1867,20 @@ export function advanceGongfaRuntime(
       skill2GongfaIds[skill2.intent] === next.gongfaId &&
       !commands.some((command) => "masteryCast" in command)
     ) {
-      commands.push(...buildGenericTimedSkill2Commands(next, skill2));
+      const requiresTarget = new Set<AuthoredSkill2Intent>([
+        "feather-rain-formation",
+        "sunset-wave-apex",
+        "mirror-needle-constellation",
+        "verdant-root-network"
+      ]).has(skill2.intent);
+      const lacksDirection =
+        skill2.intent === "ironwood-surge-form" && event.hasMovementDirection !== true;
+      const command = (requiresTarget && (event.eligibleTargetCount ?? 0) <= 0) || lacksDirection
+        ? undefined
+        : buildExplicitTimedSkill2Command(next, skill2);
+      if (command) {
+        commands.push(command);
+      }
     }
     return { runtime: next, commands };
   }

@@ -6,6 +6,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
   damage = 0;
   pierceRemaining = 0;
   sourceGongfaId?: GongfaId;
+  skill2ActivationId?: number;
   sourceIsCascadeFragment = false;
   lodgedEnemy?: Enemy;
 
