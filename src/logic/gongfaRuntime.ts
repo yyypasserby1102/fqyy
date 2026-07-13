@@ -18,10 +18,11 @@ import {
 } from "../data/surgeGongfa";
 import { upgradeConfigs, type UpgradeEffect } from "../data/upgrades";
 import { getRank10Skill2Id, hasAvailableGongfaRefinement } from "./mastery";
+import type { ProjectileVisualId } from "../types/combatVisuals";
 
 export interface GongfaCombatState extends GongfaStageState {
   pattern: GongfaPattern;
-  projectileTexture: string;
+  projectileTexture: ProjectileVisualId;
   tint: number;
 }
 

@@ -1,6 +1,9 @@
 import type { ChoiceOption } from "../data/choices";
 import type { EvadeState } from "../logic/evade";
 import type { PlayerVisualSnapshot } from "../entities/Player";
+import type { EnemyVisualSnapshot } from "../entities/Enemy";
+import type { ProjectileVisualSnapshot } from "../entities/Projectile";
+import type { EnemyId } from "../data/enemies";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -17,6 +20,11 @@ export interface GameSnapshot {
     moveSpeed: number;
     evade: EvadeState;
     visual: PlayerVisualSnapshot;
+  };
+  visuals: {
+    enemies: EnemyVisualSnapshot[];
+    projectiles: ProjectileVisualSnapshot[];
+    projectileImpacts: string[];
   };
   progression: {
     stage: string;
@@ -57,6 +65,7 @@ export interface GameSnapshot {
     lingcaoMarker: string;
     finalBossActive: boolean;
     finalBossPhaseIndex: number;
+    kills: number;
   };
   combat: {
     pattern: string;
@@ -99,8 +108,10 @@ export interface GameTestHarness {
   getSnapshot(): GameSnapshot;
   getUiSnapshot(): UiSnapshot;
   forceSpawnEnemies(count: number): void;
+  forceSpawnEnemy(enemyId: EnemyId): void;
   selectChoice(index: number): void;
   forceDamagePlayer(amount: number): void;
+  forceDamageEnemy(enemyId: EnemyId, amount: number): void;
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnSpiritTreasure(treasureId: string): void;

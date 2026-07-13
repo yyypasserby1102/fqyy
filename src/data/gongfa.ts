@@ -1,5 +1,6 @@
 import type { RootId } from "./linggen";
 import type { StageId } from "./stages";
+import type { ProjectileVisualId } from "../types/combatVisuals";
 
 export type GongfaPattern = "homing" | "wave" | "aura";
 export type GongfaTag = GongfaPattern | RootId | "projectile" | "sword" | "defensive" | "explosive";
@@ -41,7 +42,7 @@ export interface GongfaConfig {
   pattern: GongfaPattern;
   title: string;
   lore: string;
-  projectileTexture: string;
+  projectileTexture: ProjectileVisualId;
   tint: number;
   stages: Partial<Record<StageId, GongfaStageState>>;
 }

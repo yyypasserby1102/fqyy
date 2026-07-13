@@ -202,7 +202,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     direction: CultivatorVector,
     size: number,
     distance: number,
-    depth = 11
+    depth = 10.5
   ): void {
     const length = Math.hypot(direction.x, direction.y) || 1;
     const x = direction.x / length;
@@ -224,7 +224,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     offsetX: number,
     offsetY: number,
     followPlayer = false,
-    depth = 11
+    depth = 10.5
   ): Phaser.GameObjects.Sprite {
     const effect = this.scene.add
       .sprite(this.x + offsetX, this.y + offsetY, CULTIVATOR_TEXTURES.vfx)

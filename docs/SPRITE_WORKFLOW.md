@@ -27,11 +27,12 @@ This project starts as a graybox MVP. Real art should be added only after the co
 - Spirit beasts should use exaggerated horns, tails, whiskers, feathers, or aura shapes to separate enemy types quickly.
 - Qi, pills, and breakthroughs should use color-coded shapes so rewards are legible under combat pressure.
 - The protagonist follows `docs/PLAYER_VISUAL_SPEC.md`: hand-painted oblique cutout art at a 256x256 source-cell resolution. The older 64x64 pixel-art target remains suitable only for optional low-resolution enemy drafts.
+- Enemies and Gongfa projectiles follow `docs/ENEMY_PROJECTILE_VISUAL_SPEC.md`: seven enemy silhouettes and four travel/impact families in padded 256x256 cells.
 
 ## Graybox Transition Checklist
 
 - Replace primitive player shape with the complete protagonist locomotion/action/VFX atlases in `docs/PLAYER_VISUAL_SPEC.md`.
-- Replace each enemy primitive with one readable 64x64 spirit beast sheet.
-- Replace flying sword triangle with a sword slash sheet plus hit VFX.
+- [x] Replace all seven enemy primitives with readable pursue, hit, and defeat presentation.
+- [x] Replace projectile primitives with four animated travel families and matching hit VFX.
 - Replace XP orb circle with a qi orb pickup animation.
 - Keep collision boxes independent from final art dimensions.

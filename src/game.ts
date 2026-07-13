@@ -4,6 +4,7 @@ import { GameScene } from "./scenes/GameScene";
 import { UIScene } from "./scenes/UIScene";
 import type { GameTestHarness } from "./types/gameTest";
 import type { SpiritTreasureId } from "./data/spiritTreasures";
+import type { EnemyId } from "./data/enemies";
 
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
@@ -19,8 +20,11 @@ function attachGameTestHarness(game: Phaser.Game): void {
     getSnapshot: () => getGameScene().getTestSnapshot(),
     getUiSnapshot: () => getUiScene().getTestSnapshot(),
     forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
+    forceSpawnEnemy: (enemyId: EnemyId) => getGameScene().forceSpawnEnemy(enemyId),
     selectChoice: (index) => getGameScene().forceSelectChoice(index),
     forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
+    forceDamageEnemy: (enemyId: EnemyId, amount: number) =>
+      getGameScene().forceDamageEnemy(enemyId, amount),
     forceClearEnemies: () => getGameScene().forceClearEnemies(),
     forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
     forceSpawnSpiritTreasure: (treasureId: string) =>

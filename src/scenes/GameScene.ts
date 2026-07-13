@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { ChoiceOption } from "../data/choices";
-import { enemyConfigs } from "../data/enemies";
+import { enemyConfigs, type EnemyId } from "../data/enemies";
 import {
   gongfaConfigs,
   getGongfaSkillTags,
@@ -104,11 +104,16 @@ import {
 import { InputController } from "../systems/InputController";
 import { SpawnerSystem } from "../systems/SpawnerSystem";
 import type { GameSnapshot } from "../types/gameTest";
+import type { ProjectileVisualId } from "../types/combatVisuals";
 import { randomInt } from "../utils/random";
+import {
+  COMBAT_TEXTURES,
+  projectileVisualDefinitions
+} from "../visual/combatVisuals";
 
 interface CombatState extends GongfaStageState {
   pattern: GongfaPattern | "baseline";
-  projectileTexture: string;
+  projectileTexture: ProjectileVisualId;
   tint: number;
 }
 
@@ -229,6 +234,7 @@ export class GameScene extends Phaser.Scene {
   private nextCombatTargetId = 1;
   private nextSkill2ActivationId = 1;
   private readonly skill2HitTargets = new Map<number, Set<number>>();
+  private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private runState: RunState = {
     kills: 0,
     elapsedMs: 0,
@@ -506,6 +512,7 @@ export class GameScene extends Phaser.Scene {
     const hitMode = getGongfaProjectileHitMode(projectile.sourceGongfaId);
     const diedFromHit = hitMode.appliesBaseDamage ? enemy.receiveDamage(projectile.damage) : false;
     if (hitMode.appliesBaseDamage) {
+      this.spawnProjectileImpact(projectile, enemy.x, enemy.y);
       this.spawnDamageNumber(enemy.x, enemy.y, projectile.damage);
       this.sfx.hit();
     }
@@ -554,17 +561,34 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.spawnDeathPop(enemy.x, enemy.y, enemy.config.tint);
-    this.spawnOrb(enemy.x, enemy.y, enemy.config.xpDrop);
     const dropX = enemy.x;
     const dropY = enemy.y;
-    enemy.destroy();
+    const xpDrop = enemy.config.xpDrop;
+    if (!enemy.presentDefeat()) {
+      return;
+    }
+    this.spawnOrb(dropX, dropY, xpDrop);
     this.runState.kills += 1;
 
     const droppedTreasure = spiritTreasureDropForKill(this.runState.kills);
     if (droppedTreasure) {
       this.spawnSpiritTreasure(droppedTreasure, dropX, dropY);
     }
+  }
+
+  private spawnProjectileImpact(projectile: Projectile, x: number, y: number): void {
+    const visual = projectileVisualDefinitions[projectile.logicalTexture];
+    const impact = this.add
+      .sprite(x, y, COMBAT_TEXTURES.projectileImpacts)
+      .setDisplaySize(visual.impactSize, visual.impactSize)
+      .setDepth(12)
+      .setTint(projectile.tintTopLeft)
+      .play(visual.impactAnimation);
+    this.activeProjectileImpacts.add(impact);
+    impact.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.activeProjectileImpacts.delete(impact);
+      impact.destroy();
+    });
   }
 
   private executeProjectileHitCommands(
@@ -757,18 +781,6 @@ export class GameScene extends Phaser.Scene {
       duration: 520,
       ease: "Cubic.out",
       onComplete: () => label.destroy()
-    });
-  }
-
-  private spawnDeathPop(x: number, y: number, tint: number): void {
-    const ring = this.add.circle(x, y, 9, tint, 0.5).setDepth(6);
-    this.tweens.add({
-      targets: ring,
-      scale: 2.6,
-      alpha: 0,
-      duration: 240,
-      ease: "Quad.out",
-      onComplete: () => ring.destroy()
     });
   }
 
@@ -1157,7 +1169,7 @@ export class GameScene extends Phaser.Scene {
     damage: number,
     speed: number,
     lifetimeMs: number,
-    texture: string,
+    texture: ProjectileVisualId,
     tint: number,
     sourceGongfaId: GongfaId | undefined
   ): void {
@@ -1273,7 +1285,7 @@ export class GameScene extends Phaser.Scene {
     projectile.setAngle(Phaser.Math.RadToDeg(angle));
     const baseScaleX = scale;
     const baseScaleY = Math.max(0.72, scale - 0.15);
-    projectile.setScale(baseScaleX, baseScaleY);
+    projectile.setVisualScale(baseScaleX, baseScaleY);
     this.projectiles.add(projectile);
     const body = projectile.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
@@ -1281,8 +1293,8 @@ export class GameScene extends Phaser.Scene {
     if (growthScale > 1) {
       this.tweens.add({
         targets: projectile,
-        scaleX: baseScaleX * growthScale,
-        scaleY: baseScaleY * growthScale,
+        scaleX: projectile.scaleX * growthScale,
+        scaleY: projectile.scaleY * growthScale,
         duration: lifetimeMs,
         ease: "Linear"
       });
@@ -1456,7 +1468,8 @@ export class GameScene extends Phaser.Scene {
       projectile.damage = damage;
       projectile.pierceRemaining = combat.pierce;
       projectile.setTint(combat.tint);
-      projectile.setScale(0.85);
+      projectile.setVisualScale(0.85);
+      projectile.setAngle(Phaser.Math.RadToDeg(angle));
       this.projectiles.add(projectile);
       const body = projectile.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(
@@ -1509,7 +1522,8 @@ export class GameScene extends Phaser.Scene {
       projectile.damage = damage;
       projectile.pierceRemaining = combat.pierce + 1;
       projectile.setTint(combat.tint);
-      projectile.setScale(Math.max(0.95, scale));
+      projectile.setVisualScale(Math.max(0.95, scale));
+      projectile.setAngle(Phaser.Math.RadToDeg(angle));
       this.projectiles.add(projectile);
       const body = projectile.body as Phaser.Physics.Arcade.Body;
       body.setVelocity(
@@ -1532,7 +1546,7 @@ export class GameScene extends Phaser.Scene {
     pierce: number,
     speed: number,
     lifetimeMs: number,
-    texture: string,
+    texture: ProjectileVisualId,
     tint: number,
     options: {
       sourceGongfaId?: GongfaId;
@@ -1565,7 +1579,7 @@ export class GameScene extends Phaser.Scene {
     pierce: number,
     speed: number,
     lifetimeMs: number,
-    texture: string,
+    texture: ProjectileVisualId,
     tint: number,
     options: {
       sourceGongfaId?: GongfaId;
@@ -1862,7 +1876,7 @@ export class GameScene extends Phaser.Scene {
     const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const combat = { ...this.combatState };
     const activationId = this.beginSkill2Activation();
-    const orbit = this.add.graphics().setDepth(120);
+    const orbit = this.add.graphics().setDepth(10.5);
     orbit.lineStyle(2, this.combatState.tint, 0.8);
     orbit.strokeCircle(this.player.x, this.player.y, 54);
     for (let needle = 0; needle < command.needleCount; needle += 1) {
@@ -1921,7 +1935,7 @@ export class GameScene extends Phaser.Scene {
     const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const combat = { ...this.combatState };
     const activationId = this.beginSkill2Activation();
-    const lotus = this.add.graphics().setDepth(121);
+    const lotus = this.add.graphics().setDepth(10.5);
     lotus.lineStyle(3, combat.tint, 0.9);
     for (let petal = 0; petal < command.petalCount; petal += 1) {
       const angle = (Math.PI * 2 * petal) / command.petalCount;
@@ -1995,7 +2009,7 @@ export class GameScene extends Phaser.Scene {
         const linked = this.getNearestEnemies(command.linkCount).filter(
           (enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) <= command.reach
         );
-        const vines = this.add.graphics().setDepth(119);
+        const vines = this.add.graphics().setDepth(10.5);
         vines.lineStyle(3, tint, 0.75);
         let fromX = this.player.x;
         let fromY = this.player.y;
@@ -2023,7 +2037,7 @@ export class GameScene extends Phaser.Scene {
     const activationId = this.beginSkill2Activation();
     const originX = this.player.x;
     const originY = this.player.y;
-    const circle = this.add.graphics().setDepth(118);
+    const circle = this.add.graphics().setDepth(10.5);
     circle.lineStyle(3, tint, 0.85);
     circle.strokeCircle(originX, originY, command.radius);
     for (let pulse = 0; pulse < command.pulseCount; pulse += 1) {
@@ -2259,12 +2273,14 @@ export class GameScene extends Phaser.Scene {
         projectile.damage = Math.floor(combat.damage * 0.85);
         projectile.pierceRemaining = combat.pierce + 1;
         projectile.setTint(combat.tint);
-        projectile.setScale(0.9);
+        projectile.setVisualScale(0.9);
+        const travelAngle = angle + (Math.PI / 2) * direction;
+        projectile.setAngle(Phaser.Math.RadToDeg(travelAngle));
         this.projectiles.add(projectile);
         const body = projectile.body as Phaser.Physics.Arcade.Body;
         body.setVelocity(
-          Math.cos(angle + Math.PI / 2 * direction) * (combat.projectileSpeed + 35),
-          Math.sin(angle + Math.PI / 2 * direction) * (combat.projectileSpeed + 35)
+          Math.cos(travelAngle) * (combat.projectileSpeed + 35),
+          Math.sin(travelAngle) * (combat.projectileSpeed + 35)
         );
         this.time.delayedCall(combat.projectileLifetimeMs + 160, () => {
           if (projectile.active) {
@@ -2429,12 +2445,14 @@ export class GameScene extends Phaser.Scene {
         );
         projectile.pierceRemaining = combat.pierce;
         projectile.setTint(combat.tint);
-        projectile.setScale(ring === 0 ? 1 : 0.84);
+        projectile.setVisualScale(ring === 0 ? 1 : 0.84);
+        const travelAngle = angle + direction * (Math.PI / 2);
+        projectile.setAngle(Phaser.Math.RadToDeg(travelAngle));
         this.projectiles.add(projectile);
         const body = projectile.body as Phaser.Physics.Arcade.Body;
         body.setVelocity(
-          Math.cos(angle + direction * Math.PI / 2) * (combat.projectileSpeed + 50),
-          Math.sin(angle + direction * Math.PI / 2) * (combat.projectileSpeed + 50)
+          Math.cos(travelAngle) * (combat.projectileSpeed + 50),
+          Math.sin(travelAngle) * (combat.projectileSpeed + 50)
         );
         this.time.delayedCall(combat.projectileLifetimeMs + 120, () => {
           if (projectile.active) {
@@ -2466,7 +2484,7 @@ export class GameScene extends Phaser.Scene {
     ember.damage = Math.max(1, Math.floor(combat.damage * 0.4));
     ember.pierceRemaining = 999;
     ember.setTint(combat.tint);
-    ember.setScale(0.7);
+    ember.setVisualScale(0.7);
     this.projectiles.add(ember);
     const body = ember.body as Phaser.Physics.Arcade.Body;
     body.setVelocity(0, 0);
@@ -2561,9 +2579,7 @@ export class GameScene extends Phaser.Scene {
     hits.forEach((enemy) => {
       const died = enemy.receiveDamage(command.splashDamage);
       if (died) {
-        this.spawnOrb(enemy.x, enemy.y, enemy.config.xpDrop);
-        enemy.destroy();
-        this.runState.kills += 1;
+        this.resolveEnemyDeath(enemy);
       }
     });
 
@@ -3157,6 +3173,18 @@ export class GameScene extends Phaser.Scene {
           activeVfx: []
         }
       },
+      visuals: {
+        enemies: ((this.enemies?.getChildren() as Enemy[] | undefined) ?? [])
+          .filter((enemy) => enemy.scene)
+          .map((enemy) => enemy.getVisualSnapshot()),
+        projectiles: ((this.projectiles?.getChildren() as Projectile[] | undefined) ?? [])
+          .filter((projectile) => projectile.active)
+          .map((projectile) => projectile.getVisualSnapshot()),
+        projectileImpacts: [...this.activeProjectileImpacts]
+          .filter((impact) => impact.active)
+          .map((impact) => impact.anims.currentAnim?.key ?? "")
+          .filter(Boolean)
+      },
       progression: {
         stage: this.runState.stage,
         realmPhase: this.runState.realmPhase,
@@ -3202,7 +3230,8 @@ export class GameScene extends Phaser.Scene {
         lingcaoCollected: this.runState.lingcaoCollected,
         lingcaoMarker: this.runState.lingcaoMarker,
         finalBossActive: this.runState.finalBossActive,
-        finalBossPhaseIndex: this.runState.finalBossPhaseIndex
+        finalBossPhaseIndex: this.runState.finalBossPhaseIndex,
+        kills: this.runState.kills
       },
       combat: {
         pattern: this.combatState.pattern,
@@ -3290,6 +3319,18 @@ export class GameScene extends Phaser.Scene {
     this.publishHud(this.lastMessage);
   }
 
+  forceSpawnEnemy(enemyId: EnemyId): void {
+    const index = this.enemies.countActive(true);
+    const column = index % 4;
+    const row = Math.floor(index / 4);
+    this.spawner.spawnManual(
+      enemyId,
+      this.player.x + 110 + column * 82,
+      this.player.y - 72 + row * 118
+    );
+    this.publishHud(this.lastMessage);
+  }
+
   forceSelectChoice(index: number): void {
     if (!this.choiceActive || index < 0 || index >= this.currentChoiceOptions.length) {
       return;
@@ -3305,6 +3346,14 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.publishHud(this.lastMessage);
+  }
+
+  forceDamageEnemy(enemyId: EnemyId, amount: number): void {
+    const enemy = (this.enemies.getChildren() as Enemy[]).find(
+      (candidate) => candidate.active && candidate.config.id === enemyId
+    );
+    if (!enemy) return;
+    if (enemy.receiveDamage(amount)) this.resolveEnemyDeath(enemy);
   }
 
   forceClearEnemies(): void {
