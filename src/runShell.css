@@ -24,6 +24,32 @@
   z-index: -1;
 }
 
+.run-shell--loading {
+  color: #d9c686;
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-size: 18px;
+  letter-spacing: 0.12em;
+  text-align: center;
+}
+
+.run-shell--loading::after {
+  width: 92px;
+  height: 92px;
+  border-color: rgba(112, 215, 223, 0.3);
+  box-shadow: 0 0 42px rgba(112, 215, 223, 0.16);
+  animation: loading-seal 3.2s linear infinite;
+}
+
+.run-shell--error {
+  color: #ef9d91;
+}
+
+@keyframes loading-seal {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .run-shell::before {
   inset: 18px;
   border: 1px solid rgba(111, 203, 213, 0.18);

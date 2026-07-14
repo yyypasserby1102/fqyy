@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import type { ChoiceOption } from "../data/choices";
+import type { ChoiceOption, ChoicePayload } from "../data/choices";
 import { enemyConfigs, type EnemyId } from "../data/enemies";
 import {
   gongfaConfigs,
@@ -166,6 +166,7 @@ const baselineState: CombatState = {
 const finalBossPhaseConfigs = [
   {
     name: "Lightning Judgment",
+    subtitle: "Celestial thunder measures the Cultivator's foundation.",
     pool: ["celestial-construct"] as const,
     intervalMs: 1200,
     amount: 2,
@@ -173,6 +174,7 @@ const finalBossPhaseConfigs = [
   },
   {
     name: "Tribulation Shades",
+    subtitle: "Shades gather where the storm refuses the light.",
     pool: ["tribulation-shade", "celestial-construct"] as const,
     intervalMs: 1050,
     amount: 3,
@@ -180,12 +182,25 @@ const finalBossPhaseConfigs = [
   },
   {
     name: "Collapsing Safe Zones",
+    subtitle: "The last sanctuary contracts beneath a broken sky.",
     pool: ["celestial-construct", "tribulation-shade"] as const,
     intervalMs: 900,
     amount: 4,
     safeZone: true
   }
 ] as const;
+
+const fallbackFinalBossPhase = {
+  name: "Heavenly Judgment",
+  subtitle: "The heavens answer."
+} as const;
+
+function getFinalBossPhasePresentation(phaseIndex: number): {
+  name: string;
+  subtitle: string;
+} {
+  return finalBossPhaseConfigs[phaseIndex] ?? fallbackFinalBossPhase;
+}
 
 // A bounded but generous arena (2000x1280, centred on the origin). Large enough
 // for the Yuanying boss's drifting safe zone, small enough that the grid floor
@@ -317,6 +332,7 @@ export class GameScene extends Phaser.Scene {
     this.arenaPresentation = arena;
     this.arenaFloor = arena.floor;
     this.arenaDecorationCount = arena.decorationCount;
+    this.sfx.setAmbience(this.runState.stage);
 
     this.player = new Player(this, 0, 0);
     this.player.setCollideWorldBounds(true);
@@ -822,6 +838,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.player?.active) {
       return;
     }
+    this.sfx.cast();
     const pulse = this.add
       .circle(this.player.x, this.player.y, 14, undefined, 0)
       .setStrokeStyle(2, this.combatState.tint, 0.45)
@@ -886,6 +903,7 @@ export class GameScene extends Phaser.Scene {
         SPIRIT_TREASURE_COLLECTION_TINT,
         76
       );
+      this.sfx.spiritTreasure();
       treasure.destroy();
       this.persistRunCheckpoint();
       this.publishHud(this.lastMessage);
@@ -914,8 +932,7 @@ export class GameScene extends Phaser.Scene {
         description: "Keep your current three Spirit Treasures."
       }
     ];
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
+    this.showChoicePanel({
       title: this.currentChoiceTitle,
       subtitle: "All three Spirit Treasure slots are full.",
       options: this.currentChoiceOptions
@@ -941,6 +958,7 @@ export class GameScene extends Phaser.Scene {
       SPIRIT_TREASURE_COLLECTION_TINT,
       76
     );
+    this.sfx.spiritTreasure();
     treasure.destroy();
     this.pendingSpiritTreasure = undefined;
     this.persistRunCheckpoint();
@@ -1067,6 +1085,7 @@ export class GameScene extends Phaser.Scene {
 
     this.player.heal(pill.healAmount);
     this.spawnPickupBurst(pill.x, pill.y, 0xff9dc9, 68);
+    this.sfx.healingPill();
     pill.destroy();
     this.lastMessage = "Healing Pill restores your vitality.";
     this.persistRunCheckpoint();
@@ -2701,8 +2720,7 @@ export class GameScene extends Phaser.Scene {
     this.choiceActive = true;
     this.currentChoiceTitle = `${linggen.name} Revealed`;
     this.currentChoiceOptions = options;
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
+    this.showChoicePanel({
       title: this.currentChoiceTitle,
       subtitle: linggen.lore,
       options,
@@ -2712,6 +2730,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private resolveChoice(option: ChoiceOption): void {
+    this.sfx.choiceAccept();
     const acceptedJourneyDecision =
       option.kind === "continue" ? this.runState.pendingDecision : undefined;
 
@@ -2731,6 +2750,7 @@ export class GameScene extends Phaser.Scene {
       this.applyRunJourneyState(result.state);
       this.applyJourneyChoiceMessage(acceptedJourneyDecision);
       this.executeRunJourneyCommands(result.commands);
+      this.presentAcceptedJourneyDecision(acceptedJourneyDecision);
     } else if (option.kind === "return-to-title") {
       this.returnToTitle(false);
       return;
@@ -2872,6 +2892,7 @@ export class GameScene extends Phaser.Scene {
     this.runState.gameOver = state.gameOver ?? false;
     if (previousStage !== state.stage) {
       this.arenaPresentation?.applyStage(state.stage);
+      this.sfx.setAmbience(state.stage);
     }
     this.runState.pendingDecision = state.pendingDecision;
   }
@@ -2889,6 +2910,39 @@ export class GameScene extends Phaser.Scene {
 
     if (decision.kind === "tribulation") {
       this.lastMessage = `${stageConfigs[this.runState.stage].name} Chuqi begins.`;
+    }
+  }
+
+  private presentAcceptedJourneyDecision(decision: RunJourneyDecision): void {
+    if (decision.kind === "phase-transition") {
+      const phaseNames = {
+        zhongqi: "Zhongqi",
+        houqi: "Houqi",
+        dayuanman: "Dayuanman"
+      } as const;
+      this.sfx.phaseTransition();
+      this.cameras.main.flash(160, 92, 180, 184, false);
+      this.scene.get("ui").events.emit("show-journey-presentation", {
+        kind: "phase",
+        eyebrow: "FOUNDATION SETTLES",
+        title: phaseNames[decision.nextPhase],
+        subtitle: `${stageConfigs[this.runState.stage].name} pressure deepens without breaking the flow.`,
+        accent: 0x79d7c8
+      });
+      return;
+    }
+
+    if (decision.kind === "tribulation") {
+      this.sfx.breakthrough();
+      this.cameras.main.flash(260, 215, 185, 109, false);
+      this.cameras.main.shake(220, 0.004);
+      this.scene.get("ui").events.emit("show-journey-presentation", {
+        kind: "breakthrough",
+        eyebrow: "STAGE BREAKTHROUGH",
+        title: stageConfigs[this.runState.stage].name,
+        subtitle: stageConfigs[this.runState.stage].message,
+        accent: 0xd7b96d
+      });
     }
   }
 
@@ -3156,6 +3210,7 @@ export class GameScene extends Phaser.Scene {
       sceneName: this.scene.key,
       activeScenes: this.scene.manager.getScenes(true).map((scene) => scene.scene.key),
       message: this.lastMessage,
+      audio: this.sfx.getSnapshot(),
       hud: {
         lines: buildHudLines({
           stageName: stageConfigs[this.runState.stage].name,
@@ -3606,8 +3661,7 @@ export class GameScene extends Phaser.Scene {
     runtime.mastery.masteryChoiceActive = true;
     this.currentChoiceTitle = `${gongfaConfigs[runtime.gongfaId].name} Mastery Rank ${rank}`;
     this.currentChoiceOptions = options;
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
+    this.showChoicePanel({
       title: this.currentChoiceTitle,
       subtitle: "Choose one refinement for the current Gongfa rank.",
       options
@@ -3677,8 +3731,7 @@ export class GameScene extends Phaser.Scene {
     this.choiceActive = true;
     this.currentChoiceTitle = this.getJourneyChoiceTitle(decision);
     this.currentChoiceOptions = this.getJourneyChoiceOptions(decision);
-    this.setPausedState(true);
-    this.scene.get("ui").events.emit("show-choice-panel", {
+    this.showChoicePanel({
       title: this.currentChoiceTitle,
       subtitle: this.getJourneyChoiceSubtitle(decision),
       options: this.currentChoiceOptions
@@ -3711,8 +3764,8 @@ export class GameScene extends Phaser.Scene {
       return "Dayuanman clears. Cloudbreak Summit answers with thunder.";
     }
 
-    const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
-    return `${phaseNames[this.runState.finalBossPhaseIndex]} clears. The tribulation deepens.`;
+    const phase = getFinalBossPhasePresentation(this.runState.finalBossPhaseIndex);
+    return `${phase.name} clears. The tribulation deepens.`;
   }
 
   private getJourneyChoiceOptions(decision: RunJourneyDecision): ChoiceOption[] {
@@ -3767,8 +3820,7 @@ export class GameScene extends Phaser.Scene {
       ];
     }
 
-    const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
-    const nextPhaseName = phaseNames[decision.nextPhaseIndex] ?? "Heavenly Judgment";
+    const nextPhaseName = getFinalBossPhasePresentation(decision.nextPhaseIndex).name;
     return [
       {
         id: "final-boss-continue",
@@ -3787,7 +3839,7 @@ export class GameScene extends Phaser.Scene {
     this.finalBossSafeZoneY = this.player.y;
     this.finalBossSafeZoneRadius = 220;
     this.lastMessage = "Lightning judgment descends over Cloudbreak Summit.";
-    void phaseIndex;
+    this.presentTribulationPhase(phaseIndex);
   }
 
   private advanceFinalBossPhase(phaseIndex: number): void {
@@ -3797,12 +3849,26 @@ export class GameScene extends Phaser.Scene {
     this.finalBossSafeZoneX = this.player.x;
     this.finalBossSafeZoneY = this.player.y;
     this.finalBossSafeZoneRadius = Math.max(120, 220 - phaseIndex * 40);
-    const phaseNames = ["Lightning Judgment", "Tribulation Shades", "Collapsing Safe Zones"] as const;
-    this.lastMessage = `${phaseNames[phaseIndex]} begins.`;
+    const phase = getFinalBossPhasePresentation(phaseIndex);
+    this.lastMessage = `${phase.name} begins.`;
+    this.presentTribulationPhase(phaseIndex);
+  }
+
+  private presentTribulationPhase(phaseIndex: number): void {
+    const phase = getFinalBossPhasePresentation(phaseIndex);
+    this.sfx.tribulation();
+    this.cameras.main.flash(240, 116, 102, 210, false);
+    this.cameras.main.shake(300, 0.006 + phaseIndex * 0.0015);
+    this.scene.get("ui").events.emit("show-journey-presentation", {
+      kind: "tribulation",
+      eyebrow: `HEAVENLY TRIBULATION · ${phaseIndex + 1}/3`,
+      title: phase.name,
+      subtitle: phase.subtitle,
+      accent: 0xa993ef
+    });
   }
 
   private completeFinalBossVictory(): void {
-    this.setPausedState(true);
     this.recordCompletion();
     this.clearActiveRunSave();
     this.lastMessage = "The Heavenly Tribulation is broken. The run is complete.";
@@ -3816,11 +3882,20 @@ export class GameScene extends Phaser.Scene {
         description: "Leave the completed run and return to the shell."
       }
     ];
-    this.scene.get("ui").events.emit("show-choice-panel", {
+    this.cameras.main.flash(420, 255, 222, 138, false);
+    this.scene.get("ui").events.emit("show-journey-presentation", {
+      kind: "victory",
+      eyebrow: "HEAVENLY TRIBULATION BROKEN",
+      title: "Ascendant",
+      subtitle: "The Yuanying Cultivator stands beyond the storm.",
+      accent: 0xffdf8a
+    });
+    this.showChoicePanel({
       title: this.currentChoiceTitle,
       subtitle: "A permanent completion record has been written.",
       options: this.currentChoiceOptions
     });
+    this.sfx.victory();
     this.publishHud(this.lastMessage);
   }
 
@@ -3831,6 +3906,12 @@ export class GameScene extends Phaser.Scene {
         this.collectOrb(orb);
       }
     });
+  }
+
+  private showChoicePanel(payload: ChoicePayload): void {
+    this.setPausedState(true);
+    this.sfx.choiceOpen();
+    this.scene.get("ui").events.emit("show-choice-panel", payload);
   }
 
 }

@@ -61,5 +61,9 @@ These 1280 × 720 browser captures cover the opening-to-awakening journey and th
 | Zhuji foundation terrace | [`arena-zhuji.png`](arena-zhuji.png) |
 | Jindan golden-core sanctum | [`arena-jindan.png`](arena-jindan.png) |
 | Yuanying nascent-sky dais | [`arena-yuanying.png`](arena-yuanying.png) |
+| Zhuji Stage Breakthrough banner | [`realm-breakthrough.png`](realm-breakthrough.png) |
+| Heavenly Tribulation arrival | [`heavenly-tribulation.png`](heavenly-tribulation.png) |
 
 `tests/e2e/opening-atmosphere.spec.ts` verifies the production opening shell, qualitative candidate information, narrow-viewport layout, Lingcao idle/resonance/collection states, awakening mode, realm variant snapshots, and decoded source padding. The stage captures advance through the real progression choices; the harness is used only to make the run deterministic and accelerate collection.
+
+The transition captures additionally verify the non-blocking UI-scene presentation introduced by [`SENSORY_PERFORMANCE_SPEC.md`](../SENSORY_PERFORMANCE_SPEC.md). The banner continues animating while the gameplay scene or its Gongfa choice is paused; the Heavenly Tribulation warning leaves all three HUD scan regions readable.

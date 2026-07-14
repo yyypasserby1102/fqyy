@@ -43,17 +43,19 @@ export class SpawnerSystem {
     stage: StageId,
     allowWaveEscalation: boolean
   ): void {
-    this.elapsedMs += deltaMs;
-    this.accumulator += deltaMs;
-
     if (stage !== this.currentStage) {
       this.currentStage = stage;
+      this.elapsedMs = 0;
+      this.accumulator = 0;
       const waves = stageWaveSpawns[stage];
       const firstWave = waves[0];
       this.currentPool = firstWave.pool;
       this.currentInterval = firstWave.intervalMs;
       this.currentAmount = firstWave.amount;
     }
+
+    this.elapsedMs += deltaMs;
+    this.accumulator += deltaMs;
 
     if (allowWaveEscalation) {
       for (const wave of stageWaveSpawns[stage]) {

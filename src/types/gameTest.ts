@@ -7,11 +7,14 @@ import type { EnemyId } from "../data/enemies";
 import type { SpiritTreasureId } from "../data/spiritTreasures";
 import type { LingcaoVisualState } from "../entities/Lingcao";
 import type { ArenaVisualSnapshot } from "../visual/arenaVisuals";
+import type { SoundFxSnapshot } from "../audio/SoundFx";
+import type { JourneyPresentationSnapshot } from "../ui/JourneyPresentation";
 
 export interface GameSnapshot {
   sceneName: string;
   activeScenes: string[];
   message?: string;
+  audio: SoundFxSnapshot;
   hud: {
     lines: string[];
   };
@@ -136,6 +139,7 @@ export interface UiSnapshot {
     renderedOptionCount: number;
     mode: ChoiceVisualMode | "hidden";
   };
+  journeyPresentation: JourneyPresentationSnapshot;
 }
 
 export interface GameTestHarness {

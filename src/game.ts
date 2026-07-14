@@ -14,28 +14,30 @@ function attachGameTestHarness(game: Phaser.Game): void {
     return;
   }
 
-  const getGameScene = (): GameScene => game.scene.getScene("game") as GameScene;
-  const getUiScene = (): UIScene => game.scene.getScene("ui") as UIScene;
-  const harness: GameTestHarness = {
-    getSnapshot: () => getGameScene().getTestSnapshot(),
-    getUiSnapshot: () => getUiScene().getTestSnapshot(),
-    forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
-    forceSpawnEnemy: (enemyId: EnemyId) => getGameScene().forceSpawnEnemy(enemyId),
-    selectChoice: (index) => getGameScene().forceSelectChoice(index),
-    forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
-    forceDamageEnemy: (enemyId: EnemyId, amount: number) =>
-      getGameScene().forceDamageEnemy(enemyId, amount),
-    forceClearEnemies: () => getGameScene().forceClearEnemies(),
-    forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
-    forceSpawnSpiritTreasure: (treasureId: string) =>
-      getGameScene().forceSpawnSpiritTreasure(treasureId as SpiritTreasureId),
-    forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
-    forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
-    forceSpawnPickupShowcase: () => getGameScene().forceSpawnPickupShowcase(),
-    forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs)
-  };
+  game.events.once("ui-scene-ready", () => {
+    const getGameScene = (): GameScene => game.scene.getScene("game") as GameScene;
+    const getUiScene = (): UIScene => game.scene.getScene("ui") as UIScene;
+    const harness: GameTestHarness = {
+      getSnapshot: () => getGameScene().getTestSnapshot(),
+      getUiSnapshot: () => getUiScene().getTestSnapshot(),
+      forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
+      forceSpawnEnemy: (enemyId: EnemyId) => getGameScene().forceSpawnEnemy(enemyId),
+      selectChoice: (index) => getGameScene().forceSelectChoice(index),
+      forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
+      forceDamageEnemy: (enemyId: EnemyId, amount: number) =>
+        getGameScene().forceDamageEnemy(enemyId, amount),
+      forceClearEnemies: () => getGameScene().forceClearEnemies(),
+      forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
+      forceSpawnSpiritTreasure: (treasureId: string) =>
+        getGameScene().forceSpawnSpiritTreasure(treasureId as SpiritTreasureId),
+      forceClaimLingcao: () => getGameScene().forceClaimLingcao(),
+      forceSpawnHealingPill: (healAmount = 30) => getGameScene().forceSpawnHealingPill(healAmount),
+      forceSpawnPickupShowcase: () => getGameScene().forceSpawnPickupShowcase(),
+      forceAdvanceSpawnClock: (deltaMs: number) => getGameScene().forceAdvanceSpawnClock(deltaMs)
+    };
 
-  window.__gameTest = harness;
+    window.__gameTest = harness;
+  });
 }
 
 export function createGame(parent: HTMLElement): Phaser.Game {

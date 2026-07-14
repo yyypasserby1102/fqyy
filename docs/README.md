@@ -1,22 +1,26 @@
-# FQYY MVP
+# FQYY
 
-Graybox 2D action roguelite prototype with a xiuxian cultivation theme.
+Browser-based 2D action roguelite with a xiuxian cultivation theme, persistent Runs, four combat Stages, authored Gongfa progression, and a complete normal-ending Heavenly Tribulation.
 
 ## Design Docs
 
 - `GAME_DESIGN.md`: core pillars, run structure, content roadmap, and first-slice combat direction
 - `PRD.md`: product requirements for the current vertical slice
 - `PROGRESSION_DICTIONARY.md`: current progression tree for realms, roots, Gongfa, and upgrades
+- `SENSORY_PERFORMANCE_SPEC.md`: transition, audio, playtest, and loading requirements
+- `FULL_RUN_PLAYTEST_2026-07-14.md`: end-to-end journey and loading audit
 
-## MVP Scope
+## Current Scope
 
 - WASD and arrow-key movement
 - Spacebar evade in the held movement direction
-- Auto-attacking flying swords
-- Spirit beast spawner and wave escalation
-- Health, damage, XP orbs, level-up choices
+- Four cumulative auto-attacking Gongfa slots with independent Mastery
+- Stage-specific arenas, enemy waves, and realm ambience
+- Qi Orbs, Healing Pills, Spirit Treasures, Breakthroughs, and cultivation choices
 - Pause state and debug overlay
-- Primitive placeholder textures generated at runtime
+- Painted production sprites, VFX, HUD, title shell, and transition presentation
+- Lazy-loaded Phaser runtime and gameplay textures after Candidate selection
+- Synthesized combat, pickup, UI, Breakthrough, and Tribulation audio
 
 ## Folder Notes
 
@@ -24,5 +28,5 @@ Graybox 2D action roguelite prototype with a xiuxian cultivation theme.
 - `src/entities`: player, enemies, projectiles, pickups
 - `src/systems`: input and spawning systems
 - `src/data`: data-driven configs for enemies, upgrades, waves, weapons
-- `src/ui`: HUD panels and debug overlay
+- `src/ui`: HUD, choice, journey-presentation, and debug overlays
 - `docs`: art workflow and prompt references

@@ -1,4 +1,3 @@
-import { createGame } from "./game";
 import { getCultivatorCandidates, type CultivatorCandidate } from "./data/linggen";
 import {
   clearActiveRun,
@@ -27,10 +26,24 @@ function clearElement(element: HTMLElement): void {
   }
 }
 
-function launchGame(container: HTMLElement, seed: number): void {
+async function launchGame(container: HTMLElement, seed: number): Promise<void> {
   clearElement(container);
+  const loading = document.createElement("div");
+  loading.className = "run-shell run-shell--loading";
+  loading.setAttribute("role", "status");
+  loading.setAttribute("aria-live", "polite");
+  loading.textContent = "Entering the cultivation arena…";
+  container.appendChild(loading);
   setRandomSeed(seed);
-  createGame(container);
+  try {
+    const { createGame } = await import("./game");
+    clearElement(container);
+    createGame(container);
+  } catch (error) {
+    loading.classList.add("run-shell--error");
+    loading.textContent = "The arena could not be entered. Reload and try again.";
+    console.error(error);
+  }
 }
 
 export function mountRunShell(container: HTMLElement): void {
@@ -94,7 +107,7 @@ export function mountRunShell(container: HTMLElement): void {
   const startCandidateRun = (seed: number, candidate: CultivatorCandidate): void => {
     const save = createActiveRunSave(seed, Date.now(), candidate.linggenId);
     saveActiveRun(window.localStorage, save);
-    launchGame(container, save.seed);
+    void launchGame(container, save.seed);
   };
 
   const renderCandidateButtons = (seed: number): void => {
@@ -241,7 +254,7 @@ export function mountRunShell(container: HTMLElement): void {
       return;
     }
 
-    launchGame(container, save.seed);
+    void launchGame(container, save.seed);
   });
 
   renderButtons();

@@ -632,6 +632,7 @@ test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ p
   await collectQiOrb(page, 100);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.masteryRank).toBeGreaterThanOrEqual(1);
+  expect(snapshot.audio.recentCues).toContain("rank-up");
   expect(snapshot.choice?.title).toContain("Mastery Rank");
   expect(snapshot.message).toContain("mastery reaches Rank");
 });
@@ -752,12 +753,23 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   });
 
   await advancePhase();
+  expect(
+    await page.evaluate(() => window.__gameTest!.getUiSnapshot().journeyPresentation)
+  ).toMatchObject({ visible: true, kind: "phase", title: "Zhongqi" });
+  expect(
+    (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
+  ).toContain("phase-transition");
   await advancePhase();
   await advancePhase();
 
   const afterDayuanman = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterDayuanman.progression.stage).toBe("lianqi");
   expect(afterDayuanman.progression.realmPhase).toBe("dayuanman");
+
+  await page.evaluate(() => {
+    window.__gameTest!.forceAdvanceSpawnClock(160_000);
+    window.__gameTest!.forceClearEnemies();
+  });
 
   await reachJourneyChoiceThroughQi(page);
 
@@ -770,6 +782,10 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.choice?.title).toContain("Revealed");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(1);
+  expect(snapshot.audio.ambience).toBe("zhuji");
+  expect(
+    await page.evaluate(() => window.__gameTest!.getUiSnapshot().journeyPresentation)
+  ).toMatchObject({ visible: true, kind: "breakthrough", title: "Zhuji" });
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await chooseUntil(page, () => false);
@@ -778,6 +794,11 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(2);
   expect(snapshot.visuals.arena.variantId).toBe("foundation-terrace");
+
+  await page.evaluate(() => window.__gameTest!.forceAdvanceSpawnClock(1_500));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.counts.enemies).toBe(2);
+  await page.evaluate(() => window.__gameTest!.forceClearEnemies());
 
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
   await page.waitForFunction(() => {
@@ -879,10 +900,19 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   expect(snapshot.progression.realmPhase).toBe("dayuanman");
   expect(snapshot.choice?.title).toBe("Yuanying Heavenly Tribulation");
 
-  await page.evaluate(() => {
-    window.__gameTest!.selectChoice(0);
-    window.location.reload();
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  let presentation = await page.evaluate(
+    () => window.__gameTest!.getUiSnapshot().journeyPresentation
+  );
+  expect(presentation).toMatchObject({
+    visible: true,
+    kind: "tribulation",
+    title: "Lightning Judgment"
   });
+  expect(
+    (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
+  ).toContain("tribulation");
+  await page.reload();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForFunction(() => Boolean(window.__gameTest));
 
@@ -905,6 +935,17 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.choice?.title).toBe("Run Complete");
+  presentation = await page.evaluate(
+    () => window.__gameTest!.getUiSnapshot().journeyPresentation
+  );
+  expect(presentation).toMatchObject({
+    visible: true,
+    kind: "victory",
+    title: "Ascendant"
+  });
+  expect(
+    (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
+  ).toContain("victory");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await page.waitForFunction(() => !window.__gameTest);
@@ -1350,6 +1391,7 @@ test("death removes the active run save so Continue disappears after reload", as
   expect(afterDeath.player.health).toBe(0);
   expect(afterDeath.player.visual.mode).toBe("defeat");
   expect(afterDeath.player.visual.animationKey).toBe("cultivator-defeat");
+  expect(afterDeath.audio.recentCues).toContain("death");
 
   await page.reload();
   await page.waitForFunction(() => document.querySelector("button"));

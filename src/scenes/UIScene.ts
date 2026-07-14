@@ -6,6 +6,10 @@ import { LevelUpPanel } from "../ui/LevelUpPanel";
 import { buildHudLines } from "../logic/hudPresentation";
 import type { UiSnapshot } from "../types/gameTest";
 import { HudPresentation } from "../ui/HudPresentation";
+import {
+  JourneyPresentation,
+  type JourneyPresentationPayload
+} from "../ui/JourneyPresentation";
 
 interface HudState {
   health: number;
@@ -54,6 +58,7 @@ export class UIScene extends Phaser.Scene {
   private pauseText!: Phaser.GameObjects.Text;
   private debugOverlay?: DebugOverlay;
   private levelUpPanel!: LevelUpPanel;
+  private journeyPresentation!: JourneyPresentation;
   private inputController!: InputController;
   private levelUpVisible = false;
 
@@ -100,10 +105,13 @@ export class UIScene extends Phaser.Scene {
       this.debugOverlay = new DebugOverlay(this);
     }
     this.levelUpPanel = new LevelUpPanel(this);
+    this.journeyPresentation = new JourneyPresentation(this);
 
     this.events.on("show-choice-panel", this.onShowChoicePanel, this);
     this.events.on("hide-choice-panel", this.onHideChoicePanel, this);
+    this.events.on("show-journey-presentation", this.onShowJourneyPresentation, this);
     this.scale.on("resize", this.onResize, this);
+    this.game.events.emit("ui-scene-ready");
   }
 
   update(): void {
@@ -187,7 +195,8 @@ export class UIScene extends Phaser.Scene {
       hudText: this.hudText?.text ?? "",
       visualTheme: "ink-jade",
       hudRegions: [...this.hudPresentation.regionNames],
-      choicePanel: this.levelUpPanel.getSnapshot()
+      choicePanel: this.levelUpPanel.getSnapshot(),
+      journeyPresentation: this.journeyPresentation.getSnapshot()
     };
   }
 
@@ -209,8 +218,13 @@ export class UIScene extends Phaser.Scene {
     this.levelUpPanel.hide();
   }
 
+  private onShowJourneyPresentation(payload: JourneyPresentationPayload): void {
+    this.journeyPresentation.show(payload);
+  }
+
   private onResize(gameSize: Phaser.Structs.Size): void {
     this.hudPresentation.resize();
+    this.journeyPresentation.resize();
     this.pauseText.setPosition(gameSize.width * 0.5, 28);
     this.messageText.setPosition(gameSize.width * 0.5, gameSize.height - 28);
   }
