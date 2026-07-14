@@ -15,8 +15,11 @@ export interface ChoiceOption {
   description: string;
 }
 
+export type ChoiceVisualMode = "choice" | "linggen-awakening";
+
 export interface ChoicePayload {
   title: string;
   subtitle?: string;
   options: ChoiceOption[];
+  visualMode?: ChoiceVisualMode;
 }

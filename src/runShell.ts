@@ -9,6 +9,7 @@ import {
 } from "./persistence/runPersistence";
 import { createProfileRecord, loadProfileRecord, saveProfileRecord } from "./persistence/profilePersistence";
 import { setRandomSeed } from "./utils/random";
+import titleMountainsUrl from "../assets/environment/export/title-mountains.png";
 
 function generateSeed(): number {
   if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
@@ -39,73 +40,56 @@ export function mountRunShell(container: HTMLElement): void {
   let pendingCandidateSeed: number | null = null;
 
   const shell = document.createElement("div");
-  shell.style.minHeight = "100vh";
-  shell.style.display = "flex";
-  shell.style.alignItems = "center";
-  shell.style.justifyContent = "center";
-  shell.style.background = "linear-gradient(180deg, #081019 0%, #111d2b 100%)";
-  shell.style.color = "#f4f8ff";
-  shell.style.fontFamily = "Trebuchet MS, Noto Sans SC, sans-serif";
+  shell.className = "run-shell";
+  shell.dataset.visualTheme = "cultivation-scroll";
+  shell.dataset.mode = "title";
+  shell.style.setProperty("--title-mountains", `url(${titleMountainsUrl})`);
 
   const panel = document.createElement("div");
-  panel.style.width = "min(520px, calc(100vw - 48px))";
-  panel.style.padding = "32px";
-  panel.style.border = "1px solid rgba(142, 202, 230, 0.32)";
-  panel.style.borderRadius = "18px";
-  panel.style.background = "rgba(7, 16, 24, 0.88)";
-  panel.style.boxShadow = "0 24px 80px rgba(0, 0, 0, 0.35)";
-  panel.style.textAlign = "center";
+  panel.className = "run-shell__panel";
+
+  const eyebrow = document.createElement("p");
+  eyebrow.className = "run-shell__eyebrow";
+  eyebrow.textContent = "Fate · Cultivation · Ascension";
 
   const title = document.createElement("h1");
+  title.className = "run-shell__title";
   title.textContent = "FQYY";
-  title.style.margin = "0 0 12px";
-  title.style.fontSize = "48px";
-  title.style.letterSpacing = "0.12em";
 
   const subtitle = document.createElement("p");
-  subtitle.textContent = "Cultivation Run Shell";
-  subtitle.style.margin = "0 0 18px";
-  subtitle.style.color = "#a8c4d6";
+  subtitle.className = "run-shell__subtitle";
+  subtitle.textContent = "A Cultivation Journey";
+
+  const rule = document.createElement("div");
+  rule.className = "run-shell__rule";
+  rule.setAttribute("aria-hidden", "true");
+  rule.textContent = "◇";
+
+  const selectionTitle = document.createElement("h2");
+  selectionTitle.className = "run-shell__selection-title";
+  selectionTitle.textContent = "Choose Your Cultivator";
+  selectionTitle.hidden = true;
 
   const description = document.createElement("p");
+  description.className = "run-shell__description";
   description.textContent =
-    "Start a seeded Mortal Run, leave the app, and resume the same durable run record later.";
-  description.style.margin = "0 0 24px";
-  description.style.lineHeight = "1.5";
-  description.style.color = "#d8e4ee";
+    "Choose a fate, awaken your Linggen, and cultivate from Mortal breath to the edge of the heavens.";
 
   const buttonRow = document.createElement("div");
-  buttonRow.style.display = "flex";
-  buttonRow.style.gap = "12px";
-  buttonRow.style.justifyContent = "center";
-  buttonRow.style.flexWrap = "wrap";
+  buttonRow.className = "run-shell__actions";
 
   const startButton = document.createElement("button");
   startButton.type = "button";
   startButton.textContent = "Start New Run";
-  startButton.style.padding = "12px 18px";
-  startButton.style.border = "0";
-  startButton.style.borderRadius = "999px";
-  startButton.style.background = "#9fe38c";
-  startButton.style.color = "#081019";
-  startButton.style.fontWeight = "700";
-  startButton.style.cursor = "pointer";
+  startButton.className = "run-shell__button run-shell__button--primary";
 
   const continueButton = document.createElement("button");
   continueButton.type = "button";
   continueButton.textContent = "Continue";
-  continueButton.style.padding = "12px 18px";
-  continueButton.style.border = "0";
-  continueButton.style.borderRadius = "999px";
-  continueButton.style.background = "#8ecae6";
-  continueButton.style.color = "#081019";
-  continueButton.style.fontWeight = "700";
-  continueButton.style.cursor = "pointer";
+  continueButton.className = "run-shell__button";
 
   const status = document.createElement("p");
-  status.style.margin = "18px 0 0";
-  status.style.minHeight = "1.5em";
-  status.style.color = "#f5e6a8";
+  status.className = "run-shell__status";
 
   const startCandidateRun = (seed: number, candidate: CultivatorCandidate): void => {
     const save = createActiveRunSave(seed, Date.now(), candidate.linggenId);
@@ -114,31 +98,79 @@ export function mountRunShell(container: HTMLElement): void {
   };
 
   const renderCandidateButtons = (seed: number): void => {
+    shell.dataset.mode = "candidates";
+    selectionTitle.hidden = false;
     buttonRow.replaceChildren();
+    buttonRow.className = "candidate-grid";
+    buttonRow.setAttribute("role", "group");
+    buttonRow.setAttribute("aria-label", "Choose Cultivator Candidate");
     const candidates = getCultivatorCandidates(seed);
 
-    for (const candidate of candidates) {
+    for (const [index, candidate] of candidates.entries()) {
       const candidateButton = document.createElement("button");
       candidateButton.type = "button";
-      candidateButton.textContent = `Choose ${candidate.name}: ${candidate.linggenName}`;
-      candidateButton.style.padding = "12px 16px";
-      candidateButton.style.border = "1px solid rgba(142, 202, 230, 0.32)";
-      candidateButton.style.borderRadius = "14px";
-      candidateButton.style.background = "rgba(159, 227, 140, 0.14)";
-      candidateButton.style.color = "#f4f8ff";
-      candidateButton.style.fontWeight = "700";
-      candidateButton.style.cursor = "pointer";
-      candidateButton.style.maxWidth = "220px";
+      candidateButton.className = "candidate-card";
+      candidateButton.setAttribute(
+        "aria-label",
+        `Choose ${candidate.name}: ${candidate.linggenName}`
+      );
+      candidateButton.style.setProperty(
+        "--candidate-accent",
+        ["#79d7c8", "#86bcec", "#d3ad6a"][index] ?? "#79d7c8"
+      );
       candidateButton.title = `${candidate.roots.join("/")} roots | Grades: ${candidate.affinityGrades.join(", ")}`;
+
+      const indexLabel = document.createElement("span");
+      indexLabel.className = "candidate-card__index";
+      indexLabel.textContent = `Cultivator ${String(index + 1).padStart(2, "0")}`;
+      const name = document.createElement("span");
+      name.className = "candidate-card__name";
+      name.textContent = candidate.name;
+      const linggen = document.createElement("span");
+      linggen.className = "candidate-card__linggen";
+      linggen.textContent = candidate.linggenName;
+      const roots = document.createElement("span");
+      roots.className = "candidate-card__roots";
+      candidate.roots.forEach((root) => {
+        const badge = document.createElement("span");
+        badge.className = `candidate-card__root candidate-card__root--${root}`;
+        badge.textContent = `${root.charAt(0).toUpperCase()}${root.slice(1)} Root`;
+        roots.appendChild(badge);
+      });
+      const grades = document.createElement("span");
+      grades.className = "candidate-card__grades";
+      candidate.roots.forEach((root, rootIndex) => {
+        const grade = document.createElement("span");
+        grade.className = "candidate-card__grade";
+        const rootName = `${root.charAt(0).toUpperCase()}${root.slice(1)} Affinity`;
+        grade.innerHTML = `<span>${rootName}</span><strong>${candidate.affinityGrades[rootIndex]}</strong>`;
+        grades.appendChild(grade);
+      });
+      const lore = document.createElement("span");
+      lore.className = "candidate-card__lore";
+      lore.textContent = candidate.lore;
+      const choose = document.createElement("span");
+      choose.className = "candidate-card__choose";
+      choose.textContent = "Choose this fate →";
+      candidateButton.append(indexLabel, name, linggen, roots, grades, lore, choose);
       candidateButton.addEventListener("click", () => startCandidateRun(seed, candidate));
       buttonRow.appendChild(candidateButton);
     }
 
-    status.textContent = "Choose a Cultivator Candidate. Roots and grade labels are visible; exact affinities stay hidden.";
+    description.textContent =
+      "Three fates answer the call. Their roots and qualitative Affinity Grades are known; exact strengths remain veiled.";
+    status.textContent = "Your chosen Linggen is innate. The Lingcao will awaken it inside the arena.";
   };
 
   const renderButtons = (): void => {
     buttonRow.replaceChildren();
+    buttonRow.className = "run-shell__actions";
+    buttonRow.removeAttribute("role");
+    buttonRow.removeAttribute("aria-label");
+    shell.dataset.mode = "title";
+    selectionTitle.hidden = true;
+    description.textContent =
+      "Choose a fate, awaken your Linggen, and cultivate from Mortal breath to the edge of the heavens.";
 
     if (pendingCandidateSeed !== null) {
       renderCandidateButtons(pendingCandidateSeed);
@@ -156,24 +188,12 @@ export function mountRunShell(container: HTMLElement): void {
       const confirmButton = document.createElement("button");
       confirmButton.type = "button";
       confirmButton.textContent = "Confirm Abandon Run";
-      confirmButton.style.padding = "12px 18px";
-      confirmButton.style.border = "0";
-      confirmButton.style.borderRadius = "999px";
-      confirmButton.style.background = "#ff8d8d";
-      confirmButton.style.color = "#081019";
-      confirmButton.style.fontWeight = "700";
-      confirmButton.style.cursor = "pointer";
+      confirmButton.className = "run-shell__button run-shell__button--danger";
 
       const cancelButton = document.createElement("button");
       cancelButton.type = "button";
       cancelButton.textContent = "Cancel";
-      cancelButton.style.padding = "12px 18px";
-      cancelButton.style.border = "0";
-      cancelButton.style.borderRadius = "999px";
-      cancelButton.style.background = "#8ecae6";
-      cancelButton.style.color = "#081019";
-      cancelButton.style.fontWeight = "700";
-      cancelButton.style.cursor = "pointer";
+      cancelButton.className = "run-shell__button";
 
       confirmButton.addEventListener("click", () => {
         clearActiveRun(window.localStorage);
@@ -225,7 +245,7 @@ export function mountRunShell(container: HTMLElement): void {
   });
 
   renderButtons();
-  panel.append(title, subtitle, description, buttonRow, status);
+  panel.append(eyebrow, title, subtitle, rule, selectionTitle, description, buttonRow, status);
   shell.appendChild(panel);
   container.appendChild(shell);
 }

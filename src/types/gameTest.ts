@@ -1,10 +1,12 @@
-import type { ChoiceOption } from "../data/choices";
+import type { ChoiceOption, ChoiceVisualMode } from "../data/choices";
 import type { EvadeState } from "../logic/evade";
 import type { PlayerVisualSnapshot } from "../entities/Player";
 import type { EnemyVisualSnapshot } from "../entities/Enemy";
 import type { ProjectileVisualSnapshot } from "../entities/Projectile";
 import type { EnemyId } from "../data/enemies";
 import type { SpiritTreasureId } from "../data/spiritTreasures";
+import type { LingcaoVisualState } from "../entities/Lingcao";
+import type { ArenaVisualSnapshot } from "../visual/arenaVisuals";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -38,7 +40,15 @@ export interface GameSnapshot {
       collectionEffects: string[];
       collectionEffectTints: number[];
     };
-    arena: {
+    lingcao: {
+      textureKey: string;
+      animationKey: string;
+      state: LingcaoVisualState;
+      collisionCenterOffsetX: number;
+      collisionCenterOffsetY: number;
+      collectionEffects: string[];
+    };
+    arena: ArenaVisualSnapshot & {
       floorTextureKey: string;
       decorationCount: number;
     };
@@ -124,6 +134,7 @@ export interface UiSnapshot {
   choicePanel: {
     visible: boolean;
     renderedOptionCount: number;
+    mode: ChoiceVisualMode | "hidden";
   };
 }
 

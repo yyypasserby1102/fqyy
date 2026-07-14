@@ -37,4 +37,7 @@ This project starts as a graybox MVP. Real art should be added only after the co
 - [x] Replace the Qi Orb, Healing Pill, and Spirit Treasure primitives with animated production pickups and collection VFX.
 - [x] Replace the arena graybox with a quiet painted floor, cultivation landmarks, and readable bounds.
 - [x] Replace the single-block HUD with status, Gongfa, and Evade scan regions plus matching choice framing.
+- [x] Replace the title and Candidate selection grayboxes with a painted cultivation shell and qualitative fate cards.
+- [x] Replace Lingcao with a padded animated atlas, resonance state, collection bloom, and awakening presentation.
+- [x] Give Lianqi, Zhuji, Jindan, and Yuanying distinct arena geometry, tint, and ambient particle identities.
 - [x] Keep collision boxes independent from final art dimensions.

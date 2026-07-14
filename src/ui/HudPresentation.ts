@@ -42,7 +42,8 @@ export class HudPresentation {
 
     this.statusText.setText(statusLines);
     const statusHeight = Math.max(150, this.statusText.height + 70);
-    const gongfaHeight = Math.max(96, 36 + gongfaLines.length * 25);
+    this.gongfaText.setText(gongfaLines);
+    const gongfaHeight = Math.max(96, this.gongfaText.height + 30);
     const gongfaX = this.scene.scale.width - 364;
     const evadeY = this.scene.scale.height - 60;
     const lowVitality = state.maxHealth > 0 && state.health / state.maxHealth <= 0.25;
@@ -66,7 +67,7 @@ export class HudPresentation {
     this.panels.fillStyle(lowVitality ? 0xd7655d : 0x67c77a, 1);
     this.panels.fillRoundedRect(30, vitalityY + 22, 282 * vitalityRatio, 9, 4);
 
-    this.gongfaText.setPosition(gongfaX + 18, 28).setText(gongfaLines);
+    this.gongfaText.setPosition(gongfaX + 18, 28);
     this.evadeText.setPosition(29, evadeY + 12).setText(evadeLine);
     this.vitalityText
       .setPosition(28, vitalityY)

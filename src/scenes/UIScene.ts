@@ -193,9 +193,15 @@ export class UIScene extends Phaser.Scene {
 
   private onShowChoicePanel(payload: ChoicePayload): void {
     this.levelUpVisible = true;
-    this.levelUpPanel.show(payload.title, payload.subtitle, payload.options, (option) => {
-      this.scene.get("game").events.emit("resolve-choice", option);
-    });
+    this.levelUpPanel.show(
+      payload.title,
+      payload.subtitle,
+      payload.options,
+      (option) => {
+        this.scene.get("game").events.emit("resolve-choice", option);
+      },
+      payload.visualMode
+    );
   }
 
   private onHideChoicePanel(): void {

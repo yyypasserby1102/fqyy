@@ -46,3 +46,20 @@ These full-game captures cover the final pickup, arena, and HUD graybox replacem
 | Four-option Spirit Treasure replacement choice | [`choice-panel.png`](choice-panel.png) |
 
 `tests/e2e/remaining-visuals.spec.ts` checks the production texture and animation mappings, all six stable Treasure tints, collection burst, arena landmarks, HUD regions, four-option choice rendering, per-frame pickup padding, and exact arena-edge continuity. The browser harness only creates deterministic gameplay states; every captured object and panel uses its production rendering path.
+
+## Opening, Lingcao, and realm-atmosphere review
+
+These 1280 × 720 browser captures cover the opening-to-awakening journey and the four stage-specific arena presentations described in [`OPENING_ATMOSPHERE_VISUAL_SPEC.md`](../OPENING_ATMOSPHERE_VISUAL_SPEC.md).
+
+| State | Browser evidence |
+| --- | --- |
+| Painted title shell | [`title-shell.png`](title-shell.png) |
+| Responsive three-candidate selection | [`candidate-selection.png`](candidate-selection.png) |
+| Lingcao resonance and world marker | [`lingcao-approach.png`](lingcao-approach.png) |
+| First Linggen awakening choice | [`linggen-awakening.png`](linggen-awakening.png) |
+| Lianqi mist court | [`arena-lianqi.png`](arena-lianqi.png) |
+| Zhuji foundation terrace | [`arena-zhuji.png`](arena-zhuji.png) |
+| Jindan golden-core sanctum | [`arena-jindan.png`](arena-jindan.png) |
+| Yuanying nascent-sky dais | [`arena-yuanying.png`](arena-yuanying.png) |
+
+`tests/e2e/opening-atmosphere.spec.ts` verifies the production opening shell, qualitative candidate information, narrow-viewport layout, Lingcao idle/resonance/collection states, awakening mode, realm variant snapshots, and decoded source padding. The stage captures advance through the real progression choices; the harness is used only to make the run deterministic and accelerate collection.

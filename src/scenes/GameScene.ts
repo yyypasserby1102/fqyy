@@ -112,11 +112,12 @@ import {
 } from "../visual/combatVisuals";
 import {
   PICKUP_ANIMATIONS,
+  LINGCAO_ANIMATIONS,
   SPIRIT_TREASURE_COLLECTION_TINT,
   SPIRIT_TREASURE_TINTS,
   WORLD_TEXTURES
 } from "../visual/worldVisuals";
-import { createArenaPresentation } from "../visual/arenaVisuals";
+import { createArenaPresentation, type ArenaPresentation } from "../visual/arenaVisuals";
 
 interface CombatState extends GongfaStageState {
   pattern: GongfaPattern | "baseline";
@@ -195,6 +196,7 @@ const ARENA_HALF_HEIGHT = 640;
 export class GameScene extends Phaser.Scene {
   private arenaFloor!: Phaser.GameObjects.TileSprite;
   private arenaDecorationCount = 0;
+  private arenaPresentation?: ArenaPresentation;
   private player!: Player;
   private inputController!: InputController;
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -245,6 +247,7 @@ export class GameScene extends Phaser.Scene {
   private readonly skill2HitTargets = new Map<number, Set<number>>();
   private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
+  private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
   private runState: RunState = {
     kills: 0,
     elapsedMs: 0,
@@ -310,7 +313,8 @@ export class GameScene extends Phaser.Scene {
     const arenaWidth = ARENA_HALF_WIDTH * 2;
     const arenaHeight = ARENA_HALF_HEIGHT * 2;
     this.physics.world.setBounds(-ARENA_HALF_WIDTH, -ARENA_HALF_HEIGHT, arenaWidth, arenaHeight);
-    const arena = createArenaPresentation(this, arenaWidth, arenaHeight);
+    const arena = createArenaPresentation(this, arenaWidth, arenaHeight, this.runState.stage);
+    this.arenaPresentation = arena;
     this.arenaFloor = arena.floor;
     this.arenaDecorationCount = arena.decorationCount;
 
@@ -456,6 +460,7 @@ export class GameScene extends Phaser.Scene {
     this.updateGongfaRuntimeTick(movement, delta);
 
     const playerPosition = new Phaser.Math.Vector2(this.player.x, this.player.y);
+    this.updateLingcaoResonance(playerPosition);
     if (this.runState.finalBossActive) {
       this.updateFinalBoss(delta, playerPosition);
     } else if (!this.runState.phaseCleanupActive) {
@@ -490,25 +495,23 @@ export class GameScene extends Phaser.Scene {
     const marker = `${distance}m ${direction}`;
     const lingcao = new Lingcao(this, x, y);
     this.lingcaoGroup.add(lingcao);
-    this.add
-      .text(lingcao.x, lingcao.y - 28, "Lingcao", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
-        fontSize: "14px",
-        color: "#9fe38c"
-      })
-      .setOrigin(0.5)
-      .setDepth(12);
-    this.add
-      .text(lingcao.x, lingcao.y + 24, marker, {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
-        fontSize: "13px",
-        color: "#d8e4ee"
-      })
-      .setOrigin(0.5)
-      .setDepth(12);
+    lingcao.setWorldMarker(marker);
     this.runState.lingcaoMarker = marker;
     this.runState.lingcaoX = x;
     this.runState.lingcaoY = y;
+  }
+
+  private updateLingcaoResonance(playerPosition: Phaser.Math.Vector2): void {
+    ((this.lingcaoGroup?.getChildren() as Lingcao[] | undefined) ?? []).forEach((lingcao) => {
+      lingcao.setResonating(
+        Phaser.Math.Distance.Between(
+          playerPosition.x,
+          playerPosition.y,
+          lingcao.x,
+          lingcao.y
+        ) <= 145
+      );
+    });
   }
 
   private handleProjectileHit(projectile: Projectile, enemy: Enemy): void {
@@ -726,6 +729,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.runState.lingcaoCollected = true;
+    this.spawnLingcaoBloom(lingcao.x, lingcao.y);
     lingcao.destroy();
     this.lastMessage = `${this.runState.hiddenLinggen.name} stirs within your meridians.`;
     this.persistRunCheckpoint();
@@ -736,6 +740,19 @@ export class GameScene extends Phaser.Scene {
     if (nextState.canReveal) {
       this.offerGongfaChoice();
     }
+  }
+
+  private spawnLingcaoBloom(x: number, y: number): void {
+    const bloom = this.add
+      .sprite(x, y, WORLD_TEXTURES.lingcao, 8)
+      .setDisplaySize(118, 118)
+      .setDepth(15)
+      .play(LINGCAO_ANIMATIONS.collect);
+    this.activeLingcaoEffects.add(bloom);
+    bloom.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+      this.activeLingcaoEffects.delete(bloom);
+      bloom.destroy();
+    });
   }
 
   private handlePlayerContact(enemy: Enemy): void {
@@ -2688,7 +2705,8 @@ export class GameScene extends Phaser.Scene {
     this.scene.get("ui").events.emit("show-choice-panel", {
       title: this.currentChoiceTitle,
       subtitle: linggen.lore,
-      options
+      options,
+      visualMode: this.runState.mainGongfaId ? "choice" : "linggen-awakening"
     });
     this.publishHud(this.lastMessage);
   }
@@ -2843,6 +2861,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyRunJourneyState(state: RunJourneyState): void {
+    const previousStage = this.runState.stage;
     this.runState.stage = state.stage;
     this.runState.realmPhase = state.realmPhase;
     this.runState.realmProgress = state.realmProgress;
@@ -2851,6 +2870,9 @@ export class GameScene extends Phaser.Scene {
     this.runState.finalBossActive = state.finalBossActive ?? false;
     this.runState.finalBossPhaseIndex = state.finalBossPhaseIndex ?? 0;
     this.runState.gameOver = state.gameOver ?? false;
+    if (previousStage !== state.stage) {
+      this.arenaPresentation?.applyStage(state.stage);
+    }
     this.runState.pendingDecision = state.pendingDecision;
   }
 
@@ -3220,9 +3242,32 @@ export class GameScene extends Phaser.Scene {
             .filter((effect) => effect.active)
             .map((effect) => effect.tintTopLeft)
         },
+        lingcao: (() => {
+          const lingcao = (
+            (this.lingcaoGroup?.getChildren() as Lingcao[] | undefined) ?? []
+          ).find((candidate) => candidate.active);
+          return {
+            ...(lingcao?.getVisualSnapshot() ?? {
+              textureKey: "",
+              animationKey: "",
+              state: "idle",
+              collisionCenterOffsetX: 0,
+              collisionCenterOffsetY: 0
+            }),
+            collectionEffects: [...this.activeLingcaoEffects]
+              .filter((effect) => effect.active)
+              .map((effect) => effect.anims.currentAnim?.key ?? "")
+              .filter(Boolean)
+          };
+        })(),
         arena: {
           floorTextureKey: this.arenaFloor?.texture.key ?? "",
-          decorationCount: this.arenaDecorationCount
+          decorationCount: this.arenaDecorationCount,
+          ...(this.arenaPresentation?.getSnapshot() ?? {
+            variantId: "",
+            atmosphere: "",
+            atmosphereMoteCount: 0
+          })
         }
       },
       progression: {

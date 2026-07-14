@@ -777,6 +777,7 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(2);
+  expect(snapshot.visuals.arena.variantId).toBe("foundation-terrace");
 
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
   await page.waitForFunction(() => {
@@ -819,11 +820,13 @@ test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ p
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("jindan");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(3);
+  expect(snapshot.visuals.arena.variantId).toBe("golden-core-sanctum");
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("yuanying");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(4);
+  expect(snapshot.visuals.arena.variantId).toBe("nascent-sky-dais");
 
   await page.reload();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -832,6 +835,7 @@ test("Zhuji breakthrough persists a third Gongfa choice into Jindan", async ({ p
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("yuanying");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(4);
+  expect(snapshot.visuals.arena.variantId).toBe("nascent-sky-dais");
 });
 
 test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", async ({ page }) => {
