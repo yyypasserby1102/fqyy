@@ -4,13 +4,13 @@ Generated from the public browser surface and `window.__gameTest` acceleration s
 
 | Measurement | Result |
 | --- | --- |
-| Commit | fd288df |
+| Commit | 2121d7e |
 | Seed / Candidate | 2 / Fire-Metal Linggen |
 | Outcome | victory |
-| Machine wall time | 17.8 seconds |
+| Machine wall time | 17.6 seconds |
 | Save/resume cycles | 1 |
 | Completed Run record | 1 |
-| Choices observed | 67 |
+| Choices observed | 66 |
 | Final Gongfa / Mastery | 4 / rank 20 |
 | Peak enemies sampled | 8 |
 
@@ -25,7 +25,7 @@ Generated from the public browser surface and `window.__gameTest` acceleration s
 ## General-feel suggestions
 
 - **Realm differentiation is present; readability is a human hypothesis.** All four arena variants and the phase/Breakthrough/Tribulation/victory presentation family appeared. Human sessions should verify that each change reads immediately during combat before this is treated as strong realm identity.
-- **Choice cadence is the main human-check.** The accelerated Run surfaced 67 choice panels. That count supports testing for decision fatigue—especially near Realm transitions—but does not prove that the cadence feels excessive.
+- **Choice cadence is the main human-check.** The accelerated Run surfaced 66 choice panels. That count supports testing for decision fatigue—especially near Realm transitions—but does not prove that the cadence feels excessive.
 - **Build layering is present; tactical value is ungraded.** The Run retained four learned Gongfa through Yuanying. Human playtests should verify that the fourth path adds a readable tactical layer instead of only more simultaneous effects.
 - **Major-beat cues are present; sensory hierarchy needs ears-on validation.** Phase, Breakthrough, Tribulation, and victory cues fired. Human sessions should compare their audible prominence with ordinary hit/cast sounds before judging the mix hierarchy.
 - **Difficulty is intentionally ungraded.** Forced Qi and enemy cleanup prove state flow, persistence, and presentation—not challenge, real pacing, or fairness. Apply numerical balance changes only after the real-time human protocol reaches its evidence threshold.
