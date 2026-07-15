@@ -3,6 +3,7 @@ dist/
 test-results/
 playwright-report/
 coverage/
+artifacts/
 .DS_Store
 
 # Agent skills tooling (installed locally, not project code)

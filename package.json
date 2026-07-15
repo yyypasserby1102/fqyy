@@ -13,6 +13,7 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "node scripts/run-playwright.mjs",
+    "playtest:machine": "MACHINE_PLAYTEST_ARTIFACTS=artifacts/machine-playtest npx playwright test tests/e2e/machine-whole-run.spec.ts --workers=1",
     "test:all": "npm run typecheck && npm run lint && npm run test && npm run test:e2e",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
@@ -29,7 +30,7 @@
     "globals": "^16.2.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.35.1",
-    "vite": "^5.4.19",
+    "vite": "^8.1.4",
     "vitest": "^4.1.9"
   }
 }

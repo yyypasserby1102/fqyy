@@ -9,6 +9,8 @@ Browser-based 2D action roguelite with a xiuxian cultivation theme, persistent R
 - `PROGRESSION_DICTIONARY.md`: current progression tree for realms, roots, Gongfa, and upgrades
 - `SENSORY_PERFORMANCE_SPEC.md`: transition, audio, playtest, and loading requirements
 - `FULL_RUN_PLAYTEST_2026-07-14.md`: end-to-end journey and loading audit
+- `REAL_TIME_PLAYTEST_PROTOCOL.md`: human-session balance evidence and tuning gate
+- `machine-playtest/latest.md`: latest accelerated whole-Run flow evidence and bounded feel suggestions
 
 ## Current Scope
 
@@ -21,6 +23,8 @@ Browser-based 2D action roguelite with a xiuxian cultivation theme, persistent R
 - Painted production sprites, VFX, HUD, title shell, and transition presentation
 - Lazy-loaded Phaser runtime and gameplay textures after Candidate selection
 - Synthesized combat, pickup, UI, Breakthrough, and Tribulation audio
+- Persistent production audio, motion, camera-shake, fullscreen, and display-scale settings
+- Machine-driven whole-Run regression via `npm run playtest:machine`; CI publishes its JSON and Markdown report
 
 ## Folder Notes
 

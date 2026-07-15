@@ -9,6 +9,7 @@ import type { LingcaoVisualState } from "../entities/Lingcao";
 import type { ArenaVisualSnapshot } from "../visual/arenaVisuals";
 import type { SoundFxSnapshot } from "../audio/SoundFx";
 import type { JourneyPresentationSnapshot } from "../ui/JourneyPresentation";
+import type { RealmPhaseId, StageId } from "../data/stages";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -58,8 +59,8 @@ export interface GameSnapshot {
     };
   };
   progression: {
-    stage: string;
-    realmPhase: string;
+    stage: StageId;
+    realmPhase: RealmPhaseId;
     realmProgress: number;
     stageBreakthroughReady: boolean;
     foundationGrowthTransactions: number;
