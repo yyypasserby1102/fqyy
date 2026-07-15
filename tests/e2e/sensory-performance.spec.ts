@@ -43,7 +43,7 @@ test("the opening shell defers Phaser and gameplay textures until a Cultivator i
 
 test("a failed lazy game handoff leaves an accessible recovery message", async ({ page }) => {
   await seedMetal(page);
-  await page.route("**/src/game.ts", (route) => route.abort());
+  await page.route(/\/src\/game\.ts(?:\?.*)?$/, (route) => route.abort());
   await page.goto("/");
   await page.getByRole("button", { name: "Start New Run" }).click();
   await page.getByRole("button", { name: /Choose Candidate \d+: Metal Linggen/ }).click();

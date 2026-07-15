@@ -13,9 +13,9 @@ export interface MachineCheckpoint {
   kills: number;
   health: number;
   enemyCount: number;
-  arenaVariant: string;
+  arenaVariant: ArenaVariantDefinition["variantId"] | "";
   choiceTitle: string;
-  journeyKind: string;
+  journeyKind: JourneyPresentationKind | "hidden";
 }
 
 export interface MachineChoiceObservation {
