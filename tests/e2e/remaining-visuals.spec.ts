@@ -218,6 +218,7 @@ test("the production choice panel renders all four treasure replacement options"
   expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().choicePanel)).toEqual({
     visible: true,
     renderedOptionCount: 4,
-    mode: "choice"
+    mode: "choice",
+    motionReduced: false
   });
 });

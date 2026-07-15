@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { ChoiceOption, ChoiceVisualMode } from "../data/choices";
 import { LINGCAO_ANIMATIONS, WORLD_TEXTURES } from "../visual/worldVisuals";
+import { getSettings, subscribeSettings } from "../persistence/settingsPersistence";
 
 export class LevelUpPanel {
   private readonly container: Phaser.GameObjects.Container;
@@ -17,6 +18,7 @@ export class LevelUpPanel {
   private chooseHandler?: (option: ChoiceOption) => void;
   private currentOptions: ChoiceOption[] = [];
   private visualMode: ChoiceVisualMode = "choice";
+  private motionReduced = false;
 
   constructor(scene: Phaser.Scene) {
     const backdrop = scene.add
@@ -89,13 +91,13 @@ export class LevelUpPanel {
       this.subtitle
     ]);
     this.container.setDepth(500).setVisible(false);
-    scene.tweens.add({
+    const sealTween = scene.tweens.add({
       targets: this.awakeningSeal,
       angle: 360,
       duration: 18_000,
       repeat: -1
     });
-    scene.tweens.add({
+    const glowTween = scene.tweens.add({
       targets: this.awakeningGlow,
       scale: 1.08,
       alpha: 0.72,
@@ -104,6 +106,22 @@ export class LevelUpPanel {
       repeat: -1,
       ease: "Sine.inOut"
     });
+    const applyMotion = (): void => {
+      const reduced = getSettings().reducedMotion;
+      this.motionReduced = reduced;
+      sealTween.setTimeScale(reduced ? 0 : 1);
+      glowTween.setTimeScale(reduced ? 0 : 1);
+      if (reduced) {
+        this.awakeningSeal.setAngle(0);
+        this.awakeningGlow.setScale(1).setAlpha(0.32);
+        this.awakeningHerb.anims.pause();
+      } else {
+        this.awakeningHerb.anims.resume();
+      }
+    };
+    applyMotion();
+    const unsubscribe = subscribeSettings(applyMotion);
+    scene.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
 
     for (let i = 0; i < 4; i += 1) {
       const x = scene.scale.width * 0.5 - 270 + i * 180;
@@ -209,11 +227,13 @@ export class LevelUpPanel {
     visible: boolean;
     renderedOptionCount: number;
     mode: ChoiceVisualMode | "hidden";
+    motionReduced: boolean;
   } {
     return {
       visible: this.container.visible,
       renderedOptionCount: this.options.filter((option) => option.box.visible).length,
-      mode: this.container.visible ? this.visualMode : "hidden"
+      mode: this.container.visible ? this.visualMode : "hidden",
+      motionReduced: this.motionReduced
     };
   }
 }

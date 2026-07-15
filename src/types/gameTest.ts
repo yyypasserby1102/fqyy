@@ -13,6 +13,7 @@ import type { JourneyPresentationSnapshot } from "../ui/JourneyPresentation";
 export interface GameSnapshot {
   sceneName: string;
   activeScenes: string[];
+  paused: boolean;
   message?: string;
   audio: SoundFxSnapshot;
   hud: {
@@ -138,6 +139,7 @@ export interface UiSnapshot {
     visible: boolean;
     renderedOptionCount: number;
     mode: ChoiceVisualMode | "hidden";
+    motionReduced: boolean;
   };
   journeyPresentation: JourneyPresentationSnapshot;
 }

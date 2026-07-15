@@ -7,8 +7,13 @@
       content="width=device-width, initial-scale=1.0"
     />
     <title>FQYY - A Cultivation Journey</title>
+    <meta name="description" content="Survive, cultivate, and ascend in a xiuxian action roguelite." />
+    <meta name="theme-color" content="#071018" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <style>
       :root {
+        --fqyy-display-scale: 1;
         color-scheme: dark;
         font-family: "Trebuchet MS", "Noto Sans SC", sans-serif;
         background:
@@ -28,6 +33,17 @@
       #app {
         width: 100vw;
         height: 100vh;
+      }
+
+      .game-surface {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        width: calc(100vw / var(--fqyy-display-scale));
+        height: calc(100vh / var(--fqyy-display-scale));
+        transform: translate(-50%, -50%) scale(var(--fqyy-display-scale));
+        transform-origin: center;
+        overflow: hidden;
       }
     </style>
   </head>

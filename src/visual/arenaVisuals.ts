@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { StageId } from "../data/stages";
 import { WORLD_TEXTURES } from "./worldVisuals";
+import { getSettings, subscribeSettings } from "../persistence/settingsPersistence";
 
 export interface ArenaVariantDefinition {
   variantId: "mist-court" | "foundation-terrace" | "golden-core-sanctum" | "nascent-sky-dais";
@@ -65,6 +66,7 @@ export interface ArenaVisualSnapshot {
   variantId: ArenaVariantDefinition["variantId"] | "";
   atmosphere: ArenaVariantDefinition["atmosphere"] | "";
   atmosphereMoteCount: number;
+  atmosphereAnimated: boolean;
 }
 
 export interface ArenaPresentation {
@@ -189,6 +191,7 @@ export function createArenaPresentation(
         ? scene.add.ellipse(x, y, 28 + (index % 4) * 12, 5 + (index % 3) * 2, config.moteColor, 0.07)
         : scene.add.circle(x, y, 1.5 + (index % 3), config.moteColor, 0.18);
       atmosphere.add(mote);
+      if (getSettings().reducedMotion) continue;
       scene.tweens.add({
         targets: mote,
         x: x + (isMist ? 90 + (index % 5) * 18 : (index % 2 === 0 ? 18 : -18)),
@@ -218,6 +221,13 @@ export function createArenaPresentation(
   };
 
   applyStage(initialStage);
+  let reducedMotion = getSettings().reducedMotion;
+  const unsubscribe = subscribeSettings((settings) => {
+    if (settings.reducedMotion === reducedMotion) return;
+    reducedMotion = settings.reducedMotion;
+    createAtmosphere(ARENA_VARIANTS[currentStage]);
+  });
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
 
   return {
     floor,
@@ -228,7 +238,8 @@ export function createArenaPresentation(
       return {
         variantId: config.variantId,
         atmosphere: config.atmosphere,
-        atmosphereMoteCount: config.moteCount
+        atmosphereMoteCount: config.moteCount,
+        atmosphereAnimated: !getSettings().reducedMotion
       };
     }
   };

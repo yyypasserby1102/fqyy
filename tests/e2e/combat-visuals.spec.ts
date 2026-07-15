@@ -148,7 +148,14 @@ test("all seven enemy families use their production pursue visuals", async ({
   await page.evaluate((ids) => {
     ids.forEach((id) => window.__gameTest!.forceSpawnEnemy(id));
   }, enemyIds);
-  await page.waitForTimeout(260);
+  await page.waitForFunction(
+    (ids) => ids.every((id) =>
+      window.__gameTest!.getSnapshot().visuals.enemies.some(
+        (enemy) => enemy.enemyId === id && enemy.state === "pursue"
+      )
+    ),
+    enemyIds
+  );
 
   const visuals = await page.evaluate(
     () => window.__gameTest!.getSnapshot().visuals.enemies,
@@ -169,32 +176,37 @@ test("enemy hit and defeat feedback are observable without changing kill rewards
 }) => {
   await startNewRun(page);
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemy("jade-rat"));
-  await page.waitForTimeout(260);
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().visuals.enemies.some(
+      (enemy) => enemy.enemyId === "jade-rat" && enemy.state === "pursue"
+    )
+  );
 
-  await page.evaluate(() => window.__gameTest!.forceDamageEnemy("jade-rat", 1));
-  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  let snapshot = await page.evaluate(() => {
+    window.__gameTest!.forceDamageEnemy("jade-rat", 1);
+    return window.__gameTest!.getSnapshot();
+  });
   expect(
     snapshot.visuals.enemies.find((enemy) => enemy.enemyId === "jade-rat")
       ?.state,
   ).toBe("hit");
 
   const killsBefore = snapshot.progression.kills;
-  await page.evaluate(() =>
-    window.__gameTest!.forceDamageEnemy("jade-rat", 999),
-  );
-  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  snapshot = await page.evaluate(() => {
+    window.__gameTest!.forceDamageEnemy("jade-rat", 999);
+    return window.__gameTest!.getSnapshot();
+  });
   expect(
     snapshot.visuals.enemies.find((enemy) => enemy.enemyId === "jade-rat")
       ?.state,
   ).toBe("defeat");
   expect(snapshot.progression.kills).toBe(killsBefore + 1);
   expect(snapshot.counts.orbs).toBeGreaterThan(0);
-  await page.waitForTimeout(260);
-  expect(
-    (
-      await page.evaluate(() => window.__gameTest!.getSnapshot())
-    ).visuals.enemies.some((enemy) => enemy.enemyId === "jade-rat"),
-  ).toBe(false);
+  await page.waitForFunction(() =>
+    !window.__gameTest!.getSnapshot().visuals.enemies.some(
+      (enemy) => enemy.enemyId === "jade-rat"
+    )
+  );
 });
 
 for (const visualCase of [

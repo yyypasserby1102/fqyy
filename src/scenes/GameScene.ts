@@ -22,6 +22,8 @@ import { Lingcao } from "../entities/Lingcao";
 import { HealingPill } from "../entities/HealingPill";
 import { Player } from "../entities/Player";
 import { SoundFx } from "../audio/SoundFx";
+import { getSettings } from "../persistence/settingsPersistence";
+import { subscribeSettingsPanelState } from "../settingsEvents";
 import { SpiritTreasure } from "../entities/SpiritTreasure";
 import {
   getSpiritTreasureConfig,
@@ -263,6 +265,19 @@ export class GameScene extends Phaser.Scene {
   private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
+  private didSettingsPanelPauseRun = false;
+  private unsubscribeSettingsPanel?: () => void;
+  private readonly onSettingsPanel = ({ open }: { open: boolean }): void => {
+    if (open && !this.runState.paused && !this.choiceActive && !this.runState.gameOver) {
+      this.didSettingsPanelPauseRun = true;
+      this.setPausedState(true);
+      this.publishHud("Settings open — Run paused.");
+    } else if (!open && this.didSettingsPanelPauseRun) {
+      this.didSettingsPanelPauseRun = false;
+      this.setPausedState(false);
+      this.publishHud();
+    }
+  };
   private runState: RunState = {
     kills: 0,
     elapsedMs: 0,
@@ -423,8 +438,10 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.events.on("resolve-choice", this.resolveChoice, this);
+    this.unsubscribeSettingsPanel = subscribeSettingsPanelState(this.onSettingsPanel);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off("resolve-choice", this.resolveChoice, this);
+      this.unsubscribeSettingsPanel?.();
     });
 
     this.publishHud("Qi is unstable. Claim the Lingcao and reveal your roots.");
@@ -854,7 +871,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private playFanfare(color: number): void {
-    this.cameras.main.flash(220, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff, false);
+    this.flashCamera(220, (color >> 16) & 0xff, (color >> 8) & 0xff, color & 0xff);
     if (this.player?.active) {
       const ring = this.add
         .circle(this.player.x, this.player.y, 16, undefined, 0)
@@ -869,6 +886,18 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => ring.destroy()
       });
     }
+  }
+
+  private flashCamera(duration: number, red: number, green: number, blue: number): void {
+    if (!getSettings().reducedMotion) {
+      this.cameras.main.flash(duration, red, green, blue, false);
+    }
+  }
+
+  private shakeCamera(duration: number, intensity: number): void {
+    const settings = getSettings();
+    const scale = settings.reducedMotion ? 0 : settings.cameraShake;
+    if (scale > 0) this.cameras.main.shake(duration, intensity * scale);
   }
 
   private spawnHealingPill(x: number, y: number, healAmount = 30): void {
@@ -2921,7 +2950,7 @@ export class GameScene extends Phaser.Scene {
         dayuanman: "Dayuanman"
       } as const;
       this.sfx.phaseTransition();
-      this.cameras.main.flash(160, 92, 180, 184, false);
+      this.flashCamera(160, 92, 180, 184);
       this.scene.get("ui").events.emit("show-journey-presentation", {
         kind: "phase",
         eyebrow: "FOUNDATION SETTLES",
@@ -2934,8 +2963,8 @@ export class GameScene extends Phaser.Scene {
 
     if (decision.kind === "tribulation") {
       this.sfx.breakthrough();
-      this.cameras.main.flash(260, 215, 185, 109, false);
-      this.cameras.main.shake(220, 0.004);
+      this.flashCamera(260, 215, 185, 109);
+      this.shakeCamera(220, 0.004);
       this.scene.get("ui").events.emit("show-journey-presentation", {
         kind: "breakthrough",
         eyebrow: "STAGE BREAKTHROUGH",
@@ -3128,7 +3157,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePlayerDeath(message: string): void {
-    this.cameras.main.shake(280, 0.013);
+    this.shakeCamera(280, 0.013);
     this.sfx.death();
     const result = advanceRunJourney(this.runState, { kind: "player-died" });
     this.applyRunJourneyState(result.state);
@@ -3209,6 +3238,7 @@ export class GameScene extends Phaser.Scene {
     return {
       sceneName: this.scene.key,
       activeScenes: this.scene.manager.getScenes(true).map((scene) => scene.scene.key),
+      paused: this.runState.paused,
       message: this.lastMessage,
       audio: this.sfx.getSnapshot(),
       hud: {
@@ -3321,7 +3351,8 @@ export class GameScene extends Phaser.Scene {
           ...(this.arenaPresentation?.getSnapshot() ?? {
             variantId: "",
             atmosphere: "",
-            atmosphereMoteCount: 0
+            atmosphereMoteCount: 0,
+            atmosphereAnimated: false
           })
         }
       },
@@ -3561,7 +3592,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.msSinceDamage = 0;
-    this.cameras.main.shake(110, 0.005);
+    this.shakeCamera(110, 0.005);
 
     let finalDamage = Math.max(1, Math.floor(amount));
     for (const runtime of this.learnedGongfaRuntimes) {
@@ -3857,8 +3888,8 @@ export class GameScene extends Phaser.Scene {
   private presentTribulationPhase(phaseIndex: number): void {
     const phase = getFinalBossPhasePresentation(phaseIndex);
     this.sfx.tribulation();
-    this.cameras.main.flash(240, 116, 102, 210, false);
-    this.cameras.main.shake(300, 0.006 + phaseIndex * 0.0015);
+    this.flashCamera(240, 116, 102, 210);
+    this.shakeCamera(300, 0.006 + phaseIndex * 0.0015);
     this.scene.get("ui").events.emit("show-journey-presentation", {
       kind: "tribulation",
       eyebrow: `HEAVENLY TRIBULATION · ${phaseIndex + 1}/3`,
@@ -3882,7 +3913,7 @@ export class GameScene extends Phaser.Scene {
         description: "Leave the completed run and return to the shell."
       }
     ];
-    this.cameras.main.flash(420, 255, 222, 138, false);
+    this.flashCamera(420, 255, 222, 138);
     this.scene.get("ui").events.emit("show-journey-presentation", {
       kind: "victory",
       eyebrow: "HEAVENLY TRIBULATION BROKEN",

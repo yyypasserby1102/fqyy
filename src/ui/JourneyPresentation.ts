@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { getSettings } from "../persistence/settingsPersistence";
 
 export type JourneyPresentationKind =
   | "phase"
@@ -106,7 +107,14 @@ export class JourneyPresentation {
     this.title.setText(payload.title);
     this.subtitle.setText(payload.subtitle);
     this.drawSeal(accent, payload.kind);
-    this.container.setVisible(true).setAlpha(0).setY(18);
+    const reducedMotion = getSettings().reducedMotion;
+    this.container.setVisible(true).setAlpha(reducedMotion ? 1 : 0).setY(reducedMotion ? 0 : 18);
+    if (reducedMotion) {
+      this.hideTimer = this.scene.time.delayedCall(payload.kind === "victory" ? 2800 : 1900, () => {
+        this.container.setVisible(false);
+      });
+      return;
+    }
     this.scene.tweens.add({
       targets: this.container,
       alpha: 1,

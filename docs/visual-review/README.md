@@ -67,3 +67,14 @@ These 1280 × 720 browser captures cover the opening-to-awakening journey and th
 `tests/e2e/opening-atmosphere.spec.ts` verifies the production opening shell, qualitative candidate information, narrow-viewport layout, Lingcao idle/resonance/collection states, awakening mode, realm variant snapshots, and decoded source padding. The stage captures advance through the real progression choices; the harness is used only to make the run deterministic and accelerate collection.
 
 The transition captures additionally verify the non-blocking UI-scene presentation introduced by [`SENSORY_PERFORMANCE_SPEC.md`](../SENSORY_PERFORMANCE_SPEC.md). The banner continues animating while the gameplay scene or its Gongfa choice is paused; the Heavenly Tribulation warning leaves all three HUD scan regions readable.
+
+## Production settings review
+
+The final shell keeps its settings entry point above both title and gameplay surfaces. These 1280 × 720 captures verify the modal hierarchy, keyboard-sized controls, and the live accessibility state at 115% display scale.
+
+| State | Browser evidence |
+| --- | --- |
+| Default production controls | [`settings-panel.png`](settings-panel.png) |
+| Reduced motion at 115% scale | [`settings-accessibility.png`](settings-accessibility.png) |
+
+`tests/e2e/settings.spec.ts` verifies persistence, Run isolation, live CSS application, and safe automatic pause/resume during gameplay. The captures can be refreshed with `node scripts/capture-settings-visuals.mjs` while the dev server is running.

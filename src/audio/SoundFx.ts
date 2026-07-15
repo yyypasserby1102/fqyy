@@ -7,14 +7,29 @@
  */
 
 import type { StageId } from "../data/stages";
+import { getSettings, subscribeSettings, type GameSettings } from "../persistence/settingsPersistence";
 
 type AudioContextCtor = typeof AudioContext;
 
 let sharedContext: AudioContext | null = null;
 let sharedMaster: GainNode | null = null;
+let sharedSfx: GainNode | null = null;
+let sharedAmbience: GainNode | null = null;
 let contextUnavailable = false;
 let ambienceNodes: AudioScheduledSourceNode[] = [];
 let ambienceGain: GainNode | null = null;
+let audioSettings = getSettings();
+
+function applyAudioSettings(settings: GameSettings): void {
+  audioSettings = settings;
+  if (!sharedContext || !sharedMaster || !sharedSfx || !sharedAmbience) return;
+  const now = sharedContext.currentTime;
+  sharedMaster.gain.setTargetAtTime(settings.muted ? 0 : settings.masterVolume, now, 0.025);
+  sharedSfx.gain.setTargetAtTime(settings.sfxVolume, now, 0.025);
+  sharedAmbience.gain.setTargetAtTime(settings.ambienceVolume, now, 0.08);
+}
+
+subscribeSettings(applyAudioSettings);
 
 export type SoundCue =
   | "cast"
@@ -58,8 +73,12 @@ function getContext(): AudioContext | null {
       }
       sharedContext = new Ctor();
       sharedMaster = sharedContext.createGain();
-      sharedMaster.gain.value = 0.3;
+      sharedSfx = sharedContext.createGain();
+      sharedAmbience = sharedContext.createGain();
+      sharedSfx.connect(sharedMaster);
+      sharedAmbience.connect(sharedMaster);
       sharedMaster.connect(sharedContext.destination);
+      applyAudioSettings(audioSettings);
     } catch {
       contextUnavailable = true;
       return null;
@@ -106,7 +125,7 @@ export class SoundFx {
 
   private tone(spec: ToneSpec): void {
     const ctx = getContext();
-    if (!ctx || !sharedMaster) {
+    if (!ctx || !sharedSfx) {
       return;
     }
     const t0 = ctx.currentTime + (spec.delay ?? 0);
@@ -121,14 +140,14 @@ export class SoundFx {
     gain.gain.exponentialRampToValueAtTime(spec.gain, t0 + 0.008);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.duration);
     osc.connect(gain);
-    gain.connect(sharedMaster);
+    gain.connect(sharedSfx);
     osc.start(t0);
     osc.stop(t0 + spec.duration + 0.02);
   }
 
   private noise(spec: NoiseSpec): void {
     const ctx = getContext();
-    if (!ctx || !sharedMaster) {
+    if (!ctx || !sharedSfx) {
       return;
     }
     const t0 = ctx.currentTime;
@@ -149,7 +168,7 @@ export class SoundFx {
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + spec.duration);
     source.connect(filter);
     filter.connect(gain);
-    gain.connect(sharedMaster);
+    gain.connect(sharedSfx);
     source.start(t0);
     source.stop(t0 + spec.duration);
   }
@@ -252,7 +271,7 @@ export class SoundFx {
   setAmbience(stage: StageId): void {
     this.ambience = stage;
     const ctx = getContext();
-    if (!ctx || !sharedMaster) {
+    if (!ctx || !sharedAmbience) {
       return;
     }
 
@@ -276,7 +295,7 @@ export class SoundFx {
     ambienceGain = ctx.createGain();
     ambienceGain.gain.setValueAtTime(0.0001, ctx.currentTime);
     ambienceGain.gain.exponentialRampToValueAtTime(level, ctx.currentTime + 1.2);
-    ambienceGain.connect(sharedMaster);
+    ambienceGain.connect(sharedAmbience);
 
     const low = ctx.createOscillator();
     low.type = "sine";

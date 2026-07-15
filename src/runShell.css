@@ -16,6 +16,139 @@
   isolation: isolate;
 }
 
+.settings-trigger {
+  position: fixed;
+  z-index: 1000;
+  top: 16px;
+  right: 18px;
+  min-height: 38px;
+  padding: 8px 13px;
+  border: 1px solid rgba(112, 206, 215, 0.55);
+  border-radius: 3px;
+  background: rgba(4, 15, 24, 0.9);
+  color: #dceceb;
+  font: 700 12px "Trebuchet MS", sans-serif;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.settings-trigger:hover,
+.settings-trigger:focus-visible,
+.settings-panel button:hover,
+.settings-panel button:focus-visible,
+.settings-panel input:focus-visible,
+.settings-panel select:focus-visible {
+  border-color: #d7b96d;
+  outline: 2px solid rgba(215, 185, 109, 0.25);
+  outline-offset: 2px;
+}
+
+.settings-backdrop {
+  position: fixed;
+  z-index: 1100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(1, 5, 9, 0.8);
+  backdrop-filter: blur(8px);
+}
+
+.settings-backdrop[hidden] {
+  display: none;
+}
+
+.settings-panel {
+  width: min(540px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 24px 26px 21px;
+  border: 1px solid rgba(112, 206, 215, 0.62);
+  background: linear-gradient(145deg, rgba(28, 52, 61, 0.35), transparent 35%), #06111b;
+  color: #edf5f4;
+  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.65), inset 0 0 0 7px rgba(215, 185, 109, 0.06);
+  font-family: "Trebuchet MS", "Noto Sans SC", sans-serif;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+}
+
+.settings-panel__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(112, 206, 215, 0.25);
+}
+
+.settings-panel h2 {
+  margin: 0;
+  color: #f2e4b9;
+  font: 500 25px Georgia, serif;
+  letter-spacing: 0.05em;
+}
+
+.settings-panel__close {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(112, 206, 215, 0.4);
+  background: rgba(9, 28, 39, 0.9);
+  color: #dbe9e9;
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.settings-panel__controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 22px;
+  margin-top: 20px;
+}
+
+.settings-panel__field,
+.settings-panel__check {
+  display: grid;
+  gap: 8px;
+  color: #c5d7d8;
+  font-size: 13px;
+}
+
+.settings-panel__label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-panel output { color: #dfc77f; }
+.settings-panel input[type="range"] { width: 100%; accent-color: #72c7cd; }
+.settings-panel input:disabled { opacity: 0.38; cursor: not-allowed; }
+.settings-panel__check { grid-template-columns: auto 1fr; align-items: center; min-height: 35px; }
+.settings-panel__check input { width: 18px; height: 18px; accent-color: #72c7cd; }
+
+.settings-panel select,
+.settings-panel__actions button {
+  min-height: 36px;
+  padding: 7px 10px;
+  border: 1px solid rgba(112, 206, 215, 0.42);
+  border-radius: 2px;
+  background: #0a202d;
+  color: #edf5f4;
+  font: inherit;
+}
+
+.settings-panel__actions { display: flex; gap: 12px; margin-top: 23px; }
+.settings-panel__actions button { flex: 1; cursor: pointer; }
+.settings-panel__note { margin: 16px 0 0; color: #8faeb4; font-size: 12px; line-height: 1.5; }
+
+.reduced-motion *,
+.reduced-motion *::before,
+.reduced-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 .run-shell::before,
 .run-shell::after {
   content: "";
@@ -366,4 +499,7 @@
   .candidate-card {
     min-height: 0;
   }
+
+  .settings-trigger { top: 9px; right: 9px; }
+  .settings-panel__controls { grid-template-columns: 1fr; }
 }
