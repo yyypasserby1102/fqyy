@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
-  "commit": "2121d7e",
+  "schemaVersion": 2,
+  "commit": "0aa0c47",
   "seed": 2,
   "candidate": "Fire-Metal Linggen",
-  "startedAt": "2026-07-15T02:38:02.266Z",
-  "wallClockMs": 17641,
+  "startedAt": "2026-07-15T05:32:00.457Z",
+  "wallClockMs": 20244,
   "completedRuns": 1,
   "persistenceResumes": 1,
   "outcome": "victory",
@@ -52,46 +52,46 @@
       "journeyKind": "hidden"
     },
     {
-      "label": "lianqi Phase Transition",
+      "label": "lianqi chuqi milestone",
       "stage": "lianqi",
-      "phase": "chuqi",
-      "realmProgress": 100,
+      "phase": "zhongqi",
+      "realmProgress": 0,
       "learnedGongfaCount": 1,
       "masteryRank": 2,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "mist-court",
-      "choiceTitle": "Phase Transition",
+      "choiceTitle": "",
       "journeyKind": "hidden"
     },
     {
-      "label": "lianqi Phase Transition",
+      "label": "lianqi zhongqi milestone",
       "stage": "lianqi",
-      "phase": "zhongqi",
-      "realmProgress": 100,
+      "phase": "houqi",
+      "realmProgress": 0,
       "learnedGongfaCount": 1,
       "masteryRank": 4,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "mist-court",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Burning Ring Scripture Mastery Rank 3",
+      "journeyKind": "hidden"
     },
     {
-      "label": "lianqi Phase Transition",
+      "label": "lianqi houqi milestone",
       "stage": "lianqi",
-      "phase": "houqi",
-      "realmProgress": 100,
+      "phase": "dayuanman",
+      "realmProgress": 0,
       "learnedGongfaCount": 1,
       "masteryRank": 6,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "mist-court",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Burning Ring Scripture Mastery Rank 6",
+      "journeyKind": "hidden"
     },
     {
       "label": "lianqi Lianqi Tribulation",
@@ -105,7 +105,7 @@
       "enemyCount": 0,
       "arenaVariant": "mist-court",
       "choiceTitle": "Lianqi Tribulation",
-      "journeyKind": "phase"
+      "journeyKind": "hidden"
     },
     {
       "label": "Entered zhuji",
@@ -136,46 +136,46 @@
       "journeyKind": "breakthrough"
     },
     {
-      "label": "zhuji Phase Transition",
+      "label": "zhuji chuqi milestone",
       "stage": "zhuji",
-      "phase": "chuqi",
-      "realmProgress": 100,
+      "phase": "zhongqi",
+      "realmProgress": 0,
       "learnedGongfaCount": 2,
       "masteryRank": 10,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Phase Transition",
+      "choiceTitle": "Burning Ring Scripture Mastery Rank 9",
       "journeyKind": "breakthrough"
     },
     {
-      "label": "zhuji Phase Transition",
+      "label": "zhuji zhongqi milestone",
       "stage": "zhuji",
-      "phase": "zhongqi",
-      "realmProgress": 100,
+      "phase": "houqi",
+      "realmProgress": 0,
       "learnedGongfaCount": 2,
       "masteryRank": 12,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Scarlet Wave Manual Mastery Rank 3",
+      "journeyKind": "breakthrough"
     },
     {
-      "label": "zhuji Phase Transition",
+      "label": "zhuji houqi milestone",
       "stage": "zhuji",
-      "phase": "houqi",
-      "realmProgress": 100,
+      "phase": "dayuanman",
+      "realmProgress": 0,
       "learnedGongfaCount": 2,
       "masteryRank": 14,
       "kills": 0,
       "health": 120,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Scarlet Wave Manual Mastery Rank 6",
+      "journeyKind": "breakthrough"
     },
     {
       "label": "zhuji Zhuji Tribulation",
@@ -185,11 +185,11 @@
       "learnedGongfaCount": 2,
       "masteryRank": 16,
       "kills": 0,
-      "health": 138,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
       "choiceTitle": "Zhuji Tribulation",
-      "journeyKind": "phase"
+      "journeyKind": "breakthrough"
     },
     {
       "label": "Entered jindan",
@@ -199,7 +199,7 @@
       "learnedGongfaCount": 3,
       "masteryRank": 16,
       "kills": 0,
-      "health": 138,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
       "choiceTitle": "",
@@ -213,53 +213,53 @@
       "learnedGongfaCount": 3,
       "masteryRank": 16,
       "kills": 0,
-      "health": 138,
+      "health": 120,
       "enemyCount": 8,
       "arenaVariant": "golden-core-sanctum",
       "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
-      "label": "jindan Phase Transition",
+      "label": "jindan chuqi milestone",
       "stage": "jindan",
-      "phase": "chuqi",
-      "realmProgress": 100,
+      "phase": "zhongqi",
+      "realmProgress": 0,
       "learnedGongfaCount": 3,
       "masteryRank": 18,
       "kills": 0,
-      "health": 138,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Phase Transition",
+      "choiceTitle": "Scarlet Wave Manual Mastery Rank 9",
       "journeyKind": "breakthrough"
     },
     {
-      "label": "jindan Phase Transition",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "realmProgress": 100,
-      "learnedGongfaCount": 3,
-      "masteryRank": 20,
-      "kills": 0,
-      "health": 138,
-      "enemyCount": 0,
-      "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
-    },
-    {
-      "label": "jindan Phase Transition",
+      "label": "jindan zhongqi milestone",
       "stage": "jindan",
       "phase": "houqi",
-      "realmProgress": 100,
+      "realmProgress": 0,
       "learnedGongfaCount": 3,
       "masteryRank": 20,
       "kills": 0,
-      "health": 138,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Blazing Feather Art Mastery Rank 3",
+      "journeyKind": "breakthrough"
+    },
+    {
+      "label": "jindan houqi milestone",
+      "stage": "jindan",
+      "phase": "dayuanman",
+      "realmProgress": 0,
+      "learnedGongfaCount": 3,
+      "masteryRank": 20,
+      "kills": 0,
+      "health": 120,
+      "enemyCount": 0,
+      "arenaVariant": "golden-core-sanctum",
+      "choiceTitle": "Blazing Feather Art Mastery Rank 6",
+      "journeyKind": "breakthrough"
     },
     {
       "label": "jindan Jindan Tribulation",
@@ -269,11 +269,11 @@
       "learnedGongfaCount": 3,
       "masteryRank": 20,
       "kills": 0,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
       "choiceTitle": "Jindan Tribulation",
-      "journeyKind": "phase"
+      "journeyKind": "breakthrough"
     },
     {
       "label": "Entered yuanying",
@@ -283,7 +283,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 0,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "",
@@ -297,53 +297,53 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 7,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
-      "label": "yuanying Phase Transition",
+      "label": "yuanying chuqi milestone",
       "stage": "yuanying",
-      "phase": "chuqi",
-      "realmProgress": 100,
+      "phase": "zhongqi",
+      "realmProgress": 15.52,
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Phase Transition",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
-      "label": "yuanying Phase Transition",
-      "stage": "yuanying",
-      "phase": "zhongqi",
-      "realmProgress": 100,
-      "learnedGongfaCount": 4,
-      "masteryRank": 20,
-      "kills": 1,
-      "health": 156,
-      "enemyCount": 0,
-      "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
-    },
-    {
-      "label": "yuanying Phase Transition",
+      "label": "yuanying zhongqi milestone",
       "stage": "yuanying",
       "phase": "houqi",
-      "realmProgress": 100,
+      "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Phase Transition",
-      "journeyKind": "phase"
+      "choiceTitle": "Crimson Furnace Sword Art Mastery Rank 3",
+      "journeyKind": "breakthrough"
+    },
+    {
+      "label": "yuanying houqi milestone",
+      "stage": "yuanying",
+      "phase": "dayuanman",
+      "realmProgress": 0,
+      "learnedGongfaCount": 4,
+      "masteryRank": 20,
+      "kills": 1,
+      "health": 120,
+      "enemyCount": 0,
+      "arenaVariant": "nascent-sky-dais",
+      "choiceTitle": "",
+      "journeyKind": "breakthrough"
     },
     {
       "label": "yuanying Yuanying Heavenly Tribulation",
@@ -353,11 +353,11 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "Yuanying Heavenly Tribulation",
-      "journeyKind": "phase"
+      "journeyKind": "breakthrough"
     },
     {
       "label": "Heavenly Tribulation started",
@@ -367,7 +367,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 2,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "",
@@ -381,7 +381,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 2,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "",
@@ -395,7 +395,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "Yuanying Heavenly Tribulation",
@@ -409,7 +409,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "Yuanying Heavenly Tribulation",
@@ -423,7 +423,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "Run Complete",
@@ -437,7 +437,7 @@
       "learnedGongfaCount": 4,
       "masteryRank": 20,
       "kills": 1,
-      "health": 156,
+      "health": 120,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
       "choiceTitle": "Run Complete",
@@ -452,67 +452,13 @@
       "optionCount": 3
     },
     {
-      "title": "Burning Ring Scripture Mastery Rank 1",
-      "stage": "lianqi",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 2",
-      "stage": "lianqi",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "lianqi",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
       "title": "Burning Ring Scripture Mastery Rank 3",
-      "stage": "lianqi",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 4",
-      "stage": "lianqi",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "lianqi",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 5",
       "stage": "lianqi",
       "phase": "houqi",
       "optionCount": 3
     },
     {
       "title": "Burning Ring Scripture Mastery Rank 6",
-      "stage": "lianqi",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "lianqi",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 7",
-      "stage": "lianqi",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 8",
       "stage": "lianqi",
       "phase": "dayuanman",
       "optionCount": 3
@@ -532,107 +478,17 @@
     {
       "title": "Burning Ring Scripture Mastery Rank 9",
       "stage": "zhuji",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 1",
-      "stage": "zhuji",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 2",
-      "stage": "zhuji",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "zhuji",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 11",
-      "stage": "zhuji",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 12",
-      "stage": "zhuji",
       "phase": "zhongqi",
       "optionCount": 3
     },
     {
       "title": "Scarlet Wave Manual Mastery Rank 3",
       "stage": "zhuji",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 4",
-      "stage": "zhuji",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "zhuji",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 13",
-      "stage": "zhuji",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 14",
-      "stage": "zhuji",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 5",
-      "stage": "zhuji",
       "phase": "houqi",
       "optionCount": 3
     },
     {
       "title": "Scarlet Wave Manual Mastery Rank 6",
-      "stage": "zhuji",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "zhuji",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 15",
-      "stage": "zhuji",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 16",
-      "stage": "zhuji",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 7",
-      "stage": "zhuji",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
-      "title": "Scarlet Wave Manual Mastery Rank 8",
       "stage": "zhuji",
       "phase": "dayuanman",
       "optionCount": 3
@@ -650,97 +506,19 @@
       "optionCount": 3
     },
     {
-      "title": "Burning Ring Scripture Mastery Rank 17",
-      "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 2
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 18",
-      "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 1
-    },
-    {
       "title": "Scarlet Wave Manual Mastery Rank 9",
       "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 1",
-      "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 2",
-      "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "jindan",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 19",
-      "stage": "jindan",
       "phase": "zhongqi",
-      "optionCount": 1
-    },
-    {
-      "title": "Burning Ring Scripture Mastery Rank 20",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "optionCount": 1
+      "optionCount": 3
     },
     {
       "title": "Blazing Feather Art Mastery Rank 3",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 4",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 5",
       "stage": "jindan",
       "phase": "houqi",
       "optionCount": 3
     },
     {
       "title": "Blazing Feather Art Mastery Rank 6",
-      "stage": "jindan",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "jindan",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 7",
-      "stage": "jindan",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
-      "title": "Blazing Feather Art Mastery Rank 8",
       "stage": "jindan",
       "phase": "dayuanman",
       "optionCount": 3
@@ -764,49 +542,7 @@
       "optionCount": 3
     },
     {
-      "title": "Crimson Furnace Sword Art Mastery Rank 1",
-      "stage": "yuanying",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "yuanying",
-      "phase": "chuqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Crimson Furnace Sword Art Mastery Rank 2",
-      "stage": "yuanying",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
       "title": "Crimson Furnace Sword Art Mastery Rank 3",
-      "stage": "yuanying",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
-      "stage": "yuanying",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Crimson Furnace Sword Art Mastery Rank 4",
-      "stage": "yuanying",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Crimson Furnace Sword Art Mastery Rank 5",
-      "stage": "yuanying",
-      "phase": "houqi",
-      "optionCount": 3
-    },
-    {
-      "title": "Phase Transition",
       "stage": "yuanying",
       "phase": "houqi",
       "optionCount": 3
@@ -862,10 +598,23 @@
       "nascent-sky-dais"
     ],
     "journeyKinds": [
-      "phase",
       "breakthrough",
       "tribulation",
       "victory"
+    ],
+    "phaseMilestones": [
+      "lianqi:chuqi->zhongqi",
+      "lianqi:zhongqi->houqi",
+      "lianqi:houqi->dayuanman",
+      "zhuji:chuqi->zhongqi",
+      "zhuji:zhongqi->houqi",
+      "zhuji:houqi->dayuanman",
+      "jindan:chuqi->zhongqi",
+      "jindan:zhongqi->houqi",
+      "jindan:houqi->dayuanman",
+      "yuanying:chuqi->zhongqi",
+      "yuanying:zhongqi->houqi",
+      "yuanying:houqi->dayuanman"
     ],
     "audioCues": [
       "breakthrough",
@@ -881,6 +630,76 @@
     ],
     "learnedGongfaCount": 4,
     "maxEnemies": 8,
-    "finalMasteryRank": 20
+    "finalMasteryRank": 20,
+    "gongfaMasteries": [
+      {
+        "gongfaId": "burning-ring-scripture",
+        "rank": 20,
+        "fullyMastered": true
+      },
+      {
+        "gongfaId": "scarlet-wave-manual",
+        "rank": 10,
+        "fullyMastered": true
+      },
+      {
+        "gongfaId": "blazing-feather-art",
+        "rank": 10,
+        "fullyMastered": true
+      },
+      {
+        "gongfaId": "crimson-furnace-sword-art",
+        "rank": 6,
+        "fullyMastered": false
+      }
+    ],
+    "realmIdentities": [
+      {
+        "stage": "lianqi",
+        "label": "Fallen Sect Courtyard · Breath",
+        "accent": 7395295
+      },
+      {
+        "stage": "zhuji",
+        "label": "Mist Bamboo Valley · Root",
+        "accent": 6538161
+      },
+      {
+        "stage": "jindan",
+        "label": "Burial Ridge · Core",
+        "accent": 14857821
+      },
+      {
+        "stage": "yuanying",
+        "label": "Cloudbreak Summit · Soul",
+        "accent": 11113455
+      }
+    ],
+    "projectileHierarchy": [
+      {
+        "sourceGongfaId": "burning-ring-scripture",
+        "visualTier": "founding",
+        "alpha": 1,
+        "depth": 12
+      },
+      {
+        "sourceGongfaId": "scarlet-wave-manual",
+        "visualTier": "layered",
+        "alpha": 0.82,
+        "depth": 11
+      },
+      {
+        "sourceGongfaId": "blazing-feather-art",
+        "visualTier": "layered",
+        "alpha": 0.68,
+        "depth": 10
+      },
+      {
+        "sourceGongfaId": "crimson-furnace-sword-art",
+        "visualTier": "layered",
+        "alpha": 0.58,
+        "depth": 9
+      }
+    ]
   }
 }
