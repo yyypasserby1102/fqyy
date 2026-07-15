@@ -10,6 +10,8 @@ export interface HudPresentationState {
   masteryProgress: number;
   masterySkill2?: string;
   masterySkill2Casts: number;
+  masteryFullyMastered?: boolean;
+  gongfaPaths?: string;
   galeMomentum: number;
   skillTags: string;
   guard: number;
@@ -64,9 +66,14 @@ export function buildHudLines(state: HudPresentationState): string[] {
         masteryRank: state.masteryRank,
         masteryProgress: state.masteryProgress,
         masterySkill2: state.masterySkill2,
-        masterySkill2Casts: state.masterySkill2Casts
+        masterySkill2Casts: state.masterySkill2Casts,
+        fullyMastered: state.masteryFullyMastered
       })
     );
+  }
+
+  if (state.gongfaPaths) {
+    lines.push(state.gongfaPaths);
   }
 
   const resource = buildResourceLine(state);

@@ -250,14 +250,9 @@ export function getGongfaStageState(gongfaId: GongfaId, stageId: StageId): Gongf
 export { getGongfaSkillTags };
 
 export function getCompatibleUpgradeIdsForGongfa(gongfaId: GongfaId): string[] {
-  const specific = upgradeConfigs
+  return upgradeConfigs
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId))
     .map((upgrade) => upgrade.id);
-  const generic = upgradeConfigs
-    .filter((upgrade) => !upgrade.requiredGongfaIds)
-    .map((upgrade) => upgrade.id);
-
-  return [...specific, ...generic];
 }
 
 export function getFirstBreakthroughState(

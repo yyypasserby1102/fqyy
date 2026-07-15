@@ -93,6 +93,9 @@ test("combat and Run pickups produce distinct restrained cue families", async ({
   await page.keyboard.down("d");
   await page.keyboard.press("Space");
   await page.keyboard.up("d");
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().audio.recentCues.includes("evade")
+  );
   await page.waitForFunction(
     () => !window.__gameTest!.getSnapshot().player.evade.active
   );
@@ -110,6 +113,6 @@ test("combat and Run pickups produce distinct restrained cue families", async ({
     () => window.__gameTest!.getSnapshot().audio.recentCues
   );
   expect(cues).toEqual(
-    expect.arrayContaining(["cast", "evade", "healing-pill", "spirit-treasure"])
+    expect.arrayContaining(["cast", "healing-pill", "spirit-treasure"])
   );
 });

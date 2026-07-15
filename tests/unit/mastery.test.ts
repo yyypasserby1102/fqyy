@@ -3,11 +3,30 @@ import {
   getDeterministicMasteryChoiceIds,
   getMasteryChoiceDefinition,
   hasMasteryTransformation,
+  isGongfaFullyMastered,
   getRank10Skill2Id
 } from "../../src/logic/mastery";
 import { surgeGongfaSpecs } from "../../src/data/surgeGongfa";
 
 describe("mastery progression", () => {
+  it("marks a Gongfa Fully Mastered only after Skill 2 and its authored Refinements are complete", () => {
+    const allYujianRefinements = [
+      "sword-intent-sharpening", "sword-intent-sharpening", "sword-intent-sharpening",
+      "twin-sword-split", "twin-sword-split", "twin-sword-split",
+      "refined-sword-channel", "refined-sword-channel", "refined-sword-channel"
+    ];
+
+    expect(isGongfaFullyMastered("yujian-jue", 20, undefined, allYujianRefinements)).toBe(false);
+    expect(
+      isGongfaFullyMastered(
+        "yujian-jue",
+        20,
+        "returning-sword-formation",
+        allYujianRefinements
+      )
+    ).toBe(true);
+  });
+
   it("returns deterministic capped choices for a rank and removes learned authored options", () => {
     const first = getDeterministicMasteryChoiceIds({
       gongfaId: "yujian-jue",
@@ -533,18 +552,23 @@ describe("mastery progression", () => {
     }
   });
 
-  it("adds the rank-10 Skill 2 family into the post-rank-10 pool", () => {
-    expect(
-      getDeterministicMasteryChoiceIds({
+  it("keeps post-rank-10 Refinements Gongfa-specific after Skill 2 unlocks automatically", () => {
+    const choices = getDeterministicMasteryChoiceIds({
         gongfaId: "yujian-jue",
         rank: 11,
         seed: "seed-123",
         learnedIds: []
-      })
-    ).toContain("returning-sword-formation");
+      });
+    expect(choices).not.toContain("returning-sword-formation");
+    expect(choices).not.toContain("jade-meridian");
+    expect(choices.every((id) => [
+      "sword-intent-sharpening",
+      "twin-sword-split",
+      "refined-sword-channel"
+    ].includes(id))).toBe(true);
   });
 
-  it("keeps evergreen mastery choices out until authored choices are exhausted", () => {
+  it("never substitutes generic stat upgrades when authored Gongfa Refinements are exhausted", () => {
     const authoredOnly = getDeterministicMasteryChoiceIds({
       gongfaId: "yujian-jue",
       rank: 1,
@@ -557,7 +581,7 @@ describe("mastery progression", () => {
     expect(authoredOnly).not.toContain("minor-pill");
     expect(authoredOnly).not.toContain("soul-lure-banner");
 
-    const evergreenFallback = getDeterministicMasteryChoiceIds({
+    const exhaustedPool = getDeterministicMasteryChoiceIds({
       gongfaId: "yujian-jue",
       rank: 1,
       seed: "seed-123",
@@ -574,8 +598,7 @@ describe("mastery progression", () => {
       ]
     });
 
-    expect(evergreenFallback).toContain("jade-meridian");
-    expect(evergreenFallback).not.toContain("sword-intent-sharpening");
+    expect(exhaustedPool).toEqual([]);
   });
 
   it("removes authored mastery choices once their selection cap is reached", () => {

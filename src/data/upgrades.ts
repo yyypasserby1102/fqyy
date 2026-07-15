@@ -35,6 +35,9 @@ export interface UpgradeConfig {
 }
 
 export const upgradeConfigs: UpgradeConfig[] = [
+  // Legacy checkpoint compatibility only. These generic utilities are never
+  // offered by Gongfa Mastery; new growth comes from authored Gongfa content,
+  // Foundation Growth, Spirit Treasures, and world Healing Pills.
   {
     id: "tempered-meridians",
     name: "Tempered Meridians",

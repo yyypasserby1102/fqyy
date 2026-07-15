@@ -143,6 +143,14 @@ test("Lianqi opens in the atmospheric mist-court arena", async ({ page }) => {
     floorTextureKey: "arena-floor"
   });
   expect(arena.atmosphereMoteCount).toBeGreaterThanOrEqual(12);
+  expect(arena).toMatchObject({
+    identityLabel: "Fallen Sect Courtyard · Breath",
+    accent: 0x70d7df
+  });
+  expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmIdentity)).toEqual({
+    label: "Fallen Sect Courtyard · Breath",
+    accent: 0x70d7df
+  });
 });
 
 test("production opening raster assets are padded and opaque where required", async ({

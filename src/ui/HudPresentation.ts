@@ -4,6 +4,9 @@ interface HudVisualState {
   health: number;
   maxHealth: number;
   stageBreakthroughReady: boolean;
+  stageName: string;
+  realmIdentityLabel: string;
+  realmAccent: number;
 }
 
 export class HudPresentation {
@@ -14,6 +17,7 @@ export class HudPresentation {
   private readonly gongfaText: Phaser.GameObjects.Text;
   private readonly evadeText: Phaser.GameObjects.Text;
   private readonly vitalityText: Phaser.GameObjects.Text;
+  private readonly realmText: Phaser.GameObjects.Text;
 
   constructor(private readonly scene: Phaser.Scene) {
     this.panels = scene.add.graphics().setScrollFactor(0).setDepth(219);
@@ -21,6 +25,8 @@ export class HudPresentation {
     this.gongfaText = this.createText(scene.scale.width - 346, 28, 16, "#e8f2f5");
     this.evadeText = this.createText(29, scene.scale.height - 47, 15, "#c9f4f2");
     this.vitalityText = this.createText(28, 0, 13, "#f2dfbf");
+    this.realmText = this.createText(scene.scale.width * 0.5, 18, 14, "#9fe2e5")
+      .setOrigin(0.5, 0);
   }
 
   update(lines: string[], state: HudVisualState): void {
@@ -34,6 +40,7 @@ export class HudPresentation {
       (line) =>
         line.startsWith("Gongfa:") ||
         line.startsWith("Mastery:") ||
+        line.startsWith("Paths:") ||
         line.startsWith("Gale Momentum:") ||
         line.startsWith("Guard:") ||
         line.startsWith("Spirit Treasures:")
@@ -51,7 +58,11 @@ export class HudPresentation {
       ? 0xd7655d
       : state.stageBreakthroughReady
         ? 0xd8b65c
-        : 0x66cbd3;
+        : state.realmAccent;
+
+    this.realmText
+      .setText(`${state.stageName.toUpperCase()} · ${state.realmIdentityLabel}`)
+      .setColor(`#${state.realmAccent.toString(16).padStart(6, "0")}`);
 
     this.panels.clear();
     this.drawPanel(14, 14, 330, statusHeight, statusAccent);
@@ -78,6 +89,7 @@ export class HudPresentation {
   resize(): void {
     this.gongfaText.setX(this.scene.scale.width - 346);
     this.evadeText.setY(this.scene.scale.height - 48);
+    this.realmText.setX(this.scene.scale.width * 0.5);
   }
 
   private createText(

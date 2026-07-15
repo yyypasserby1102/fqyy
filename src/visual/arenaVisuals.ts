@@ -7,6 +7,8 @@ import { getSettings, subscribeSettings } from "../persistence/settingsPersisten
 export interface ArenaVisualSnapshot {
   variantId: ArenaVariantDefinition["variantId"] | "";
   atmosphere: ArenaVariantDefinition["atmosphere"] | "";
+  identityLabel: string;
+  accent: number;
   atmosphereMoteCount: number;
   atmosphereAnimated: boolean;
 }
@@ -180,6 +182,8 @@ export function createArenaPresentation(
       return {
         variantId: config.variantId,
         atmosphere: config.atmosphere,
+        identityLabel: config.identityLabel,
+        accent: config.primary,
         atmosphereMoteCount: config.moteCount,
         atmosphereAnimated: !getSettings().reducedMotion
       };

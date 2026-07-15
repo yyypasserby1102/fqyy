@@ -6,12 +6,17 @@ import {
 } from "../visual/combatVisuals";
 import type { ProjectileVisualId } from "../types/combatVisuals";
 import type { Enemy } from "./Enemy";
+import type { GongfaVisualEmphasis } from "../logic/combatVisualHierarchy";
 
 export interface ProjectileVisualSnapshot {
   logicalTexture: ProjectileVisualId;
   textureKey: string;
   animationKey: string;
   angle: number;
+  sourceGongfaId?: GongfaId;
+  visualTier: GongfaVisualEmphasis["visualTier"];
+  alpha: number;
+  depth: number;
 }
 
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
@@ -22,6 +27,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
   sourceIsCascadeFragment = false;
   lodgedEnemy?: Enemy;
   readonly logicalTexture: ProjectileVisualId;
+  private visualTier: GongfaVisualEmphasis["visualTier"] = "founding";
 
   private readonly baseScale: number;
 
@@ -49,12 +55,21 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     return this;
   }
 
+  applyVisualEmphasis(emphasis: GongfaVisualEmphasis): this {
+    this.visualTier = emphasis.visualTier;
+    return this.setAlpha(emphasis.alpha).setDepth(emphasis.depth);
+  }
+
   getVisualSnapshot(): ProjectileVisualSnapshot {
     return {
       logicalTexture: this.logicalTexture,
       textureKey: this.texture.key,
       animationKey: this.anims.currentAnim?.key ?? "",
-      angle: this.angle
+      angle: this.angle,
+      sourceGongfaId: this.sourceGongfaId,
+      visualTier: this.visualTier,
+      alpha: this.alpha,
+      depth: this.depth
     };
   }
 }

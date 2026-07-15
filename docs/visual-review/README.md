@@ -63,10 +63,11 @@ These 1280 × 720 browser captures cover the opening-to-awakening journey and th
 | Yuanying nascent-sky dais | [`arena-yuanying.png`](arena-yuanying.png) |
 | Zhuji Stage Breakthrough banner | [`realm-breakthrough.png`](realm-breakthrough.png) |
 | Heavenly Tribulation arrival | [`heavenly-tribulation.png`](heavenly-tribulation.png) |
+| Automatic Chuqi milestone and segmented Realm Progress bar | [`realm-progress-bar.png`](realm-progress-bar.png) |
 
 `tests/e2e/opening-atmosphere.spec.ts` verifies the production opening shell, qualitative candidate information, narrow-viewport layout, Lingcao idle/resonance/collection states, awakening mode, realm variant snapshots, and decoded source padding. The stage captures advance through the real progression choices; the harness is used only to make the run deterministic and accelerate collection.
 
-The transition captures additionally verify the non-blocking UI-scene presentation introduced by [`SENSORY_PERFORMANCE_SPEC.md`](../SENSORY_PERFORMANCE_SPEC.md). The banner continues animating while the gameplay scene or its Gongfa choice is paused; the Heavenly Tribulation warning leaves all three HUD scan regions readable.
+The transition captures additionally verify the non-blocking UI-scene presentation introduced by [`SENSORY_PERFORMANCE_SPEC.md`](../SENSORY_PERFORMANCE_SPEC.md). Ordinary Chuqi, Zhongqi, and Houqi milestones now remain in flow through the fixed top progress bar; the large banner is reserved for Breakthrough and Tribulation ceremony. The Heavenly Tribulation warning leaves all three HUD scan regions readable. Refresh the Realm Progress capture with `node scripts/capture-realm-progress-visual.mjs` while the dev server is running.
 
 ## Production settings review
 

@@ -57,11 +57,11 @@ A trait such as projectile, aura, fire, or defensive that identifies which globa
 _Avoid_: Class, hidden compatibility rule
 
 **Gongfa Mastery**:
-An independent progression track representing the cultivator's understanding of one learned Gongfa. Ranks one through nine alternate ordinary Mastery Refinements with Mastery Transformations at ranks three, six, and nine; rank ten unlocks the Gongfa's second Skill.
+An independent progression track representing the cultivator's understanding of one learned Gongfa. Ordinary ranks deterministically integrate authored Mastery Refinements without pausing combat; ranks three, six, and nine instead offer Mastery Transformation decisions, and rank ten automatically unlocks the Gongfa's second Skill.
 _Avoid_: Weapon XP, Gongfa level
 
 **Mastery Refinement**:
-A chosen numerical improvement to a Gongfa's existing Skills, passive bonuses, synergies, or related Cultivator Attributes. Each family has two authored tiers, remains available until both are selected, and can appear among the three reproducibly random options at ordinary Mastery ranks.
+A deterministic numerical improvement to a Gongfa's existing Skills, passive bonuses, synergies, or related Cultivator Attributes. Each family has authored tiers, remains available until every tier is integrated, and settles automatically at ordinary Mastery ranks so only structural decisions interrupt combat.
 _Avoid_: Foundation Growth, generic stat upgrade, Skill unlock
 
 **Mastery Transformation**:
@@ -69,7 +69,7 @@ A chosen structural change to how a Gongfa's Skill or passive delivers comparabl
 _Avoid_: Mastery Refinement, flat stat increase, Realm Breakthrough
 
 **Mastery Pool**:
-The fixed, authored set of Refinements and Transformations belonging to one Gongfa. Offerings are drawn from this pool, but effects are never procedurally generated or replaced with generic upgrades when Gongfa-specific content is missing.
+The fixed, authored set of Refinements and Transformations belonging to one Gongfa. Ordinary Refinements are reproducibly selected from this pool and integrated automatically; Transformation offerings are drawn from it at milestone ranks. Effects are never procedurally generated or replaced with generic upgrades when Gongfa-specific content is missing.
 _Avoid_: Global upgrade pool, generated stat roll, fallback rewards
 
 **Effect Scope**:
@@ -77,7 +77,7 @@ The explicit target of a Mastery effect: a named Skill, the owning Gongfa, its d
 _Avoid_: Method-wide bonus, implicit global modifier, unlabeled stat increase
 
 **Fully Mastered**:
-The terminal state of a Gongfa after Skill 2 is unlocked and every available Refinement tier in its authored Mastery Pool has been selected. A Fully Mastered Gongfa remains active but no longer gains Mastery progress or creates choices from Qi.
+The terminal state of a Gongfa after Skill 2 is unlocked and every available Refinement tier in its authored Mastery Pool has been integrated. A Fully Mastered Gongfa remains active but no longer gains Mastery progress or creates choices from Qi; the HUD keeps its completion visible beside newer paths that are still growing.
 _Avoid_: Maximum Stage, completed Run, evergreen Mastery
 
 **Stage**:
@@ -89,7 +89,7 @@ One of four ordered progression states within a combat Stage. Chuqi introduces t
 _Avoid_: Level, wave
 
 **Phase Transition**:
-The safe boundary after a Realm Phase reaches its progress threshold and its remaining enemies are defeated, before the next Realm Phase begins.
+The automatic safe boundary after a Realm Phase reaches its progress threshold and its remaining enemies are defeated. It grants Foundation Growth, advances the segmented Realm Progress bar, autosaves, and begins the next Realm Phase without opening a choice panel.
 _Avoid_: Realm Phase, Breakthrough
 
 **Realm Progress**:
@@ -97,7 +97,7 @@ Cultivation progress toward the next Realm Phase. Qi fills Realm Progress throug
 _Avoid_: Character level, account XP
 
 **Foundation Growth**:
-A small automatic increase to the cultivator's baseline strength granted when a Realm Phase is completed. Foundation Growth is separate from Gongfa, Gongfa Mastery, and Spirit Treasures.
+A small automatic increase to the cultivator's baseline strength granted when a Realm Phase is completed and called out on the Realm Progress bar. Foundation Growth is separate from Gongfa, Gongfa Mastery, and Spirit Treasures.
 _Avoid_: Mastery choice, Gongfa improvement
 
 **Linggen**:

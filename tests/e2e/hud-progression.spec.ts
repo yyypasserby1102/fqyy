@@ -58,17 +58,18 @@ async function resolveMasteryChoices(page: Page): Promise<void> {
   }
 }
 
-async function reachPhaseChoiceThroughQi(page: Page): Promise<void> {
-  const existing = await page.evaluate(() => window.__gameTest!.getSnapshot().choice?.title);
-  if (existing === "Phase Transition") {
-    return;
-  }
-
+async function reachNextRealmPhaseThroughQi(page: Page): Promise<void> {
+  const startingPhase = await page.evaluate(
+    () => window.__gameTest!.getSnapshot().progression.realmPhase
+  );
   await collectQiOrb(page, 100);
   await page.evaluate(() => window.__gameTest!.forceClearEnemies());
   await resolveMasteryChoices(page);
   await page.evaluate(() => window.__gameTest!.forceClearEnemies());
-  await page.waitForFunction(() => window.__gameTest!.getSnapshot().choice?.title === "Phase Transition");
+  await page.waitForFunction(
+    (phase) => window.__gameTest!.getSnapshot().progression.realmPhase !== phase,
+    startingPhase
+  );
 }
 
 test("HUD mirrors the live run state from opening through Gongfa selection", async ({ page }) => {
@@ -103,6 +104,7 @@ test("HUD mirrors the live run state from opening through Gongfa selection", asy
     "Vitality: 120 / 120",
     "Gongfa: Yujian Jue",
     "Mastery: Rank 0 | Progress 0 / 100 | Skill 2: Locked | Casts: 0",
+    "Paths: Yujian Jue R0",
     "Linggen: Metal Linggen · Strong",
     "Evade: Ready"
   ]);
@@ -200,17 +202,19 @@ test("HUD shows mastery gain, rank-up feedback, and the first realm cleanup", as
     await page.evaluate(() => window.__gameTest!.selectChoice(0));
   }
 
-  await reachPhaseChoiceThroughQi(page);
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.realmPhase === "zhongqi"
+  );
 
-  const phaseCleanup = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(phaseCleanup.choice?.title).toBe("Phase Transition");
-  expect(phaseCleanup.hud.lines[0]).toBe("Lianqi · Chuqi");
-  expect(phaseCleanup.hud.lines).toContain("Qi: 100 / 100 · breakthrough ready");
-
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
   const afterPhase = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(afterPhase.choice).toBeUndefined();
   expect(afterPhase.hud.lines[0]).toBe("Lianqi · Zhongqi");
   expect(afterPhase.hud.lines).toContain("Qi: 0 / 100");
+  expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar)).toMatchObject({
+    phase: "zhongqi",
+    completedMilestones: 1,
+    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman"]
+  });
 });
 
 test("HUD state survives a checkpoint resume without changing the visible progression", async ({
@@ -221,8 +225,7 @@ test("HUD state survives a checkpoint resume without changing the visible progre
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
-  await reachPhaseChoiceThroughQi(page);
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  await reachNextRealmPhaseThroughQi(page);
 
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
 

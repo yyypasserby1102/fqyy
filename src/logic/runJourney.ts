@@ -30,6 +30,12 @@ export type RunJourneyEvent =
 
 export type RunJourneyCommand =
   | { kind: "present-journey-choice" }
+  | {
+      kind: "present-phase-milestone";
+      completedPhase: Exclude<RealmPhaseId, "dayuanman">;
+      nextPhase: Exclude<RealmPhaseId, "chuqi">;
+      foundationGrowthTransactions: number;
+    }
   | { kind: "persist-checkpoint" }
   | { kind: "start-final-boss"; phaseIndex: number }
   | { kind: "advance-final-boss-phase"; phaseIndex: number }
@@ -94,6 +100,29 @@ function presentJourneyDecision(
   return {
     state: { ...state, pendingDecision: decision },
     commands: [{ kind: "persist-checkpoint" }, { kind: "present-journey-choice" }]
+  };
+}
+
+function completeAutomaticPhaseTransition(
+  state: RunJourneyState,
+  decision: Extract<CleanupDecision, { kind: "phase-transition" }>
+): RunJourneyResult {
+  const completedPhase = state.realmPhase as Exclude<RealmPhaseId, "dayuanman">;
+  const next = {
+    ...incrementFoundationGrowth(completePhaseTransition(state)),
+    pendingDecision: undefined
+  };
+  return {
+    state: next,
+    commands: [
+      { kind: "persist-checkpoint" },
+      {
+        kind: "present-phase-milestone",
+        completedPhase,
+        nextPhase: decision.nextPhase,
+        foundationGrowthTransactions: next.foundationGrowthTransactions ?? 0
+      }
+    ]
   };
 }
 
@@ -171,6 +200,9 @@ export function advanceRunJourney(
 
   if (event.kind === "cleanup-finished") {
     if (state.pendingDecision) {
+      if (state.pendingDecision.kind === "phase-transition") {
+        return completeAutomaticPhaseTransition(state, state.pendingDecision);
+      }
       return { state, commands: [{ kind: "present-journey-choice" }] };
     }
     if (state.finalBossActive) {
@@ -190,6 +222,9 @@ export function advanceRunJourney(
       cleanupDecision?.kind === "tribulation" && cleanupDecision.stage === "yuanying"
         ? ({ kind: "yuanying-tribulation" } as const)
         : cleanupDecision;
+    if (decision?.kind === "phase-transition") {
+      return completeAutomaticPhaseTransition(state, decision);
+    }
     return decision ? presentJourneyDecision(state, decision) : { state, commands: [] };
   }
 

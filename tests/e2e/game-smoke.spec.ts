@@ -131,7 +131,7 @@ async function reachNextMasteryChoiceThroughQi(page: Page): Promise<void> {
 async function reachJourneyChoiceThroughQi(page: Page): Promise<void> {
   for (let i = 0; i < 20; i += 1) {
     const existing = await page.evaluate(() => window.__gameTest!.getSnapshot().choice?.title);
-    if (existing === "Phase Transition" || existing?.includes("Tribulation")) {
+    if (existing?.includes("Tribulation")) {
       return;
     }
 
@@ -145,6 +145,23 @@ async function reachJourneyChoiceThroughQi(page: Page): Promise<void> {
   }
 }
 
+async function reachNextRealmPhaseThroughQi(page: Page): Promise<void> {
+  const startingPhase = await page.evaluate(
+    () => window.__gameTest!.getSnapshot().progression.realmPhase
+  );
+  for (let i = 0; i < 8; i += 1) {
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    if (snapshot.progression.realmPhase !== startingPhase) return;
+    if (snapshot.choice) {
+      await page.evaluate(() => window.__gameTest!.selectChoice(0));
+      continue;
+    }
+    await collectQiOrb(page, 26);
+    await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  }
+  throw new Error(`Realm Phase did not advance from ${startingPhase}`);
+}
+
 async function chooseYujianRank3Transformation(page: Page, transformationId: string) {
   await startNewRun(page);
   await claimOpeningLingcao(page);
@@ -153,19 +170,7 @@ async function chooseYujianRank3Transformation(page: Page, transformationId: str
   });
 
   await reachNextMasteryChoiceThroughQi(page);
-  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.choice?.title).toContain("Mastery Rank 1");
-  let optionIndex = snapshot.choice?.options.findIndex((option) => option.id !== "sword-intent-sharpening") ?? -1;
-  await page.evaluate((index) => window.__gameTest!.selectChoice(index), Math.max(0, optionIndex));
-
-  await reachNextMasteryChoiceThroughQi(page);
-  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.choice?.title).toContain("Mastery Rank 2");
-  optionIndex = snapshot.choice?.options.findIndex((option) => option.id !== "sword-intent-sharpening") ?? -1;
-  await page.evaluate((index) => window.__gameTest!.selectChoice(index), Math.max(0, optionIndex));
-
-  await reachNextMasteryChoiceThroughQi(page);
-  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.choice?.title).toContain("Mastery Rank 3");
   expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
     "execution-seal",
@@ -173,17 +178,14 @@ async function chooseYujianRank3Transformation(page: Page, transformationId: str
     "reversing-sword-path"
   ]);
 
-  optionIndex = snapshot.choice?.options.findIndex((option) => option.id === transformationId) ?? -1;
+  const optionIndex = snapshot.choice?.options.findIndex((option) => option.id === transformationId) ?? -1;
   expect(optionIndex).toBeGreaterThanOrEqual(0);
   await page.evaluate((index) => window.__gameTest!.selectChoice(index), optionIndex);
 }
 
 async function advanceOneStage(page: Page) {
-  for (let phase = 0; phase < 4; phase += 1) {
-    await reachJourneyChoiceThroughQi(page);
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
-  }
-
+  await reachJourneyChoiceThroughQi(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
 }
 
@@ -470,7 +472,7 @@ test("choosing a Gongfa enables combat progress against forced enemies", async (
   expect(after.counts.enemies).toBeGreaterThan(0);
 });
 
-test("Yujian Jue shows deterministic mastery rank-ups and a rank-10 skill unlock", async ({
+test("Yujian Jue integrates ordinary refinements and reserves choices for Transformations", async ({
   page
 }) => {
   await startNewRun(page);
@@ -483,8 +485,12 @@ test("Yujian Jue shows deterministic mastery rank-ups and a rank-10 skill unlock
   const firstRankUp = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(firstRankUp.progression.gongfa).toBe("yujian-jue");
   expect(firstRankUp.progression.masteryRank).toBeGreaterThanOrEqual(1);
-  expect(firstRankUp.choice?.title).toContain("Mastery");
+  expect(firstRankUp.choice).toBeUndefined();
+  expect(firstRankUp.message).toContain("without interrupting combat");
 
+  await reachNextMasteryChoiceThroughQi(page);
+  const transformation = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(transformation.choice?.title).toContain("Mastery Rank 3");
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await advanceMasteryToRankThroughQi(page, 10);
 
@@ -549,7 +555,7 @@ test("mastery rank-up choices survive reload with deterministic options", async 
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
-  await collectQiOrb(page, 11);
+  await reachNextMasteryChoiceThroughQi(page);
 
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(beforeReload.choice?.title).toContain("Mastery");
@@ -571,7 +577,7 @@ test("a checkpoint resume preserves a selected mastery improvement", async ({ pa
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
   });
-  await collectQiOrb(page, 11);
+  await reachNextMasteryChoiceThroughQi(page);
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
 
@@ -583,7 +589,7 @@ test("a checkpoint resume preserves a selected mastery improvement", async ({ pa
   expect(afterReload.combat).toEqual(beforeReload.combat);
 });
 
-test("multiple mastery rank-ups are queued in acquisition order", async ({ page }) => {
+test("multiple ordinary Mastery ranks integrate without panels before the next Transformation", async ({ page }) => {
   await startNewRun(page);
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
@@ -592,14 +598,13 @@ test("multiple mastery rank-ups are queued in acquisition order", async ({ page 
   await collectQiOrb(page, 22);
 
   const firstPanel = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(firstPanel.choice?.title).toContain("Mastery Rank 1");
+  expect(firstPanel.choice?.title ?? "").not.toContain("Mastery Rank");
   expect(firstPanel.progression.masteryRank).toBe(2);
 
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
-
-  const secondPanel = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(secondPanel.choice?.title).toContain("Mastery Rank 2");
-  expect(secondPanel.progression.masteryRank).toBe(2);
+  await reachNextMasteryChoiceThroughQi(page);
+  const transformationPanel = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(transformationPanel.choice?.title).toContain("Mastery Rank 3");
+  expect(transformationPanel.progression.masteryRank).toBeGreaterThanOrEqual(3);
 });
 
 test("granted Qi advances Gongfa Mastery without a generic level-up", async ({ page }) => {
@@ -689,6 +694,7 @@ test("forced Qi cannot skip Realm Phases or a Stage Tribulation", async ({ page 
   const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("lianqi");
   expect(snapshot.progression.realmPhase).toBe("chuqi");
+  expect(snapshot.choice?.title ?? "").not.toContain("Tribulation");
   expect(snapshot.progression.realmProgress).toBe(100);
 });
 
@@ -703,7 +709,8 @@ test("Qi cannot change Stage before Realm Phases and Tribulation are complete", 
 
   const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("lianqi");
-  expect(snapshot.progression.realmPhase).toBe("chuqi");
+  expect(snapshot.progression.realmPhase).toBe("zhongqi");
+  expect(snapshot.choice?.title ?? "").not.toContain("Tribulation");
 });
 
 test("Lianqi Dayuanman requires its Tribulation before the Zhuji Breakthrough", async ({
@@ -715,10 +722,6 @@ test("Lianqi Dayuanman requires its Tribulation before the Zhuji Breakthrough", 
     window.__gameTest!.selectChoice(0);
   });
 
-  for (let phase = 0; phase < 3; phase += 1) {
-    await reachJourneyChoiceThroughQi(page);
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
-  }
   await reachJourneyChoiceThroughQi(page);
 
   let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -738,11 +741,7 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 }) => {
   const advancePhase = async () => {
     await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
-    await reachJourneyChoiceThroughQi(page);
-
-    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    expect(snapshot.choice?.title).toBe("Phase Transition");
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
+    await reachNextRealmPhaseThroughQi(page);
   };
 
   await startNewRun(page);
@@ -754,8 +753,11 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
 
   await advancePhase();
   expect(
-    await page.evaluate(() => window.__gameTest!.getUiSnapshot().journeyPresentation)
-  ).toMatchObject({ visible: true, kind: "phase", title: "Zhongqi" });
+    await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar)
+  ).toMatchObject({ phase: "zhongqi", completedMilestones: 1 });
+  expect(
+    await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar.rewardText)
+  ).toContain("Foundation Growth +1");
   expect(
     (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
   ).toContain("phase-transition");
@@ -876,24 +878,7 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   expect(snapshot.progression.stage).toBe("yuanying");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(4);
 
-  const advanceYuanyingTowardTribulation = async (): Promise<boolean> => {
-    await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
-    await reachJourneyChoiceThroughQi(page);
-
-    const phaseSnapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    if (phaseSnapshot.choice?.title === "Yuanying Heavenly Tribulation") {
-      return true;
-    }
-    expect(phaseSnapshot.choice?.title).toBe("Phase Transition");
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
-    return false;
-  };
-
-  for (let phase = 0; phase < 4; phase += 1) {
-    if (await advanceYuanyingTowardTribulation()) {
-      break;
-    }
-  }
+  await reachJourneyChoiceThroughQi(page);
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("yuanying");
@@ -987,11 +972,7 @@ test("Healing Pills heal on contact, persist when untouched, and survive phase c
   expect(positionsBefore).toHaveLength(1);
 
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(1));
-  await reachJourneyChoiceThroughQi(page);
-  await page.waitForFunction(
-    () => window.__gameTest!.getSnapshot().choice?.title === "Phase Transition"
-  );
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  await reachNextRealmPhaseThroughQi(page);
 
   await page.reload();
   await page.getByRole("button", { name: "Continue" }).click();
@@ -1123,7 +1104,11 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
   expect(beforeSkill2Window.progression.masteryRank).toBeGreaterThanOrEqual(10);
   expect(beforeSkill2Window.progression.masterySkill2).toBe("golden-gale-corridor");
 
-  await page.waitForTimeout(3200);
+  await page.waitForFunction(
+    (casts) => window.__gameTest!.getSnapshot().progression.masterySkill2Casts > casts,
+    beforeSkill2Window.progression.masterySkill2Casts,
+    { timeout: 10_000 }
+  );
 
   const afterSkill2Window = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterSkill2Window.progression.masterySkill2Casts).toBeGreaterThan(
@@ -1399,7 +1384,7 @@ test("death removes the active run save so Continue disappears after reload", as
   await expect(continueButton).toHaveCount(0);
 });
 
-test("Lianqi Chuqi transitions to Zhongqi after Qi reaches the checkpoint and resumes from the checkpoint", async ({
+test("Lianqi Chuqi automatically settles into Zhongqi and resumes from that checkpoint", async ({
   page
 }) => {
   await startNewRun(page);
@@ -1408,71 +1393,44 @@ test("Lianqi Chuqi transitions to Zhongqi after Qi reaches the checkpoint and re
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceSpawnEnemies(1);
   });
-  await reachJourneyChoiceThroughQi(page);
+  await reachNextRealmPhaseThroughQi(page);
 
   const beforeReload = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(beforeReload.progression.stage).toBe("lianqi");
-  expect(beforeReload.progression.realmPhase).toBe("chuqi");
-  expect(beforeReload.progression.realmProgress).toBe(100);
-  expect(beforeReload.progression.foundationGrowthTransactions).toBe(0);
-  expect(beforeReload.choice?.title).toBe("Phase Transition");
-  expect(beforeReload.choice?.options.map((option) => option.title)).toEqual([
-    "Continue to zhongqi",
-    "Return to Title",
-    "Abandon Run"
-  ]);
-  expect(beforeReload.progression.realmProgress).toBeGreaterThanOrEqual(1);
+  expect(beforeReload.progression.realmPhase).toBe("zhongqi");
+  expect(beforeReload.progression.realmProgress).toBe(0);
+  expect(beforeReload.progression.foundationGrowthTransactions).toBe(1);
+  expect(beforeReload.choice).toBeUndefined();
+  expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar)).toMatchObject({
+    phase: "zhongqi",
+    completedMilestones: 1,
+    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman"]
+  });
 
   await page.reload();
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForFunction(() => Boolean(window.__gameTest));
 
   const resumed = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(resumed.choice?.title).toBe("Phase Transition");
+  expect(resumed.choice).toBeUndefined();
   expect(resumed.progression.stage).toBe("lianqi");
-  expect(resumed.progression.realmPhase).toBe("chuqi");
-
-  await page.evaluate(() => window.__gameTest!.selectChoice(0));
-
-  const afterChoice = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(afterChoice.progression.stage).toBe("lianqi");
-  expect(afterChoice.progression.realmPhase).toBe("zhongqi");
-  expect(afterChoice.progression.realmProgress).toBe(0);
-  expect(afterChoice.progression.foundationGrowthTransactions).toBe(1);
-  expect(afterChoice.counts.orbs).toBe(0);
-  expect(afterChoice.choice).toBeUndefined();
+  expect(resumed.progression.realmPhase).toBe("zhongqi");
+  expect(resumed.progression.foundationGrowthTransactions).toBe(1);
+  expect(resumed.counts.orbs).toBe(0);
 });
 
-test("phase transition return to title keeps the active save on the shell", async ({ page }) => {
+test("automatic phase milestones do not interrupt play with menu actions", async ({ page }) => {
   await startNewRun(page);
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
     window.__gameTest!.selectChoice(0);
     window.__gameTest!.forceSpawnEnemies(1);
   });
-  await reachJourneyChoiceThroughQi(page);
-
-  await page.evaluate(() => window.__gameTest!.selectChoice(1));
-  await page.waitForFunction(() => Boolean(document.querySelector("button")));
-
-  const continueButton = page.getByRole("button", { name: "Continue" });
-  await expect(continueButton).toHaveCount(1);
-});
-
-test("phase transition abandon run deletes the active save on the shell", async ({ page }) => {
-  await startNewRun(page);
-  await claimOpeningLingcao(page);
-  await page.evaluate(() => {
-    window.__gameTest!.selectChoice(0);
-    window.__gameTest!.forceSpawnEnemies(1);
-  });
-  await reachJourneyChoiceThroughQi(page);
-
-  await page.evaluate(() => window.__gameTest!.selectChoice(2));
-  await page.waitForFunction(() => Boolean(document.querySelector("button")));
-
-  const continueButton = page.getByRole("button", { name: "Continue" });
-  await expect(continueButton).toHaveCount(0);
+  await reachNextRealmPhaseThroughQi(page);
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice).toBeUndefined();
+  expect(snapshot.paused).toBe(false);
+  expect(snapshot.progression.realmPhase).toBe("zhongqi");
 });
 
 test("starting a new run with an active save requires an abandon confirmation", async ({

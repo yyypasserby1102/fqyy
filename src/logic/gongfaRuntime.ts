@@ -17,7 +17,12 @@ import {
   SURGE_UPDRAFT_IDS
 } from "../data/surgeGongfa";
 import { upgradeConfigs, type UpgradeEffect } from "../data/upgrades";
-import { getRank10Skill2Id, hasAvailableGongfaRefinement } from "./mastery";
+import {
+  getDeterministicMasteryChoiceIds,
+  getRank10Skill2Id,
+  hasAvailableGongfaRefinement,
+  isMasteryTransformationRank
+} from "./mastery";
 import type { ProjectileVisualId } from "../types/combatVisuals";
 
 export interface GongfaCombatState extends GongfaStageState {
@@ -582,10 +587,62 @@ export interface GongfaMasteryProgressState {
 
 export interface GongfaMasteryProgressResult {
   state: GongfaMasteryProgressState;
+  automaticRewards?: Array<{
+    rank: number;
+    choiceId: string;
+  }>;
   rankUp?: {
     previousRank: number;
     targetRank: number;
   };
+}
+
+export interface LegacyMasteryMigrationResult {
+  state: GongfaMasteryProgressState & { masteryLearnedIds: string[] };
+  automaticRewardIds: string[];
+}
+
+export function migrateLegacyMasteryPendingRanks(
+  state: GongfaMasteryProgressState & { masteryLearnedIds: string[] },
+  context: { gongfaId: GongfaId; seed: string; finalBossActive: boolean }
+): LegacyMasteryMigrationResult {
+  const next = {
+    ...state,
+    masteryLearnedIds: [...state.masteryLearnedIds],
+    masteryPendingRanks: [] as number[]
+  };
+  const automaticRewardIds: string[] = [];
+
+  for (const rank of state.masteryPendingRanks) {
+    if (isMasteryTransformationRank(rank)) {
+      next.masteryPendingRanks.push(rank);
+      continue;
+    }
+    if (rank === 10) {
+      next.masterySkill2Id = getRank10Skill2Id(context.gongfaId);
+      next.masterySkill2CooldownRemaining = getAuthoredSkill2CooldownMs(
+        next.masterySkill2Id
+      );
+      continue;
+    }
+    const [choiceId] = getDeterministicMasteryChoiceIds({
+      gongfaId: context.gongfaId,
+      rank,
+      seed: context.seed,
+      learnedIds: next.masteryLearnedIds
+    });
+    if (choiceId) {
+      next.masteryLearnedIds.push(choiceId);
+      automaticRewardIds.push(choiceId);
+    }
+  }
+
+  if (next.masteryRank >= 10 && !next.masterySkill2Id) {
+    next.masterySkill2Id = getRank10Skill2Id(context.gongfaId);
+    next.masterySkill2CooldownRemaining = getAuthoredSkill2CooldownMs(next.masterySkill2Id);
+  }
+  next.masteryChoiceActive = !context.finalBossActive && next.masteryPendingRanks.length > 0;
+  return { state: next, automaticRewardIds };
 }
 
 export interface GongfaMasteryChoiceState {
@@ -608,6 +665,11 @@ export interface GongfaCollectionRuntime {
 
 export interface GongfaCollectionMasteryResult {
   runtime: GongfaCollectionRuntime;
+  automaticRewards: Array<{
+    gongfaId: GongfaId;
+    rank: number;
+    choiceId: string;
+  }>;
   rankUps: Array<{
     gongfaId: GongfaId;
     previousRank: number;
@@ -672,10 +734,12 @@ export function advanceGongfaCollectionMastery(
   context: {
     points: number | ((gongfaId: GongfaId) => number);
     finalBossActive: boolean;
+    seed?: string;
   }
 ): GongfaCollectionMasteryResult {
   const byId: Partial<Record<GongfaId, GongfaRuntime>> = { ...collection.byId };
   const rankUps: GongfaCollectionMasteryResult["rankUps"] = [];
+  const automaticRewards: GongfaCollectionMasteryResult["automaticRewards"] = [];
 
   for (const [gongfaId, current] of Object.entries(collection.byId) as Array<
     [GongfaId, GongfaRuntime]
@@ -684,15 +748,31 @@ export function advanceGongfaCollectionMastery(
       gongfaId,
       points: typeof context.points === "function" ? context.points(gongfaId) : context.points,
       finalBossActive: context.finalBossActive,
-      learnedIds: current.mastery.masteryLearnedIds
+      learnedIds: current.mastery.masteryLearnedIds,
+      seed: context.seed
     });
-    byId[gongfaId] = { ...current, mastery: result.state as GongfaMasteryCheckpointFields };
+    const learnedAutomaticIds = result.automaticRewards?.map((reward) => reward.choiceId) ?? [];
+    byId[gongfaId] = {
+      ...current,
+      mastery: {
+        ...result.state,
+        masteryLearnedIds: [
+          ...current.mastery.masteryLearnedIds,
+          ...learnedAutomaticIds
+        ],
+        upgradeSelectionIds: [...current.mastery.upgradeSelectionIds],
+        masterySkill2Casts: current.mastery.masterySkill2Casts
+      }
+    };
+    result.automaticRewards?.forEach((reward) => {
+      automaticRewards.push({ gongfaId, ...reward });
+    });
     if (result.rankUp) {
       rankUps.push({ gongfaId, ...result.rankUp });
     }
   }
 
-  return { runtime: { ...collection, byId }, rankUps };
+  return { runtime: { ...collection, byId }, automaticRewards, rankUps };
 }
 
 export function projectGongfaCollectionMasteryCheckpoint(
@@ -806,6 +886,7 @@ export function advanceGongfaMasteryProgress(
     points: number;
     finalBossActive: boolean;
     learnedIds?: string[];
+    seed?: string;
   }
 ): GongfaMasteryProgressResult {
   if (
@@ -829,6 +910,8 @@ export function advanceGongfaMasteryProgress(
   }
 
   next.masteryRank = targetRank;
+  const automaticRewards: NonNullable<GongfaMasteryProgressResult["automaticRewards"]> = [];
+  const learnedIds = [...(context.learnedIds ?? [])];
   for (let rank = previousRank + 1; rank <= targetRank; rank += 1) {
     if (rank === 10) {
       next.masterySkill2Id = getRank10Skill2Id(context.gongfaId);
@@ -836,8 +919,20 @@ export function advanceGongfaMasteryProgress(
       continue;
     }
 
-    if (!next.masteryPendingRanks.includes(rank)) {
+    if (isMasteryTransformationRank(rank) && !next.masteryPendingRanks.includes(rank)) {
       next.masteryPendingRanks.push(rank);
+      continue;
+    }
+
+    const [choiceId] = getDeterministicMasteryChoiceIds({
+      gongfaId: context.gongfaId,
+      rank,
+      seed: context.seed ?? "0",
+      learnedIds
+    });
+    if (choiceId) {
+      learnedIds.push(choiceId);
+      automaticRewards.push({ rank, choiceId });
     }
   }
 
@@ -845,6 +940,7 @@ export function advanceGongfaMasteryProgress(
 
   return {
     state: next,
+    ...(automaticRewards.length > 0 ? { automaticRewards } : {}),
     rankUp: {
       previousRank,
       targetRank

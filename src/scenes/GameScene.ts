@@ -17,6 +17,7 @@ import {
   type LinggenConfig
 } from "../data/linggen";
 import { stageConfigs } from "../data/stages";
+import { ARENA_VARIANTS } from "../data/arenaVariants";
 import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
 import { HealingPill } from "../entities/HealingPill";
@@ -42,10 +43,13 @@ import {
   getPresentedGongfaIdsForLinggen
 } from "../logic/progression";
 import {
+  formatGongfaMasteryRoster,
   formatMasteryRankUpMessage,
   getMasteryProgressWithinRank
 } from "../logic/masteryPresentation";
 import { buildHudLines } from "../logic/hudPresentation";
+import { getGongfaVisualEmphasis } from "../logic/combatVisualHierarchy";
+import { getRealmProgressPresentation } from "../logic/realmProgressPresentation";
 import { Evade } from "../logic/evade";
 import {
   advanceRunJourney,
@@ -58,7 +62,8 @@ import {
 } from "../logic/runJourney";
 import {
   getDeterministicMasteryChoiceIds,
-  getMasteryChoiceDefinition
+  getMasteryChoiceDefinition,
+  isGongfaFullyMastered
 } from "../logic/mastery";
 import {
   advanceGongfaCollectionMastery,
@@ -78,6 +83,7 @@ import {
   projectGongfaRuntimeView,
   recordMasterySkill2Cast,
   restoreGongfaCollection,
+  migrateLegacyMasteryPendingRanks,
   learnGongfa,
   replaceGongfaCollection,
   selectCrimsonFurnaceTargetIndexes,
@@ -322,6 +328,44 @@ export class GameScene extends Phaser.Scene {
       .filter((runtime): runtime is GongfaRuntime => Boolean(runtime));
   }
 
+  private summarizeGongfaMastery(runtime: GongfaRuntime): {
+    gongfaId: GongfaId;
+    name: string;
+    rank: number;
+    fullyMastered: boolean;
+  } {
+    return {
+      gongfaId: runtime.gongfaId,
+      name: gongfaConfigs[runtime.gongfaId].name,
+      rank: runtime.mastery.masteryRank,
+      fullyMastered: isGongfaFullyMastered(
+        runtime.gongfaId,
+        runtime.mastery.masteryRank,
+        runtime.mastery.masterySkill2Id,
+        runtime.mastery.masteryLearnedIds
+      )
+    };
+  }
+
+  private get gongfaMasteries(): GameSnapshot["progression"]["gongfaMasteries"] {
+    return this.learnedGongfaRuntimes.map((runtime) => {
+      const { gongfaId, rank, fullyMastered } = this.summarizeGongfaMastery(runtime);
+      return { gongfaId, rank, fullyMastered };
+    });
+  }
+
+  private get primaryMasteryFullyMastered(): boolean {
+    const primaryId = this.gongfaCollection.primaryGongfaId;
+    const runtime = primaryId ? this.gongfaCollection.byId[primaryId] : undefined;
+    return runtime ? this.summarizeGongfaMastery(runtime).fullyMastered : false;
+  }
+
+  private get gongfaPathsHudLine(): string {
+    return formatGongfaMasteryRoster(
+      this.learnedGongfaRuntimes.map((runtime) => this.summarizeGongfaMastery(runtime))
+    );
+  }
+
   private adoptPrimaryRuntime(runtime: GongfaRuntime): void {
     this.gongfaCollection.byId[runtime.gongfaId] = runtime;
     this.gongfaRuntime = runtime;
@@ -358,6 +402,7 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.magnetRadius = checkpoint?.playerMagnetRadius ?? this.player.stats.magnetRadius;
     this.player.stats.damageReduction =
       checkpoint?.playerDamageReduction ?? this.player.stats.damageReduction;
+    this.migrateLegacyMasteryChoices(Boolean(checkpoint?.gongfaRuntimes));
     if (!checkpoint?.gongfaRuntimes) {
       splitGongfaImprovementReplayIds([
         ...this.primaryMastery.upgradeSelectionIds,
@@ -514,6 +559,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.fireReadyGongfaMethods(delta);
+    this.applyActiveProjectileVisualHierarchy();
 
 
     this.publishHud();
@@ -620,7 +666,8 @@ export class GameScene extends Phaser.Scene {
     const impact = this.add
       .sprite(x, y, COMBAT_TEXTURES.projectileImpacts)
       .setDisplaySize(visual.impactSize, visual.impactSize)
-      .setDepth(12)
+      .setAlpha(projectile.alpha)
+      .setDepth(Math.max(8, projectile.depth - 0.5))
       .setTint(projectile.tintTopLeft)
       .play(visual.impactAnimation);
     this.activeProjectileImpacts.add(impact);
@@ -628,6 +675,27 @@ export class GameScene extends Phaser.Scene {
       this.activeProjectileImpacts.delete(impact);
       impact.destroy();
     });
+  }
+
+  private applyActiveProjectileVisualHierarchy(): void {
+    const learnedIds = this.runState.learnedGongfaIds;
+    (this.projectiles.getChildren() as Projectile[]).forEach((projectile) => {
+      if (!projectile.active) return;
+      projectile.applyVisualEmphasis(
+        getGongfaVisualEmphasis(learnedIds, projectile.sourceGongfaId)
+      );
+    });
+  }
+
+  private applyGongfaEffectVisualHierarchy(
+    effect: Phaser.GameObjects.Graphics,
+    sourceGongfaId: GongfaId | undefined
+  ): Phaser.GameObjects.Graphics {
+    const emphasis = getGongfaVisualEmphasis(
+      this.runState.learnedGongfaIds,
+      sourceGongfaId
+    );
+    return effect.setAlpha(emphasis.alpha).setDepth(emphasis.depth - 1.5);
   }
 
   private executeProjectileHitCommands(
@@ -851,15 +919,20 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private spawnCastPulse(): void {
+  private spawnCastPulse(sourceGongfaId: GongfaId): void {
     if (!this.player?.active) {
       return;
     }
     this.sfx.cast();
+    const emphasis = getGongfaVisualEmphasis(
+      this.runState.learnedGongfaIds,
+      sourceGongfaId
+    );
     const pulse = this.add
       .circle(this.player.x, this.player.y, 14, undefined, 0)
       .setStrokeStyle(2, this.combatState.tint, 0.45)
-      .setDepth(9);
+      .setAlpha(emphasis.alpha)
+      .setDepth(emphasis.depth - 2);
     this.tweens.add({
       targets: pulse,
       scale: 1.8,
@@ -1159,7 +1232,7 @@ export class GameScene extends Phaser.Scene {
       if (commands.length > 0) {
         const aimAngle = this.getAimAngle();
         this.player.presentAttack({ x: Math.cos(aimAngle), y: Math.sin(aimAngle) });
-        this.spawnCastPulse();
+        this.spawnCastPulse(runtime.gongfaId);
         this.executeGongfaRuntimeCommands(commands, runtime);
       }
       const updatedRuntime = this.gongfaCollection.byId[runtime.gongfaId] ?? runtime;
@@ -1959,7 +2032,7 @@ export class GameScene extends Phaser.Scene {
     const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const combat = { ...this.combatState };
     const activationId = this.beginSkill2Activation();
-    const orbit = this.add.graphics().setDepth(10.5);
+    const orbit = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
     orbit.lineStyle(2, this.combatState.tint, 0.8);
     orbit.strokeCircle(this.player.x, this.player.y, 54);
     for (let needle = 0; needle < command.needleCount; needle += 1) {
@@ -2018,7 +2091,7 @@ export class GameScene extends Phaser.Scene {
     const sourceGongfaId = this.gongfaRuntime?.gongfaId;
     const combat = { ...this.combatState };
     const activationId = this.beginSkill2Activation();
-    const lotus = this.add.graphics().setDepth(10.5);
+    const lotus = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
     lotus.lineStyle(3, combat.tint, 0.9);
     for (let petal = 0; petal < command.petalCount; petal += 1) {
       const angle = (Math.PI * 2 * petal) / command.petalCount;
@@ -2092,7 +2165,7 @@ export class GameScene extends Phaser.Scene {
         const linked = this.getNearestEnemies(command.linkCount).filter(
           (enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) <= command.reach
         );
-        const vines = this.add.graphics().setDepth(10.5);
+        const vines = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
         vines.lineStyle(3, tint, 0.75);
         let fromX = this.player.x;
         let fromY = this.player.y;
@@ -2120,7 +2193,7 @@ export class GameScene extends Phaser.Scene {
     const activationId = this.beginSkill2Activation();
     const originX = this.player.x;
     const originY = this.player.y;
-    const circle = this.add.graphics().setDepth(10.5);
+    const circle = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
     circle.lineStyle(3, tint, 0.85);
     circle.strokeCircle(originX, originY, command.radius);
     for (let pulse = 0; pulse < command.pulseCount; pulse += 1) {
@@ -2865,6 +2938,25 @@ export class GameScene extends Phaser.Scene {
     this.applyImprovementEffect(upgradeId, runtime);
   }
 
+  private migrateLegacyMasteryChoices(applyMigratedEffects: boolean): void {
+    for (const gongfaId of this.runState.learnedGongfaIds) {
+      const runtime = this.gongfaCollection.byId[gongfaId];
+      if (!runtime) continue;
+      const migration = migrateLegacyMasteryPendingRanks(runtime.mastery, {
+        gongfaId,
+        seed: String(this.getRunSeed()),
+        finalBossActive: this.runState.finalBossActive
+      });
+      runtime.mastery = { ...runtime.mastery, ...migration.state };
+      if (!applyMigratedEffects) continue;
+      migration.automaticRewardIds.forEach((choiceId) => {
+        const current = this.gongfaCollection.byId[gongfaId];
+        if (current) this.applyMasteryUpgradeEffect(current, choiceId);
+      });
+    }
+    this.restorePrimaryRuntimeAdapter();
+  }
+
   private applyImprovementEffect(upgradeId: string, runtime = this.gongfaRuntime): void {
     if (!runtime) {
       return;
@@ -2984,6 +3076,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "present-journey-choice") {
         this.offerJourneyChoice();
+        return;
+      }
+
+      if (command.kind === "present-phase-milestone") {
+        this.sfx.phaseTransition();
+        this.flashCamera(140, 92, 180, 184);
+        const nextPhaseLabel = getRealmProgressPresentation(command.nextPhase, 0).phaseLabel;
+        this.lastMessage = `Foundation settles into ${nextPhaseLabel}.`;
+        this.scene.get("ui").events.emit("show-phase-milestone", command);
+        this.publishHud(this.lastMessage);
         return;
       }
 
@@ -3187,6 +3289,8 @@ export class GameScene extends Phaser.Scene {
       masteryRank: this.primaryMastery.masteryRank,
       masterySkill2: this.primaryMastery.masterySkill2Id,
       masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
+      masteryFullyMastered: this.primaryMasteryFullyMastered,
+      gongfaPaths: this.gongfaPathsHudLine,
       galeMomentum: gongfaView.galeMomentum,
       heat: gongfaView.heat,
       ringSegments: gongfaView.ringSegments,
@@ -3210,6 +3314,8 @@ export class GameScene extends Phaser.Scene {
       paused: this.runState.paused,
       gameOver: this.runState.gameOver,
       stageName: stageConfigs[this.runState.stage].name,
+      realmIdentityLabel: ARENA_VARIANTS[this.runState.stage].identityLabel,
+      realmAccent: ARENA_VARIANTS[this.runState.stage].primary,
       linggenName: this.runState.revealedLinggen?.name ?? "Unrevealed",
       linggenGrades: this.runState.revealedLinggen
         ? getLinggenAffinityGradeSummary(this.runState.revealedLinggen.id).join(", ")
@@ -3255,6 +3361,8 @@ export class GameScene extends Phaser.Scene {
           ),
           masterySkill2: this.primaryMastery.masterySkill2Id,
           masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
+          masteryFullyMastered: this.primaryMasteryFullyMastered,
+          gongfaPaths: this.gongfaPathsHudLine,
           galeMomentum: gongfaView.galeMomentum,
           skillTags: this.runState.mainGongfaId
             ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
@@ -3351,6 +3459,8 @@ export class GameScene extends Phaser.Scene {
           ...(this.arenaPresentation?.getSnapshot() ?? {
             variantId: "",
             atmosphere: "",
+            identityLabel: "",
+            accent: 0,
             atmosphereMoteCount: 0,
             atmosphereAnimated: false
           })
@@ -3370,6 +3480,7 @@ export class GameScene extends Phaser.Scene {
         masteryRank: this.primaryMastery.masteryRank,
         masterySkill2: this.primaryMastery.masterySkill2Id,
         masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
+        gongfaMasteries: this.gongfaMasteries,
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
         masteryTransformationTriggers: {
@@ -3625,9 +3736,17 @@ export class GameScene extends Phaser.Scene {
     const result = advanceGongfaCollectionMastery(this.gongfaCollection, {
       points: (gongfaId) =>
         points * getGongfaMasteryEfficiency(this.runState.hiddenLinggen.id, gongfaId),
-      finalBossActive: this.runState.finalBossActive
+      finalBossActive: this.runState.finalBossActive,
+      seed: String(this.getRunSeed())
     });
     this.gongfaCollection = result.runtime;
+    result.automaticRewards.forEach(({ gongfaId, choiceId }) => {
+      const runtime = this.gongfaCollection.byId[gongfaId];
+      if (runtime) {
+        this.applyMasteryUpgradeEffect(runtime, choiceId);
+      }
+    });
+    this.restorePrimaryRuntimeAdapter();
     this.gongfaRuntime = this.gongfaCollection.byId[primaryGongfaId];
     if (this.gongfaRuntime) {
       this.combatState = this.gongfaRuntime.combat;
@@ -3644,6 +3763,11 @@ export class GameScene extends Phaser.Scene {
       gongfaConfigs[rankUp.gongfaId].name,
       rankUp.targetRank
     );
+    if (result.automaticRewards.length > 0) {
+      this.lastMessage += ` ${result.automaticRewards.length} ordinary refinement${
+        result.automaticRewards.length === 1 ? " settles" : "s settle"
+      } without interrupting combat.`;
+    }
 
     if (this.masteryChoiceRuntime) {
       this.offerMasteryChoice();
@@ -3720,6 +3844,12 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (this.runState.pendingDecision) {
+      if (this.runState.pendingDecision.kind === "phase-transition") {
+        const result = advanceRunJourney(this.runState, { kind: "cleanup-finished" });
+        this.applyRunJourneyState(result.state);
+        this.executeRunJourneyCommands(result.commands);
+        return;
+      }
       this.offerJourneyChoice();
       return;
     }

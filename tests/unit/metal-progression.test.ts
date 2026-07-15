@@ -96,75 +96,55 @@ describe("Metal progression tree", () => {
     expect(jindan.pierce).toBeGreaterThan(zhuji.pierce);
   });
 
-  it("includes Gongfa-specific upgrades plus generic refinements for Yujian Jue", () => {
+  it("keeps Yujian Mastery specific to Yujian", () => {
     expect(getCompatibleUpgradeIdsForGongfa("yujian-jue")).toEqual([
       "sword-intent-sharpening",
       "twin-sword-split",
-      "refined-sword-channel",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "refined-sword-channel"
     ]);
   });
 
-  it("includes the full six authored refinements plus generic fallbacks for Jinfeng Gong", () => {
+  it("includes only the full six authored refinements for Jinfeng Gong", () => {
     expect(getCompatibleUpgradeIdsForGongfa("jinfeng-gong")).toEqual([
       "cutting-qi-pressure",
       "broadened-front",
       "long-edge-resonance",
       "gathering-gale",
       "unbroken-stride",
-      "windborne-reach",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "windborne-reach"
     ]);
   });
 
-  it("includes the full six authored refinements plus generic fallbacks for Gengjin Huti", () => {
+  it("includes only the full six authored refinements for Gengjin Huti", () => {
     expect(getCompatibleUpgradeIdsForGongfa("gengjin-huti")).toEqual([
       "guard-pressure",
       "retaliatory-edge",
       "expanding-shell",
       "lasting-temper",
       "bulwark-reflection",
-      "unyielding-shield",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "unyielding-shield"
     ]);
   });
 
-  it("includes the full six authored refinements plus generic fallbacks for Burning Ring Scripture", () => {
+  it("includes only the full six authored refinements for Burning Ring Scripture", () => {
     expect(getCompatibleUpgradeIdsForGongfa("burning-ring-scripture")).toEqual([
       "broadened-flame",
       "rapid-revolution",
       "scorching-passage",
       "counterflow-ring",
       "gathering-heat",
-      "banked-ember",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "banked-ember"
     ]);
   });
 
-  it("includes the full six authored refinements plus generic fallbacks for Crimson Furnace Sword Art", () => {
+  it("includes only the full six authored refinements for Crimson Furnace Sword Art", () => {
     expect(getCompatibleUpgradeIdsForGongfa("crimson-furnace-sword-art")).toEqual([
       "tempered-needles",
       "rapid-forging",
       "deep-embedding",
       "furnace-expansion",
       "rising-pressure",
-      "sealed-crucible",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "sealed-crucible"
     ]);
   });
 
@@ -175,11 +155,7 @@ describe("Metal progression tree", () => {
       "long-edge-resonance",
       "gathering-gale",
       "unbroken-stride",
-      "windborne-reach",
-      "tempered-meridians",
-      "jade-meridian",
-      "minor-pill",
-      "soul-lure-banner"
+      "windborne-reach"
     ]);
   });
 

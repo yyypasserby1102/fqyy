@@ -12,6 +12,7 @@ import {
   createGongfaCollectionRuntimeFromCheckpoint,
   createGongfaCollectionFromCheckpoint,
   learnGongfa,
+  migrateLegacyMasteryPendingRanks,
   createGongfaRuntime,
   createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
@@ -36,6 +37,42 @@ import {
 import { getRank10Skill2Id } from "../../src/logic/mastery";
 
 describe("Gongfa runtime", () => {
+  it("migrates legacy ordinary and rank-10 pending panels into automatic rewards", () => {
+    const migrated = migrateLegacyMasteryPendingRanks(
+      {
+        masteryPoints: 1000,
+        masteryRank: 10,
+        masterySkill2CooldownRemaining: 0,
+        masteryChoiceActive: true,
+        masteryPendingRanks: [1, 3, 4, 10],
+        masteryLearnedIds: []
+      },
+      { gongfaId: "yujian-jue", seed: "legacy-seed", finalBossActive: false }
+    );
+
+    expect(migrated.state.masteryPendingRanks).toEqual([3]);
+    expect(migrated.state.masteryChoiceActive).toBe(true);
+    expect(migrated.state.masterySkill2Id).toBe("returning-sword-formation");
+    expect(migrated.automaticRewardIds).toHaveLength(2);
+    expect(migrated.state.masteryLearnedIds).toEqual(migrated.automaticRewardIds);
+  });
+
+  it("keeps migrated Transformation choices banked during the final boss", () => {
+    const migrated = migrateLegacyMasteryPendingRanks(
+      {
+        masteryPoints: 900,
+        masteryRank: 9,
+        masterySkill2CooldownRemaining: 0,
+        masteryChoiceActive: false,
+        masteryPendingRanks: [9],
+        masteryLearnedIds: []
+      },
+      { gongfaId: "yujian-jue", seed: "legacy-seed", finalBossActive: true }
+    );
+    expect(migrated.state.masteryPendingRanks).toEqual([9]);
+    expect(migrated.state.masteryChoiceActive).toBe(false);
+  });
+
   it("advances every learned Gongfa on an independent Mastery track", () => {
     const yujian = learnGongfa(createGongfaCollectionRuntime(), "yujian-jue", true);
     const twoGongfa = learnGongfa(yujian, "jinfeng-gong");
@@ -52,13 +89,17 @@ describe("Gongfa runtime", () => {
     expect(secondGain.runtime.byId["yujian-jue"]?.mastery).toMatchObject({
       masteryPoints: 200,
       masteryRank: 2,
-      masteryPendingRanks: [1, 2]
+      masteryPendingRanks: [],
+      masteryLearnedIds: expect.any(Array)
     });
     expect(secondGain.runtime.byId["jinfeng-gong"]?.mastery).toMatchObject({
       masteryPoints: 200,
       masteryRank: 2,
-      masteryPendingRanks: [1, 2]
+      masteryPendingRanks: [],
+      masteryLearnedIds: expect.any(Array)
     });
+    expect(secondGain.runtime.byId["yujian-jue"]?.mastery.masteryLearnedIds).toHaveLength(2);
+    expect(secondGain.runtime.byId["jinfeng-gong"]?.mastery.masteryLearnedIds).toHaveLength(2);
     expect(secondGain.rankUps.map(({ gongfaId }) => gongfaId)).toEqual([
       "yujian-jue",
       "jinfeng-gong"
@@ -232,7 +273,7 @@ describe("Gongfa runtime", () => {
     });
   });
 
-  it("advances Gongfa Mastery progress, pending choices, and rank-10 Skill 2 unlocks", () => {
+  it("integrates ordinary Refinements automatically and pauses only for Transformation ranks", () => {
     const base = {
       masteryPoints: 90,
       masteryRank: 0,
@@ -258,21 +299,46 @@ describe("Gongfa runtime", () => {
     const rankTwo = advanceGongfaMasteryProgress(base, {
       gongfaId: "yujian-jue",
       points: 120,
-      finalBossActive: false
+      finalBossActive: false,
+      seed: "run-2"
     });
-    expect(rankTwo).toEqual({
+    expect(rankTwo).toMatchObject({
       state: {
         masteryPoints: 210,
         masteryRank: 2,
         masterySkill2CooldownRemaining: 0,
-        masteryChoiceActive: true,
-        masteryPendingRanks: [1, 2]
+        masteryChoiceActive: false,
+        masteryPendingRanks: []
       },
       rankUp: {
         previousRank: 0,
         targetRank: 2
+      },
+      automaticRewards: [
+        { rank: 1 },
+        { rank: 2 }
+      ]
+    });
+    expect(rankTwo.automaticRewards?.map((reward) => reward.choiceId)).toHaveLength(2);
+
+    const transformation = advanceGongfaMasteryProgress(
+      rankTwo.state,
+      {
+        gongfaId: "yujian-jue",
+        points: 100,
+        finalBossActive: false,
+        learnedIds: rankTwo.automaticRewards?.map((reward) => reward.choiceId),
+        seed: "run-2"
+      }
+    );
+    expect(transformation).toMatchObject({
+      state: {
+        masteryRank: 3,
+        masteryChoiceActive: true,
+        masteryPendingRanks: [3]
       }
     });
+    expect(transformation.automaticRewards).toBeUndefined();
 
     expect(
       advanceGongfaMasteryProgress(
@@ -304,11 +370,11 @@ describe("Gongfa runtime", () => {
       }).state
     ).toMatchObject({
       masteryChoiceActive: false,
-      masteryPendingRanks: [1, 2]
+      masteryPendingRanks: []
     });
   });
 
-  it("continues after rank 10 until the authored Refinement pool is exhausted", () => {
+  it("continues after rank 10 with automatic authored Refinements until the pool is exhausted", () => {
     const mastered = {
       masteryPoints: 1000,
       masteryRank: 10,
@@ -318,16 +384,29 @@ describe("Gongfa runtime", () => {
       masteryPendingRanks: [] as number[]
     };
 
-    expect(
-      advanceGongfaMasteryProgress(mastered, {
+    const continued = advanceGongfaMasteryProgress(mastered, {
         gongfaId: "yujian-jue",
         points: 500,
         finalBossActive: false,
-        learnedIds: []
-      })
-    ).toMatchObject({
-      state: { masteryPoints: 1500, masteryRank: 15, masteryPendingRanks: [11, 12, 13, 14, 15] }
+        learnedIds: [],
+        seed: "run-2"
+      });
+    expect(continued).toMatchObject({
+      state: {
+        masteryPoints: 1500,
+        masteryRank: 15,
+        masteryChoiceActive: false,
+        masteryPendingRanks: []
+      },
+      automaticRewards: [
+        { rank: 11 },
+        { rank: 12 },
+        { rank: 13 },
+        { rank: 14 },
+        { rank: 15 }
+      ]
     });
+    expect(new Set(continued.automaticRewards?.map((reward) => reward.choiceId)).size).toBeGreaterThan(1);
 
     const exhausted = {
       ...mastered,

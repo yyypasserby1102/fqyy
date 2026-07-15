@@ -11,6 +11,10 @@ export interface MasteryChoiceContext {
 
 export type MasteryChoiceKind = "refinement" | "transformation" | "skill2";
 
+export function isMasteryTransformationRank(rank: number): rank is 3 | 6 | 9 {
+  return rank === 3 || rank === 6 || rank === 9;
+}
+
 export interface MasteryChoiceDefinition {
   id: string;
   name: string;
@@ -640,7 +644,6 @@ export function getDeterministicMasteryChoiceIds(
     return [getRank10Skill2Id(context.gongfaId)];
   }
 
-  const skill2Id = getRank10Skill2Id(context.gongfaId);
   const learnedCounts = context.learnedIds.reduce<Record<string, number>>((counts, id) => {
     counts[id] = (counts[id] ?? 0) + 1;
     return counts;
@@ -657,34 +660,7 @@ export function getDeterministicMasteryChoiceIds(
     })
     .map((upgrade) => upgrade.id);
 
-  const evergreenPool = upgradeConfigs
-    .filter((upgrade) => !upgrade.requiredGongfaIds)
-    .filter((upgrade) => {
-      const limit = upgrade.maxSelections ?? Infinity;
-      return (learnedCounts[upgrade.id] ?? 0) < limit;
-    })
-    .map((upgrade) => upgrade.id);
-
-  if (context.rank > 10 && (learnedCounts[skill2Id] ?? 0) < 1) {
-    const remaining = [...authoredPool, ...evergreenPool].filter((id) => id !== skill2Id);
-    const result = [skill2Id];
-
-    if (remaining.length === 0) {
-      return result;
-    }
-
-    const startIndex = hashString(`${context.seed}:${context.gongfaId}:${context.rank}`) % remaining.length;
-    for (let offset = 0; offset < remaining.length && result.length < 3; offset += 1) {
-      const candidate = remaining[(startIndex + offset) % remaining.length];
-      if (!result.includes(candidate)) {
-        result.push(candidate);
-      }
-    }
-
-    return result;
-  }
-
-  const pool = authoredPool.length > 0 ? authoredPool : evergreenPool;
+  const pool = authoredPool;
   if (pool.length === 0) {
     return [];
   }
@@ -715,4 +691,13 @@ export function hasAvailableGongfaRefinement(
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId))
     .filter((upgrade) => !transformationIdSet.has(upgrade.id))
     .some((upgrade) => (learnedCounts[upgrade.id] ?? 0) < (upgrade.maxSelections ?? Infinity));
+}
+
+export function isGongfaFullyMastered(
+  gongfaId: GongfaId,
+  rank: number,
+  skill2Id: string | undefined,
+  learnedIds: string[]
+): boolean {
+  return rank >= 10 && Boolean(skill2Id) && !hasAvailableGongfaRefinement(gongfaId, learnedIds);
 }

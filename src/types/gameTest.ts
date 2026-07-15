@@ -9,7 +9,9 @@ import type { LingcaoVisualState } from "../entities/Lingcao";
 import type { ArenaVisualSnapshot } from "../visual/arenaVisuals";
 import type { SoundFxSnapshot } from "../audio/SoundFx";
 import type { JourneyPresentationSnapshot } from "../ui/JourneyPresentation";
+import type { RealmProgressBarSnapshot } from "../ui/RealmProgressBar";
 import type { RealmPhaseId, StageId } from "../data/stages";
+import type { GongfaId } from "../data/gongfa";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -69,6 +71,11 @@ export interface GameSnapshot {
     masteryRank: number;
     masterySkill2?: string;
     masterySkill2Casts: number;
+    gongfaMasteries: Array<{
+      gongfaId: GongfaId;
+      rank: number;
+      fullyMastered: boolean;
+    }>;
     learnedGongfaIds: string[];
     spiritTreasureIds: string[];
     masteryTransformationTriggers: {
@@ -136,6 +143,11 @@ export interface UiSnapshot {
   hudText: string;
   visualTheme: string;
   hudRegions: string[];
+  realmIdentity: {
+    label: string;
+    accent: number;
+  };
+  realmProgressBar: RealmProgressBarSnapshot;
   choicePanel: {
     visible: boolean;
     renderedOptionCount: number;

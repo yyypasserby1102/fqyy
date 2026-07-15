@@ -12,6 +12,7 @@ import { realmPhaseOrder, stageOrder } from "../../src/data/stages";
 import type { SoundCue } from "../../src/audio/SoundFx";
 import type { JourneyPresentationKind } from "../../src/ui/JourneyPresentation";
 import { ARENA_VARIANTS, type ArenaVariantDefinition } from "../../src/data/arenaVariants";
+import type { GongfaId } from "../../src/data/gongfa";
 
 const seed = 2;
 const expectedArenas: ArenaVariantDefinition["variantId"][] = stageOrder.map(
@@ -28,7 +29,19 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   const phases = new Set<(typeof realmPhaseOrder)[number]>();
   const arenaVariants = new Set<ArenaVariantDefinition["variantId"]>();
   const journeyKinds = new Set<JourneyPresentationKind>();
+  const phaseMilestones: string[] = [];
   const audioCues = new Set<SoundCue>();
+  const realmIdentities = new Map<(typeof stageOrder)[number], {
+    stage: (typeof stageOrder)[number];
+    label: string;
+    accent: number;
+  }>();
+  const projectileHierarchy = new Map<GongfaId, {
+    sourceGongfaId: GongfaId;
+    visualTier: "founding" | "layered";
+    alpha: number;
+    depth: number;
+  }>();
   let maxEnemies = 0;
   let persistenceResumes = 0;
 
@@ -41,6 +54,20 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     phases.add(game.progression.realmPhase);
     if (game.visuals.arena.variantId) arenaVariants.add(game.visuals.arena.variantId);
     if (ui.journeyPresentation.kind !== "hidden") journeyKinds.add(ui.journeyPresentation.kind);
+    realmIdentities.set(game.progression.stage, {
+      stage: game.progression.stage,
+      label: ui.realmIdentity.label,
+      accent: ui.realmIdentity.accent
+    });
+    game.visuals.projectiles.forEach((projectile) => {
+      if (!projectile.sourceGongfaId) return;
+      projectileHierarchy.set(projectile.sourceGongfaId, {
+        sourceGongfaId: projectile.sourceGongfaId,
+        visualTier: projectile.visualTier,
+        alpha: projectile.alpha,
+        depth: projectile.depth
+      });
+    });
     game.audio.recentCues.forEach((cue) => audioCues.add(cue));
     maxEnemies = Math.max(maxEnemies, game.counts.enemies);
     const checkpoint: MachineCheckpoint = {
@@ -78,7 +105,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     for (let attempt = 0; attempt < 50; attempt += 1) {
       const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
       maxEnemies = Math.max(maxEnemies, snapshot.counts.enemies);
-      if (snapshot.choice?.title === "Phase Transition" || snapshot.choice?.title.includes("Tribulation")) {
+      if (snapshot.choice?.title.includes("Tribulation")) {
         return;
       }
       if (snapshot.counts.orbs === 0) return;
@@ -107,7 +134,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   const reachJourneyChoice = async (): Promise<string> => {
     for (let attempt = 0; attempt < 24; attempt += 1) {
       const title = await page.evaluate(() => window.__gameTest!.getSnapshot().choice?.title);
-      if (title === "Phase Transition" || title?.includes("Tribulation")) return title;
+      if (title?.includes("Tribulation")) return title;
       if (title) {
         await recordChoice();
         await page.evaluate(() => window.__gameTest!.selectChoice(0));
@@ -119,6 +146,26 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     throw new Error("Machine Run did not reach its next journey choice");
   };
 
+  const reachNextRealmPhase = async (): Promise<void> => {
+    const before = await page.evaluate(() => window.__gameTest!.getSnapshot().progression);
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const progression = await page.evaluate(() => window.__gameTest!.getSnapshot().progression);
+      if (progression.realmPhase !== before.realmPhase) {
+        const ui = await page.evaluate(() => window.__gameTest!.getUiSnapshot());
+        phaseMilestones.push(`${before.stage}:${before.realmPhase}->${progression.realmPhase}`);
+        expect(ui.realmProgressBar).toMatchObject({
+          phase: progression.realmPhase,
+          completedMilestones: realmPhaseOrder.indexOf(progression.realmPhase)
+        });
+        expect(ui.realmProgressBar.rewardText).toContain("Foundation Growth +1");
+        return;
+      }
+      await collectQi(26);
+      await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+    }
+    throw new Error(`Machine Run did not advance Realm Phase from ${before.realmPhase}`);
+  };
+
   const resolveCurrentChoices = async (): Promise<void> => {
     for (let attempt = 0; attempt < 24; attempt += 1) {
       if (!(await recordChoice())) return;
@@ -128,8 +175,10 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   };
 
   const sampleCombat = async (label: string): Promise<void> => {
+    await page.evaluate(() => window.__gameTest!.forceSpawnHealingPill(100));
+    await page.waitForTimeout(100);
     await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
-    await page.waitForTimeout(180);
+    await page.waitForTimeout(100);
     await observe(label);
     await page.evaluate(() => window.__gameTest!.forceClearEnemies());
   };
@@ -158,14 +207,14 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   await sampleCombat("Lianqi combat sample");
 
   for (const currentStage of stageOrder.slice(0, 3)) {
-    while (true) {
-      const title = await reachJourneyChoice();
-      await recordChoice();
-      await observe(`${currentStage} ${title}`);
-      await page.evaluate(() => window.__gameTest!.selectChoice(0));
-      const after = await page.evaluate(() => window.__gameTest!.getSnapshot().progression.stage);
-      if (after !== currentStage) break;
+    for (const phase of realmPhaseOrder.slice(0, 3)) {
+      await reachNextRealmPhase();
+      await observe(`${currentStage} ${phase} milestone`);
     }
+    const title = await reachJourneyChoice();
+    await recordChoice();
+    await observe(`${currentStage} ${title}`);
+    await page.evaluate(() => window.__gameTest!.selectChoice(0));
     await resolveCurrentChoices();
     const entered = await page.evaluate(() => window.__gameTest!.getSnapshot().progression.stage);
     await observe(`Entered ${entered}`);
@@ -173,13 +222,14 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   }
 
   expect(await page.evaluate(() => window.__gameTest!.getSnapshot().progression.stage)).toBe("yuanying");
-  while (true) {
-    const title = await reachJourneyChoice();
-    await recordChoice();
-    await observe(`yuanying ${title}`);
-    if (title === "Yuanying Heavenly Tribulation") break;
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  for (const phase of realmPhaseOrder.slice(0, 3)) {
+    await reachNextRealmPhase();
+    await observe(`yuanying ${phase} milestone`);
   }
+  const heavenlyTitle = await reachJourneyChoice();
+  await recordChoice();
+  await observe(`yuanying ${heavenlyTitle}`);
+  expect(heavenlyTitle).toBe("Yuanying Heavenly Tribulation");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await observe("Heavenly Tribulation started");
@@ -212,7 +262,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
   });
 
   const report: MachinePlaytestReport = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     commit: execFileSync("git", ["rev-parse", "--short", "HEAD"], { encoding: "utf8" }).trim(),
     seed,
     candidate: "Fire-Metal Linggen",
@@ -227,23 +277,59 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
       stages: stageOrder.filter((stage) => stages.has(stage)),
       phases: realmPhaseOrder.filter((phase) => phases.has(phase)),
       arenaVariants: expectedArenas.filter((arena) => arenaVariants.has(arena)),
-      journeyKinds: (["phase", "breakthrough", "tribulation", "victory"] as JourneyPresentationKind[])
+      journeyKinds: (["breakthrough", "tribulation", "victory"] as JourneyPresentationKind[])
         .filter((kind) => journeyKinds.has(kind)),
+      phaseMilestones,
       audioCues: [...audioCues].sort(),
       learnedGongfaCount: finalSnapshot.progression.learnedGongfaIds.length,
       maxEnemies,
-      finalMasteryRank: finalSnapshot.progression.masteryRank
+      finalMasteryRank: finalSnapshot.progression.masteryRank,
+      gongfaMasteries: finalSnapshot.progression.gongfaMasteries,
+      realmIdentities: stageOrder.flatMap((stage) => {
+        const identity = realmIdentities.get(stage);
+        return identity ? [identity] : [];
+      }),
+      projectileHierarchy: finalSnapshot.progression.learnedGongfaIds.flatMap((gongfaId) => {
+        const hierarchy = projectileHierarchy.get(gongfaId as GongfaId);
+        return hierarchy ? [hierarchy] : [];
+      })
     }
   };
 
   expect(report.observed.stages).toEqual(stageOrder);
   expect(report.observed.phases).toEqual(["chuqi", "zhongqi", "houqi", "dayuanman"]);
   expect(report.observed.arenaVariants).toEqual(expectedArenas);
-  expect(report.observed.journeyKinds).toEqual(["phase", "breakthrough", "tribulation", "victory"]);
+  expect(report.observed.journeyKinds).toEqual(["breakthrough", "tribulation", "victory"]);
+  expect(report.observed.phaseMilestones).toHaveLength(12);
   expect(report.observed.audioCues).toEqual(expect.arrayContaining([
     "phase-transition", "breakthrough", "tribulation", "victory"
   ]));
   expect(report.observed.learnedGongfaCount).toBe(4);
+  expect(report.choices.length).toBeLessThanOrEqual(24);
+  expect(report.choices.some(({ title }) => title === "Phase Transition")).toBe(false);
+  expect(
+    report.choices
+      .map(({ title }) => title.match(/Mastery Rank (\d+)/)?.[1])
+      .filter(Boolean)
+      .map(Number)
+      .every((rank) => [3, 6, 9].includes(rank))
+  ).toBe(true);
+  expect(report.observed.gongfaMasteries).toHaveLength(4);
+  expect(report.observed.gongfaMasteries.some(({ fullyMastered }) => fullyMastered)).toBe(true);
+  expect(report.observed.gongfaMasteries.some(({ fullyMastered }) => !fullyMastered)).toBe(true);
+  expect(report.observed.realmIdentities).toEqual(
+    stageOrder.map((stage) => ({
+      stage,
+      label: ARENA_VARIANTS[stage].identityLabel,
+      accent: ARENA_VARIANTS[stage].primary
+    }))
+  );
+  expect(report.observed.projectileHierarchy).toEqual([
+    expect.objectContaining({ visualTier: "founding", alpha: 1, depth: 12 }),
+    expect.objectContaining({ visualTier: "layered", alpha: 0.82, depth: 11 }),
+    expect.objectContaining({ visualTier: "layered", alpha: 0.68, depth: 10 }),
+    expect.objectContaining({ visualTier: "layered", alpha: 0.58, depth: 9 })
+  ]);
   expect(report.persistenceResumes).toBe(1);
   expect(report.completedRuns).toBeGreaterThanOrEqual(1);
 

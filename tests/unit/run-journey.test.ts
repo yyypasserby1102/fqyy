@@ -46,7 +46,7 @@ describe("Run journey", () => {
     expect(createRunJourneyStateFromCheckpoint(checkpoint)).toEqual(state);
   });
 
-  it("drives Realm Progress cleanup and phase transition through runtime events", () => {
+  it("auto-advances Realm Phases after cleanup while preserving reward and checkpoint commands", () => {
     const initial = {
       stage: "lianqi" as const,
       realmPhase: "chuqi" as const,
@@ -73,26 +73,25 @@ describe("Run journey", () => {
       kind: "cleanup-finished"
     });
 
-    expect(cleanup.commands).toEqual([
-      { kind: "persist-checkpoint" },
-      { kind: "present-journey-choice" }
-    ]);
-
-    const accepted = advanceRunJourney(cleanup.state, {
-      kind: "journey-choice-accepted"
-    });
-
-    expect(accepted.state).toMatchObject({
+    expect(cleanup.state).toMatchObject({
       stage: "lianqi",
       realmPhase: "zhongqi",
       realmProgress: 0,
       phaseCleanupActive: false,
       foundationGrowthTransactions: 1
     });
-    expect(accepted.commands).toEqual([{ kind: "persist-checkpoint" }]);
+    expect(cleanup.commands).toEqual([
+      { kind: "persist-checkpoint" },
+      {
+        kind: "present-phase-milestone",
+        completedPhase: "chuqi",
+        nextPhase: "zhongqi",
+        foundationGrowthTransactions: 1
+      }
+    ]);
   });
 
-  it("owns a pending journey decision until its legal acceptance", () => {
+  it("automatically resolves a legacy pending Realm Phase decision without reopening a panel", () => {
     const cleanupReady = {
       stage: "lianqi" as const,
       realmPhase: "chuqi" as const,
@@ -104,26 +103,16 @@ describe("Run journey", () => {
       gameOver: false
     };
 
-    const presented = advanceRunJourney(cleanupReady, { kind: "cleanup-finished" });
-    expect(presented.state).toMatchObject({
-      pendingDecision: { kind: "phase-transition", nextPhase: "zhongqi" }
-    });
-    expect(presented.commands).toEqual([
-      { kind: "persist-checkpoint" },
-      { kind: "present-journey-choice" }
-    ]);
-
-    const accepted = advanceRunJourney(presented.state, {
-      kind: "journey-choice-accepted"
-    });
-    expect(accepted.state).toMatchObject({
+    const legacyPending = {
+      ...cleanupReady,
+      pendingDecision: { kind: "phase-transition" as const, nextPhase: "zhongqi" as const }
+    };
+    const resolved = advanceRunJourney(legacyPending, { kind: "cleanup-finished" });
+    expect(resolved.state).toMatchObject({
       realmPhase: "zhongqi",
       pendingDecision: undefined
     });
-
-    expect(
-      advanceRunJourney(cleanupReady, { kind: "journey-choice-accepted" })
-    ).toEqual({ state: cleanupReady, commands: [] });
+    expect(resolved.commands.some(({ kind }) => kind === "present-journey-choice")).toBe(false);
   });
 
   it("owns the terminal death transition", () => {

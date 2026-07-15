@@ -13,14 +13,14 @@ Use this alongside [CONTEXT.md](/home/yiyuny/game-dev/fqyy/CONTEXT.md). `CONTEXT
 
 The first-slice Run is persistent and resumable across play sessions. Its progression currently follows this structure:
 
-- safe checkpoints follow Phase Transitions and completed Breakthrough/Gongfa selections; mid-combat Mastery choices do not autosave
+- safe checkpoints follow automatic Phase milestones and completed Breakthrough/Gongfa selections; mid-combat Mastery choices do not autosave
 - saves contain durable Run state, not live combat entities
 - resume reconstructs the next combat segment
 - quitting or crashing mid-combat discards the incomplete segment and resumes from the latest safe checkpoint
 - death removes the resumable Run save
 - each player profile has one active Run save; a new Run requires confirmed abandonment
 - settings and future meta progression are stored separately from Run state
-- each Phase Transition autosaves before offering `Continue`, `Return to Title`, and confirmed `Abandon Run`; there are no manual in-Run save controls
+- each ordinary Phase milestone advances and autosaves automatically; the Dayuanman Tribulation/Breakthrough remains the explicit checkpoint and there are no manual in-Run save controls
 - abandonment clears the active save and grants no victory
 
 1. Choose one of three Cultivator Candidates showing roots and Affinity Grades
@@ -42,9 +42,9 @@ The first-slice Run is persistent and resumable across play sessions. Its progre
 
 Every combat realm contains the ordered Phases `Chuqi -> Zhongqi -> Houqi -> Dayuanman`. Each Phase is one bounded combat segment and safe-checkpoints on completion. Dayuanman leads to the realm's concluding Tribulation.
 
-Qi fills Realm Progress for the current Phase. Reaching a threshold starts cleanup; completing the Phase Transition advances to the next Phase. Clearing Dayuanman unlocks the Tribulation, whose defeat triggers the next Breakthrough and Gongfa slot. Gongfa Mastery progresses independently.
+Qi fills a segmented Realm Progress bar across the four Phases. Reaching an ordinary threshold starts cleanup, then advances automatically with a visible Foundation Growth reward. Clearing Dayuanman unlocks the explicit Tribulation checkpoint, whose defeat triggers the next Breakthrough and Gongfa slot. Gongfa Mastery progresses independently.
 
-At a Phase threshold, new spawns stop and all remaining enemies must be defeated. After the final enemy dies, all remaining Qi Orbs are collected automatically. The Phase Transition grants automatic Foundation Growth without a choice screen, resolves queued Mastery choices, autosaves, and begins the next Phase; enemies are neither despawned nor carried across. Exact Foundation Growth stats and scaling remain deferred.
+At a Phase threshold, new spawns stop and all remaining enemies must be defeated. After the final enemy dies, all remaining Qi Orbs are collected automatically. An ordinary Phase milestone grants Foundation Growth on the top progress bar, resolves queued Mastery Transformation choices, autosaves, and begins the next Phase without pausing; enemies are neither despawned nor carried across. Exact Foundation Growth stats and scaling remain deferred.
 
 Tribulation escalation:
 
@@ -159,7 +159,7 @@ Scaffolded or deferred until every Gongfa required by the profile's offering is 
 - Slow Mastery reaches rank `10` around Zhongqi of the following Stage and becomes Fully Mastered roughly two Stages after acquisition; a Slow Yuanying Gongfa may not unlock Skill 2 before the normal ending
 - Realm Progress and Gongfa Mastery are separate meters filled simultaneously by the same Qi pickups
 - Every learned Gongfa receives the full base Mastery value from each Qi pickup; Mastery Qi is not divided among Gongfa
-- Realm Progress thresholds trigger Phase cleanup; Dayuanman cleanup and Stage Tribulation victory trigger Breakthroughs; Gongfa Mastery thresholds trigger Gongfa refinement choices
+- Realm Progress thresholds trigger Phase cleanup; Dayuanman cleanup and Stage Tribulation victory trigger Breakthroughs; ordinary Gongfa Mastery thresholds integrate deterministic Refinements automatically, while ranks `3`, `6`, and `9` trigger Transformation choices
 - Qi is not manually allocated between the two meters
 - Each combat-Stage Breakthrough adds one Gongfa slot while preserving all learned Gongfa
 - Learned Gongfa are excluded from future offerings; if fewer than three compatible unlearned Gongfa remain, show fewer choices rather than duplicates
@@ -198,11 +198,11 @@ General rules:
 - Selecting a Gongfa grants its starting signature Skill and one defining passive immediately; Mastery unlocks or improves the rest of the package
 - Each first-slice Gongfa contains exactly two automatic Skills
 - Gongfa Mastery is independent and finite for each learned Gongfa
-- ordinary Mastery ranks offer three options drawn without category quotas from the Gongfa's whole available Refinement pool and grant one choice
+- ordinary Mastery ranks integrate one reproducibly selected Refinement from the Gongfa's available authored pool without pausing combat
 - ranks `3`, `6`, and `9` instead offer three milestone-specific Transformations; the chosen Transformation becomes permanent and the other two never return during that Run
-- rank `10` automatically unlocks Skill 2; later choices can improve either Skill or the package's passives
+- rank `10` automatically unlocks Skill 2; later ordinary ranks automatically integrate remaining authored Refinements for either Skill or the package's passives
 - every Gongfa has a fixed, authored Mastery Pool so its total progression budget can be compared with other Gongfa
-- generic or procedurally generated upgrades cannot substitute for missing Gongfa-specific Mastery content
+- generic health, movement, orb-collection, recovery, or procedurally generated upgrades cannot substitute for missing Gongfa-specific Mastery content
 - every Mastery effect explicitly scopes itself to a named Skill, the owning Gongfa, the defining passive, a Skill Tag, or a Cultivator Attribute
 - whole-package and cross-Gongfa effects are valid only when stated explicitly; ambiguous shared Method stats are prohibited
 - initial pool baseline: six starting Refinement families—two Skill 1, two passive, and two synergy/Cultivator Attribute—plus three unique Transformations for each of ranks `3`, `6`, and `9`
@@ -647,7 +647,7 @@ Qi drives only Realm Progress and Gongfa Mastery. There is no separate cultivato
 
 ### Gongfa Mastery refinements
 
-Ordinary Mastery ranks draw three Refinements from the Gongfa's fixed pool; ranks `3`, `6`, and `9` offer exclusive Transformations, and rank `10` automatically unlocks Skill 2. Later ordinary ranks continue until every available Refinement tier is selected and the Gongfa becomes Fully Mastered.
+Ordinary Mastery ranks automatically integrate one deterministic Refinement from the Gongfa's fixed pool; ranks `3`, `6`, and `9` offer three exclusive Transformations, and rank `10` automatically unlocks Skill 2. Later ordinary ranks continue until every available Refinement tier is integrated and the Gongfa becomes Fully Mastered.
 
 Examples from the current `Metal` path:
 
