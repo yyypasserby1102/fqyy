@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { gongfaConfigs, type GongfaId } from "../../src/data/gongfa";
+import { upgradeConfigs } from "../../src/data/upgrades";
 import {
   advanceGongfaMasteryProgress,
   advanceGongfaRuntimeForProjectileHit,
@@ -192,13 +193,14 @@ describe("Gongfa runtime", () => {
 
   it("constructs and refines a complete Gongfa combat package through one interface", () => {
     const initial = createGongfaRuntime({
-      gongfaId: "yujian-jue"
+      gongfaId: "yujian-jue",
+      yujian: { intentStacks: 2 }
     });
 
     const refined = applyGongfaImprovement(initial, "sword-intent-sharpening");
 
     expect(initial.combat.damage).toBe(15);
-    expect(refined.runtime.combat.damage).toBe(20);
+    expect(refined.runtime.combat.damage).toBe(21);
     expect(refined.playerEffect).toBeUndefined();
   });
 
@@ -419,11 +421,9 @@ describe("Gongfa runtime", () => {
         gongfaId: "yujian-jue",
         points: 100,
         finalBossActive: false,
-        learnedIds: [
-          "sword-intent-sharpening", "sword-intent-sharpening", "sword-intent-sharpening",
-          "twin-sword-split", "twin-sword-split", "twin-sword-split",
-          "refined-sword-channel", "refined-sword-channel", "refined-sword-channel"
-        ]
+        learnedIds: upgradeConfigs
+          .filter((upgrade) => upgrade.requiredGongfaIds?.includes("yujian-jue") && upgrade.id !== "counterflow-ring")
+          .flatMap((upgrade) => [upgrade.id, upgrade.id])
       })
     ).toEqual({ state: exhausted });
   });
@@ -1110,6 +1110,8 @@ describe("Gongfa runtime", () => {
     expect(result.commands).toEqual([
       {
         kind: "solar-flare-cycle",
+        baseDamage: 8,
+        damageScale: 1,
         segmentCount: 6,
         ringRadius: 43,
         masteryCast: {
@@ -1204,6 +1206,10 @@ describe("Gongfa runtime", () => {
     expect(triggered.commands).toEqual([
       {
         kind: "blade-shell-rebound",
+        baseDamage: 9,
+        baseBladeCount: 6,
+        damageScale: 1,
+        bonusBlades: 0,
         masteryCast: {
           skill2Id: "blade-shell-rebound",
           cooldownMs: 3000
@@ -1239,7 +1245,7 @@ describe("Gongfa runtime", () => {
       guardDecayRate: 0.3192
     });
     expect(sharperRetaliation.combat.auraRadius).toBe(110);
-    expect(sharperRetaliation.combat.retaliationDamage).toBe(16);
+    expect(sharperRetaliation.combat.damage).toBe(initial.combat.damage + 3);
     expect(retaliationResult.passiveEffect).toBeUndefined();
   });
 

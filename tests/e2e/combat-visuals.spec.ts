@@ -217,6 +217,8 @@ for (const visualCase of [
     projectile: "flying-sword",
     travel: "projectile-flying-sword-travel",
     impact: "impact-flying-sword",
+    motif: "ordered-sword-seal",
+    silhouette: { x: 1.12, y: 0.72 },
   },
   {
     linggen: "metal",
@@ -225,6 +227,8 @@ for (const visualCase of [
     projectile: "metal-wave",
     travel: "projectile-metal-wave-travel",
     impact: "impact-metal-wave",
+    motif: "golden-horizon",
+    silhouette: { x: 1.35, y: 0.62 },
   },
   {
     linggen: "metal",
@@ -233,6 +237,8 @@ for (const visualCase of [
     projectile: "aura-blade",
     travel: "projectile-aura-blade-travel",
     impact: "impact-aura-blade",
+    motif: "tempered-facets",
+    silhouette: { x: 0.9, y: 0.9 },
   },
   {
     linggen: "water-metal",
@@ -241,6 +247,8 @@ for (const visualCase of [
     projectile: "qi-bolt",
     travel: "projectile-qi-bolt-travel",
     impact: "impact-qi-bolt",
+    motif: "hoarfrost-stars",
+    silhouette: { x: 0.62, y: 1.12 },
   },
 ] as const) {
   test(`${visualCase.gongfa} uses its production travel and impact family`, async ({
@@ -281,6 +289,16 @@ for (const visualCase of [
       visualCase.projectile,
     );
     expect(travelAngles.some((angle) => Math.abs(angle) > 5)).toBe(true);
+    const identity = await page.evaluate(
+      (gongfa) => window.__gameTest!.getSnapshot().visuals.projectiles.find(
+        (visual) => visual.sourceGongfaId === gongfa
+      ),
+      visualCase.gongfa
+    );
+    expect(identity).toMatchObject({
+      motifId: visualCase.motif,
+      silhouetteScale: visualCase.silhouette
+    });
     await page.waitForFunction(
       (impact) =>
         window
@@ -288,5 +306,48 @@ for (const visualCase of [
           .visuals.projectileImpacts.includes(impact),
       visualCase.impact,
     );
+    const motifs = await page.evaluate(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs);
+    expect(motifs).toContain(`${visualCase.motif}:cast`);
+    expect(motifs).toContain(`${visualCase.motif}:impact`);
   });
 }
+
+test("all thirteen Gongfa render their own projectile treatment and trail", async ({ page }) => {
+  await startNewRun(page);
+  const gongfaIds = [
+    "yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art",
+    "blazing-feather-art", "burning-ring-scripture", "scarlet-wave-manual",
+    "drifting-frost-needle", "black-tide-scripture", "ice-mirror-guard",
+    "green-vine-art", "verdant-ring-scripture", "ironwood-wave-form"
+  ] as const;
+  const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
+
+  for (const gongfaId of gongfaIds) {
+    await page.evaluate((id) => {
+      window.__gameTest!.forceEquipGongfa(id);
+      window.__gameTest!.forceSpawnEnemies(3);
+    }, gongfaId);
+    await page.waitForFunction(
+      (id) => window.__gameTest!.getSnapshot().visuals.projectiles.some(
+        (projectile) => projectile.sourceGongfaId === id && projectile.trailEmissionCount > 0
+      ),
+      gongfaId
+    );
+    const treatment = await page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().visuals.projectiles.find(
+        (projectile) => projectile.sourceGongfaId === id && projectile.trailEmissionCount > 0
+      ),
+      gongfaId
+    );
+    expect(treatment).toBeDefined();
+    treatments.push({
+      motifId: treatment!.motifId,
+      trailStyle: treatment!.trailStyle,
+      silhouette: `${treatment!.silhouetteScale.x}:${treatment!.silhouetteScale.y}`
+    });
+  }
+
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(13);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(13);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(13);
+});

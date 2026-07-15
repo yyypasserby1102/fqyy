@@ -429,7 +429,9 @@ After rank 10, ordinary ranks continue integrating the remaining Refinements aut
 
 If one Qi pickup triggers Transformation choices for multiple Gongfa, pause combat once and queue the events in Gongfa acquisition order. Resolve every pending Transformation before resuming combat. Ordinary Refinements and rank-10 Skill unlocks require no choice panel.
 
-Each first-slice Gongfa contains exactly two automatic Skills. The second Skill unlocks at Mastery rank 10; Mastery continues after that milestone, but later content should add more Skills only after this two-Skill model is proven readable and sustainable.
+Each playable Gongfa contains exactly two automatic Skills. The second Skill unlocks at Mastery rank 10; Mastery continues after that milestone, but later content should add more Skills only after this two-Skill model is proven readable and sustainable.
+
+Press `G` during a Run to open the Gongfa Archive. It pauses combat and presents every learned path with its Skill 1, defining passive/resource, Skill 2 lock state, current rank, integrated Refinement tiers, and permanent Transformations. Left and right switch learned paths. Combat uses the same package catalog for names, tags, and thirteen distinct cast/impact motifs so inspection and world presentation cannot drift apart.
 
 Skill 2 operates independently while Skill 1 continues. As an authoring baseline, it must interact with Skill 1, the defining passive, or both, and make at least some earlier Refinements or Transformations more valuable. Its trigger may be timed, cyclical, threshold-based, retaliatory, or another Gongfa-specific condition; this baseline should not suppress creative package identities.
 
@@ -446,7 +448,7 @@ Recommended first-slice Linggen pool:
 - Single-root: Metal
 - Dual-root: Fire+Metal
 
-Pure Fire, pure Water, Water+Metal, and Water+Wood remain scaffolded or deferred. A profile becomes playable only when every Gongfa needed by its three-choice offering is authored.
+The current Candidate pool includes pure Fire, pure Water, pure Metal, Fire+Metal, Water+Metal, and Water+Wood. Every offered Gongfa satisfies the complete package contract: two Skills, a defining passive, the fixed Rank-22 Mastery track, persistence, and a distinct visual identity. A future profile becomes playable only when every Gongfa needed by its offering reaches the same bar.
 
 ## First Root To Fully Design
 

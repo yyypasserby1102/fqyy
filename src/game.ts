@@ -21,6 +21,7 @@ function attachGameTestHarness(game: Phaser.Game): void {
       getSnapshot: () => getGameScene().getTestSnapshot(),
       getUiSnapshot: () => getUiScene().getTestSnapshot(),
       forceSpawnEnemies: (count) => getGameScene().forceSpawnEnemies(count),
+      forceEquipGongfa: (gongfaId) => getGameScene().forceEquipGongfa(gongfaId),
       forceSpawnEnemy: (enemyId: EnemyId) => getGameScene().forceSpawnEnemy(enemyId),
       selectChoice: (index) => getGameScene().forceSelectChoice(index),
       forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),

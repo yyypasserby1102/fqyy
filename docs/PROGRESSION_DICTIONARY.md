@@ -115,15 +115,6 @@ A profile is Candidate-eligible only when it supports at least three compatible 
 - `Metal Linggen`
   - roots: `metal`
   - identity: sharp and efficient
-
-### Dual-root
-
-- `Fire-Metal Linggen`
-  - roots: `fire + metal`
-  - identity: volatile and offensive
-
-Scaffolded or deferred until every Gongfa required by the profile's offering is authored:
-
 - `Fire Linggen`
   - roots: `fire`
   - identity: aggressive and focused
@@ -131,12 +122,19 @@ Scaffolded or deferred until every Gongfa required by the profile's offering is 
   - roots: `water`
   - identity: stable and controlled
 
+### Dual-root
+
+- `Fire-Metal Linggen`
+  - roots: `fire + metal`
+  - identity: volatile and offensive
 - `Water-Metal Linggen`
   - roots: `water + metal`
   - identity: technical and adaptive
 - `Water-Wood Linggen`
   - roots: `water + wood`
   - identity: resilient and flexible
+
+All six profiles are Candidate-eligible because their offerings contain at least three complete Gongfa packages.
 
 ### Rule
 
@@ -461,7 +459,7 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - pattern: `homing`
   - fantasy: blazing feather shots
   - rank-10 Skill 2: `Feather Rain Formation`, successive fans of retargeting homing feathers whose count and damage scale from Embers
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and phoenix-pinion combat motif
 - `Burning Ring Scripture`
   - required roots: `fire`
   - Skill 1: `Revolving Flame Ring`
@@ -510,7 +508,7 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - pattern: `wave`
   - fantasy: scorching crescents
   - rank-10 Skill 2: `Sunset Wave Apex`, opposing crescent walls that cross for a second hit and scale from Scorch
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and crossing-sunset combat motif
 
 ### Water Root
 
@@ -519,42 +517,42 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
   - pattern: `homing`
   - fantasy: curved frost needles
   - rank-10 Skill 2: `Mirror Needle Constellation`, an orbit that releases staggered retargeting frost needles and scales from Frost
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and hoarfrost-constellation combat motif
 - `Black Tide Scripture`
   - required roots: `water`
   - pattern: `wave`
   - fantasy: layered water tides
   - rank-10 Skill 2: `Moon Tide Vault`, an expanding push wave followed by a returning pull wave that scales from Tide
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and moon-tide combat motif
 - `Ice Mirror Guard`
   - required roots: `water`
   - pattern: `aura`
   - fantasy: defensive cold mirrors
   - rank-10 Skill 2: `Frozen Lotus Shell`, a defensive mirror-petal lotus that shatters into aimed frost shards
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and mirror-lotus combat motif
 
 ### Wood Root
 
-Wood is deferred content for the future `Water-Wood` dual-root profile.
+Wood is playable through the `Water-Wood` dual-root profile.
 
 - `Green Vine Art`
   - required roots: `wood`
   - pattern: `homing`
   - fantasy: living vine lashes
   - rank-10 Skill 2: `Verdant Root Network`, a pulsing, retargeting network of damaging vine links that scales from Vinegrowth
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and branching-root combat motif
 - `Verdant Ring Scripture`
   - required roots: `wood`
   - pattern: `aura`
   - fantasy: thorned growth ring
   - rank-10 Skill 2: `Sprout-Sun Circle`, a planted thorn circle ending in a full Bloom-scaled damaging ring
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and sprout-sun combat motif
 - `Ironwood Wave Form`
   - required roots: `wood`
   - pattern: `wave`
   - fantasy: rib-like slashing fronts
   - rank-10 Skill 2: `Ironwood Surge Form`, a pushing rampart that splinters into diagonal return waves and scales from Heartwood
-  - status: Skill-2 behavior authored; full package implementation remains incomplete
+  - status: complete playable package with Rank-22 Mastery and heartwood-rampart combat motif
 
 ### Hybrid Gongfa
 

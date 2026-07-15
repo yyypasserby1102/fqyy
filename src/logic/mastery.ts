@@ -10,6 +10,7 @@ export interface MasteryChoiceContext {
 }
 
 export type MasteryChoiceKind = "refinement" | "transformation" | "skill2";
+export const FULLY_MASTERED_RANK = 22;
 
 export function isMasteryTransformationRank(rank: number): rank is 3 | 6 | 9 {
   return rank === 3 || rank === 6 || rank === 9;
@@ -651,6 +652,7 @@ export function getDeterministicMasteryChoiceIds(
 
   const authoredPool = upgradeConfigs
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(context.gongfaId))
+    .filter((upgrade) => (upgrade.unlockRank ?? 0) <= context.rank)
     // An upgrade that is also a milestone Transformation (e.g. counterflow-ring)
     // is offered only at its milestone, never in the ordinary refinement pool.
     .filter((upgrade) => !transformationIdSet.has(upgrade.id))
@@ -699,5 +701,5 @@ export function isGongfaFullyMastered(
   skill2Id: string | undefined,
   learnedIds: string[]
 ): boolean {
-  return rank >= 10 && Boolean(skill2Id) && !hasAvailableGongfaRefinement(gongfaId, learnedIds);
+  return rank >= FULLY_MASTERED_RANK && Boolean(skill2Id) && !hasAvailableGongfaRefinement(gongfaId, learnedIds);
 }

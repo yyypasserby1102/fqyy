@@ -13,6 +13,7 @@ import {
 import { RealmProgressBar } from "../ui/RealmProgressBar";
 import type { RunJourneyCommand } from "../logic/runJourney";
 import type { RealmPhaseId } from "../data/stages";
+import { GongfaCodex, type GongfaCodexPath } from "../ui/GongfaCodex";
 
 interface HudState {
   health: number;
@@ -28,6 +29,7 @@ interface HudState {
   masterySkill2Casts: number;
   masteryFullyMastered: boolean;
   gongfaPaths: string;
+  gongfaCodexPaths: GongfaCodexPath[];
   galeMomentum: number;
   guard: number;
   guardMitigation: number;
@@ -67,6 +69,8 @@ export class UIScene extends Phaser.Scene {
   private levelUpPanel!: LevelUpPanel;
   private journeyPresentation!: JourneyPresentation;
   private realmProgressBar!: RealmProgressBar;
+  private gongfaCodex!: GongfaCodex;
+  private gongfaArchiveButton!: Phaser.GameObjects.Text;
   private inputController!: InputController;
   private levelUpVisible = false;
 
@@ -115,6 +119,21 @@ export class UIScene extends Phaser.Scene {
     this.levelUpPanel = new LevelUpPanel(this);
     this.journeyPresentation = new JourneyPresentation(this);
     this.realmProgressBar = new RealmProgressBar(this);
+    this.gongfaCodex = new GongfaCodex(this, () => this.setGongfaCodexVisible(false));
+    this.gongfaArchiveButton = this.add
+      .text(this.scale.width - 18, this.scale.height - 18, "G · GONGFA", {
+        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontSize: "13px",
+        color: "#d8f4ef",
+        backgroundColor: "#12313a",
+        padding: { x: 12, y: 7 }
+      })
+      .setOrigin(1)
+      .setDepth(240)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        if (!this.levelUpVisible) this.setGongfaCodexVisible(!this.gongfaCodex.visible);
+      });
 
     this.events.on("show-choice-panel", this.onShowChoicePanel, this);
     this.events.on("hide-choice-panel", this.onHideChoicePanel, this);
@@ -125,6 +144,15 @@ export class UIScene extends Phaser.Scene {
   }
 
   update(): void {
+    if (this.inputController.gongfaCodexPressed && !this.levelUpVisible) {
+      this.setGongfaCodexVisible(!this.gongfaCodex.visible);
+    }
+
+    if (this.gongfaCodex.visible) {
+      if (this.inputController.previousTabPressed) this.gongfaCodex.selectPrevious();
+      if (this.inputController.nextTabPressed) this.gongfaCodex.selectNext();
+    }
+
     if (import.meta.env.DEV && this.inputController.debugPressed) {
       this.debugOverlay?.toggle();
     }
@@ -140,6 +168,7 @@ export class UIScene extends Phaser.Scene {
     if (!hud) {
       return;
     }
+    this.gongfaCodex.update(hud.gongfaCodexPaths ?? []);
 
     const hudLines = buildHudLines({
         stageName: hud.stageName,
@@ -185,8 +214,8 @@ export class UIScene extends Phaser.Scene {
         : hud.paused
           ? "Paused - ESC to resume"
         : import.meta.env.DEV
-          ? "WASD Move · Space Evade · Esc Pause · F3 Debug"
-          : "WASD Move · Space Evade · Esc Pause"
+          ? "WASD Move · Space Evade · G Gongfa · Esc Pause · F3 Debug"
+          : "WASD Move · Space Evade · G Gongfa · Esc Pause"
     );
 
     if (import.meta.env.DEV) {
@@ -214,11 +243,15 @@ export class UIScene extends Phaser.Scene {
       },
       realmProgressBar: this.realmProgressBar.getSnapshot(),
       choicePanel: this.levelUpPanel.getSnapshot(),
-      journeyPresentation: this.journeyPresentation.getSnapshot()
+      journeyPresentation: this.journeyPresentation.getSnapshot(),
+      gongfaCodex: this.gongfaCodex.getSnapshot()
     };
   }
 
   private onShowChoicePanel(payload: ChoicePayload): void {
+    if (this.gongfaCodex.visible) {
+      this.gongfaCodex.hide();
+    }
     this.levelUpVisible = true;
     this.levelUpPanel.show(
       payload.title,
@@ -250,7 +283,21 @@ export class UIScene extends Phaser.Scene {
     this.hudPresentation.resize();
     this.journeyPresentation.resize();
     this.realmProgressBar.resize();
+    this.gongfaCodex.resize();
     this.pauseText.setPosition(gameSize.width * 0.5, 46);
     this.messageText.setPosition(gameSize.width * 0.5, gameSize.height - 28);
+    this.gongfaArchiveButton.setPosition(gameSize.width - 18, gameSize.height - 18);
+  }
+
+  private setGongfaCodexVisible(visible: boolean): void {
+    if (visible) {
+      this.gongfaCodex.show();
+      this.scene.pause("game");
+      return;
+    }
+    this.gongfaCodex.hide();
+    const gameScene = this.scene.get("game");
+    const gameHud = this.registry.get("hud") as HudState | undefined;
+    if (!gameHud?.paused && gameScene.scene.isPaused()) this.scene.resume("game");
   }
 }

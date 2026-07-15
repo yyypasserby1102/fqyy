@@ -19,6 +19,7 @@ import {
 import { upgradeConfigs, type UpgradeEffect } from "../data/upgrades";
 import {
   getDeterministicMasteryChoiceIds,
+  FULLY_MASTERED_RANK,
   getRank10Skill2Id,
   hasAvailableGongfaRefinement,
   isMasteryTransformationRank
@@ -43,6 +44,33 @@ export interface GongfaRuntime {
   crimsonFurnace?: CrimsonFurnaceState;
   blazingFeather?: BlazingFeatherState;
   surge?: SurgeState;
+  skill1Refinements?: Skill1RefinementState;
+}
+
+export interface Skill1RefinementState {
+  damageBonus: number;
+  countBonus: number;
+  pierceBonus: number;
+  rangeBonus: number;
+}
+
+const emptySkill1Refinements = (): Skill1RefinementState => ({
+  damageBonus: 0,
+  countBonus: 0,
+  pierceBonus: 0,
+  rangeBonus: 0
+});
+
+function skill2Combat(runtime: GongfaRuntime): GongfaCombatState {
+  const skill1 = runtime.skill1Refinements ?? emptySkill1Refinements();
+  return {
+    ...runtime.combat,
+    damage: Math.max(1, runtime.combat.damage - skill1.damageBonus),
+    count: Math.max(1, runtime.combat.count - skill1.countBonus),
+    pierce: Math.max(0, runtime.combat.pierce - skill1.pierceBonus),
+    range: Math.max(0, runtime.combat.range - skill1.rangeBonus),
+    auraRadius: Math.max(0, runtime.combat.auraRadius - skill1.rangeBonus)
+  };
 }
 
 /** Shared passive for the lighter gongfa; see data/surgeGongfa.ts. */
@@ -87,6 +115,7 @@ export interface YujianState {
   intentAppliedDamageBonus: number;
   intentAppliedSpeedBonus: number;
   intentAppliedPierceBonus: number;
+  intentPotencyBonus: number;
 }
 
 export interface JinfengState {
@@ -265,10 +294,16 @@ export type GongfaRuntimeCommand =
       kind: "solar-flare-cycle";
       segmentCount: number;
       ringRadius: number;
+      damageScale: number;
+      baseDamage: number;
       masteryCast: MasterySkill2Cast;
     }
   | {
       kind: "blade-shell-rebound";
+      damageScale: number;
+      bonusBlades: number;
+      baseDamage: number;
+      baseBladeCount: number;
       masteryCast: MasterySkill2Cast;
     }
   | {
@@ -322,6 +357,11 @@ export type GongfaRuntimeCommand =
       overlapScale: number;
       damage: number;
       width: number;
+      pierce: number;
+      speed: number;
+      lifetimeMs: number;
+      distanceScale: number;
+      speedScale: number;
       masteryCast: MasterySkill2Cast;
     }
   | {
@@ -374,6 +414,11 @@ export type GongfaRuntimeCommand =
       damage: number;
       width: number;
       pushStrength: number;
+      pierce: number;
+      speed: number;
+      lifetimeMs: number;
+      distanceScale: number;
+      speedScale: number;
       masteryCast: MasterySkill2Cast;
     };
 
@@ -904,7 +949,7 @@ export function advanceGongfaMasteryProgress(
     masteryPendingRanks: [...state.masteryPendingRanks]
   };
   const previousRank = state.masteryRank;
-  const targetRank = Math.floor(next.masteryPoints / 100);
+  const targetRank = Math.min(FULLY_MASTERED_RANK, Math.floor(next.masteryPoints / 100));
   if (targetRank <= state.masteryRank) {
     return { state: next };
   }
@@ -986,43 +1031,50 @@ function buildExplicitTimedSkill2Command(
   runtime: GongfaRuntime,
   skill2: AuthoredSkill2Plan
 ): GongfaRuntimeCommand | undefined {
+  const { damageScale, coverage, cadenceScale } = skill2RefinementStats(runtime);
+  const damage = (value: number): number => Math.max(1, Math.floor(value * damageScale));
+  const delay = (value: number): number => Math.max(40, Math.floor(value * cadenceScale));
+  const distanceScale = 1 + coverage * 0.18;
+  const speedScale = 1 + (1 - cadenceScale);
+  const combat = skill2Combat(runtime);
   const masteryCast: MasterySkill2Cast = {
     skill2Id: skill2.intent,
-    cooldownMs: skill2.cooldownMs
+    cooldownMs: Math.max(600, Math.floor(skill2.cooldownMs * cadenceScale))
   };
   const resource = runtime.blazingFeather?.emberStacks ?? runtime.surge?.stacks ?? 0;
 
   switch (skill2.intent) {
     case "feather-rain-formation":
-      return { kind: skill2.intent, fanCount: 3, feathersPerFan: Math.max(3, runtime.combat.count + resource), fanDelayMs: 140, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.08))), pierce: runtime.combat.pierce, masteryCast };
+      return { kind: skill2.intent, fanCount: 3 + coverage, feathersPerFan: Math.max(3, combat.count + resource + coverage), fanDelayMs: delay(140), damage: damage(combat.damage * (1.1 + resource * 0.08)), pierce: combat.pierce, masteryCast };
     case "sunset-wave-apex":
-      return { kind: skill2.intent, wallCount: 2, overlapScale: 1.4 + resource * 0.08, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.15 + resource * 0.07))), width: 70 + resource * 10, masteryCast };
+      return { kind: skill2.intent, wallCount: 2, overlapScale: 1.4 + resource * 0.08, damage: damage(combat.damage * (1.15 + resource * 0.07)), width: 70 + resource * 10 + coverage * 18, pierce: combat.pierce + 1, speed: combat.projectileSpeed, lifetimeMs: combat.projectileLifetimeMs + 300, distanceScale, speedScale, masteryCast };
     case "mirror-needle-constellation":
-      return { kind: skill2.intent, needleCount: Math.max(5, runtime.combat.count + 3 + resource), staggerMs: 75, damage: Math.max(1, Math.floor(runtime.combat.damage * 1.05)), pierce: runtime.combat.pierce + Math.floor(resource / 3), masteryCast };
+      return { kind: skill2.intent, needleCount: Math.max(5, combat.count + 3 + resource + coverage * 2), staggerMs: delay(75), damage: damage(combat.damage * 1.05), pierce: combat.pierce + Math.floor(resource / 3), masteryCast };
     case "moon-tide-vault":
-      return { kind: skill2.intent, radius: 180 + resource * 12, damage: Math.max(1, Math.floor(runtime.combat.damage * 1.2)), controlStrength: 180 + resource * 15, returnDelayMs: 320, masteryCast };
+      return { kind: skill2.intent, radius: 180 + resource * 12 + coverage * 24, damage: damage(combat.damage * 1.2), controlStrength: 180 + resource * 15 + coverage * 20, returnDelayMs: delay(320), masteryCast };
     case "frozen-lotus-shell":
-      return { kind: skill2.intent, petalCount: Math.max(6, runtime.combat.count + 4 + resource), damage: Math.max(1, Math.floor(runtime.combat.damage * (1.15 + resource * 0.08))), radius: 90 + resource * 12, shatterDelayMs: 520, masteryCast };
+      return { kind: skill2.intent, petalCount: Math.max(6, combat.count + 4 + resource + coverage * 2), damage: damage(combat.damage * (1.15 + resource * 0.08)), radius: 90 + resource * 12 + coverage * 16, shatterDelayMs: delay(520), masteryCast };
     case "verdant-root-network":
-      return { kind: skill2.intent, linkCount: Math.max(3, runtime.combat.count + resource), pulseCount: 3, pulseDelayMs: 180, damage: Math.max(1, Math.floor(runtime.combat.damage * (0.7 + resource * 0.08))), reach: 220 + resource * 20, masteryCast };
+      return { kind: skill2.intent, linkCount: Math.max(3, combat.count + resource + coverage), pulseCount: 3 + coverage, pulseDelayMs: delay(180), damage: damage(combat.damage * (0.7 + resource * 0.08)), reach: 220 + resource * 20 + coverage * 30, masteryCast };
     case "sprout-sun-circle":
-      return { kind: skill2.intent, spokeCount: Math.max(8, runtime.combat.count + 5 + resource), pulseCount: 3, pulseDelayMs: 220, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.07))), radius: 100 + resource * 12, masteryCast };
+      return { kind: skill2.intent, spokeCount: Math.max(8, combat.count + 5 + resource + coverage * 2), pulseCount: 3 + coverage, pulseDelayMs: delay(220), damage: damage(combat.damage * (1.1 + resource * 0.07)), radius: 100 + resource * 12 + coverage * 18, masteryCast };
     case "ironwood-surge-form":
-      return { kind: skill2.intent, waveCount: Math.max(3, runtime.combat.count + 1), returnShots: 2, growthScale: 1.25 + resource * 0.05, damage: Math.max(1, Math.floor(runtime.combat.damage * (1.1 + resource * 0.08))), width: 80 + resource * 12, pushStrength: 170 + resource * 18, masteryCast };
+      return { kind: skill2.intent, waveCount: Math.max(3, combat.count + 1 + coverage), returnShots: 2 + coverage, growthScale: 1.25 + resource * 0.05, damage: damage(combat.damage * (1.1 + resource * 0.08)), width: 80 + resource * 12 + coverage * 18, pushStrength: 170 + resource * 18 + coverage * 20, pierce: combat.pierce + 1, speed: combat.projectileSpeed, lifetimeMs: combat.projectileLifetimeMs + 360, distanceScale, speedScale, masteryCast };
     default:
       return undefined;
   }
 }
 
 function buildCrimsonFragmentSpec(runtime: GongfaRuntime): CrimsonFragmentSpec {
+  const combat = skill2Combat(runtime);
   return {
     radius: 220,
     maxTargets: 2,
     delayMs: 100,
     delayStepMs: 60,
-    damage: Math.max(4, Math.floor(runtime.combat.damage * 0.45)),
-    speed: runtime.combat.projectileSpeed + 80,
-    lifetimeMs: Math.max(420, runtime.combat.projectileLifetimeMs - 120)
+    damage: Math.max(4, Math.floor(combat.damage * 0.45)),
+    speed: combat.projectileSpeed + 80,
+    lifetimeMs: Math.max(420, combat.projectileLifetimeMs - 120)
   };
 }
 
@@ -1036,6 +1088,7 @@ interface CreateGongfaRuntimeInput {
   crimsonFurnace?: Partial<CrimsonFurnaceState>;
   blazingFeather?: Partial<BlazingFeatherState>;
   surge?: Partial<SurgeState>;
+  skill1Refinements?: Partial<Skill1RefinementState>;
 }
 
 export interface GongfaRuntimeCheckpointFields {
@@ -1165,7 +1218,8 @@ const yujianDefaults: YujianState = {
   intentDurationRemaining: 0,
   intentAppliedDamageBonus: 0,
   intentAppliedSpeedBonus: 0,
-  intentAppliedPierceBonus: 0
+  intentAppliedPierceBonus: 0,
+  intentPotencyBonus: 0
 };
 
 const INTENT_DURATION_MS = 3000;
@@ -1200,6 +1254,17 @@ const surgeDefaults: SurgeState = {
 };
 
 const learned = (ids: string[], group: Set<string>): boolean => ids.some((id) => group.has(id));
+const masteryEffectTiers = (ids: string[], effect: UpgradeEffect): number =>
+  ids.filter((id) => upgradeConfigs.some((upgrade) => upgrade.id === id && upgrade.effect === effect)).length;
+const skill2RefinementStats = (runtime: GongfaRuntime): {
+  damageScale: number;
+  coverage: number;
+  cadenceScale: number;
+} => ({
+  damageScale: 1 + masteryEffectTiers(runtime.mastery.masteryLearnedIds, "skill2Damage") * 0.15,
+  coverage: masteryEffectTiers(runtime.mastery.masteryLearnedIds, "skill2Coverage"),
+  cadenceScale: 1 - masteryEffectTiers(runtime.mastery.masteryLearnedIds, "skill2Cadence") * 0.12
+});
 
 function syncSurgeCombat(runtime: GongfaRuntime): void {
   const state = runtime.surge;
@@ -1235,7 +1300,10 @@ function syncYujianCombat(runtime: GongfaRuntime): void {
 
   // Each Intent stack improves Yujian damage and projectile flight speed;
   // five stacks grant +1 pierce.
-  const desiredDamageBonus = state.intentStacks * 2;
+  const intentPotency =
+    masteryEffectTiers(runtime.mastery.masteryLearnedIds, "resourcePotency") +
+    state.intentPotencyBonus;
+  const desiredDamageBonus = state.intentStacks * (2 + intentPotency);
   const desiredSpeedBonus = state.intentStacks * 24;
   const desiredPierceBonus = state.intentStacks >= 5 ? 1 : 0;
 
@@ -1246,6 +1314,26 @@ function syncYujianCombat(runtime: GongfaRuntime): void {
   state.intentAppliedDamageBonus = desiredDamageBonus;
   state.intentAppliedSpeedBonus = desiredSpeedBonus;
   state.intentAppliedPierceBonus = desiredPierceBonus;
+}
+
+function restoreSkill1RefinementLedger(runtime: GongfaRuntime): Skill1RefinementState {
+  if (runtime.skill1Refinements) return { ...runtime.skill1Refinements };
+
+  const ledger = emptySkill1Refinements();
+  const learnedIds = runtime.mastery.masteryLearnedIds;
+  const replayIds = [
+    ...runtime.mastery.upgradeSelectionIds.filter((id) => !learnedIds.includes(id)),
+    ...learnedIds
+  ];
+  for (const id of replayIds) {
+    const upgrade = upgradeConfigs.find((candidate) => candidate.id === id);
+    if (!upgrade) continue;
+    if (upgrade.effect === "skill1Damage") ledger.damageBonus += upgrade.value;
+    if (upgrade.effect === "skill1Count") ledger.countBonus += upgrade.value;
+    if (upgrade.effect === "skill1Pierce") ledger.pierceBonus += upgrade.value;
+    if (upgrade.effect === "skill1Range") ledger.rangeBonus += upgrade.value;
+  }
+  return ledger;
 }
 
 function copyRuntime(runtime: GongfaRuntime): GongfaRuntime {
@@ -1266,7 +1354,8 @@ function copyRuntime(runtime: GongfaRuntime): GongfaRuntime {
     burningRing: runtime.burningRing ? { ...runtime.burningRing } : undefined,
     crimsonFurnace: runtime.crimsonFurnace ? { ...runtime.crimsonFurnace } : undefined,
     blazingFeather: runtime.blazingFeather ? { ...runtime.blazingFeather } : undefined,
-    surge: runtime.surge ? { ...runtime.surge } : undefined
+    surge: runtime.surge ? { ...runtime.surge } : undefined,
+    skill1Refinements: restoreSkill1RefinementLedger(runtime)
   };
 }
 
@@ -1363,6 +1452,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
     mastery: {
       ...createEmptyGongfaMastery(),
       ...input.mastery,
+      masterySkill2Id: input.mastery?.masterySkill2Id,
       masteryLearnedIds: [...(input.mastery?.masteryLearnedIds ?? [])],
       upgradeSelectionIds: [...(input.mastery?.upgradeSelectionIds ?? [])],
       masteryPendingRanks: [...(input.mastery?.masteryPendingRanks ?? [])]
@@ -1432,7 +1522,11 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
         : undefined,
     surge: surgeGongfaIdSet.has(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
-      : undefined
+      : undefined,
+    skill1Refinements: {
+      ...emptySkill1Refinements(),
+      ...input.skill1Refinements
+    }
   };
 
   syncJinfengCombat(runtime);
@@ -1860,9 +1954,11 @@ export function advanceGongfaRuntime(
     // Unbroken Sword Intent: a successful hit builds a stack and refreshes its
     // duration (applied after this hit's Skill-1 effects). Myriad Blade
     // Resonance feeds Intent faster.
-    const intentGain = event.learnedMasteryIds.includes("myriad-blade-resonance") ? 2 : 1;
+    const intentGain = (event.learnedMasteryIds.includes("myriad-blade-resonance") ? 2 : 1) +
+      masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
     state.intentStacks = Math.min(5, state.intentStacks + intentGain);
-    state.intentDurationRemaining = INTENT_DURATION_MS;
+    state.intentDurationRemaining = INTENT_DURATION_MS *
+      (1 + masteryEffectTiers(event.learnedMasteryIds, "surgeStability") * 0.25);
     syncYujianCombat(next);
 
     // Intent Domain: hits leave an Intent-scaled blade field. Evaluated after
@@ -1887,6 +1983,8 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "skill2") {
+    const skill2Stats = skill2RefinementStats(next);
+    const skill2Base = skill2Combat(next);
     if (
       event.skill2Id === "returning-sword-formation" &&
       next.yujian &&
@@ -1894,48 +1992,48 @@ export function advanceGongfaRuntime(
     ) {
       commands.push({
         kind: "returning-sword-formation",
-        count: Math.max(1, next.combat.count),
+        count: Math.max(1, skill2Base.count + skill2Stats.coverage),
         opening: {
-          damage: Math.floor(next.combat.damage * 0.72),
-          pierce: next.combat.pierce + 1,
-          speed: next.combat.projectileSpeed + 55,
-          lifetimeMs: next.combat.projectileLifetimeMs + 280
+          damage: Math.floor(skill2Base.damage * 0.72 * skill2Stats.damageScale),
+          pierce: skill2Base.pierce + 1,
+          speed: skill2Base.projectileSpeed + 55,
+          lifetimeMs: skill2Base.projectileLifetimeMs + 280
         },
         returnPath: {
-          delayMs: 240,
-          damage: Math.floor(next.combat.damage * 0.58),
-          pierce: next.combat.pierce + 1,
-          speed: next.combat.projectileSpeed + 75,
-          lifetimeMs: next.combat.projectileLifetimeMs + 340
+          delayMs: Math.floor(240 * skill2Stats.cadenceScale),
+          damage: Math.floor(skill2Base.damage * 0.58 * skill2Stats.damageScale),
+          pierce: skill2Base.pierce + 1,
+          speed: skill2Base.projectileSpeed + 75,
+          lifetimeMs: skill2Base.projectileLifetimeMs + 340
         },
         masteryCast: {
           skill2Id: "returning-sword-formation",
-          cooldownMs: authoredSkill2Plans["returning-sword-formation"].cooldownMs
+          cooldownMs: Math.floor(authoredSkill2Plans["returning-sword-formation"].cooldownMs * skill2Stats.cadenceScale)
         }
       });
     }
     if (event.skill2Id === "golden-gale-corridor" && next.jinfeng) {
       commands.push({
         kind: "golden-gale-corridor",
-        burstCount: 3,
-        burstDelayMs: 180,
-        laneCount: Math.max(3, Math.min(5, 3 + Math.floor(next.combat.count / 2))),
-        spreadDeg: Math.max(8, next.combat.spreadDeg * 0.4),
+        burstCount: 3 + skill2Stats.coverage,
+        burstDelayMs: Math.floor(180 * skill2Stats.cadenceScale),
+        laneCount: Math.max(3, Math.min(7, 3 + Math.floor(skill2Base.count / 2) + skill2Stats.coverage)),
+        spreadDeg: Math.max(8, skill2Base.spreadDeg * 0.4),
         forwardOffset: {
           start: 32,
           step: 26
         },
         sidewaysSpacing: 12,
         projectile: {
-          damage: Math.floor(next.combat.damage * 0.8),
-          pierce: next.combat.pierce + 1,
-          speed: next.combat.projectileSpeed + 25,
-          lifetimeMs: next.combat.projectileLifetimeMs + Math.floor(next.combat.range * 0.9),
+          damage: Math.floor(skill2Base.damage * 0.8 * skill2Stats.damageScale),
+          pierce: skill2Base.pierce + 1,
+          speed: skill2Base.projectileSpeed + 25,
+          lifetimeMs: skill2Base.projectileLifetimeMs + Math.floor(skill2Base.range * 0.9),
           scale: 0.92
         },
         masteryCast: {
           skill2Id: "golden-gale-corridor",
-          cooldownMs: authoredSkill2Plans["golden-gale-corridor"].cooldownMs
+          cooldownMs: Math.floor(authoredSkill2Plans["golden-gale-corridor"].cooldownMs * skill2Stats.cadenceScale)
         }
       });
     }
@@ -1948,13 +2046,13 @@ export function advanceGongfaRuntime(
       commands.push({
         kind: "furnace-cascade",
         sourceDamage: {
-          embedPowerMultiplier: 1,
-          stackDamage: 3
+          embedPowerMultiplier: skill2Stats.damageScale,
+          stackDamage: 3 + skill2Stats.coverage
         },
         fragment: buildCrimsonFragmentSpec(next),
         masteryCast: {
           skill2Id: "furnace-cascade",
-          cooldownMs: authoredSkill2Plans["furnace-cascade"].cooldownMs
+          cooldownMs: Math.floor(authoredSkill2Plans["furnace-cascade"].cooldownMs * skill2Stats.cadenceScale)
         }
       });
     }
@@ -2011,9 +2109,11 @@ export function advanceGongfaRuntime(
       return { runtime: next, commands };
     }
     // Ember Surge: hits stoke Embers; Ember Cascade stokes them faster.
-    const gain = event.learnedMasteryIds.includes("ember-cascade") ? 2 : 1;
+    const gain = (event.learnedMasteryIds.includes("ember-cascade") ? 2 : 1) +
+      masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
     state.emberStacks = Math.min(MAX_EMBER_STACKS, state.emberStacks + gain);
-    state.emberDurationRemaining = EMBER_DURATION_MS;
+    state.emberDurationRemaining = EMBER_DURATION_MS *
+      (1 + masteryEffectTiers(event.learnedMasteryIds, "surgeStability") * 0.25);
     syncBlazingFeatherCombat(next);
     // Searing Domain: hits leave an Ember-scaled blazing field.
     if (event.learnedMasteryIds.includes("searing-domain") && state.emberStacks > 0) {
@@ -2031,9 +2131,11 @@ export function advanceGongfaRuntime(
     if (!state) {
       return { runtime: next, commands };
     }
-    const gain = learned(event.learnedMasteryIds, SURGE_CASCADE_IDS) ? 2 : 1;
+    const gain = (learned(event.learnedMasteryIds, SURGE_CASCADE_IDS) ? 2 : 1) +
+      masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
     state.stacks = Math.min(MAX_SURGE_STACKS, state.stacks + gain);
-    state.durationRemaining = SURGE_DURATION_MS;
+    state.durationRemaining = SURGE_DURATION_MS *
+      (1 + masteryEffectTiers(event.learnedMasteryIds, "surgeStability") * 0.25);
     syncSurgeCombat(next);
     // Domain: hits leave a stack-scaled field.
     if (learned(event.learnedMasteryIds, SURGE_DOMAIN_IDS) && state.stacks > 0) {
@@ -2056,6 +2158,15 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "evade") {
+    if (next.yujian && event.learnedMasteryIds.includes("swordborne-steps")) {
+      next.yujian.intentStacks = Math.min(5, next.yujian.intentStacks + 1);
+      next.yujian.intentDurationRemaining = INTENT_DURATION_MS;
+      syncYujianCombat(next);
+    }
+    if (next.burningRing && event.learnedMasteryIds.includes("ember-step")) {
+      next.burningRing.heat = Math.min(100, next.burningRing.heat + 8);
+      syncBurningRingCombat(next);
+    }
     // Flowing Iron Body: each Evade grants Guard and a defensive shockwave.
     if (next.gengjin && event.learnedMasteryIds.includes("flowing-iron-body")) {
       next.gengjin.guardValue = Math.min(100, next.gengjin.guardValue + 20);
@@ -2169,9 +2280,13 @@ export function advanceGongfaRuntime(
         state.bladeShellCooldownRemaining = 1800;
         commands.push({
           kind: "blade-shell-rebound",
+          damageScale: skill2RefinementStats(next).damageScale,
+          bonusBlades: skill2RefinementStats(next).coverage * 2,
+          baseDamage: skill2Combat(next).damage,
+          baseBladeCount: skill2Combat(next).count,
           masteryCast: {
             skill2Id: "blade-shell-rebound",
-            cooldownMs: authoredSkill2Plans["blade-shell-rebound"].cooldownMs
+            cooldownMs: Math.floor(authoredSkill2Plans["blade-shell-rebound"].cooldownMs * skill2RefinementStats(next).cadenceScale)
           }
         });
       }
@@ -2360,9 +2475,13 @@ export function advanceGongfaRuntime(
         next.gengjin.bladeShellCooldownRemaining = 1800;
         commands.push({
           kind: "blade-shell-rebound",
+          damageScale: skill2RefinementStats(next).damageScale,
+          bonusBlades: skill2RefinementStats(next).coverage * 2,
+          baseDamage: skill2Combat(next).damage,
+          baseBladeCount: skill2Combat(next).count,
           masteryCast: {
             skill2Id: "blade-shell-rebound",
-            cooldownMs: authoredSkill2Plans["blade-shell-rebound"].cooldownMs
+            cooldownMs: Math.floor(authoredSkill2Plans["blade-shell-rebound"].cooldownMs * skill2RefinementStats(next).cadenceScale)
           }
         });
       }
@@ -2432,20 +2551,23 @@ export function advanceGongfaRuntime(
 
   const skill2 = getAuthoredSkill2Plan(event.skill2Id);
   if (skill2?.intent === "solar-flare-cycle") {
+    const skill2Stats = skill2RefinementStats(next);
     state.solarFlareCooldownRemaining = Math.max(
       0,
       state.solarFlareCooldownRemaining - Math.max(0, event.deltaMs)
     );
     if (state.solarFlareCooldownRemaining === 0) {
       state.solarFlareCasts += 1;
-      state.solarFlareCooldownRemaining = skill2.cooldownMs;
+      state.solarFlareCooldownRemaining = Math.floor(skill2.cooldownMs * skill2Stats.cadenceScale);
       commands.push({
         kind: "solar-flare-cycle",
         segmentCount: Math.max(
           6,
-          state.ringSegments + state.counterflowRingAppliedSegments
+          state.ringSegments + state.counterflowRingAppliedSegments + skill2Stats.coverage * 2
         ),
-        ringRadius: 32 + Math.floor(state.heat * 0.3) + state.counterflowRingRadiusBonus,
+        ringRadius: 32 + Math.floor(state.heat * 0.3) + state.counterflowRingRadiusBonus + skill2Stats.coverage * 10,
+        damageScale: skill2Stats.damageScale,
+        baseDamage: skill2Combat(next).damage,
         masteryCast: {
           skill2Id: "solar-flare-cycle"
         }
@@ -2909,28 +3031,49 @@ export function applyGongfaImprovement(
   }
 
   const next = copyRuntime(runtime);
+  const skill1 = next.skill1Refinements ?? (next.skill1Refinements = emptySkill1Refinements());
 
   switch (upgrade.effect) {
-    case "methodDamage":
+    case "skill1Damage":
       next.combat.damage += upgrade.value;
+      skill1.damageBonus += upgrade.value;
       return { runtime: next };
-    case "methodCooldown":
+    case "skill1Cooldown":
       next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * upgrade.value));
       return { runtime: next };
-    case "methodCount":
+    case "skill1Count":
       next.combat.count += upgrade.value;
+      skill1.countBonus += upgrade.value;
       if (upgradeId === "counterflow-ring" && next.burningRing) {
         next.burningRing.counterflowRingSegments += 1;
         next.burningRing.counterflowRingAppliedSegments =
           next.burningRing.counterflowRingSegments;
       }
       return { runtime: next };
-    case "methodPierce":
+    case "skill1Pierce":
       next.combat.pierce += upgrade.value;
+      skill1.pierceBonus += upgrade.value;
       return { runtime: next };
-    case "methodRange":
+    case "skill1Range":
       next.combat.range += upgrade.value;
       next.combat.auraRadius += upgrade.value;
+      skill1.rangeBonus += upgrade.value;
+      return { runtime: next };
+    case "gongfaDamageSynergy":
+      next.combat.damage += upgrade.value;
+      return { runtime: next };
+    case "gongfaPierceSynergy":
+      next.combat.pierce += upgrade.value;
+      return { runtime: next };
+    case "gongfaRangeSynergy":
+      next.combat.range += upgrade.value;
+      next.combat.auraRadius += upgrade.value;
+      return { runtime: next };
+    case "resourcePotency":
+      if (next.yujian) {
+        next.yujian.intentPotencyBonus += upgrade.value;
+      }
+      syncYujianCombat(next);
       return { runtime: next };
     case "retaliationDamage":
       next.combat.retaliationDamage += upgrade.value;

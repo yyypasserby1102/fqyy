@@ -100,7 +100,13 @@ describe("Metal progression tree", () => {
     expect(getCompatibleUpgradeIdsForGongfa("yujian-jue")).toEqual([
       "sword-intent-sharpening",
       "twin-sword-split",
-      "refined-sword-channel"
+      "refined-sword-channel",
+      "steady-sword-heart",
+      "swordborne-steps",
+      "penetrating-intent",
+      "yujian-jue-formation-tempering",
+      "yujian-jue-expanded-sword-array",
+      "yujian-jue-swift-formation"
     ]);
   });
 
@@ -111,7 +117,10 @@ describe("Metal progression tree", () => {
       "long-edge-resonance",
       "gathering-gale",
       "unbroken-stride",
-      "windborne-reach"
+      "windborne-reach",
+      "jinfeng-gong-corridor-edge",
+      "jinfeng-gong-expanding-passage",
+      "jinfeng-gong-rapid-crosswinds"
     ]);
   });
 
@@ -122,7 +131,10 @@ describe("Metal progression tree", () => {
       "expanding-shell",
       "lasting-temper",
       "bulwark-reflection",
-      "unyielding-shield"
+      "unyielding-shield",
+      "gengjin-huti-tempered-shell",
+      "gengjin-huti-layered-eruption",
+      "gengjin-huti-rapid-reforging"
     ]);
   });
 
@@ -131,9 +143,12 @@ describe("Metal progression tree", () => {
       "broadened-flame",
       "rapid-revolution",
       "scorching-passage",
-      "counterflow-ring",
       "gathering-heat",
-      "banked-ember"
+      "banked-ember",
+      "ember-step",
+      "burning-ring-scripture-solar-tempering",
+      "burning-ring-scripture-widened-corona",
+      "burning-ring-scripture-accelerated-cycle"
     ]);
   });
 
@@ -144,7 +159,10 @@ describe("Metal progression tree", () => {
       "deep-embedding",
       "furnace-expansion",
       "rising-pressure",
-      "sealed-crucible"
+      "sealed-crucible",
+      "crimson-furnace-sword-art-cascade-tempering",
+      "crimson-furnace-sword-art-scattering-furnace",
+      "crimson-furnace-sword-art-rapid-cascade"
     ]);
   });
 
@@ -155,7 +173,10 @@ describe("Metal progression tree", () => {
       "long-edge-resonance",
       "gathering-gale",
       "unbroken-stride",
-      "windborne-reach"
+      "windborne-reach",
+      "jinfeng-gong-corridor-edge",
+      "jinfeng-gong-expanding-passage",
+      "jinfeng-gong-rapid-crosswinds"
     ]);
   });
 

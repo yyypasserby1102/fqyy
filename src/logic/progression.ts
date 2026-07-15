@@ -252,6 +252,7 @@ export { getGongfaSkillTags };
 export function getCompatibleUpgradeIdsForGongfa(gongfaId: GongfaId): string[] {
   return upgradeConfigs
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId))
+    .filter((upgrade) => upgrade.id !== "counterflow-ring")
     .map((upgrade) => upgrade.id);
 }
 

@@ -5,7 +5,7 @@ export class InputController {
 
   constructor(scene: Phaser.Scene) {
     this.keys = scene.input.keyboard!.addKeys(
-      "W,A,S,D,UP,LEFT,DOWN,RIGHT,SPACE,ESC,F3,ONE,TWO,THREE"
+      "W,A,S,D,UP,LEFT,DOWN,RIGHT,SPACE,ESC,F3,G,ONE,TWO,THREE"
     ) as Record<string, Phaser.Input.Keyboard.Key>;
   }
 
@@ -39,6 +39,18 @@ export class InputController {
 
   get debugPressed(): boolean {
     return Phaser.Input.Keyboard.JustDown(this.keys.F3);
+  }
+
+  get gongfaCodexPressed(): boolean {
+    return Phaser.Input.Keyboard.JustDown(this.keys.G);
+  }
+
+  get previousTabPressed(): boolean {
+    return Phaser.Input.Keyboard.JustDown(this.keys.LEFT);
+  }
+
+  get nextTabPressed(): boolean {
+    return Phaser.Input.Keyboard.JustDown(this.keys.RIGHT);
   }
 
   get selectedUpgradeSlot(): number | null {

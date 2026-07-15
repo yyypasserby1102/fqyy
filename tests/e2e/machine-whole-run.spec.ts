@@ -102,7 +102,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
 
   const collectQi = async (qiValue: number): Promise<void> => {
     await page.evaluate((value) => window.__gameTest!.forceSpawnQiOrb(value), qiValue);
-    for (let attempt = 0; attempt < 50; attempt += 1) {
+    for (let attempt = 0; attempt < 70; attempt += 1) {
       const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
       maxEnemies = Math.max(maxEnemies, snapshot.counts.enemies);
       if (snapshot.choice?.title.includes("Tribulation")) {
@@ -131,7 +131,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     throw new Error("Machine Run could not collect the forced Qi Orb");
   };
 
-  const reachJourneyChoice = async (): Promise<string> => {
+  const reachJourneyChoice = async (finishFoundingMastery = false): Promise<string> => {
     for (let attempt = 0; attempt < 24; attempt += 1) {
       const title = await page.evaluate(() => window.__gameTest!.getSnapshot().choice?.title);
       if (title?.includes("Tribulation")) return title;
@@ -141,6 +141,13 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
         continue;
       }
       await collectQi(26);
+      if (finishFoundingMastery) {
+        for (let masteryAttempt = 0; masteryAttempt < 8; masteryAttempt += 1) {
+          const progression = await page.evaluate(() => window.__gameTest!.getSnapshot().progression);
+          if (progression.realmProgress < 100 || progression.masteryRank >= 22) break;
+          await collectQi(26);
+        }
+      }
       await page.evaluate(() => window.__gameTest!.forceClearEnemies());
     }
     throw new Error("Machine Run did not reach its next journey choice");
@@ -226,7 +233,7 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     await reachNextRealmPhase();
     await observe(`yuanying ${phase} milestone`);
   }
-  const heavenlyTitle = await reachJourneyChoice();
+  const heavenlyTitle = await reachJourneyChoice(true);
   await recordChoice();
   await observe(`yuanying ${heavenlyTitle}`);
   expect(heavenlyTitle).toBe("Yuanying Heavenly Tribulation");

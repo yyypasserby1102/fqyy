@@ -7,20 +7,22 @@ import {
   getRank10Skill2Id
 } from "../../src/logic/mastery";
 import { surgeGongfaSpecs } from "../../src/data/surgeGongfa";
+import { upgradeConfigs } from "../../src/data/upgrades";
+
+const allRefinementTiers = (gongfaId: "yujian-jue") =>
+  upgradeConfigs
+    .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId) && upgrade.id !== "counterflow-ring")
+    .flatMap((upgrade) => [upgrade.id, upgrade.id]);
 
 describe("mastery progression", () => {
   it("marks a Gongfa Fully Mastered only after Skill 2 and its authored Refinements are complete", () => {
-    const allYujianRefinements = [
-      "sword-intent-sharpening", "sword-intent-sharpening", "sword-intent-sharpening",
-      "twin-sword-split", "twin-sword-split", "twin-sword-split",
-      "refined-sword-channel", "refined-sword-channel", "refined-sword-channel"
-    ];
+    const allYujianRefinements = allRefinementTiers("yujian-jue");
 
     expect(isGongfaFullyMastered("yujian-jue", 20, undefined, allYujianRefinements)).toBe(false);
     expect(
       isGongfaFullyMastered(
         "yujian-jue",
-        20,
+        22,
         "returning-sword-formation",
         allYujianRefinements
       )
@@ -561,11 +563,11 @@ describe("mastery progression", () => {
       });
     expect(choices).not.toContain("returning-sword-formation");
     expect(choices).not.toContain("jade-meridian");
-    expect(choices.every((id) => [
-      "sword-intent-sharpening",
-      "twin-sword-split",
-      "refined-sword-channel"
-    ].includes(id))).toBe(true);
+    expect(choices.every((id) =>
+      upgradeConfigs.some((upgrade) =>
+        upgrade.id === id && upgrade.requiredGongfaIds?.includes("yujian-jue")
+      )
+    )).toBe(true);
   });
 
   it("never substitutes generic stat upgrades when authored Gongfa Refinements are exhausted", () => {
@@ -585,17 +587,9 @@ describe("mastery progression", () => {
       gongfaId: "yujian-jue",
       rank: 1,
       seed: "seed-123",
-      learnedIds: [
-        "sword-intent-sharpening",
-        "twin-sword-split",
-        "refined-sword-channel",
-        "sword-intent-sharpening",
-        "twin-sword-split",
-        "refined-sword-channel",
-        "sword-intent-sharpening",
-        "twin-sword-split",
-        "refined-sword-channel"
-      ]
+      learnedIds: allRefinementTiers("yujian-jue").filter((id) =>
+        (upgradeConfigs.find((upgrade) => upgrade.id === id)?.unlockRank ?? 0) < 10
+      )
     });
 
     expect(exhaustedPool).toEqual([]);

@@ -4,14 +4,14 @@ Generated from the public browser surface and `window.__gameTest` acceleration s
 
 | Measurement | Result |
 | --- | --- |
-| Commit | 0aa0c47 |
+| Commit | ddbd83d |
 | Seed / Candidate | 2 / Fire-Metal Linggen |
 | Outcome | victory |
-| Machine wall time | 20.2 seconds |
+| Machine wall time | 14.6 seconds |
 | Save/resume cycles | 1 |
 | Completed Run record | 1 |
 | Choices observed | 22 |
-| Final Gongfa / Mastery | 4 / rank 20 |
+| Final Gongfa / Mastery | 4 / rank 22 |
 | Peak enemies sampled | 8 |
 
 ## Coverage
@@ -23,7 +23,7 @@ Generated from the public browser surface and `window.__gameTest` acceleration s
 - Automatic phase milestones: lianqi:chuqi->zhongqi, lianqi:zhongqi->houqi, lianqi:houqi->dayuanman, zhuji:chuqi->zhongqi, zhuji:zhongqi->houqi, zhuji:houqi->dayuanman, jindan:chuqi->zhongqi, jindan:zhongqi->houqi, jindan:houqi->dayuanman, yuanying:chuqi->zhongqi, yuanying:zhongqi->houqi, yuanying:houqi->dayuanman
 - Audio cues: breakthrough, cast, choice-accept, choice-open, hit, phase-transition, qi-pickup, rank-up, tribulation, victory
 - Realm identities: Fallen Sect Courtyard · Breath, Mist Bamboo Valley · Root, Burial Ridge · Core, Cloudbreak Summit · Soul
-- Gongfa mastery: burning-ring-scripture R20 (Fully Mastered), scarlet-wave-manual R10 (Fully Mastered), blazing-feather-art R10 (Fully Mastered), crimson-furnace-sword-art R6
+- Gongfa mastery: burning-ring-scripture R22 (Fully Mastered), scarlet-wave-manual R22 (Fully Mastered), blazing-feather-art R17, crimson-furnace-sword-art R7
 - Effect hierarchy: burning-ring-scripture founding α1.00, scarlet-wave-manual layered α0.82, blazing-feather-art layered α0.68, crimson-furnace-sword-art layered α0.58
 
 ## General-feel suggestions
@@ -56,17 +56,17 @@ Generated from the public browser surface and `window.__gameTest` acceleration s
 | jindan combat sample | jindan / chuqi | 0 | 3 | 16 | 8 | — |
 | jindan chuqi milestone | jindan / zhongqi | 0 | 3 | 18 | 0 | Scarlet Wave Manual Mastery Rank 9 |
 | jindan zhongqi milestone | jindan / houqi | 0 | 3 | 20 | 0 | Blazing Feather Art Mastery Rank 3 |
-| jindan houqi milestone | jindan / dayuanman | 0 | 3 | 20 | 0 | Blazing Feather Art Mastery Rank 6 |
-| jindan Jindan Tribulation | jindan / dayuanman | 100 | 3 | 20 | 0 | Jindan Tribulation |
-| Entered yuanying | yuanying / chuqi | 0 | 4 | 20 | 0 | — |
-| yuanying combat sample | yuanying / chuqi | 0 | 4 | 20 | 7 | — |
-| yuanying chuqi milestone | yuanying / zhongqi | 15.52 | 4 | 20 | 0 | — |
-| yuanying zhongqi milestone | yuanying / houqi | 0 | 4 | 20 | 0 | Crimson Furnace Sword Art Mastery Rank 3 |
-| yuanying houqi milestone | yuanying / dayuanman | 0 | 4 | 20 | 0 | — |
-| yuanying Yuanying Heavenly Tribulation | yuanying / dayuanman | 100 | 4 | 20 | 0 | Yuanying Heavenly Tribulation |
-| Heavenly Tribulation started | yuanying / dayuanman | 0 | 4 | 20 | 2 | — |
-| Heavenly Tribulation resumed | yuanying / dayuanman | 0 | 4 | 20 | 2 | — |
-| Boss resolution 1 | yuanying / dayuanman | 0 | 4 | 20 | 0 | Yuanying Heavenly Tribulation |
-| Boss resolution 2 | yuanying / dayuanman | 0 | 4 | 20 | 0 | Yuanying Heavenly Tribulation |
-| Boss resolution 3 | yuanying / dayuanman | 0 | 4 | 20 | 0 | Run Complete |
-| Ascendant victory | yuanying / dayuanman | 0 | 4 | 20 | 0 | Run Complete |
+| jindan houqi milestone | jindan / dayuanman | 0 | 3 | 22 | 0 | Blazing Feather Art Mastery Rank 6 |
+| jindan Jindan Tribulation | jindan / dayuanman | 100 | 3 | 22 | 0 | Jindan Tribulation |
+| Entered yuanying | yuanying / chuqi | 0 | 4 | 22 | 0 | — |
+| yuanying combat sample | yuanying / chuqi | 0 | 4 | 22 | 5 | — |
+| yuanying chuqi milestone | yuanying / zhongqi | 46.56 | 4 | 22 | 0 | — |
+| yuanying zhongqi milestone | yuanying / houqi | 0 | 4 | 22 | 0 | Crimson Furnace Sword Art Mastery Rank 3 |
+| yuanying houqi milestone | yuanying / dayuanman | 0 | 4 | 22 | 0 | — |
+| yuanying Yuanying Heavenly Tribulation | yuanying / dayuanman | 100 | 4 | 22 | 0 | Yuanying Heavenly Tribulation |
+| Heavenly Tribulation started | yuanying / dayuanman | 0 | 4 | 22 | 2 | — |
+| Heavenly Tribulation resumed | yuanying / dayuanman | 0 | 4 | 22 | 2 | — |
+| Boss resolution 1 | yuanying / dayuanman | 0 | 4 | 22 | 0 | Yuanying Heavenly Tribulation |
+| Boss resolution 2 | yuanying / dayuanman | 0 | 4 | 22 | 0 | Yuanying Heavenly Tribulation |
+| Boss resolution 3 | yuanying / dayuanman | 0 | 4 | 22 | 0 | Run Complete |
+| Ascendant victory | yuanying / dayuanman | 0 | 4 | 22 | 0 | Run Complete |

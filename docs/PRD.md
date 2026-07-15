@@ -143,14 +143,14 @@ Long-term progression continues to a full `Yuanying` combat phase. The fourth Go
 
 The normal Run path ends after the `Yuanying` Heavenly Tribulation. `Huashen` remains a hidden, non-combat true ending whose discovery and five-root completion mechanics are out of scope.
 
-## First-Slice Linggen Pool
+## Playable Linggen Pool
 
-- Single-root:
-  - Metal
-- Dual-root:
-  - Fire + Metal
+- Single-root: `Fire`, `Water`, `Metal`
+- Dual-root: `Fire + Metal`, `Water + Metal`, `Water + Wood`
 
-Pure `Fire`, pure `Water`, `Water + Metal`, and `Water + Wood` are scaffolded or deferred until every `Gongfa` needed by their three-choice offering is authored.
+Every profile in the pool has at least three compatible, complete Gongfa packages. Each package includes its two automatic Skills, defining passive/resource, six two-tier starting Refinement families, nine milestone Transformations, three two-tier Skill-2 Refinement families, persistence, and a distinct combat visual identity.
+
+During a Run, `G` opens a combat-pausing Gongfa Archive. It exposes learned paths, Skill and passive descriptions, tags, Skill-2 lock state, current Mastery rank, integrated Refinement tiers, and permanent Transformations; left and right move between learned paths.
 
 ## First Fully Authored Root
 
@@ -258,9 +258,7 @@ The `Fire + Metal` choice set contains `Burning Ring Scripture`, the hybrid `Cri
 
 - Full five-element content matrix
 - Root-adding `Linggen` evolution
-- Pure `Fire` and pure `Water` profiles
-- `Water + Metal` and `Water + Wood` profiles
-- `Yuanying` and `Huashen`
+- `Huashen`
 - Meta progression and account-level unlock economy
 - Final Chinese game title
 - Exact `Foundation Growth` stats and scaling

@@ -12,6 +12,7 @@ import type { JourneyPresentationSnapshot } from "../ui/JourneyPresentation";
 import type { RealmProgressBarSnapshot } from "../ui/RealmProgressBar";
 import type { RealmPhaseId, StageId } from "../data/stages";
 import type { GongfaId } from "../data/gongfa";
+import type { GongfaCodexSnapshot } from "../ui/GongfaCodex";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -32,6 +33,7 @@ export interface GameSnapshot {
     visual: PlayerVisualSnapshot;
   };
   visuals: {
+    gongfaMotifs: string[];
     enemies: EnemyVisualSnapshot[];
     projectiles: ProjectileVisualSnapshot[];
     projectileImpacts: string[];
@@ -155,12 +157,14 @@ export interface UiSnapshot {
     motionReduced: boolean;
   };
   journeyPresentation: JourneyPresentationSnapshot;
+  gongfaCodex: GongfaCodexSnapshot;
 }
 
 export interface GameTestHarness {
   getSnapshot(): GameSnapshot;
   getUiSnapshot(): UiSnapshot;
   forceSpawnEnemies(count: number): void;
+  forceEquipGongfa(gongfaId: GongfaId): void;
   forceSpawnEnemy(enemyId: EnemyId): void;
   selectChoice(index: number): void;
   forceDamagePlayer(amount: number): void;
