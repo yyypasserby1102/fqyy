@@ -64,7 +64,7 @@ export class LevelUpPanel {
 
     this.title = scene.add
       .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 144, "Breakthrough Choice", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "28px",
         color: "#f5e6a8"
       })
@@ -72,7 +72,7 @@ export class LevelUpPanel {
 
     this.subtitle = scene.add
       .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 108, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "15px",
         color: "#9bc4d8",
         align: "center",
@@ -132,7 +132,7 @@ export class LevelUpPanel {
         .setInteractive({ useHandCursor: true });
       const label = scene.add
         .text(x, y - 64, "", {
-          fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+          fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
           fontSize: "20px",
           color: "#f5fbff",
           align: "center",
@@ -141,7 +141,7 @@ export class LevelUpPanel {
         .setOrigin(0.5);
       const desc = scene.add
         .text(x, y - 12, "", {
-          fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+          fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
           fontSize: "13px",
           color: "#a9c8da",
           align: "center",
@@ -228,12 +228,18 @@ export class LevelUpPanel {
     renderedOptionCount: number;
     mode: ChoiceVisualMode | "hidden";
     motionReduced: boolean;
+    title: string;
+    subtitle: string;
+    optionTitles: string[];
   } {
     return {
       visible: this.container.visible,
       renderedOptionCount: this.options.filter((option) => option.box.visible).length,
       mode: this.container.visible ? this.visualMode : "hidden",
-      motionReduced: this.motionReduced
+      motionReduced: this.motionReduced,
+      title: this.title.text,
+      subtitle: this.subtitle.text,
+      optionTitles: this.currentOptions.map((option) => option.title)
     };
   }
 }

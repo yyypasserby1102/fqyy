@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import { getSettings } from "../persistence/settingsPersistence";
+import { getLocale } from "../i18n/runtime";
+import { localizeRuntimeText } from "../i18n/content";
 
 export type JourneyPresentationKind =
   | "phase"
@@ -58,8 +60,8 @@ export class JourneyPresentation {
     this.lowerRule = scene.add.rectangle(centerX, centerY + 68, 720, 1, 0xd7b96d, 0.38);
     this.seal = scene.add.graphics().setPosition(centerX - 330, centerY);
     this.eyebrow = scene.add
-      .text(centerX, centerY - 47, "REALM PHASE", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+      .text(centerX, centerY - 47, localizeRuntimeText(getLocale(), "REALM PHASE"), {
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "11px",
         color: "#9dd9d7",
         letterSpacing: 4
@@ -67,7 +69,7 @@ export class JourneyPresentation {
       .setOrigin(0.5);
     this.title = scene.add
       .text(centerX, centerY - 10, "", {
-        fontFamily: "Georgia, Noto Serif SC, serif",
+        fontFamily: "Noto Sans SC Variable, Georgia, serif",
         fontSize: "34px",
         color: "#f5e7bd",
         align: "center"
@@ -75,7 +77,7 @@ export class JourneyPresentation {
       .setOrigin(0.5);
     this.subtitle = scene.add
       .text(centerX, centerY + 35, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "14px",
         color: "#b7cbd0",
         align: "center",

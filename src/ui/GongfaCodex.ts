@@ -1,9 +1,15 @@
 import Phaser from "phaser";
 import type { GongfaId } from "../data/gongfa";
-import { gongfaConfigs } from "../data/gongfa";
-import { getGongfaPackage } from "../data/gongfaPackages";
 import { getMasteryChoiceDefinition } from "../logic/mastery";
 import { createGongfaSigil } from "../visual/gongfaSigils";
+import { getLocale } from "../i18n/runtime";
+import {
+  localizeGongfa,
+  localizeGongfaPackage,
+  localizeMasteryChoice,
+  localizeRuntimeText,
+  localizeTerm
+} from "../i18n/content";
 
 export interface GongfaCodexPath {
   gongfaId: GongfaId;
@@ -24,7 +30,7 @@ export interface GongfaCodexSnapshot {
   interactiveControlCount: number;
 }
 
-const font = "Trebuchet MS, Noto Sans SC, sans-serif";
+const font = "Noto Sans SC Variable, Trebuchet MS, sans-serif";
 
 export class GongfaCodex {
   private readonly scene: Phaser.Scene;
@@ -55,6 +61,7 @@ export class GongfaCodex {
   private selectedIndex = 0;
 
   constructor(scene: Phaser.Scene, onRequestClose: () => void = () => undefined) {
+    const locale = getLocale();
     this.scene = scene;
     this.backdrop = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x02070d, 0.9).setOrigin(0).setInteractive().on("pointerdown", onRequestClose);
     this.panel = scene.add.rectangle(0, 0, 1120, 610, 0x07131d, 0.99).setStrokeStyle(2, 0x79d8d0, 0.78).setInteractive().on(
@@ -62,17 +69,17 @@ export class GongfaCodex {
       (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => event.stopPropagation()
     );
     this.ornament = scene.add.graphics();
-    this.eyebrow = this.text("GONGFA ARCHIVE", 13, "#73d8cf").setLetterSpacing(2);
-    this.title = this.text("No Gongfa Awakened", 30, "#f4dfa1");
+    this.eyebrow = this.text(localizeRuntimeText(locale, "GONGFA ARCHIVE"), 13, "#73d8cf").setLetterSpacing(2);
+    this.title = this.text(localizeRuntimeText(locale, "No Gongfa Awakened"), 30, "#f4dfa1");
     this.rank = this.text("", 14, "#96b7c8");
-    this.role = this.text("Claim the Lingcao to awaken a Linggen and choose a Gongfa.", 15, "#c1d6df");
+    this.role = this.text(localizeRuntimeText(locale, "Claim the Lingcao to awaken a Linggen and choose a Gongfa."), 15, "#c1d6df");
     this.tabs = this.text("", 14, "#91b8c6");
-    this.hint = this.text("Keyboard: G close · ← → change path", 13, "#7899a8");
-    this.previousButton = this.control("‹ PREVIOUS", () => this.selectPrevious());
-    this.nextButton = this.control("NEXT ›", () => this.selectNext());
-    this.closeButton = this.control("CLOSE ×", onRequestClose);
-    this.masteryLabel = this.text("INTEGRATED MASTERY", 12, "#d3b969").setLetterSpacing(1.5);
-    this.masteryText = this.text("No refinements integrated yet.", 14, "#aac3ce");
+    this.hint = this.text(localizeRuntimeText(locale, "Keyboard: G close · ← → change path"), 13, "#7899a8");
+    this.previousButton = this.control(localizeRuntimeText(locale, "‹ PREVIOUS"), () => this.selectPrevious());
+    this.nextButton = this.control(localizeRuntimeText(locale, "NEXT ›"), () => this.selectNext());
+    this.closeButton = this.control(localizeRuntimeText(locale, "CLOSE ×"), onRequestClose);
+    this.masteryLabel = this.text(localizeRuntimeText(locale, "INTEGRATED MASTERY"), 12, "#d3b969").setLetterSpacing(1.5);
+    this.masteryText = this.text(localizeRuntimeText(locale, "No refinements integrated yet."), 14, "#aac3ce");
 
     for (let i = 0; i < 3; i += 1) {
       this.cards.push({
@@ -166,7 +173,7 @@ export class GongfaCodex {
 
   getSnapshot(): GongfaCodexSnapshot {
     const selected = this.paths[this.selectedIndex];
-    const definition = selected ? getGongfaPackage(selected.gongfaId) : undefined;
+    const definition = selected ? localizeGongfaPackage(getLocale(), selected.gongfaId) : undefined;
     return {
       visible: this.visible,
       learnedPathCount: this.paths.length,
@@ -180,23 +187,24 @@ export class GongfaCodex {
   }
 
   private render(): void {
+    const locale = getLocale();
     const selected = this.paths[this.selectedIndex];
     if (!selected) {
       this.sigil?.destroy();
       this.sigil = undefined;
-      this.title.setText("No Gongfa Awakened");
-      this.rank.setText("MORTAL");
-      this.role.setText("Claim the Lingcao to awaken a Linggen and choose a Gongfa.");
-      this.tabs.setText("The archive will record every learned path.");
+      this.title.setText(localizeRuntimeText(locale, "No Gongfa Awakened"));
+      this.rank.setText(localizeRuntimeText(locale, "MORTAL"));
+      this.role.setText(localizeRuntimeText(locale, "Claim the Lingcao to awaken a Linggen and choose a Gongfa."));
+      this.tabs.setText(localizeRuntimeText(locale, "The archive will record every learned path."));
       this.cards.forEach((card) => {
-        card.kind.setText("SEALED"); card.name.setText("Unknown"); card.tags.setText(""); card.description.setText("This meridian has not yet opened.");
+        card.kind.setText(localizeRuntimeText(locale, "SEALED")); card.name.setText(localizeRuntimeText(locale, "Unknown")); card.tags.setText(""); card.description.setText(localizeRuntimeText(locale, "This meridian has not yet opened."));
       });
-      this.masteryText.setText("No refinements integrated yet.");
+      this.masteryText.setText(localizeRuntimeText(locale, "No refinements integrated yet."));
       return;
     }
 
-    const config = gongfaConfigs[selected.gongfaId];
-    const definition = getGongfaPackage(selected.gongfaId);
+    const config = localizeGongfa(locale, selected.gongfaId);
+    const definition = localizeGongfaPackage(locale, selected.gongfaId);
     this.sigil?.destroy();
     this.sigil = createGongfaSigil(
       this.scene,
@@ -208,19 +216,19 @@ export class GongfaCodex {
     );
     this.container.addAt(this.sigil, 3);
     this.title.setText(config.name);
-    this.rank.setText(selected.fullyMastered ? `RANK ${selected.rank} · FULLY MASTERED` : `MASTERY RANK ${selected.rank}`);
+    this.rank.setText(localizeRuntimeText(locale, selected.fullyMastered ? `RANK ${selected.rank} · FULLY MASTERED` : `MASTERY RANK ${selected.rank}`));
     this.role.setText(definition.combatRole);
-    this.tabs.setText(this.paths.map((path, index) => `${index === this.selectedIndex ? "◆" : "◇"} ${gongfaConfigs[path.gongfaId].name}`).join("   "));
+    this.tabs.setText(this.paths.map((path, index) => `${index === this.selectedIndex ? "◆" : "◇"} ${localizeGongfa(locale, path.gongfaId).name}`).join("   "));
     const content = [
-      { kind: "SKILL 1 · ACTIVE", skill: definition.skill1, description: definition.skill1.description },
-      { kind: `PASSIVE · ${definition.passive.resource.toUpperCase()}`, skill: { ...definition.skill1, name: definition.passive.name, tags: [] }, description: definition.passive.description },
-      { kind: selected.skill2Unlocked ? "SKILL 2 · ACTIVE" : "SKILL 2 · UNLOCKS RANK 10", skill: definition.skill2, description: selected.skill2Unlocked ? definition.skill2.description : `Sealed. ${definition.skill2.description}` }
+      { kind: localizeRuntimeText(locale, "SKILL 1 · ACTIVE"), skill: definition.skill1, description: definition.skill1.description },
+      { kind: `${localizeRuntimeText(locale, "PASSIVE")} · ${definition.passive.resource}`, skill: { ...definition.skill1, name: definition.passive.name, tags: [] }, description: definition.passive.description },
+      { kind: localizeRuntimeText(locale, selected.skill2Unlocked ? "SKILL 2 · ACTIVE" : "SKILL 2 · UNLOCKS RANK 10"), skill: definition.skill2, description: selected.skill2Unlocked ? definition.skill2.description : localizeRuntimeText(locale, `Sealed. ${definition.skill2.description}`) }
     ];
     content.forEach((item, index) => {
       const card = this.cards[index];
       card.kind.setText(item.kind);
       card.name.setText(item.skill.name);
-      card.tags.setText(item.skill.tags.length ? item.skill.tags.map((tag) => `#${tag}`).join("  ") : `RESOURCE · ${definition.passive.resource}`);
+      card.tags.setText(item.skill.tags.length ? item.skill.tags.map((tag) => `#${localizeTerm(locale, tag)}`).join("  ") : `${localizeRuntimeText(locale, "RESOURCE")} · ${definition.passive.resource}`);
       card.description.setText(item.description);
       card.frame.setAlpha(index === 2 && !selected.skill2Unlocked ? 0.62 : 1);
     });
@@ -230,23 +238,23 @@ export class GongfaCodex {
     }, {});
     const refinements = Object.entries(counts)
       .filter(([id]) => getMasteryChoiceDefinition(id)?.kind === "refinement")
-      .map(([id, tiers]) => `${getMasteryChoiceDefinition(id)?.name ?? id} ${tiers >= 2 ? "II" : "I"}`);
+      .map(([id, tiers]) => `${localizeMasteryChoice(locale, id).name} ${tiers >= 2 ? "II" : "I"}`);
     const transformations = this.getTransformationNames(selected);
-    this.masteryText.setText(
+    this.masteryText.setText(localizeRuntimeText(locale,
       refinements.length || transformations.length
         ? [
             `Refinements · ${refinements.join("  ·  ") || "None"}`,
             `Transformations · ${transformations.join("  ·  ") || "Next choice at Rank 3"}`
           ].join("\n")
         : "No refinements integrated yet. The first insight arrives at Mastery Rank 1."
-    );
+    ));
   }
 
   private getTransformationNames(path: GongfaCodexPath): string[] {
     return path.learnedMasteryIds
       .map((id) => getMasteryChoiceDefinition(id))
       .filter((item) => item?.kind === "transformation")
-      .map((item) => item?.name ?? "");
+      .map((item) => item ? localizeMasteryChoice(getLocale(), item.id).name : "");
   }
 
   private text(value: string, size: number, color: string): Phaser.GameObjects.Text {

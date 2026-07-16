@@ -32,7 +32,7 @@ export class Lingcao extends Phaser.Physics.Arcade.Sprite {
       .setDepth(11);
     const title = this.scene.add
       .text(this.x, markerY - 7, "LINGCAO", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "11px",
         color: "#b9f0c8",
         letterSpacing: 2
@@ -41,7 +41,7 @@ export class Lingcao extends Phaser.Physics.Arcade.Sprite {
       .setDepth(12);
     const direction = this.scene.add
       .text(this.x, markerY + 9, marker, {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "12px",
         color: "#dce9e7"
       })

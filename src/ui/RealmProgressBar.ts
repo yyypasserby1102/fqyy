@@ -6,6 +6,8 @@ import {
   getRealmProgressPresentation,
   REALM_PHASE_LABELS
 } from "../logic/realmProgressPresentation";
+import { getLocale } from "../i18n/runtime";
+import { localizeRuntimeText } from "../i18n/content";
 
 export interface RealmProgressBarSnapshot {
   phase: RealmPhaseId;
@@ -46,7 +48,7 @@ export class RealmProgressBar {
 
   showMilestone(command: PhaseMilestoneCommand): void {
     this.reward
-      .setText(formatRealmMilestoneReward(command.completedPhase, command.foundationGrowthTransactions))
+      .setText(localizeRuntimeText(getLocale(), formatRealmMilestoneReward(command.completedPhase, command.foundationGrowthTransactions)))
       .setAlpha(1);
     this.scene.tweens.killTweensOf(this.reward);
     this.scene.tweens.add({
@@ -62,10 +64,10 @@ export class RealmProgressBar {
     const presentation = getRealmProgressPresentation(this.phase, this.phaseProgress);
     return {
       phase: this.phase,
-      phaseLabel: presentation.phaseLabel,
+      phaseLabel: localizeRuntimeText(getLocale(), presentation.phaseLabel),
       completedMilestones: presentation.completedMilestones,
       totalProgress: presentation.totalProgress,
-      labels: [...REALM_PHASE_LABELS],
+      labels: REALM_PHASE_LABELS.map((label) => localizeRuntimeText(getLocale(), label)),
       rewardText: this.reward.text
     };
   }
@@ -85,7 +87,7 @@ export class RealmProgressBar {
     const segmentWidth = width / REALM_PHASE_LABELS.length;
 
     this.title
-      .setText(`REALM PROGRESS · ${presentation.phaseLabel} ${Math.round(this.phaseProgress)}%`)
+      .setText(localizeRuntimeText(getLocale(), `REALM PROGRESS · ${presentation.phaseLabel} ${Math.round(this.phaseProgress)}%`))
       .setColor(`#${this.accent.toString(16).padStart(6, "0")}`);
     this.graphics.clear();
     this.graphics.fillStyle(0x050d17, 0.9);
@@ -103,7 +105,7 @@ export class RealmProgressBar {
         this.graphics.fillCircle(markerX, y + 4, complete ? 4 : 3);
       }
       this.labels[index]
-        .setText(label)
+        .setText(localizeRuntimeText(getLocale(), label))
         .setPosition(x + segmentWidth * (index + 0.5), y + 12)
         .setColor(index === presentation.phaseIndex ? "#f5dda0" : "#8fa4a9");
     });
@@ -112,7 +114,7 @@ export class RealmProgressBar {
   private createText(fontSize: number, color: string): Phaser.GameObjects.Text {
     return this.scene.add
       .text(0, 0, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: `${fontSize}px`,
         color
       })

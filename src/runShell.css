@@ -6,7 +6,7 @@
   padding: 40px;
   overflow: auto;
   color: #edf5f4;
-  font-family: "Trebuchet MS", "Noto Sans SC", sans-serif;
+  font-family: "Noto Sans SC Variable", "Trebuchet MS", sans-serif;
   background-image:
     radial-gradient(circle at 50% 43%, rgba(9, 25, 34, 0.1) 0%, rgba(2, 7, 12, 0.72) 76%),
     linear-gradient(180deg, rgba(4, 10, 16, 0.08), rgba(2, 5, 9, 0.5)),
@@ -27,7 +27,7 @@
   border-radius: 3px;
   background: rgba(4, 15, 24, 0.9);
   color: #dceceb;
-  font: 700 12px "Trebuchet MS", sans-serif;
+  font: 700 12px "Noto Sans SC Variable", "Trebuchet MS", sans-serif;
   letter-spacing: 0.06em;
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
@@ -68,7 +68,7 @@
   background: linear-gradient(145deg, rgba(28, 52, 61, 0.35), transparent 35%), #06111b;
   color: #edf5f4;
   box-shadow: 0 28px 100px rgba(0, 0, 0, 0.65), inset 0 0 0 7px rgba(215, 185, 109, 0.06);
-  font-family: "Trebuchet MS", "Noto Sans SC", sans-serif;
+  font-family: "Noto Sans SC Variable", "Trebuchet MS", sans-serif;
   clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
 }
 
@@ -159,7 +159,7 @@
 
 .run-shell--loading {
   color: #d9c686;
-  font-family: Georgia, "Noto Serif SC", serif;
+  font-family: "Noto Sans SC Variable", Georgia, serif;
   font-size: 18px;
   letter-spacing: 0.12em;
   text-align: center;
@@ -252,7 +252,7 @@
 .run-shell__title {
   margin: 0;
   color: #f3e7c4;
-  font-family: Georgia, "Noto Serif SC", serif;
+  font-family: "Noto Sans SC Variable", Georgia, serif;
   font-size: clamp(54px, 7vw, 82px);
   font-weight: 500;
   letter-spacing: 0.18em;
@@ -301,7 +301,7 @@
 .run-shell__selection-title {
   margin: -3px 0 12px;
   color: #f2e5be;
-  font-family: Georgia, "Noto Serif SC", serif;
+  font-family: "Noto Sans SC Variable", Georgia, serif;
   font-size: 27px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -422,7 +422,7 @@
   display: block;
   margin-top: 9px;
   color: #f1e5c1;
-  font-family: Georgia, "Noto Serif SC", serif;
+  font-family: "Noto Sans SC Variable", Georgia, serif;
   font-size: 24px;
 }
 

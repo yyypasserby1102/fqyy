@@ -155,6 +155,9 @@ export interface UiSnapshot {
     renderedOptionCount: number;
     mode: ChoiceVisualMode | "hidden";
     motionReduced: boolean;
+    title: string;
+    subtitle: string;
+    optionTitles: string[];
   };
   journeyPresentation: JourneyPresentationSnapshot;
   gongfaCodex: GongfaCodexSnapshot;

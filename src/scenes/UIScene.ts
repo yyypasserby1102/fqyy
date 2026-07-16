@@ -14,6 +14,8 @@ import { RealmProgressBar } from "../ui/RealmProgressBar";
 import type { RunJourneyCommand } from "../logic/runJourney";
 import type { RealmPhaseId } from "../data/stages";
 import { GongfaCodex, type GongfaCodexPath } from "../ui/GongfaCodex";
+import { getLocale } from "../i18n/runtime";
+import { localizeChoicePayload, localizeRuntimeText } from "../i18n/content";
 
 interface HudState {
   health: number;
@@ -83,7 +85,7 @@ export class UIScene extends Phaser.Scene {
     this.hudPresentation = new HudPresentation(this);
     this.hudText = this.add
       .text(18, 44, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "18px",
         color: "#f4f8ff",
         lineSpacing: 6
@@ -94,7 +96,7 @@ export class UIScene extends Phaser.Scene {
 
     this.messageText = this.add
       .text(this.scale.width * 0.5, this.scale.height - 28, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "17px",
         color: "#f5e6a8",
         align: "center"
@@ -105,7 +107,7 @@ export class UIScene extends Phaser.Scene {
 
     this.pauseText = this.add
       .text(this.scale.width * 0.5, 46, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "15px",
         color: "#8ecae6"
       })
@@ -121,8 +123,8 @@ export class UIScene extends Phaser.Scene {
     this.realmProgressBar = new RealmProgressBar(this);
     this.gongfaCodex = new GongfaCodex(this, () => this.setGongfaCodexVisible(false));
     this.gongfaArchiveButton = this.add
-      .text(this.scale.width - 18, this.scale.height - 18, "G · GONGFA", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+      .text(this.scale.width - 18, this.scale.height - 18, localizeRuntimeText(getLocale(), "G · GONGFA"), {
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "13px",
         color: "#d8f4ef",
         backgroundColor: "#12313a",
@@ -203,12 +205,12 @@ export class UIScene extends Phaser.Scene {
         lingcaoCollected: hud.lingcaoCollected,
         spiritTreasures: hud.spiritTreasures
       });
-    this.hudText.setText(hudLines);
+    this.hudText.setText(hudLines.map((line) => localizeRuntimeText(getLocale(), line)));
     this.hudPresentation.update(hudLines, hud);
     this.realmProgressBar.update(hud.realmPhase as RealmPhaseId, hud.realmProgress, hud.realmAccent);
 
-    this.messageText.setText(hud.message ?? "");
-    this.pauseText.setText(
+    this.messageText.setText(localizeRuntimeText(getLocale(), hud.message ?? ""));
+    this.pauseText.setText(localizeRuntimeText(getLocale(),
       hud.gameOver
         ? "Run Ended"
         : hud.paused
@@ -216,7 +218,7 @@ export class UIScene extends Phaser.Scene {
         : import.meta.env.DEV
           ? "WASD Move · Space Evade · G Gongfa · Esc Pause · F3 Debug"
           : "WASD Move · Space Evade · G Gongfa · Esc Pause"
-    );
+    ));
 
     if (import.meta.env.DEV) {
       this.debugOverlay?.render([
@@ -253,10 +255,11 @@ export class UIScene extends Phaser.Scene {
       this.gongfaCodex.hide();
     }
     this.levelUpVisible = true;
+    const localized = localizeChoicePayload(getLocale(), payload);
     this.levelUpPanel.show(
-      payload.title,
-      payload.subtitle,
-      payload.options,
+      localized.title,
+      localized.subtitle,
+      localized.options,
       (option) => {
         this.scene.get("game").events.emit("resolve-choice", option);
       },
@@ -270,7 +273,12 @@ export class UIScene extends Phaser.Scene {
   }
 
   private onShowJourneyPresentation(payload: JourneyPresentationPayload): void {
-    this.journeyPresentation.show(payload);
+    this.journeyPresentation.show({
+      ...payload,
+      eyebrow: localizeRuntimeText(getLocale(), payload.eyebrow),
+      title: localizeRuntimeText(getLocale(), payload.title),
+      subtitle: localizeRuntimeText(getLocale(), payload.subtitle)
+    });
   }
 
   private onShowPhaseMilestone(

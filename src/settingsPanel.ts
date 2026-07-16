@@ -8,6 +8,8 @@ import {
   type GameSettings
 } from "./persistence/settingsPersistence";
 import { dispatchSettingsPanelState } from "./settingsEvents";
+import { localeMetadata, supportedLocales, type Locale } from "./i18n/locale";
+import { getLocale, setLocale, t } from "./i18n/runtime";
 
 function applyDocumentSettings(settings: GameSettings): void {
   document.documentElement.style.setProperty("--fqyy-display-scale", String(settings.displayScale));
@@ -68,8 +70,8 @@ export function mountSettingsPanel(container: HTMLElement): void {
   trigger.className = "settings-trigger";
   trigger.setAttribute("aria-haspopup", "dialog");
   trigger.setAttribute("aria-expanded", "false");
-  trigger.setAttribute("aria-label", "Open settings");
-  trigger.textContent = "⚙ Settings";
+  trigger.setAttribute("aria-label", t("settings.open"));
+  trigger.textContent = t("settings.trigger");
 
   const backdrop = document.createElement("div");
   backdrop.className = "settings-backdrop";
@@ -85,11 +87,11 @@ export function mountSettingsPanel(container: HTMLElement): void {
   heading.className = "settings-panel__heading";
   const title = document.createElement("h2");
   title.id = "settings-title";
-  title.textContent = "Cultivation Settings";
+  title.textContent = t("settings.title");
   const close = document.createElement("button");
   close.type = "button";
   close.className = "settings-panel__close";
-  close.setAttribute("aria-label", "Close settings");
+  close.setAttribute("aria-label", t("settings.close"));
   close.textContent = "×";
   heading.append(title, close);
 
@@ -100,22 +102,22 @@ export function mountSettingsPanel(container: HTMLElement): void {
     applyDocumentSettings(next);
   };
 
-  const masterControl = rangeControl("Master volume", initial.masterVolume, (value) => persist({ masterVolume: value }));
-  const sfxControl = rangeControl("Sound effects", initial.sfxVolume, (value) => persist({ sfxVolume: value }));
-  const ambienceControl = rangeControl("Ambience", initial.ambienceVolume, (value) => persist({ ambienceVolume: value }));
-  const muteControl = checkControl("Mute all audio", initial.muted, (muted) => persist({ muted }));
-  const cameraControl = rangeControl("Camera shake", initial.cameraShake, (cameraShake) => persist({ cameraShake }));
+  const masterControl = rangeControl(t("settings.masterVolume"), initial.masterVolume, (value) => persist({ masterVolume: value }));
+  const sfxControl = rangeControl(t("settings.soundEffects"), initial.sfxVolume, (value) => persist({ sfxVolume: value }));
+  const ambienceControl = rangeControl(t("settings.ambience"), initial.ambienceVolume, (value) => persist({ ambienceVolume: value }));
+  const muteControl = checkControl(t("settings.mute"), initial.muted, (muted) => persist({ muted }));
+  const cameraControl = rangeControl(t("settings.cameraShake"), initial.cameraShake, (cameraShake) => persist({ cameraShake }));
   const cameraInput = cameraControl.querySelector("input");
   if (!(cameraInput instanceof HTMLInputElement)) throw new Error("Missing camera shake control");
   cameraInput.disabled = initial.reducedMotion;
-  const motionControl = checkControl("Reduce motion and flashes", initial.reducedMotion, (reducedMotion) => {
+  const motionControl = checkControl(t("settings.reduceMotion"), initial.reducedMotion, (reducedMotion) => {
     cameraInput.disabled = reducedMotion;
     persist({ reducedMotion });
   });
   controls.append(masterControl, sfxControl, ambienceControl, muteControl, motionControl, cameraControl);
 
   const scaleSelect = document.createElement("select");
-  scaleSelect.setAttribute("aria-label", "Display scale");
+  scaleSelect.setAttribute("aria-label", t("settings.displayScale"));
   displayScales.forEach((scale) => {
     const option = document.createElement("option");
     option.value = String(scale);
@@ -124,29 +126,44 @@ export function mountSettingsPanel(container: HTMLElement): void {
     scaleSelect.appendChild(option);
   });
   scaleSelect.addEventListener("change", () => persist({ displayScale: Number(scaleSelect.value) as DisplayScale }));
-  controls.appendChild(field("Display scale", scaleSelect));
+  controls.appendChild(field(t("settings.displayScale"), scaleSelect));
+
+  const languageSelect = document.createElement("select");
+  languageSelect.setAttribute("aria-label", t("language.label"));
+  for (const locale of supportedLocales) {
+    const option = document.createElement("option");
+    option.value = locale;
+    option.textContent = localeMetadata[locale].selfName;
+    option.selected = getLocale() === locale;
+    languageSelect.appendChild(option);
+  }
+  languageSelect.addEventListener("change", () => {
+    setLocale(languageSelect.value as Locale);
+    window.location.reload();
+  });
+  controls.appendChild(field(t("language.label"), languageSelect));
 
   const actions = document.createElement("div");
   actions.className = "settings-panel__actions";
   const fullscreen = document.createElement("button");
   fullscreen.type = "button";
-  fullscreen.textContent = "Enter Fullscreen";
+  fullscreen.textContent = t("settings.enterFullscreen");
   const syncFullscreen = (): void => {
-    fullscreen.textContent = document.fullscreenElement ? "Exit Fullscreen" : "Enter Fullscreen";
+    fullscreen.textContent = document.fullscreenElement ? t("settings.exitFullscreen") : t("settings.enterFullscreen");
   };
   fullscreen.addEventListener("click", async () => {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await document.documentElement.requestFullscreen();
     } catch {
-      fullscreen.textContent = "Fullscreen unavailable";
+      fullscreen.textContent = t("settings.fullscreenUnavailable");
     }
   });
   document.addEventListener("fullscreenchange", syncFullscreen);
 
   const reset = document.createElement("button");
   reset.type = "button";
-  reset.textContent = "Restore Defaults";
+  reset.textContent = t("settings.restore");
   reset.addEventListener("click", () => {
     updateSettings(createDefaultSettings(), window.localStorage);
     applyDocumentSettings(getSettings());
@@ -156,7 +173,7 @@ export function mountSettingsPanel(container: HTMLElement): void {
 
   const note = document.createElement("p");
   note.className = "settings-panel__note";
-  note.textContent = "Settings save automatically and remain independent of your active Run.";
+  note.textContent = t("settings.note");
   panel.append(heading, controls, actions, note);
   backdrop.appendChild(panel);
 

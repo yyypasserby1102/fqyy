@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { getLocale } from "../i18n/runtime";
+import { localizeRuntimeText } from "../i18n/content";
 
 interface HudVisualState {
   health: number;
@@ -30,6 +32,7 @@ export class HudPresentation {
   }
 
   update(lines: string[], state: HudVisualState): void {
+    const locale = getLocale();
     const statusLines = lines.filter((line, index) =>
       index === 0 ||
       line.startsWith("Qi:") ||
@@ -47,9 +50,9 @@ export class HudPresentation {
     );
     const evadeLine = lines.find((line) => line.startsWith("Evade:")) ?? "Evade: Ready";
 
-    this.statusText.setText(statusLines);
+    this.statusText.setText(statusLines.map((line) => localizeRuntimeText(locale, line)));
     const statusHeight = Math.max(150, this.statusText.height + 70);
-    this.gongfaText.setText(gongfaLines);
+    this.gongfaText.setText(gongfaLines.map((line) => localizeRuntimeText(locale, line)));
     const gongfaHeight = Math.max(96, this.gongfaText.height + 30);
     const gongfaX = this.scene.scale.width - 364;
     const evadeY = this.scene.scale.height - 60;
@@ -61,7 +64,7 @@ export class HudPresentation {
         : state.realmAccent;
 
     this.realmText
-      .setText(`${state.stageName.toUpperCase()} · ${state.realmIdentityLabel}`)
+      .setText(localizeRuntimeText(locale, `${state.stageName.toUpperCase()} · ${state.realmIdentityLabel}`))
       .setColor(`#${state.realmAccent.toString(16).padStart(6, "0")}`);
 
     this.panels.clear();
@@ -79,11 +82,11 @@ export class HudPresentation {
     this.panels.fillRoundedRect(30, vitalityY + 22, 282 * vitalityRatio, 9, 4);
 
     this.gongfaText.setPosition(gongfaX + 18, 28);
-    this.evadeText.setPosition(29, evadeY + 12).setText(evadeLine);
+    this.evadeText.setPosition(29, evadeY + 12).setText(localizeRuntimeText(locale, evadeLine));
     this.vitalityText
       .setPosition(28, vitalityY)
       .setColor(lowVitality ? "#ff9b8f" : "#f2dfbf")
-      .setText(`Vitality ${Math.ceil(state.health)} / ${state.maxHealth}`);
+      .setText(localizeRuntimeText(locale, `Vitality ${Math.ceil(state.health)} / ${state.maxHealth}`));
   }
 
   resize(): void {
@@ -100,7 +103,7 @@ export class HudPresentation {
   ): Phaser.GameObjects.Text {
     return this.scene.add
       .text(x, y, "", {
-        fontFamily: "Trebuchet MS, Noto Sans SC, sans-serif",
+        fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: `${fontSize}px`,
         color,
         lineSpacing: 7,

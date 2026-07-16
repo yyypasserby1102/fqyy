@@ -10,7 +10,12 @@ const assets = await readdir(new URL("assets/", dist));
 const failures = [];
 if (!html.includes(`${pagesBase}assets/`)) failures.push("GitHub Pages asset base is missing");
 if (!html.includes(`${pagesBase}manifest.webmanifest`)) failures.push("manifest link is not deployment-safe");
-if (manifest.name !== "FQYY — A Cultivation Journey") failures.push("web manifest is malformed");
+if (
+  manifest.name !== "FQYY · 一念凡尘" ||
+  manifest.short_name !== "FQYY" ||
+  typeof manifest.description !== "string" ||
+  manifest.description.length === 0
+) failures.push("web manifest is malformed");
 if (!assets.some((name) => name.startsWith("game-") && name.endsWith(".js"))) {
   failures.push("lazy game chunk is missing");
 }

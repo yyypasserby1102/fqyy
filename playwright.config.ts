@@ -12,6 +12,16 @@ export default defineConfig({
   retries: 2,
   use: {
     baseURL: "http://127.0.0.1:4173",
+    // Existing gameplay specifications assert the canonical English copy.
+    // Localization specs clear this value to exercise the fresh-player
+    // Chinese default explicitly.
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: "http://127.0.0.1:4173",
+        localStorage: [{ name: "fqyy.locale.v1", value: '"en"' }]
+      }]
+    },
     headless: true,
     launchOptions: {
       ...(chromiumExecutablePath

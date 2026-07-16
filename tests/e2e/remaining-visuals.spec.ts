@@ -219,6 +219,14 @@ test("the production choice panel renders all four treasure replacement options"
     visible: true,
     renderedOptionCount: 4,
     mode: "choice",
-    motionReduced: false
+    motionReduced: false,
+    title: "Ironhide Seal found",
+    subtitle: "All three Spirit Treasure slots are full.",
+    optionTitles: [
+      "Replace Jade Heart Pendant",
+      "Replace Windstep Talisman",
+      "Replace Lodestone Charm",
+      "Leave it behind"
+    ]
   });
 });
