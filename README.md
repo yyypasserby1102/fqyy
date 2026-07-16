@@ -1,13 +1,17 @@
 # FQYY
 
-Graybox Phaser + Vite + TypeScript MVP for a 2D Vampire-Survivors-like xiuxian action roguelite.
+Phaser + Vite + TypeScript xiuxian action roguelite with a first-party cultivation companion tool.
 
 ## Current State
 
-- Playable MVP architecture with placeholder runtime-generated sprites
-- Data-driven enemies, upgrades, weapons, and wave pacing
-- Xiuxian-themed HUD and breakthrough choice flow
-- Art pipeline folders and prompt references prepared for production art
+- Complete four-Stage Run with 13 playable Gongfa and authored Mastery tracks
+- Production combat, arena, character, enemy, pickup, HUD, and Gongfa visuals
+- In-game Gongfa Archive for Skills, passives, refinements, and Transformations
+- FQYY Cultivator Tools with a searchable canonical Gongfa database, Spirit Treasure archive, and shareable build planner
+
+## Cultivator Tools
+
+Open **FQYY Tools** from the title screen or visit `/#tools/compendium` while the dev server is running. The planner is sourced directly from the game data and enforces Linggen compatibility, four cumulative Gongfa slots, and three Spirit Treasure slots. Shared builds are encoded into the URL.
 
 ## Controls
 

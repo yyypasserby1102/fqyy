@@ -362,6 +362,13 @@
   background: rgba(105, 38, 38, 0.92);
 }
 
+.run-shell__button--tools {
+  text-decoration: none;
+  color: #a9d9dc;
+  border-color: rgba(112, 206, 215, 0.36);
+  background: rgba(5, 18, 28, 0.78);
+}
+
 .run-shell__status {
   min-height: 1.5em;
   margin: 20px 0 0;

@@ -101,6 +101,11 @@ export function mountRunShell(container: HTMLElement): void {
   continueButton.textContent = "Continue";
   continueButton.className = "run-shell__button";
 
+  const toolsLink = document.createElement("a");
+  toolsLink.href = "#tools/compendium";
+  toolsLink.textContent = "Open FQYY Tools";
+  toolsLink.className = "run-shell__button run-shell__button--tools";
+
   const status = document.createElement("p");
   status.className = "run-shell__status";
 
@@ -233,6 +238,7 @@ export function mountRunShell(container: HTMLElement): void {
     }
 
     buttonRow.appendChild(startButton);
+    buttonRow.appendChild(toolsLink);
   };
 
   startButton.addEventListener("click", () => {

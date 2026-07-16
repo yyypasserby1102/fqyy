@@ -9,7 +9,19 @@ if (!container) {
 }
 
 const gameSurface = document.createElement("main");
-gameSurface.className = "game-surface";
 container.appendChild(gameSurface);
-mountRunShell(gameSurface);
+
+const renderSurface = async (): Promise<void> => {
+  if (window.location.hash.startsWith("#tools")) {
+    gameSurface.className = "tools-surface";
+    const { mountToolsShell } = await import("./toolsShell");
+    mountToolsShell(gameSurface);
+    return;
+  }
+  gameSurface.className = "game-surface";
+  mountRunShell(gameSurface);
+};
+
+window.addEventListener("hashchange", () => { void renderSurface(); });
+void renderSurface();
 mountSettingsPanel(container);
