@@ -12,6 +12,7 @@ import {
   localizeGongfaPackage,
   localizeLinggen,
   localizeMasteryChoice,
+  localizeChoicePayload,
   localizeRuntimeText,
   localizeSpiritTreasure,
   localizeStage,
@@ -144,7 +145,7 @@ describe("localization", () => {
       }),
       ...(Object.keys(spiritTreasureConfigs) as SpiritTreasureId[]).flatMap((id) => {
         const item = localizeSpiritTreasure("zh-CN", id);
-        return [item.name, item.lore];
+        return [item.name, item.lore, item.signature.name, item.signature.effect, item.culmination.name, item.culmination.effect];
       }),
       ...(Object.keys(stageConfigs) as StageId[]).flatMap((id) => {
         const stage = localizeStage("zh-CN", id);
@@ -156,10 +157,65 @@ describe("localization", () => {
       }),
       ...masteryTransformationConfigs.flatMap((item) => {
         const translated = localizeMasteryChoice("zh-CN", item.id);
-        return [translated.name, translated.lore];
+        return [
+          translated.name,
+          translated.lore,
+          translated.playstyle ?? "",
+          translated.gain ?? "",
+          translated.cost ?? "",
+          translated.scope ?? "",
+          translated.treasureInteraction ?? ""
+        ];
       })
     ];
 
     expect(visibleChinese.filter((value) => /[A-Za-z]/.test(value))).toEqual([]);
+  });
+
+  it("localizes treasure replacement gains, losses, and resonance changes", () => {
+    const payload = localizeChoicePayload("zh-CN", {
+      title: "Windstep Talisman found",
+      options: [{
+        id: "ironhide-seal",
+        kind: "spirit-treasure-replace",
+        title: "Replace Ironhide Seal",
+        description: "Gain +24 moveSpeed · Lose -0.08 mitigation",
+        gain: "+24 moveSpeed",
+        loss: "-0.08 mitigation",
+        resonanceGained: ["harvest"],
+        resonanceLost: ["vitality"]
+      }]
+    });
+    expect(payload.options[0].description).toBe(
+      "收益：+24 移动速度 · 代价：-0.08 减伤 · 激活共鸣：采灵 · 失去共鸣：生息"
+    );
+  });
+
+  it("localizes every structured Transformation field in choice payloads", () => {
+    const source = localizeMasteryChoice("en", "searing-feathers");
+    const payload = localizeChoicePayload("zh-CN", {
+      title: "Blazing Feather Art Mastery Rank 3",
+      options: [{
+        id: source.id,
+        kind: "mastery",
+        title: source.name,
+        description: source.lore,
+        playstyle: source.playstyle,
+        gain: source.gain,
+        cost: source.cost,
+        scope: source.scope,
+        treasureInteraction: source.treasureInteraction
+      }]
+    });
+    const option = payload.options[0];
+    expect([
+      option.playstyle,
+      option.gain,
+      option.cost,
+      option.scope,
+      option.treasureInteraction
+    ].filter((value) => /[A-Za-z]/.test(value ?? ""))).toEqual([]);
+    expect(option.description).toContain("收益：");
+    expect(option.description).toContain("代价：");
   });
 });

@@ -1,5 +1,5 @@
 import { mountSettingsPanel } from "./settingsPanel";
-import { initializeLocale } from "./i18n/runtime";
+import { getLocale, initializeLocale } from "./i18n/runtime";
 import "@fontsource-variable/noto-sans-sc";
 import "./runShell.css";
 
@@ -12,9 +12,21 @@ if (!container) {
 initializeLocale(window.localStorage);
 
 const gameSurface = document.createElement("main");
+gameSurface.className = "surface-loading";
+gameSurface.textContent = "FQYY";
 container.appendChild(gameSurface);
 
+let localeFontReady: Promise<void> | undefined;
+const ensureLocaleFont = (): Promise<void> => {
+  if (getLocale() !== "zh-CN") return Promise.resolve();
+  localeFontReady ??= import("./i18n/content").then(async ({ getChineseFontPreloadText }) => {
+    await document.fonts.load('16px "Noto Sans SC Variable"', getChineseFontPreloadText());
+  });
+  return localeFontReady;
+};
+
 const renderSurface = async (): Promise<void> => {
+  await ensureLocaleFont();
   if (window.location.hash.startsWith("#tools")) {
     gameSurface.className = "tools-surface";
     const { mountToolsShell } = await import("./toolsShell");
@@ -27,5 +39,4 @@ const renderSurface = async (): Promise<void> => {
 };
 
 window.addEventListener("hashchange", () => { void renderSurface(); });
-void renderSurface();
-mountSettingsPanel(container);
+void renderSurface().then(() => mountSettingsPanel(container));

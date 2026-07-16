@@ -13,6 +13,13 @@ import type { RealmProgressBarSnapshot } from "../ui/RealmProgressBar";
 import type { RealmPhaseId, StageId } from "../data/stages";
 import type { GongfaId } from "../data/gongfa";
 import type { GongfaCodexSnapshot } from "../ui/GongfaCodex";
+import type { EncounterPressure } from "../logic/encounterPressure";
+import type { FoundationGrowthAttributes } from "../logic/foundationGrowth";
+import type {
+  SpiritTreasureAttunement,
+  SpiritTreasureResonance,
+  SpiritTreasureResonanceModifiers
+} from "../logic/spiritTreasures";
 
 export interface GameSnapshot {
   sceneName: string;
@@ -23,12 +30,17 @@ export interface GameSnapshot {
   hud: {
     lines: string[];
   };
+  encounter: {
+    pressure: EncounterPressure;
+    tribulationActive: boolean;
+  };
   player: {
     x: number;
     y: number;
     health: number;
     maxHealth: number;
     moveSpeed: number;
+    magnetRadius: number;
     evade: EvadeState;
     visual: PlayerVisualSnapshot;
   };
@@ -69,6 +81,7 @@ export interface GameSnapshot {
     realmProgress: number;
     stageBreakthroughReady: boolean;
     foundationGrowthTransactions: number;
+    foundationGrowth: FoundationGrowthAttributes;
     masteryPoints: number;
     masteryProgress: number;
     masteryRank: number;
@@ -79,8 +92,23 @@ export interface GameSnapshot {
       rank: number;
       fullyMastered: boolean;
     }>;
+    gongfaCombats: Array<{
+      gongfaId: GongfaId;
+      damage: number;
+      count: number;
+      cooldownMs: number;
+      passiveStacks: number;
+      passiveDamageBonus: number;
+      passiveStackGain: number;
+      skill2Id?: string;
+      skill2Casts: number;
+    }>;
     learnedGongfaIds: string[];
     spiritTreasureIds: string[];
+    spiritTreasureAttunements: SpiritTreasureAttunement[];
+    spiritTreasureSignatures: string[];
+    spiritTreasureResonances: SpiritTreasureResonance[];
+    spiritTreasureResonanceModifiers: SpiritTreasureResonanceModifiers;
     masteryTransformationTriggers: {
       executionSeal: number;
       swordBloom: number;
@@ -134,6 +162,7 @@ export interface GameSnapshot {
     healingPillPositions: Array<{ x: number; y: number; healAmount: number }>;
     lingcaoPositions: Array<{ x: number; y: number }>;
     enemyIds: Record<string, number>;
+    enemyPositions: Array<{ id: EnemyId; x: number; y: number }>;
   };
   choice?: {
     title: string;

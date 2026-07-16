@@ -13,6 +13,16 @@ export interface ChoiceOption {
   kind: ChoiceKind;
   title: string;
   description: string;
+  playstyle?: string;
+  gain?: string;
+  loss?: string;
+  cost?: string;
+  scope?: string;
+  treasureInteraction?: string;
+  resonanceGained?: string[];
+  resonanceLost?: string[];
+  mechanicsGained?: string[];
+  mechanicsLost?: string[];
 }
 
 export type ChoiceVisualMode = "choice" | "linggen-awakening";

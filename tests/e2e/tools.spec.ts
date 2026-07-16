@@ -67,6 +67,15 @@ test("Spirit Treasure archive feeds selections into the planner", async ({ page 
   await page.goto("/#tools/treasures");
   await expect(page.getByRole("heading", { name: "Spirit Treasure Archive" })).toBeVisible();
   await expect(page.locator(".tools-treasure-card")).toHaveCount(6);
+  await expect(
+    page.locator(".tools-treasure-card").filter({ hasText: "Jade Heart Pendant" })
+  ).toContainText("Steady Heart");
+  await expect(
+    page.locator(".tools-treasure-card").filter({ hasText: "Jade Heart Pendant" })
+  ).toContainText("Jade Heart Reborn");
+  await expect(
+    page.locator(".tools-treasure-card").filter({ hasText: "Jade Heart Pendant" })
+  ).toContainText("vitality · perception");
 
   await page.locator(".tools-treasure-card").filter({ hasText: "Jade Heart Pendant" }).getByRole("button").click();
   await expect(page.getByRole("heading", { name: "Build Planner" })).toBeVisible();

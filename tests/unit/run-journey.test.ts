@@ -25,6 +25,7 @@ describe("Run journey", () => {
       realmProgress: 42,
       phaseCleanupActive: false,
       foundationGrowthTransactions: 5,
+      tribulationActive: false,
       finalBossActive: true,
       finalBossPhaseIndex: 1,
       pendingDecision: { kind: "final-boss-phase" as const, nextPhaseIndex: 2 },
@@ -39,6 +40,7 @@ describe("Run journey", () => {
       realmProgress: 42,
       phaseCleanupActive: false,
       foundationGrowthTransactions: 5,
+      tribulationActive: false,
       finalBossActive: true,
       finalBossPhaseIndex: 1,
       pendingDecision: { kind: "final-boss-phase", nextPhaseIndex: 2 }
@@ -131,6 +133,7 @@ describe("Run journey", () => {
       state: {
         ...alive,
         phaseCleanupActive: false,
+        tribulationActive: false,
         finalBossActive: false,
         gameOver: true,
         pendingDecision: undefined
@@ -154,7 +157,7 @@ describe("Run journey", () => {
     });
   });
 
-  it("drives Stage Tribulation breakthroughs through runtime events", () => {
+  it("requires a cleared combat Tribulation before a Stage breakthrough", () => {
     const ready = {
       stage: "lianqi" as const,
       realmPhase: "dayuanman" as const,
@@ -180,13 +183,35 @@ describe("Run journey", () => {
     });
 
     expect(accepted.state).toMatchObject({
+      stage: "lianqi",
+      realmPhase: "dayuanman",
+      realmProgress: 100,
+      phaseCleanupActive: false,
+      foundationGrowthTransactions: 2,
+      tribulationActive: true
+    });
+    expect(accepted.commands).toEqual([
+      { kind: "start-tribulation", stage: "lianqi" },
+      { kind: "persist-checkpoint" }
+    ]);
+
+    expect(advanceRunJourney(accepted.state, { kind: "realm-qi-gained", amount: 20 })).toEqual({
+      state: accepted.state,
+      commands: []
+    });
+
+    const cleared = advanceRunJourney(accepted.state, { kind: "tribulation-cleared" });
+    expect(cleared.state).toMatchObject({
       stage: "zhuji",
       realmPhase: "chuqi",
       realmProgress: 0,
-      phaseCleanupActive: false,
+      tribulationActive: false,
       foundationGrowthTransactions: 3
     });
-    expect(accepted.commands).toEqual([{ kind: "persist-checkpoint" }]);
+    expect(cleared.commands).toEqual([
+      { kind: "persist-checkpoint" },
+      { kind: "present-stage-breakthrough", completedStage: "lianqi", nextStage: "zhuji" }
+    ]);
   });
 
   it("starts the Yuanying Heavenly Tribulation through runtime events", () => {

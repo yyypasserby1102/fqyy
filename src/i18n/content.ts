@@ -140,18 +140,22 @@ const zhLinggen: Record<LinggenId, Pick<LinggenConfig, "name" | "lore">> = {
   fire: { name: "火灵根", lore: "纯火之根，刚猛专一，易于精炼。" },
   water: { name: "水灵根", lore: "纯水之根，周天稳固，运转自如。" },
   metal: { name: "金灵根", lore: "纯金之根，锋意凝练，行气严整。" },
+  wood: { name: "木灵根", lore: "纯木之根，生机绵延，善于续势与掌控战场。" },
   "fire-metal": { name: "火金双灵根", lore: "炎热与锋锐并生，路数宽广而多变。" },
   "water-metal": { name: "水金双灵根", lore: "流转与锋锐相济，善于应变与精巧御敌。" },
   "water-wood": { name: "水木双灵根", lore: "滋养与流转相生，柔韧而绵长。" }
 };
 
-const zhTreasures: Record<SpiritTreasureId, Pick<SpiritTreasureConfig, "name" | "lore">> = {
-  "jade-heart-pendant": { name: "玉心佩", lore: "温润玉意安抚经脉，使气血愈发深厚。" },
-  "windstep-talisman": { name: "御风符", lore: "山风托足，步履轻灵若无物。" },
-  "lodestone-charm": { name: "引灵磁符", lore: "散落灵气自会向持有者汇聚。" },
-  "ironhide-seal": { name: "铁肤印", lore: "皮肉如叠铁般淬炼，抗击重创。" },
-  "spiritbloom-vial": { name: "灵华瓶", lore: "灵蕴徐徐绽放，滋养并强健肉身。" },
-  "farsight-mirror": { name: "远照镜", lore: "远处灵光映入镜中，应召而来。" }
+const zhTreasures: Record<
+  SpiritTreasureId,
+  Pick<SpiritTreasureConfig, "name" | "lore" | "signature" | "culmination">
+> = {
+  "jade-heart-pendant": { name: "玉心佩", lore: "温润玉意安抚经脉，使气血愈发深厚。", signature: { id: "steady-heart", name: "定心", effect: "气血低于三成时，每三十息恢复气血上限的 5%。" }, culmination: { id: "jade-heart-reborn", name: "玉心再生", effect: "应急恢复提升至气血上限的 10%。" } },
+  "windstep-talisman": { name: "御风符", lore: "山风托足，步履轻灵若无物。", signature: { id: "gale-return", name: "风返", effect: "闪避冷却缩短 8%。" }, culmination: { id: "unbound-wind", name: "无拘之风", effect: "闪避冷却缩短 15%。" } },
+  "lodestone-charm": { name: "引灵磁符", lore: "散落灵气自会向持有者汇聚。", signature: { id: "qi-pulse", name: "灵气脉冲", effect: "拾取灵气时，对 160 像素内敌人造成 4 点伤害。" }, culmination: { id: "spirit-tide", name: "灵潮", effect: "灵气脉冲伤害提升至 8 点。" } },
+  "ironhide-seal": { name: "铁肤印", lore: "皮肉如叠铁般淬炼，抗击重创。", signature: { id: "iron-reprieve", name: "铁息", effect: "承受重击后两秒内，后续伤害降低 18%。" }, culmination: { id: "unbroken-seal", name: "不破铁印", effect: "后续伤害降低提升至 30%。" } },
+  "spiritbloom-vial": { name: "灵华瓶", lore: "灵蕴徐徐绽放，滋养并强健肉身。", signature: { id: "second-bloom", name: "二度绽放", effect: "受到的治疗提升 12%。" }, culmination: { id: "endless-bloom", name: "无尽灵华", effect: "受到的治疗提升 25%。" } },
+  "farsight-mirror": { name: "远照镜", lore: "远处灵光映入镜中，应召而来。", signature: { id: "far-strike", name: "远击", effect: "投射类命中伤害提升 6%。" }, culmination: { id: "heavenly-sight", name: "天目", effect: "投射类命中伤害提升 12%。" } }
 };
 
 const zhStages: Record<StageId, Pick<StageConfig, "name" | "message">> = {
@@ -188,7 +192,10 @@ const zhTerms: Record<string, string> = {
   Damage: "伤害", Cadence: "间隔", Count: "数量", Pierce: "贯穿",
   Speed: "速度", Lifetime: "持续", Spread: "散布", Range: "范围",
   Returns: "回返", Aura: "环域", Retaliate: "反击", Shells: "甲爆",
-  skill1: "初式", passive: "心法", synergy: "联动", skill2: "后式", legacy: "旧法"
+  skill1: "初式", passive: "心法", synergy: "联动", skill2: "后式", legacy: "旧法",
+  vitality: "生息", bulwark: "壁垒", harvest: "采灵", perception: "洞察", windwalk: "御风",
+  Attunement: "契合", moveSpeed: "移动速度", maxHealth: "气血上限",
+  magnetRadius: "吸引范围", mitigation: "减伤"
 };
 
 export function localizeTerm(locale: Locale, value: string): string {
@@ -305,10 +312,55 @@ function localizeZhMasteryChoice(id: string): MasteryChoiceDefinition {
   const option = Math.max(0, peers.findIndex((item) => item.id === id)) + 1;
   const draft = zhMasteryDrafts[id];
   const override = zhMasteryOverrides[id];
+  const packageInfo = gongfaId ? zhGongfa[gongfaId] : undefined;
+  const alternativeNames = peers
+    .filter((item) => item.id !== id)
+    .map((item) => zhMasteryOverrides[item.id]?.name ?? zhMasteryDrafts[item.id]?.name ?? item.name)
+    .join("或");
+  const opportunityCost = `永久放弃同阶的${alternativeNames}。`;
+  const impacts: Record<number, Array<Pick<MasteryChoiceDefinition, "playstyle" | "gain" | "cost" | "scope" | "treasureInteraction">>> = {
+    3: [
+      { playstyle: "凝力破阵", gain: "初式伤害提升 35%，贯穿增加 2", cost: "覆盖范围降低 35%", scope: `「${packageInfo?.skill1.name ?? "初式"}」形态与直接命中`, treasureInteraction: "洞察共鸣强化凝聚攻势" },
+      { playstyle: "广域压制", gain: `初式数量增加 ${gongfaId === "blazing-feather-art" ? 3 : 2}，覆盖角度增加 24 度`, cost: "单次命中伤害降低 20%", scope: `「${packageInfo?.skill1.name ?? "初式"}」形态与直接命中`, treasureInteraction: "采灵共鸣支撑多目标拾取节奏" },
+      { playstyle: "疾速连发", gain: "初式冷却缩短 28%", cost: "单次命中伤害降低 18%", scope: `「${packageInfo?.skill1.name ?? "初式"}」冷却与直接命中`, treasureInteraction: "御风共鸣维持近身节奏" }
+    ],
+    6: [
+      { playstyle: "稳守储备", gain: "心法资源最低保留一半", cost: opportunityCost, scope: `心法「${packageInfo?.passive.name ?? "心法"}」（${packageInfo?.passive.resource ?? "资源"}）循环`, treasureInteraction: "生息共鸣支撑稳定循环" },
+      { playstyle: "加速运转", gain: "每次命中心法资源积累翻倍", cost: opportunityCost, scope: `心法「${packageInfo?.passive.name ?? "心法"}」（${packageInfo?.passive.resource ?? "资源"}）循环`, treasureInteraction: "采灵共鸣加快拾取循环" },
+      { playstyle: "蓄势爆发", gain: "满资源时额外发动 3 次攻击", cost: opportunityCost, scope: `「${packageInfo?.skill1.name ?? "初式"}」与${packageInfo?.passive.resource ?? "心法资源"}`, treasureInteraction: "洞察共鸣放大爆发" }
+    ],
+    9: [
+      { playstyle: "持续输出", gain: "每层资源增加 1 次幻化攻击", cost: opportunityCost, scope: `「${packageInfo?.skill1.name ?? "初式"}」与${packageInfo?.passive.resource ?? "心法资源"}`, treasureInteraction: "洞察共鸣延伸幻化攻势" },
+      { playstyle: "领域控制", gain: "命中生成伤害为 35% 的资源领域", cost: opportunityCost, scope: `「${packageInfo?.skill1.name ?? "初式"}」命中与${packageInfo?.passive.resource ?? "心法资源"}`, treasureInteraction: "壁垒共鸣支撑领域内作战" },
+      { playstyle: "游走反击", gain: "闪避时发动一次随资源增强的初式", cost: opportunityCost, scope: `闪避与「${packageInfo?.skill1.name ?? "初式"}」`, treasureInteraction: "御风共鸣直接强化此触发" }
+    ]
+  };
+  const name = override?.name ?? draft?.name ?? `${gongfaName}·${source.milestoneRank ?? 0}重蜕变${option}`;
+  const lore = override?.lore ?? draft?.lore ?? `重塑「${gongfaName}」的战斗形态；选定后将永久生效。`;
+  const usesAuthoredSpecialRules = source.gain === source.lore;
+  const specialImpact = usesAuthoredSpecialRules
+    ? {
+        playstyle: name,
+        gain: lore,
+        cost: opportunityCost,
+        scope: source.milestoneRank === 3
+          ? /Evade/.test(source.lore)
+            ? `闪避与「${packageInfo?.skill1.name ?? "初式"}」`
+            : `「${packageInfo?.skill1.name ?? "初式"}」形态与命中方式`
+          : source.milestoneRank === 6
+            ? `心法「${packageInfo?.passive.name ?? "心法"}」（${packageInfo?.passive.resource ?? "资源"}）循环`
+            : /Evade/.test(source.lore)
+              ? `闪避与${packageInfo?.passive.resource ?? "心法资源"}终式`
+              : `「${packageInfo?.skill1.name ?? "初式"}」与${packageInfo?.passive.resource ?? "心法资源"}终式`,
+        treasureInteraction: "法宝共鸣在此蜕变结算后独立生效"
+      }
+    : undefined;
+  const impact = specialImpact ?? (source.milestoneRank ? impacts[source.milestoneRank]?.[option - 1] : undefined);
   return {
     ...source,
-    name: override?.name ?? draft?.name ?? `${gongfaName}·${source.milestoneRank ?? 0}重蜕变${option}`,
-    lore: override?.lore ?? draft?.lore ?? `重塑「${gongfaName}」的战斗形态；选定后将永久生效。`
+    ...impact,
+    name,
+    lore
   };
 }
 
@@ -859,7 +911,13 @@ function getZhReplacementPairs(): Array<[string, string]> {
   }
   for (const id of Object.keys(zhTreasures) as SpiritTreasureId[]) {
     const source = getSpiritTreasureConfig(id);
-    pairs.push([source.name, zhTreasures[id].name], [source.lore, zhTreasures[id].lore]);
+    pairs.push(
+      [source.name, zhTreasures[id].name], [source.lore, zhTreasures[id].lore],
+      [source.signature.name, zhTreasures[id].signature.name],
+      [source.signature.effect, zhTreasures[id].signature.effect],
+      [source.culmination.name, zhTreasures[id].culmination.name],
+      [source.culmination.effect, zhTreasures[id].culmination.effect]
+    );
   }
   for (const source of upgradeConfigs) {
     const translated = localizeUpgrade("zh-CN", source.id);
@@ -905,6 +963,7 @@ const runtimeExactZh: Record<string, string> = {
   "Keep your current three Spirit Treasures.": "保留当前三件灵宝。",
   "All three Spirit Treasure slots are full.": "三个灵宝栏位均已占满。",
   "Choose one refinement for the current Gongfa rank.": "为当前功法重数选择一项淬炼。",
+  "Choose one permanent Transformation. The other two paths close.": "选择一项永久蜕变，其余两条同阶道路将封闭。",
   "A deterministic mastery refinement.": "一项既定的精通淬炼。",
   "Return to Title": "返回主界面",
   "Abandon Run": "放弃本次修行",
@@ -918,6 +977,10 @@ const runtimeExactZh: Record<string, string> = {
   "The Heavenly Tribulation is broken. The run is complete.": "天劫已破，本次修行圆满。",
   "Leave the completed run and return to the shell.": "结束本次修行并返回主界面。",
   "HEAVENLY TRIBULATION BROKEN": "天劫已破",
+  "TRIBULATION BEGINS": "天劫降临",
+  "TRIBULATION CLEARED": "天劫已破",
+  "Defeat the Tribulation host. The breakthrough is not yet yours.": "击败天劫之主，方可真正突破。",
+  "Foundation Growth: +1 damage · +8 max HP · +3 movement · +8 orb radius.": "根基成长：伤害 +1 · 气血上限 +8 · 移动 +3 · 灵气拾取范围 +8。",
   "Ascendant": "飞升者",
   "The Yuanying Cultivator stands beyond the storm.": "元婴修士越过雷海，立于天穹之外。",
   "A permanent completion record has been written.": "本次通关已永久记录。",
@@ -960,6 +1023,10 @@ export function localizeRuntimeText(locale: Locale, value: string): string {
 function localizeZhRuntimeText(value: string): string {
   if (value.length === 0) return value;
   if (runtimeExactZh[value]) return runtimeExactZh[value];
+  const nextFoundationReward = /^NEXT REWARD · \+1 damage · \+8 max HP\/heal · \+3 movement · \+8 orb radius · (.+)$/.exec(value);
+  if (nextFoundationReward) {
+    return `下次奖励 · 伤害 +1 · 气血上限与恢复 +8 · 移动 +3 · 灵气拾取范围 +8 · ${localizeZhRuntimeText(nextFoundationReward[1])}`;
+  }
   const cleanup = /^Cleanup complete\. (.+) is ready to advance\.$/.exec(value);
   if (cleanup) return `清场完成，${localizeZhRuntimeText(cleanup[1])}已可推进。`;
   const concludingTribulation = /^(.+) Dayuanman clears\. Its concluding Tribulation rises\.$/.exec(value);
@@ -1000,6 +1067,7 @@ function localizeZhRuntimeText(value: string): string {
     .replaceAll("mitigation", "减伤").replaceAll("Blade Shell", "刃甲").replaceAll("unclaimed — claim it to awaken your Linggen", "尚未取得——取得后觉醒灵根")
     .replaceAll("Refinements", "淬炼").replaceAll("Transformations", "蜕变").replaceAll("Mastery", "精通")
     .replaceAll("Tribulation", "天劫")
+    .replaceAll("Breakthrough", "突破")
     .replaceAll("complete", "完成").replaceAll("Foundation Growth", "根基成长").replaceAll("Total", "累计")
     .replaceAll("Strong", "上等").replaceAll("Medium", "中等").replaceAll("Weak", "下等")
     .replaceAll("SKILL 1 · ACTIVE", "术法一 · 已启用").replaceAll("SKILL 2 · ACTIVE", "术法二 · 已启用")
@@ -1014,6 +1082,7 @@ function localizeZhRuntimeText(value: string): string {
     .replace(/ supplants (.+)\.$/, "替换了$1。")
     .replace(/ circulates through your meridians\.$/, "开始在你的经脉中运转。")
     .replace(/ mastery deepens\.$/, "的精通更进一步。")
+    .replace(" Integrated automatically without interrupting combat: ", " 战斗未被打断，自动融入：")
     .replace(/ ([0-9]+) ordinary refinement settles without interrupting combat\.$/, " 战斗未被打断，并完成 $1 项常规淬炼。")
     .replace(/ ([0-9]+) ordinary refinements settle without interrupting combat\.$/, " 战斗未被打断，并完成 $1 项常规淬炼。")
     .replace(/ begins\.$/, "开始。")
@@ -1081,11 +1150,37 @@ function localizeChoiceOption(locale: Locale, option: ChoiceOption): ChoiceOptio
   }
   if (option.kind === "mastery") {
     const choice = localizeMasteryChoice(locale, option.id);
-    return { ...option, title: choice.name, description: choice.lore };
+    return {
+      ...option,
+      title: choice.name,
+      description: choice.playstyle
+        ? `${choice.gain === choice.lore ? "" : `${choice.lore} · `}收益：${choice.gain} · 代价：${choice.cost} · 灵宝：${choice.treasureInteraction}`
+        : choice.lore,
+      playstyle: choice.playstyle,
+      gain: choice.gain,
+      cost: choice.cost,
+      scope: choice.scope,
+      treasureInteraction: choice.treasureInteraction
+    };
   }
   if (option.kind === "spirit-treasure-replace") {
     const treasure = localizeSpiritTreasure(locale, option.id as SpiritTreasureId);
-    return { ...option, title: `替换 ${treasure.name}`, description: treasure.lore };
+    const localizeDelta = (value: string | undefined) => {
+      if (!value) return "无";
+      const match = /^([+-][0-9.]+) ([A-Za-z]+)$/.exec(value);
+      return match ? `${match[1]} ${localizeTerm(locale, match[2])}` : value;
+    };
+    const gained = option.resonanceGained?.map((seal) => localizeTerm(locale, seal)) ?? [];
+    const lost = option.resonanceLost?.map((seal) => localizeTerm(locale, seal)) ?? [];
+    const parts = [
+      `收益：${localizeDelta(option.gain)}`,
+      `代价：${localizeDelta(option.loss)}`,
+      ...(gained.length ? [`激活共鸣：${gained.join("、")}`] : []),
+      ...(lost.length ? [`失去共鸣：${lost.join("、")}`] : []),
+      ...(option.mechanicsGained?.map((effect) => `获得机制：${localizeRuntimeText(locale, effect)}`) ?? []),
+      ...(option.mechanicsLost?.map((effect) => `失去机制：${localizeRuntimeText(locale, effect)}`) ?? [])
+    ];
+    return { ...option, title: `替换 ${treasure.name}`, description: parts.join(" · ") };
   }
   return { ...option, title: localizeRuntimeText(locale, option.title), description: localizeRuntimeText(locale, option.description) };
 }

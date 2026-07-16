@@ -4,7 +4,8 @@ import {
   getMasteryChoiceDefinition,
   hasMasteryTransformation,
   isGongfaFullyMastered,
-  getRank10Skill2Id
+  getRank10Skill2Id,
+  masteryTransformationConfigs
 } from "../../src/logic/mastery";
 import { surgeGongfaSpecs } from "../../src/data/surgeGongfa";
 import { upgradeConfigs } from "../../src/data/upgrades";
@@ -15,6 +16,30 @@ const allRefinementTiers = (gongfaId: "yujian-jue") =>
     .flatMap((upgrade) => [upgrade.id, upgrade.id]);
 
 describe("mastery progression", () => {
+  it("exposes explicit playstyle tradeoffs for every Transformation", () => {
+    for (const transformation of masteryTransformationConfigs) {
+      expect(getMasteryChoiceDefinition(transformation.id)).toMatchObject({
+        playstyle: expect.any(String),
+        gain: expect.stringMatching(/.+/),
+        cost: expect.any(String),
+        scope: expect.any(String),
+        treasureInteraction: expect.any(String)
+      });
+    }
+  });
+
+  it("describes authored special transformations without shared-archetype numbers", () => {
+    expect(getMasteryChoiceDefinition("execution-seal")).toMatchObject({
+      playstyle: "Execution Seal",
+      gain: "Repeated Yujian Skill 1 hits escalate against a marked priority target.",
+      cost: "Locks out Sword Bloom or Reversing Sword Path at Rank 3.",
+      scope: "Flying Sword Volley form and hit pattern"
+    });
+    expect(getMasteryChoiceDefinition("iron-gravity-domain")).toMatchObject({
+      gain: "At high Guard, pull nearby enemies into repeated aura bursts.",
+      cost: "Locks out Gengjin Fortress or Unbroken Advance at Rank 9."
+    });
+  });
   it("marks a Gongfa Fully Mastered only after Skill 2 and its authored Refinements are complete", () => {
     const allYujianRefinements = allRefinementTiers("yujian-jue");
 

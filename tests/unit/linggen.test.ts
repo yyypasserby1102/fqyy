@@ -10,8 +10,17 @@ import {
   linggenConfigs
 } from "../../src/data/linggen";
 import { setRandomSeed } from "../../src/utils/random";
+import { getCompatibleGongfaIdsForLinggen } from "../../src/logic/progression";
 
 describe("Linggen affinity rules", () => {
+  it("gives pure Wood access to every authored Wood Gongfa package", () => {
+    expect(getCompatibleGongfaIdsForLinggen("wood")).toEqual([
+      "green-vine-art",
+      "ironwood-wave-form",
+      "verdant-ring-scripture"
+    ]);
+    expect(getGongfaMasterySpeedLabel("wood", "green-vine-art")).toBe("Fast");
+  });
   it("derives per-Gongfa Mastery efficiency from required-root affinity", () => {
     expect(getGongfaMasteryEfficiency("fire-metal", "burning-ring-scripture")).toBe(1);
     expect(getGongfaMasteryEfficiency("fire-metal", "yujian-jue")).toBeCloseTo(4 / 6);

@@ -42,6 +42,7 @@ function createValidCheckpoint() {
     realmProgress: 0,
     phaseCleanupActive: false,
     foundationGrowthTransactions: 0,
+    foundationGrowthAppliedTransactions: 0,
     masteryPoints: 0,
     masteryRank: 0,
     masteryLearnedIds: [],
@@ -124,6 +125,20 @@ function withMigratedGongfaMastery(checkpoint: ReturnType<typeof createValidChec
 }
 
 describe("run persistence", () => {
+  it("marks legacy Foundation Growth as unapplied for one-time stat migration", () => {
+    const checkpoint = createActiveRunCheckpoint({
+      ...createValidCheckpoint(),
+      foundationGrowthTransactions: 4
+    });
+    expect(checkpoint.foundationGrowthAppliedTransactions).toBe(0);
+
+    const current = createActiveRunCheckpoint({
+      ...createValidCheckpoint(),
+      foundationGrowthTransactions: 4,
+      foundationGrowthAppliedTransactions: 4
+    });
+    expect(current.foundationGrowthAppliedTransactions).toBe(4);
+  });
   it("validates complete learned Gongfa runtime checkpoints", () => {
     const checkpoint = {
       ...createValidCheckpoint(),

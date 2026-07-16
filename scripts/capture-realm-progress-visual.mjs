@@ -8,6 +8,7 @@ const browser = await chromium.launch({
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 await page.addInitScript(() => {
+  window.localStorage.setItem("fqyy.locale.v1", '"en"');
   const original = Crypto.prototype.getRandomValues;
   Crypto.prototype.getRandomValues = function seeded(array) {
     if (array instanceof Uint32Array && array.length === 1) {

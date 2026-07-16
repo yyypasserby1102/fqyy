@@ -6,7 +6,11 @@ import { upgradeConfigs } from "../../src/data/upgrades";
 
 describe("config schema validation", () => {
   it("keeps the first-slice Linggen pool within the designed scope", () => {
-    expect(firstSliceLinggenPool).toHaveLength(6);
+    expect(firstSliceLinggenPool).toHaveLength(7);
+    expect(linggenConfigs.wood).toMatchObject({
+      roots: ["wood"],
+      rootAffinities: { fire: 0, water: 0, metal: 0, wood: 10 }
+    });
     firstSliceLinggenPool.forEach((id) => {
       expect(linggenConfigs[id].roots.length).toBeGreaterThanOrEqual(1);
       expect(linggenConfigs[id].roots.length).toBeLessThanOrEqual(2);

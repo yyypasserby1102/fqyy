@@ -460,7 +460,18 @@ export function mountToolsShell(container: HTMLElement): void {
     for (const sourceTreasure of Object.values(spiritTreasureConfigs)) {
       const treasure = localizeSpiritTreasure(locale, sourceTreasure.id);
       const card = element("article", "tools-treasure-card");
-      card.append(element("span", "tools-treasure-gem tools-treasure-gem--large", "◇"), element("p", "tools-kicker", effectLabel(treasure.effect)), element("h2", "", treasure.name), element("strong", "tools-treasure-effect", formatEffect(treasure.effect, treasure.value)), element("p", "", treasure.lore));
+      card.append(
+        element("span", "tools-treasure-gem tools-treasure-gem--large", "◇"),
+        element("p", "tools-kicker", effectLabel(treasure.effect)),
+        element("h2", "", treasure.name),
+        element("strong", "tools-treasure-effect", formatEffect(treasure.effect, treasure.value)),
+        element("p", "", treasure.lore),
+        element("p", "tools-tags", treasure.resonanceSeals.map((seal) => localizeTerm(locale, seal)).join(" · ")),
+        element("strong", "", `${localizeTerm(locale, "Attunement")} 2 · ${treasure.signature.name}`),
+        element("p", "", treasure.signature.effect),
+        element("strong", "", `${localizeTerm(locale, "Attunement")} 3 · ${treasure.culmination.name}`),
+        element("p", "", treasure.culmination.effect)
+      );
       const plan = element("button", "tools-action", t("tools.treasures.plan")); plan.type = "button";
       plan.addEventListener("click", () => { build = addTreasureToBuild(build, treasure.id); setView("planner"); }); card.append(plan); grid.append(card);
     }

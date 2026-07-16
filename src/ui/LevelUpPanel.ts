@@ -27,10 +27,10 @@ export class LevelUpPanel {
       .setInteractive();
 
     const panel = scene.add
-      .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 780, 360, 0x07111d, 0.97)
+      .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 900, 460, 0x07111d, 0.97)
       .setStrokeStyle(3, 0x72ced7, 0.72);
     const panelInset = scene.add
-      .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 756, 336)
+      .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 876, 436)
       .setStrokeStyle(1, 0xd7b96d, 0.38);
 
     this.awakeningGlow = scene.add
@@ -63,7 +63,7 @@ export class LevelUpPanel {
       .play(LINGCAO_ANIMATIONS.breakthrough);
 
     this.title = scene.add
-      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 144, "Breakthrough Choice", {
+      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 194, "Breakthrough Choice", {
         fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "28px",
         color: "#f5e6a8"
@@ -71,7 +71,7 @@ export class LevelUpPanel {
       .setOrigin(0.5);
 
     this.subtitle = scene.add
-      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 108, "", {
+      .text(scene.scale.width * 0.5, scene.scale.height * 0.5 - 154, "", {
         fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "15px",
         color: "#9bc4d8",
@@ -124,28 +124,28 @@ export class LevelUpPanel {
     scene.events.once(Phaser.Scenes.Events.SHUTDOWN, unsubscribe);
 
     for (let i = 0; i < 4; i += 1) {
-      const x = scene.scale.width * 0.5 - 270 + i * 180;
-      const y = scene.scale.height * 0.5 + 12;
+      const x = scene.scale.width * 0.5 - 315 + i * 210;
+      const y = scene.scale.height * 0.5 + 28;
       const box = scene.add
-        .rectangle(x, y, 166, 180, 0x0d1d2b, 0.96)
+        .rectangle(x, y, 194, 270, 0x0d1d2b, 0.96)
         .setStrokeStyle(2, 0x6fcbd5, 0.7)
         .setInteractive({ useHandCursor: true });
       const label = scene.add
-        .text(x, y - 64, "", {
+        .text(x, y - 108, "", {
           fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
           fontSize: "20px",
           color: "#f5fbff",
           align: "center",
-          wordWrap: { width: 146 }
+          wordWrap: { width: 174 }
         })
         .setOrigin(0.5);
       const desc = scene.add
-        .text(x, y - 12, "", {
+        .text(x, y - 64, "", {
           fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
           fontSize: "13px",
           color: "#a9c8da",
           align: "center",
-          wordWrap: { width: 146 }
+          wordWrap: { width: 174 }
         })
         .setOrigin(0.5, 0);
 
@@ -186,8 +186,9 @@ export class LevelUpPanel {
     this.title.setColor(awakening ? "#ffe3a0" : "#f5e6a8");
     this.container.setVisible(true);
 
-    const spacing = options.length === 4 ? 180 : 220;
+    const spacing = options.length === 4 ? 210 : 270;
     const startX = this.title.x - ((options.length - 1) * spacing) / 2;
+    const optionWidth = options.length === 4 ? 194 : 244;
 
     options.forEach((option, index) => {
       const slot = this.options[index];
@@ -195,6 +196,9 @@ export class LevelUpPanel {
       slot.box.setX(x);
       slot.label.setX(x);
       slot.desc.setX(x);
+      slot.box.setSize(optionWidth, 270);
+      slot.label.setWordWrapWidth(optionWidth - 20);
+      slot.desc.setWordWrapWidth(optionWidth - 20);
       slot.label.setText(`${index + 1}. ${option.title}`);
       slot.desc.setText(option.description);
       slot.box.setVisible(true);

@@ -1,5 +1,6 @@
 import { upgradeConfigs } from "../data/upgrades";
 import type { GongfaId } from "../data/gongfa";
+import { getGongfaPackage } from "../data/gongfaPackages";
 import { surgeGongfaSpecs, type SurgeTransformation } from "../data/surgeGongfa";
 
 export interface MasteryChoiceContext {
@@ -24,6 +25,133 @@ export interface MasteryChoiceDefinition {
   requiredGongfaIds?: GongfaId[];
   milestoneRank?: number;
   exclusivityGroup?: string;
+  playstyle?: string;
+  gain?: string;
+  cost?: string;
+  scope?: string;
+  treasureInteraction?: string;
+}
+
+type TransformationImpact = Required<
+  Pick<
+    MasteryChoiceDefinition,
+    "playstyle" | "gain" | "cost" | "scope" | "treasureInteraction"
+  >
+>;
+
+function getTransformationImpact(definition: MasteryChoiceDefinition): TransformationImpact {
+  const siblings = masteryTransformationConfigs.filter(
+    (candidate) => candidate.exclusivityGroup === definition.exclusivityGroup
+  );
+  const branch = Math.max(0, siblings.findIndex((candidate) => candidate.id === definition.id));
+  const gongfaId = definition.requiredGongfaIds?.[0];
+  const packageInfo = gongfaId ? getGongfaPackage(gongfaId) : undefined;
+  const skill1Name = packageInfo?.skill1.name ?? definition.name;
+  const passiveName = packageInfo?.passive.name ?? definition.name;
+  const resourceName = packageInfo?.passive.resource ?? definition.name;
+  const alternativeNames = siblings
+    .filter((candidate) => candidate.id !== definition.id)
+    .map((candidate) => candidate.name)
+    .join(" or ");
+  const surgeSpec = surgeGongfaSpecs.find((spec) => spec.gongfaId === gongfaId);
+  const mechanics = surgeSpec?.mechanics;
+  const percentageLoss = (scale: number | undefined, fallback: number): number =>
+    Math.round((1 - (scale ?? fallback)) * 100);
+  const usesSharedSurgeRules = gongfaId === "blazing-feather-art" ||
+    surgeGongfaSpecs.some((spec) => spec.gongfaId === gongfaId);
+  if (!usesSharedSurgeRules) {
+    const evadeScoped = /Evade/.test(definition.lore);
+    return {
+      playstyle: definition.name,
+      gain: definition.lore,
+      cost: `Locks out ${alternativeNames} at Rank ${definition.milestoneRank}.`,
+      scope: definition.milestoneRank === 3
+        ? evadeScoped
+          ? `Evade and ${packageInfo?.skill1.name ?? "Skill 1"}`
+          : `${packageInfo?.skill1.name ?? "Skill 1"} form and hit pattern`
+        : definition.milestoneRank === 6
+          ? `${packageInfo?.passive.name ?? "Gongfa passive"} (${packageInfo?.passive.resource ?? "resource"}) loop`
+          : evadeScoped
+            ? `Evade and ${packageInfo?.passive.resource ?? "passive resource"} payoff`
+            : `${packageInfo?.skill1.name ?? "Skill 1"} and ${packageInfo?.passive.resource ?? "passive resource"} payoff`,
+      treasureInteraction: "Spirit Treasure resonances apply independently after this transformation"
+    };
+  }
+  if (definition.milestoneRank === 3) {
+    return [
+      {
+        playstyle: definition.name,
+        gain: `+${Math.round(((mechanics?.focusDamageScale ?? 1.35) - 1) * 100)}% ${skill1Name} damage · +${mechanics?.focusPierce ?? 2} pierce`,
+        cost: `-1 attack · -${percentageLoss(mechanics?.focusSpreadScale, 0.65)}% spread`,
+        scope: `${skill1Name} shape and direct hits`,
+        treasureInteraction: "Perception resonance strengthens the focused lane"
+      },
+      {
+        playstyle: definition.name,
+        gain: gongfaId === "blazing-feather-art"
+          ? "+3 Skill 1 attacks · +24° coverage"
+          : `+${mechanics?.spreadCount ?? 2} ${skill1Name} attacks · +${mechanics?.spreadDegrees ?? 24}° coverage`,
+        cost: `-${percentageLoss(mechanics?.spreadDamageScale, 0.8)}% per-hit damage`,
+        scope: `${skill1Name} shape and direct hits`,
+        treasureInteraction: "Harvest resonance rewards multi-target pickup pressure"
+      },
+      {
+        playstyle: definition.name,
+        gain: `-${percentageLoss(mechanics?.quickenCooldownScale, 0.72)}% ${skill1Name} cooldown · +${mechanics?.quickenSpeed ?? 60} projectile speed`,
+        cost: `-${percentageLoss(mechanics?.quickenDamageScale, 0.82)}% per-hit damage`,
+        scope: `${skill1Name} cooldown and direct hits`,
+        treasureInteraction: "Windwalk resonance sustains the close-range rhythm"
+      }
+    ][branch];
+  }
+  if (definition.milestoneRank === 6) {
+    return [
+      {
+        playstyle: definition.name,
+        gain: `${resourceName} floor stays at ${mechanics?.holdFloor ?? 3}/6 once reached`,
+        cost: `Locks out ${alternativeNames}`,
+        scope: `${passiveName} (${resourceName})`,
+        treasureInteraction: "Vitality resonance supports the steady pattern"
+      },
+      {
+        playstyle: definition.name,
+        gain: `${mechanics?.cascadeGain ?? 2} ${resourceName} per hit`,
+        cost: `Locks out ${alternativeNames}`,
+        scope: `${passiveName} (${resourceName})`,
+        treasureInteraction: "Harvest resonance accelerates the pickup loop"
+      },
+      {
+        playstyle: definition.name,
+        gain: `+${mechanics?.burstCount ?? 3} attacks at full ${resourceName}`,
+        cost: `Locks out ${alternativeNames}`,
+        scope: `${resourceName} and the next ${skill1Name} cast`,
+        treasureInteraction: "Perception resonance amplifies the release"
+      }
+    ][branch];
+  }
+  return [
+    {
+      playstyle: definition.name,
+      gain: `+${mechanics?.crownPerStack ?? 1} spectral attack per ${resourceName} stack`,
+      cost: `Locks out ${alternativeNames}`,
+      scope: `Every ${skill1Name} cast`,
+      treasureInteraction: "Perception resonance extends spectral pressure"
+    },
+    {
+      playstyle: definition.name,
+      gain: `Hits create ${Math.round((mechanics?.domainDamageScale ?? 0.35) * 100)}%-damage ${resourceName}-scaled fields`,
+      cost: `Locks out ${alternativeNames}`,
+      scope: `${skill1Name} impact zones`,
+      treasureInteraction: "Bulwark resonance supports fighting inside the domain"
+    },
+    {
+      playstyle: definition.name,
+      gain: `Evade fires ${skill1Name} with ${mechanics?.updraftStackScale ?? 1}x ${resourceName} attack scaling`,
+      cost: `Locks out ${alternativeNames}`,
+      scope: `Evade and ${skill1Name}`,
+      treasureInteraction: "Windwalk resonance directly strengthens this trigger"
+    }
+  ][branch];
 }
 
 function buildSurgeTransformations(): MasteryChoiceDefinition[] {
@@ -572,7 +700,7 @@ export function getRank10Skill2Id(gongfaId: GongfaId): string {
 export function getMasteryChoiceDefinition(id: string): MasteryChoiceDefinition | undefined {
   const transformation = masteryTransformationConfigs.find((item) => item.id === id);
   if (transformation) {
-    return transformation;
+    return { ...transformation, ...getTransformationImpact(transformation) };
   }
 
   const upgrade = upgradeConfigs.find((item) => item.id === id);

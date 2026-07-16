@@ -229,4 +229,7 @@ test("the production choice panel renders all four treasure replacement options"
       "Leave it behind"
     ]
   });
+  if (process.env.CHOICE_PANEL_CAPTURE) {
+    await page.screenshot({ path: process.env.CHOICE_PANEL_CAPTURE, fullPage: true });
+  }
 });

@@ -8,6 +8,7 @@ export type LinggenId =
   | "fire"
   | "water"
   | "metal"
+  | "wood"
   | "fire-metal"
   | "water-metal"
   | "water-wood";
@@ -83,6 +84,19 @@ export const linggenConfigs: Record<LinggenId, LinggenConfig> = {
     efficiency: 1.18,
     lore: "A pure metal root. Sharp intent, disciplined qi, and efficient methods."
   },
+  wood: {
+    id: "wood",
+    name: "Wood Linggen",
+    roots: ["wood"],
+    rootAffinities: {
+      fire: 0,
+      water: 0,
+      metal: 0,
+      wood: 10
+    },
+    efficiency: 1.15,
+    lore: "A pure wood root. Living qi entwines, renews, and controls the battlefield."
+  },
   "fire-metal": {
     id: "fire-metal",
     name: "Fire-Metal Linggen",
@@ -128,6 +142,7 @@ export const firstSliceLinggenPool: LinggenId[] = [
   "fire",
   "water",
   "metal",
+  "wood",
   "fire-metal",
   "water-metal",
   "water-wood"
@@ -158,7 +173,13 @@ export function getCultivatorCandidates(seed: number): CultivatorCandidate[] {
   );
   const dualRootPool = firstSliceLinggenPool.filter((id) => linggenConfigs[id].roots.length === 2);
   const selected = new Set<LinggenId>();
-  const singleRoot = pickSeededDistinct(singleRootPool, seed, 1, selected);
+  // Preserve the original Fire/Water/Metal meanings for legacy deterministic
+  // seeds while giving pure Wood a stable candidate path of its own.
+  const legacySingleRootPool = singleRootPool.filter((id) => id !== "wood");
+  const singleRoot =
+    seed % 4 === 3
+      ? "wood"
+      : pickSeededDistinct(legacySingleRootPool, seed, 1, selected);
   selected.add(singleRoot);
   const dualRoot = pickSeededDistinct(dualRootPool, seed, 2, selected);
   selected.add(dualRoot);

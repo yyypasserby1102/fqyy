@@ -31,7 +31,7 @@ export class Evade {
     };
   }
 
-  tryStart(direction: EvadeDirection): boolean {
+  tryStart(direction: EvadeDirection, cooldownMultiplier = 1): boolean {
     if (this.cooldownRemainingMs > 0) {
       return false;
     }
@@ -46,7 +46,7 @@ export class Evade {
       y: direction.y / magnitude
     };
     this.activeRemainingMs = EVADE_DURATION_MS;
-    this.cooldownRemainingMs = EVADE_COOLDOWN_MS;
+    this.cooldownRemainingMs = EVADE_COOLDOWN_MS * cooldownMultiplier;
     return true;
   }
 

@@ -8,6 +8,7 @@ import {
   type GongfaPattern,
   type GongfaStageState
 } from "../data/gongfa";
+import { SURGE_CASCADE_IDS } from "../data/surgeGongfa";
 import {
   getGongfaMasteryEfficiency,
   getGongfaMasterySpeedLabel,
@@ -16,7 +17,7 @@ import {
   rollLinggen,
   type LinggenConfig
 } from "../data/linggen";
-import { stageConfigs } from "../data/stages";
+import { stageConfigs, type StageId } from "../data/stages";
 import { ARENA_VARIANTS } from "../data/arenaVariants";
 import { Enemy } from "../entities/Enemy";
 import { Lingcao } from "../entities/Lingcao";
@@ -31,10 +32,13 @@ import {
   type SpiritTreasureId
 } from "../data/spiritTreasures";
 import {
-  aggregateSpiritTreasureEffects,
-  offerSpiritTreasure,
+  attuneSpiritTreasure,
+  projectSpiritTreasureReplacement,
+  projectSpiritTreasureResonanceModifiers,
+  projectSpiritTreasureState,
   replaceSpiritTreasure,
-  spiritTreasureDropForKill
+  spiritTreasureDropForKill,
+  type SpiritTreasureAttunement
 } from "../logic/spiritTreasures";
 import { Projectile } from "../entities/Projectile";
 import { QiOrb } from "../entities/QiOrb";
@@ -111,6 +115,8 @@ import {
 } from "../persistence/profilePersistence";
 import { InputController } from "../systems/InputController";
 import { SpawnerSystem } from "../systems/SpawnerSystem";
+import { projectEncounterPressure } from "../logic/encounterPressure";
+import { projectFoundationGrowth } from "../logic/foundationGrowth";
 import type { GameSnapshot } from "../types/gameTest";
 import type { ProjectileVisualId } from "../types/combatVisuals";
 import { createGongfaSigil } from "../visual/gongfaSigils";
@@ -153,6 +159,7 @@ interface RunState extends RunJourneyState {
   lingcaoY: number;
   healingPills: HealingPillCheckpoint[];
   spiritTreasureIds: SpiritTreasureId[];
+  spiritTreasureAttunements: SpiritTreasureAttunement[];
 }
 
 const baselineState: CombatState = {
@@ -199,6 +206,32 @@ const finalBossPhaseConfigs = [
     safeZone: true
   }
 ] as const;
+
+const stageTribulationWaves: Record<Exclude<StageId, "yuanying">, readonly EnemyId[]> = {
+  lianqi: ["mist-wolf", "bone-crow", "mist-wolf", "bone-crow", "mist-wolf", "bone-crow"],
+  zhuji: [
+    "corpse-cultivator",
+    "resentful-spirit",
+    "bone-crow",
+    "corpse-cultivator",
+    "resentful-spirit",
+    "bone-crow",
+    "corpse-cultivator",
+    "resentful-spirit"
+  ],
+  jindan: [
+    "celestial-construct",
+    "tribulation-shade",
+    "celestial-construct",
+    "tribulation-shade",
+    "celestial-construct",
+    "tribulation-shade",
+    "celestial-construct",
+    "tribulation-shade",
+    "celestial-construct",
+    "tribulation-shade"
+  ]
+};
 
 const fallbackFinalBossPhase = {
   name: "Heavenly Judgment",
@@ -251,7 +284,6 @@ export class GameScene extends Phaser.Scene {
     masteryPendingRanks: []
   };
   private combatState: CombatState = { ...baselineState };
-  private msSinceDamage = 0;
   private readonly sfx = new SoundFx();
   private readonly evade = new Evade();
   private choiceActive = false;
@@ -275,6 +307,8 @@ export class GameScene extends Phaser.Scene {
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
   private didSettingsPanelPauseRun = false;
+  private bulwarkGuardRemainingMs = 0;
+  private vitalityEmergencyCooldownMs = 0;
   private unsubscribeSettingsPanel?: () => void;
   private readonly onSettingsPanel = ({ open }: { open: boolean }): void => {
     if (open && !this.runState.paused && !this.choiceActive && !this.runState.gameOver) {
@@ -305,6 +339,7 @@ export class GameScene extends Phaser.Scene {
     lingcaoY: -140,
     healingPills: [],
     spiritTreasureIds: [],
+    spiritTreasureAttunements: [],
     finalBossActive: false,
     finalBossPhaseIndex: 0
   };
@@ -405,6 +440,7 @@ export class GameScene extends Phaser.Scene {
     this.player.stats.magnetRadius = checkpoint?.playerMagnetRadius ?? this.player.stats.magnetRadius;
     this.player.stats.damageReduction =
       checkpoint?.playerDamageReduction ?? this.player.stats.damageReduction;
+    this.applyLegacyFoundationGrowthMigration();
     this.migrateLegacyMasteryChoices(Boolean(checkpoint?.gongfaRuntimes));
     if (!checkpoint?.gongfaRuntimes) {
       splitGongfaImprovementReplayIds([
@@ -426,6 +462,9 @@ export class GameScene extends Phaser.Scene {
     this.spawner = new SpawnerSystem(this, this.enemies, (enemy) =>
       this.assignCombatTargetId(enemy)
     );
+    if (this.runState.tribulationActive && this.runState.stage !== "yuanying") {
+      this.startStageTribulation(this.runState.stage);
+    }
 
     if (!this.runState.lingcaoCollected) {
       this.spawnOpeningLingcao();
@@ -507,17 +546,20 @@ export class GameScene extends Phaser.Scene {
 
     this.runState.elapsedMs += delta;
     this.evade.advance(delta);
-
-    // Gentle out-of-combat regen: staying unhit for a few seconds recovers
-    // chip damage, so good dodging is rewarded and a fresh build can stabilise.
-    this.msSinceDamage += delta;
-    if (this.msSinceDamage > 3000 && this.player.stats.health < this.player.stats.maxHealth) {
-      this.player.heal(delta * 0.004);
-    }
+    this.bulwarkGuardRemainingMs = Math.max(0, this.bulwarkGuardRemainingMs - delta);
+    this.vitalityEmergencyCooldownMs = Math.max(
+      0,
+      this.vitalityEmergencyCooldownMs - delta
+    );
 
     const movement = this.inputController.getMovementVector();
     if (this.inputController.evadePressed) {
-      if (this.evade.tryStart({ x: movement.x, y: movement.y })) {
+      if (
+        this.evade.tryStart(
+          { x: movement.x, y: movement.y },
+          this.getSpiritTreasureResonanceModifiers().evadeCooldownMultiplier
+        )
+      ) {
         this.player.presentEvade(this.evade.state.direction);
         this.sfx.evade();
         this.maybeCutGaleStepCorridor();
@@ -544,14 +586,21 @@ export class GameScene extends Phaser.Scene {
     this.updateLingcaoResonance(playerPosition);
     if (this.runState.finalBossActive) {
       this.updateFinalBoss(delta, playerPosition);
-    } else if (!this.runState.phaseCleanupActive) {
-      this.spawner.update(delta, playerPosition, this.runState.stage);
+    } else if (!this.runState.phaseCleanupActive && !this.runState.tribulationActive) {
+      this.spawner.update(
+        delta,
+        playerPosition,
+        this.runState.stage,
+        this.getEncounterPressure()
+      );
     }
 
     this.enemies.getChildren().forEach((child) => {
       const enemy = child as Enemy;
       enemy.chase(playerPosition);
     });
+
+    this.maybeCompleteTribulation();
 
     this.pullNearbyOrbs();
     this.maybeResolvePhaseTransition();
@@ -598,10 +647,15 @@ export class GameScene extends Phaser.Scene {
 
   private handleProjectileHit(projectile: Projectile, enemy: Enemy): void {
     const hitMode = getGongfaProjectileHitMode(projectile.sourceGongfaId);
-    const diedFromHit = hitMode.appliesBaseDamage ? enemy.receiveDamage(projectile.damage) : false;
+    const projectileDamage =
+      projectile.damage *
+      this.getSpiritTreasureResonanceModifiers().projectileDamageMultiplier;
+    const diedFromHit = hitMode.appliesBaseDamage
+      ? enemy.receiveDamage(projectileDamage)
+      : false;
     if (hitMode.appliesBaseDamage) {
       this.spawnProjectileImpact(projectile, enemy.x, enemy.y);
-      this.spawnDamageNumber(enemy.x, enemy.y, projectile.damage);
+      this.spawnDamageNumber(enemy.x, enemy.y, projectileDamage);
       this.sfx.hit();
     }
     let diedFromCommands = false;
@@ -616,7 +670,7 @@ export class GameScene extends Phaser.Scene {
       const result = advanceGongfaRuntimeForProjectileHit(sourceRuntime, {
         sourceGongfaId: projectile.sourceGongfaId,
         targetId: enemy.combatTargetId,
-        damage: projectile.damage,
+        damage: projectileDamage,
         baseDamageKilledTarget: diedFromHit,
         embedStacks: enemy.embedStacks,
         embedPower: enemy.embedPower,
@@ -837,6 +891,15 @@ export class GameScene extends Phaser.Scene {
   private collectOrb(orb: QiOrb): void {
     this.spawnPickupBurst(orb.x, orb.y, 0x8feaff, 58);
     this.sfx.pickup();
+    const harvestDamage = this.getSpiritTreasureResonanceModifiers().harvestPulseDamage;
+    if (harvestDamage > 0) {
+      this.getEnemiesWithinRadiusFrom(orb.x, orb.y, 160).forEach((enemy) => {
+        if (enemy.receiveDamage(harvestDamage)) {
+          this.resolveEnemyDeath(enemy);
+        }
+      });
+      this.spawnPickupBurst(orb.x, orb.y, 0xd7f08a, 92);
+    }
     this.grantQi(orb.qiValue);
     orb.destroy();
     this.publishHud();
@@ -887,7 +950,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     enemy.contactCooldownUntil = now + 750;
-    this.applyIncomingDamage(enemy.config.touchDamage);
+    this.applyIncomingDamage(enemy.touchDamage);
     this.maybeReboundEdge(enemy);
 
     if (this.combatState.pattern === "aura" && this.combatState.retaliationDamage > 0) {
@@ -1040,11 +1103,16 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    const result = offerSpiritTreasure(this.runState.spiritTreasureIds, treasure.treasureId);
-    if (result.kind === "stored") {
-      this.runState.spiritTreasureIds = result.activeIds;
+    const result = attuneSpiritTreasure(
+      this.runState.spiritTreasureAttunements,
+      treasure.treasureId
+    );
+    if (result.kind === "attuned") {
+      this.runState.spiritTreasureAttunements = result.active;
+      this.runState.spiritTreasureIds = result.active.map(({ id }) => id);
       this.applySpiritTreasureEffects();
-      this.lastMessage = `${getSpiritTreasureConfig(treasure.treasureId).name} attunes to you.`;
+      const rank = result.active.find(({ id }) => id === treasure.treasureId)?.rank ?? 1;
+      this.lastMessage = `${getSpiritTreasureConfig(treasure.treasureId).name} reaches Attunement ${rank}.`;
       this.spawnPickupBurst(
         treasure.x,
         treasure.y,
@@ -1067,12 +1135,37 @@ export class GameScene extends Phaser.Scene {
     this.choiceActive = true;
     this.currentChoiceTitle = `${getSpiritTreasureConfig(treasure.treasureId).name} found`;
     this.currentChoiceOptions = [
-      ...this.runState.spiritTreasureIds.map<ChoiceOption>((heldId) => ({
-        id: heldId,
-        kind: "spirit-treasure-replace",
-        title: `Replace ${getSpiritTreasureConfig(heldId).name}`,
-        description: getSpiritTreasureConfig(heldId).lore
-      })),
+      ...this.runState.spiritTreasureIds.map<ChoiceOption>((heldId) => {
+        const comparison = projectSpiritTreasureReplacement(
+          this.runState.spiritTreasureAttunements,
+          heldId,
+          treasure.treasureId
+        );
+        const resonance = [
+          comparison.resonanceGained.length
+            ? `Gain resonance: ${comparison.resonanceGained.join(", ")}`
+            : "",
+          comparison.resonanceLost.length
+            ? `Lose resonance: ${comparison.resonanceLost.join(", ")}`
+            : ""
+        ].filter(Boolean).join(" · ");
+        const mechanics = [
+          ...comparison.mechanicsGained.map((effect) => `Gain mechanic: ${effect}`),
+          ...comparison.mechanicsLost.map((effect) => `Lose mechanic: ${effect}`)
+        ].join(" · ");
+        return {
+          id: heldId,
+          kind: "spirit-treasure-replace",
+          title: `Replace ${getSpiritTreasureConfig(heldId).name}`,
+          description: `Gain ${comparison.gain} · Lose ${comparison.loss}${resonance ? ` · ${resonance}` : ""}${mechanics ? ` · ${mechanics}` : ""}`,
+          gain: comparison.gain,
+          loss: comparison.loss,
+          resonanceGained: comparison.resonanceGained,
+          resonanceLost: comparison.resonanceLost,
+          mechanicsGained: comparison.mechanicsGained,
+          mechanicsLost: comparison.mechanicsLost
+        };
+      }),
       {
         id: "leave",
         kind: "spirit-treasure-leave",
@@ -1098,6 +1191,12 @@ export class GameScene extends Phaser.Scene {
       replacedId,
       treasure.treasureId
     );
+    this.runState.spiritTreasureAttunements = this.runState.spiritTreasureIds.map((id) => ({
+      id,
+      rank: id === treasure.treasureId ? 1 : this.runState.spiritTreasureAttunements.find(
+        (entry) => entry.id === id
+      )?.rank ?? 1
+    }));
     this.applySpiritTreasureEffects();
     this.lastMessage = `${getSpiritTreasureConfig(treasure.treasureId).name} supplants ${getSpiritTreasureConfig(replacedId).name}.`;
     this.spawnPickupBurst(
@@ -1122,7 +1221,9 @@ export class GameScene extends Phaser.Scene {
     if (!this.player) {
       return;
     }
-    const totals = aggregateSpiritTreasureEffects(this.runState.spiritTreasureIds);
+    const totals = projectSpiritTreasureState(
+      this.runState.spiritTreasureAttunements
+    ).effects;
     const applied = this.appliedSpiritTreasureEffects;
 
     const maxHealthDelta = totals.maxHealth - applied.maxHealth;
@@ -1143,7 +1244,10 @@ export class GameScene extends Phaser.Scene {
 
   private spiritTreasureHudText(): string {
     return this.runState.spiritTreasureIds
-      .map((id) => getSpiritTreasureConfig(id).name)
+      .map((id) => {
+        const rank = this.runState.spiritTreasureAttunements.find((entry) => entry.id === id)?.rank ?? 1;
+        return `${getSpiritTreasureConfig(id).name} · A${rank}`;
+      })
       .join(", ");
   }
 
@@ -1231,7 +1335,9 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.player.heal(pill.healAmount);
+    this.player.heal(
+      pill.healAmount * this.getSpiritTreasureResonanceModifiers().healingMultiplier
+    );
     this.spawnPickupBurst(pill.x, pill.y, 0xff9dc9, 68);
     this.sfx.healingPill();
     pill.destroy();
@@ -1245,9 +1351,25 @@ export class GameScene extends Phaser.Scene {
       deltaMs,
       new Phaser.Math.Vector2(this.player.x, this.player.y),
       this.runState.stage,
+      this.getEncounterPressure(),
       Boolean(this.runState.mainGongfaId)
     );
     this.publishHud(this.lastMessage);
+  }
+
+  private getEncounterPressure() {
+    return projectEncounterPressure(
+      this.runState.stage,
+      this.runState.realmPhase,
+      this.learnedGongfaRuntimes.length
+    );
+  }
+
+  private getSpiritTreasureResonanceModifiers() {
+    return projectSpiritTreasureResonanceModifiers(
+      projectSpiritTreasureState(this.runState.spiritTreasureAttunements).resonances,
+      this.runState.spiritTreasureAttunements
+    );
   }
 
   private pullNearbyOrbs(): void {
@@ -2920,11 +3042,6 @@ export class GameScene extends Phaser.Scene {
     this.scene.get("ui").events.emit("hide-choice-panel");
     this.publishHud(this.lastMessage);
 
-    if (acceptedJourneyDecision?.kind === "tribulation") {
-      this.offerGongfaChoice();
-      return;
-    }
-
     if (this.runState.pendingDecision) {
       this.offerJourneyChoice();
     }
@@ -2947,6 +3064,9 @@ export class GameScene extends Phaser.Scene {
         gongfaId,
         gongfaId === this.runState.mainGongfaId
       );
+      this.gongfaCollection.byId[gongfaId]!.combat.damage += projectFoundationGrowth(
+        this.runState.foundationGrowthTransactions
+      ).baseDamage;
     }
     this.applyGongfaStage();
     this.playFanfare(0xffe08a);
@@ -3055,11 +3175,33 @@ export class GameScene extends Phaser.Scene {
 
   private applyRunJourneyState(state: RunJourneyState): void {
     const previousStage = this.runState.stage;
+    const previousFoundationTransactions = this.runState.foundationGrowthTransactions;
     this.runState.stage = state.stage;
     this.runState.realmPhase = state.realmPhase;
     this.runState.realmProgress = state.realmProgress;
     this.runState.phaseCleanupActive = state.phaseCleanupActive;
     this.runState.foundationGrowthTransactions = state.foundationGrowthTransactions ?? 0;
+    this.runState.tribulationActive = state.tribulationActive ?? false;
+    const gainedFoundationTransactions =
+      this.runState.foundationGrowthTransactions - previousFoundationTransactions;
+    if (gainedFoundationTransactions > 0 && this.player) {
+      const growth = projectFoundationGrowth(gainedFoundationTransactions);
+      this.player.stats.maxHealth += growth.maxHealth;
+      this.player.stats.health = Math.min(
+        this.player.stats.maxHealth,
+        this.player.stats.health + growth.maxHealth
+      );
+      this.player.stats.moveSpeed += growth.moveSpeed;
+      this.player.stats.magnetRadius += growth.magnetRadius;
+      if (this.learnedGongfaRuntimes.length === 0) {
+        this.combatState.damage += growth.baseDamage;
+      } else {
+        this.learnedGongfaRuntimes.forEach((runtime) => {
+          runtime.combat.damage += growth.baseDamage;
+        });
+        this.restorePrimaryRuntimeAdapter();
+      }
+    }
     this.runState.finalBossActive = state.finalBossActive ?? false;
     this.runState.finalBossPhaseIndex = state.finalBossPhaseIndex ?? 0;
     this.runState.gameOver = state.gameOver ?? false;
@@ -3082,7 +3224,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
-      this.lastMessage = `${stageConfigs[this.runState.stage].name} Chuqi begins.`;
+      this.lastMessage = `${stageConfigs[this.runState.stage].name} Tribulation begins.`;
     }
   }
 
@@ -3106,17 +3248,43 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
-      this.sfx.breakthrough();
-      this.flashCamera(260, 215, 185, 109);
-      this.shakeCamera(220, 0.004);
+      this.flashCamera(180, 190, 208, 255);
+      this.shakeCamera(180, 0.003);
       this.scene.get("ui").events.emit("show-journey-presentation", {
-        kind: "breakthrough",
-        eyebrow: "STAGE BREAKTHROUGH",
-        title: stageConfigs[this.runState.stage].name,
-        subtitle: stageConfigs[this.runState.stage].message,
+        kind: "tribulation",
+        eyebrow: "TRIBULATION BEGINS",
+        title: `${stageConfigs[this.runState.stage].name} Tribulation`,
+        subtitle: "Defeat the Tribulation host. The breakthrough is not yet yours.",
         accent: 0xd7b96d
       });
     }
+  }
+
+  private startStageTribulation(stage: Exclude<StageId, "yuanying">): void {
+    this.forceClearEnemies();
+    const wave = stageTribulationWaves[stage];
+    const pressure = this.getEncounterPressure();
+    wave.forEach((enemyId, index) => {
+      const angle = (index / wave.length) * Math.PI * 2;
+      const radius = 300 + (index % 2) * 70;
+      this.spawner.spawnManual(
+        enemyId,
+        this.player.x + Math.cos(angle) * radius,
+        this.player.y + Math.sin(angle) * radius,
+        pressure
+      );
+    });
+    this.lastMessage = `${stageConfigs[stage].name} Tribulation: defeat ${wave.length} foes.`;
+    this.publishHud(this.lastMessage);
+  }
+
+  private maybeCompleteTribulation(): void {
+    if (!this.runState.tribulationActive || this.enemies.countActive(true) > 0) {
+      return;
+    }
+    const result = advanceRunJourney(this.runState, { kind: "tribulation-cleared" });
+    this.applyRunJourneyState(result.state);
+    this.executeRunJourneyCommands(result.commands);
   }
 
   private executeRunJourneyCommands(commands: RunJourneyCommand[]): void {
@@ -3143,6 +3311,26 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "start-final-boss") {
         this.startYuanyingTribulation(command.phaseIndex);
+        return;
+      }
+
+      if (command.kind === "start-tribulation") {
+        this.startStageTribulation(command.stage);
+        return;
+      }
+
+      if (command.kind === "present-stage-breakthrough") {
+        this.sfx.breakthrough();
+        this.flashCamera(260, 215, 185, 109);
+        this.lastMessage = `${stageConfigs[command.nextStage].name} Chuqi begins.`;
+        this.scene.get("ui").events.emit("show-journey-presentation", {
+          kind: "breakthrough",
+          eyebrow: "TRIBULATION CLEARED",
+          title: stageConfigs[command.nextStage].name,
+          subtitle: `Foundation Growth: +1 damage · +8 max HP · +3 movement · +8 orb radius.`,
+          accent: 0xd7b96d
+        });
+        this.offerGongfaChoice();
         return;
       }
 
@@ -3225,11 +3413,14 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this.runState.spiritTreasureIds = [...(checkpoint.spiritTreasureIds ?? [])];
+    this.runState.spiritTreasureAttunements = checkpoint.spiritTreasureAttunements
+      ? checkpoint.spiritTreasureAttunements.map((entry) => ({ ...entry }))
+      : this.runState.spiritTreasureIds.map((id) => ({ id, rank: 1 }));
     // The restored player stats already include treasure bonuses, so seed the
     // applied-effects baseline instead of re-applying (which would double-count).
-    this.appliedSpiritTreasureEffects = aggregateSpiritTreasureEffects(
-      this.runState.spiritTreasureIds
-    );
+    this.appliedSpiritTreasureEffects = projectSpiritTreasureState(
+      this.runState.spiritTreasureAttunements
+    ).effects;
     this.runState.hiddenLinggen = linggenConfigs[checkpoint.hiddenLinggenId];
     this.runState.revealedLinggen = checkpoint.revealedLinggenId
       ? linggenConfigs[checkpoint.revealedLinggenId]
@@ -3261,10 +3452,13 @@ export class GameScene extends Phaser.Scene {
       playerMoveSpeed: this.player?.stats.moveSpeed,
       playerMagnetRadius: this.player?.stats.magnetRadius,
       playerDamageReduction: this.player?.stats.damageReduction,
+      foundationGrowthAppliedTransactions:
+        this.runState.foundationGrowthTransactions,
       ...projectRunJourneyCheckpointFields(this.runState),
       ...gongfaPersistence,
       learnedGongfaIds: this.runState.learnedGongfaIds,
       spiritTreasureIds: this.runState.spiritTreasureIds,
+      spiritTreasureAttunements: this.runState.spiritTreasureAttunements,
       hiddenLinggenId: this.runState.hiddenLinggen.id,
       revealedLinggenId: this.runState.revealedLinggen?.id,
       lingcaoCollected: this.runState.lingcaoCollected,
@@ -3289,6 +3483,29 @@ export class GameScene extends Phaser.Scene {
       checkpoint
     };
     saveActiveRun(window.localStorage, this.activeRunSave);
+  }
+
+  private applyLegacyFoundationGrowthMigration(): void {
+    const checkpoint = this.activeRunSave?.checkpoint;
+    if (!checkpoint) return;
+    const missingTransactions = Math.max(
+      0,
+      this.runState.foundationGrowthTransactions -
+        (checkpoint.foundationGrowthAppliedTransactions ?? 0)
+    );
+    if (missingTransactions === 0) return;
+    const growth = projectFoundationGrowth(missingTransactions);
+    this.player.stats.maxHealth += growth.maxHealth;
+    this.player.stats.health = Math.min(
+      this.player.stats.maxHealth,
+      this.player.stats.health + growth.maxHealth
+    );
+    this.player.stats.moveSpeed += growth.moveSpeed;
+    this.player.stats.magnetRadius += growth.magnetRadius;
+    this.learnedGongfaRuntimes.forEach((runtime) => {
+      runtime.combat.damage += growth.baseDamage;
+    });
+    this.restorePrimaryRuntimeAdapter();
   }
 
   private clearActiveRunSave(): void {
@@ -3451,12 +3668,17 @@ export class GameScene extends Phaser.Scene {
           spiritTreasures: this.spiritTreasureHudText()
         })
       },
+      encounter: {
+        pressure: this.getEncounterPressure(),
+        tribulationActive: this.runState.tribulationActive ?? false
+      },
       player: {
         x: this.player?.x ?? 0,
         y: this.player?.y ?? 0,
         health: this.player?.stats.health ?? 0,
         maxHealth: this.player?.stats.maxHealth ?? 0,
         moveSpeed: this.player?.stats.moveSpeed ?? 0,
+        magnetRadius: this.player?.stats.magnetRadius ?? 0,
         evade: this.evade.state,
         visual: this.player?.getVisualSnapshot() ?? {
           mode: "idle",
@@ -3533,6 +3755,9 @@ export class GameScene extends Phaser.Scene {
         realmProgress: this.runState.realmProgress,
         stageBreakthroughReady: this.runState.realmProgress >= 100,
         foundationGrowthTransactions: this.runState.foundationGrowthTransactions,
+        foundationGrowth: projectFoundationGrowth(
+          this.runState.foundationGrowthTransactions
+        ),
         masteryPoints: this.primaryMastery.masteryPoints,
         masteryProgress: getMasteryProgressWithinRank(
           this.primaryMastery.masteryPoints,
@@ -3542,8 +3767,32 @@ export class GameScene extends Phaser.Scene {
         masterySkill2: this.primaryMastery.masterySkill2Id,
         masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
         gongfaMasteries: this.gongfaMasteries,
+        gongfaCombats: this.learnedGongfaRuntimes.map((runtime) => ({
+          gongfaId: runtime.gongfaId,
+          damage: runtime.combat.damage,
+          count: runtime.combat.count,
+          cooldownMs: runtime.combat.cooldownMs,
+          passiveStacks: runtime.surge?.stacks ?? runtime.blazingFeather?.emberStacks ?? 0,
+          passiveDamageBonus: runtime.surge?.appliedDamageBonus ??
+            runtime.blazingFeather?.emberAppliedDamageBonus ?? 0,
+          passiveStackGain: runtime.mastery.masteryLearnedIds.some((id) =>
+            SURGE_CASCADE_IDS.has(id) || id === "ember-cascade"
+          ) ? 2 : 1,
+          skill2Id: runtime.mastery.masterySkill2Id,
+          skill2Casts: runtime.mastery.masterySkill2Casts
+        })),
         learnedGongfaIds: [...this.runState.learnedGongfaIds],
         spiritTreasureIds: [...this.runState.spiritTreasureIds],
+        spiritTreasureAttunements: this.runState.spiritTreasureAttunements.map((entry) => ({
+          ...entry
+        })),
+        spiritTreasureSignatures: projectSpiritTreasureState(
+          this.runState.spiritTreasureAttunements
+        ).signatures,
+        spiritTreasureResonances: projectSpiritTreasureState(
+          this.runState.spiritTreasureAttunements
+        ).resonances,
+        spiritTreasureResonanceModifiers: this.getSpiritTreasureResonanceModifiers(),
         masteryTransformationTriggers: {
           ...gongfaView.masteryTransformationTriggers
         },
@@ -3632,7 +3881,14 @@ export class GameScene extends Phaser.Scene {
           const id = enemy.config.id;
           acc[id] = (acc[id] ?? 0) + 1;
           return acc;
-        }, {})
+        }, {}),
+        enemyPositions: ((this.enemies?.getChildren() as Enemy[] | undefined) ?? [])
+          .filter((enemy) => enemy.active)
+          .map((enemy) => ({
+            id: enemy.config.id,
+            x: enemy.x,
+            y: enemy.y
+          }))
       },
       choice: this.choiceActive && this.currentChoiceTitle
         ? {
@@ -3768,10 +4024,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    this.msSinceDamage = 0;
     this.shakeCamera(110, 0.005);
 
-    let finalDamage = Math.max(1, Math.floor(amount));
+    const resonanceModifiers = this.getSpiritTreasureResonanceModifiers();
+    const guardWasActive = this.bulwarkGuardRemainingMs > 0;
+    let finalDamage = Math.max(
+      1,
+      Math.floor(amount * (guardWasActive ? resonanceModifiers.bulwarkGuardMultiplier : 1))
+    );
     for (const runtime of this.learnedGongfaRuntimes) {
       const result = advanceGongfaRuntime(runtime, {
         kind: "incoming-damage",
@@ -3790,6 +4050,25 @@ export class GameScene extends Phaser.Scene {
     }
     this.restorePrimaryRuntimeAdapter();
     this.player.applyDamage(finalDamage);
+    if (
+      resonanceModifiers.emergencyHealFraction > 0 &&
+      this.vitalityEmergencyCooldownMs <= 0 &&
+      this.player.stats.health > 0 &&
+      this.player.stats.health <= this.player.stats.maxHealth * 0.3
+    ) {
+      this.player.heal(
+        this.player.stats.maxHealth * resonanceModifiers.emergencyHealFraction
+      );
+      this.vitalityEmergencyCooldownMs = 30_000;
+      this.spawnPickupBurst(this.player.x, this.player.y, 0x8ff0b2, 108);
+    }
+    if (
+      !guardWasActive &&
+      resonanceModifiers.bulwarkGuardMultiplier < 1 &&
+      amount >= 15
+    ) {
+      this.bulwarkGuardRemainingMs = 2_000;
+    }
     this.persistRunCheckpoint();
   }
 
@@ -3830,9 +4109,11 @@ export class GameScene extends Phaser.Scene {
       rankUp.targetRank
     );
     if (result.automaticRewards.length > 0) {
-      this.lastMessage += ` ${result.automaticRewards.length} ordinary refinement${
-        result.automaticRewards.length === 1 ? " settles" : "s settle"
-      } without interrupting combat.`;
+      const integrated = result.automaticRewards.map(({ choiceId }) => {
+        const definition = getMasteryChoiceDefinition(choiceId);
+        return definition ? `${definition.name} — ${definition.lore}` : choiceId;
+      });
+      this.lastMessage += ` Integrated automatically without interrupting combat: ${integrated.join("; ")}.`;
     }
 
     if (this.masteryChoiceRuntime) {
@@ -3870,7 +4151,14 @@ export class GameScene extends Phaser.Scene {
         id,
         kind: "mastery",
         title: definition?.name ?? id,
-        description: definition?.lore ?? "A deterministic mastery refinement."
+        description: definition?.playstyle
+          ? `${definition.gain === definition.lore ? "" : `${definition.lore} · `}Gain: ${definition.gain} · Cost: ${definition.cost} · Treasure: ${definition.treasureInteraction}`
+          : definition?.lore ?? "A deterministic mastery refinement.",
+        playstyle: definition?.playstyle,
+        gain: definition?.gain,
+        cost: definition?.cost,
+        scope: definition?.scope,
+        treasureInteraction: definition?.treasureInteraction
       };
     });
 
@@ -3884,7 +4172,9 @@ export class GameScene extends Phaser.Scene {
     this.currentChoiceOptions = options;
     this.showChoicePanel({
       title: this.currentChoiceTitle,
-      subtitle: "Choose one refinement for the current Gongfa rank.",
+      subtitle: getMasteryChoiceDefinition(options[0].id)?.kind === "transformation"
+        ? "Choose one permanent Transformation. The other two paths close."
+        : "Choose one refinement for the current Gongfa rank.",
       options
     });
     this.persistRunCheckpoint();

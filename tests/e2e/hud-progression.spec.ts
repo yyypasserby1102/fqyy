@@ -207,13 +207,35 @@ test("HUD shows mastery gain, rank-up feedback, and the first realm cleanup", as
   );
 
   const afterPhase = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  if (process.env.REALM_PROGRESS_CAPTURE) {
+    await page.screenshot({ path: process.env.REALM_PROGRESS_CAPTURE, fullPage: true });
+  }
   expect(afterPhase.choice).toBeUndefined();
   expect(afterPhase.hud.lines[0]).toBe("Lianqi · Zhongqi");
   expect(afterPhase.hud.lines).toContain("Qi: 0 / 100");
+  expect(afterPhase.progression.foundationGrowth).toEqual({
+    baseDamage: 1,
+    maxHealth: 8,
+    moveSpeed: 3,
+    magnetRadius: 8
+  });
+  expect(afterPhase.player).toMatchObject({
+    maxHealth: 128,
+    moveSpeed: 223,
+    magnetRadius: 98
+  });
   expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar)).toMatchObject({
     phase: "zhongqi",
     completedMilestones: 1,
-    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman"]
+    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman", "Breakthrough"]
+  });
+  expect(afterPhase.encounter.pressure).toMatchObject({
+    healthScale: 1.15,
+    contactDamageScale: 1.1,
+    speedScale: 1.15,
+    spawnIntervalScale: 0.84,
+    spawnAmountBonus: 1,
+    geometry: "pincer"
   });
 });
 

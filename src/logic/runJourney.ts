@@ -6,6 +6,7 @@ export interface RunJourneyState {
   realmProgress: number;
   phaseCleanupActive: boolean;
   foundationGrowthTransactions?: number;
+  tribulationActive?: boolean;
   finalBossActive?: boolean;
   finalBossPhaseIndex?: number;
   gameOver?: boolean;
@@ -26,6 +27,7 @@ export type RunJourneyEvent =
   | { kind: "cleanup-finished" }
   | { kind: "journey-choice-accepted" }
   | { kind: "final-boss-phase-cleared" }
+  | { kind: "tribulation-cleared" }
   | { kind: "player-died" };
 
 export type RunJourneyCommand =
@@ -38,6 +40,12 @@ export type RunJourneyCommand =
     }
   | { kind: "persist-checkpoint" }
   | { kind: "start-final-boss"; phaseIndex: number }
+  | { kind: "start-tribulation"; stage: Exclude<StageId, "yuanying"> }
+  | {
+      kind: "present-stage-breakthrough";
+      completedStage: Exclude<StageId, "yuanying">;
+      nextStage: StageId;
+    }
   | { kind: "advance-final-boss-phase"; phaseIndex: number }
   | { kind: "complete-run" };
 
@@ -52,6 +60,7 @@ export interface RunJourneyCheckpointFields {
   realmProgress: number;
   phaseCleanupActive: boolean;
   foundationGrowthTransactions: number;
+  tribulationActive?: boolean;
   finalBossActive: boolean;
   finalBossPhaseIndex: number;
   pendingDecision?: RunJourneyDecision;
@@ -135,6 +144,7 @@ export function projectRunJourneyCheckpointFields(
     realmProgress: state.realmProgress,
     phaseCleanupActive: state.phaseCleanupActive,
     foundationGrowthTransactions: state.foundationGrowthTransactions ?? 0,
+    tribulationActive: state.tribulationActive ?? false,
     finalBossActive: state.finalBossActive ?? false,
     finalBossPhaseIndex: state.finalBossPhaseIndex ?? 0,
     pendingDecision: state.pendingDecision
@@ -146,6 +156,7 @@ export function createRunJourneyStateFromCheckpoint(
 ): RunJourneyState {
   return {
     ...checkpoint,
+    tribulationActive: checkpoint.tribulationActive ?? false,
     gameOver: false
   };
 }
@@ -181,8 +192,9 @@ export function advanceRunJourney(
   if (event.kind === "player-died") {
     return {
       state: {
-        ...state,
-        phaseCleanupActive: false,
+      ...state,
+      phaseCleanupActive: false,
+      tribulationActive: false,
         finalBossActive: false,
         gameOver: true,
         pendingDecision: undefined
@@ -195,6 +207,37 @@ export function advanceRunJourney(
     return {
       state: grantRealmQi(state, event.amount),
       commands: []
+    };
+  }
+
+  if (event.kind === "tribulation-cleared") {
+    if (!state.tribulationActive || state.stage === "yuanying") {
+      return { state, commands: [] };
+    }
+    const completedStage = state.stage;
+    const result = completeStageTribulation({
+      ...state,
+      phaseCleanupActive: true,
+      tribulationActive: false
+    });
+    if (result.outcome !== "breakthrough") {
+      return { state, commands: [] };
+    }
+    const next = {
+      ...incrementFoundationGrowth(result.state),
+      tribulationActive: false,
+      pendingDecision: undefined
+    };
+    return {
+      state: next,
+      commands: [
+        { kind: "persist-checkpoint" },
+        {
+          kind: "present-stage-breakthrough",
+          completedStage,
+          nextStage: next.stage
+        }
+      ]
     };
   }
 
@@ -245,16 +288,21 @@ export function advanceRunJourney(
     }
 
     if (decision.kind === "tribulation") {
-      const result = completeStageTribulation(state);
-      if (result.outcome === "breakthrough") {
-        return {
-          state: {
-            ...incrementFoundationGrowth(result.state),
-            pendingDecision: undefined
+      return {
+        state: {
+          ...state,
+          phaseCleanupActive: false,
+          tribulationActive: true,
+          pendingDecision: undefined
+        },
+        commands: [
+          {
+            kind: "start-tribulation",
+            stage: decision.stage as Exclude<StageId, "yuanying">
           },
-          commands: [{ kind: "persist-checkpoint" }]
-        };
-      }
+          { kind: "persist-checkpoint" }
+        ]
+      };
     }
 
     if (decision.kind === "yuanying-tribulation") {
@@ -312,7 +360,12 @@ export function advanceRunJourney(
 }
 
 export function grantRealmQi(state: RunJourneyState, amount: number): RunJourneyState {
-  if (amount <= 0 || state.phaseCleanupActive) {
+  if (
+    amount <= 0 ||
+    state.phaseCleanupActive ||
+    state.tribulationActive ||
+    state.finalBossActive
+  ) {
     return state;
   }
 

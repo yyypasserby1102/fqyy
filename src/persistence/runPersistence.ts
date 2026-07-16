@@ -4,6 +4,7 @@ import type { RealmPhaseId, StageId } from "../data/stages";
 import type { SpiritTreasureId } from "../data/spiritTreasures";
 import type { GongfaMasteryCheckpoint, GongfaRuntime } from "../logic/gongfaRuntime";
 import type { RunJourneyDecision } from "../logic/runJourney";
+import type { SpiritTreasureAttunement } from "../logic/spiritTreasures";
 import {
   decodeActiveRunCheckpoint,
   decodeActiveRunSave,
@@ -35,6 +36,8 @@ export interface ActiveRunCheckpoint {
   realmProgress: number;
   phaseCleanupActive: boolean;
   foundationGrowthTransactions: number;
+  foundationGrowthAppliedTransactions?: number;
+  tribulationActive?: boolean;
   masteryPoints: number;
   masteryRank: number;
   masteryLearnedIds: string[];
@@ -94,6 +97,7 @@ export interface ActiveRunCheckpoint {
   lingcaoY: number;
   healingPills: HealingPillCheckpoint[];
   spiritTreasureIds?: SpiritTreasureId[];
+  spiritTreasureAttunements?: SpiritTreasureAttunement[];
   mainGongfaId?: GongfaId;
   kills: number;
   elapsedMs: number;

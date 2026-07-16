@@ -106,7 +106,7 @@ export class UIScene extends Phaser.Scene {
       .setDepth(220);
 
     this.pauseText = this.add
-      .text(this.scale.width * 0.5, 46, "", {
+      .text(this.scale.width * 0.5, 116, "", {
         fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
         fontSize: "15px",
         color: "#8ecae6"
@@ -215,9 +215,7 @@ export class UIScene extends Phaser.Scene {
         ? "Run Ended"
         : hud.paused
           ? "Paused - ESC to resume"
-        : import.meta.env.DEV
-          ? "WASD Move · Space Evade · G Gongfa · Esc Pause · F3 Debug"
-          : "WASD Move · Space Evade · G Gongfa · Esc Pause"
+          : ""
     ));
 
     if (import.meta.env.DEV) {
@@ -292,7 +290,7 @@ export class UIScene extends Phaser.Scene {
     this.journeyPresentation.resize();
     this.realmProgressBar.resize();
     this.gongfaCodex.resize();
-    this.pauseText.setPosition(gameSize.width * 0.5, 46);
+    this.pauseText.setPosition(gameSize.width * 0.5, 116);
     this.messageText.setPosition(gameSize.width * 0.5, gameSize.height - 28);
     this.gongfaArchiveButton.setPosition(gameSize.width - 18, gameSize.height - 18);
   }

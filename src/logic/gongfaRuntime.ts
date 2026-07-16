@@ -5,6 +5,7 @@ import {
   type GongfaStageState
 } from "../data/gongfa";
 import {
+  getSurgeGongfaSpec,
   surgeGongfaIds,
   SURGE_BURST_IDS,
   SURGE_CASCADE_IDS,
@@ -1283,11 +1284,12 @@ function surgeBonusCount(runtime: GongfaRuntime, learnedMasteryIds: string[]): n
     return 0;
   }
   let bonus = Math.floor(state.stacks / 2);
+  const mechanics = getSurgeGongfaSpec(runtime.gongfaId)?.mechanics;
   if (state.stacks >= MAX_SURGE_STACKS && learned(learnedMasteryIds, SURGE_BURST_IDS)) {
-    bonus += 3;
+    bonus += mechanics?.burstCount ?? 3;
   }
   if (learned(learnedMasteryIds, SURGE_CROWN_IDS)) {
-    bonus += state.stacks;
+    bonus += Math.floor(state.stacks * (mechanics?.crownPerStack ?? 1));
   }
   return bonus;
 }
@@ -2131,7 +2133,10 @@ export function advanceGongfaRuntime(
     if (!state) {
       return { runtime: next, commands };
     }
-    const gain = (learned(event.learnedMasteryIds, SURGE_CASCADE_IDS) ? 2 : 1) +
+    const mechanics = getSurgeGongfaSpec(next.gongfaId)?.mechanics;
+    const gain = (learned(event.learnedMasteryIds, SURGE_CASCADE_IDS)
+      ? mechanics?.cascadeGain ?? 2
+      : 1) +
       masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
     state.stacks = Math.min(MAX_SURGE_STACKS, state.stacks + gain);
     state.durationRemaining = SURGE_DURATION_MS *
@@ -2141,7 +2146,9 @@ export function advanceGongfaRuntime(
     if (learned(event.learnedMasteryIds, SURGE_DOMAIN_IDS) && state.stacks > 0) {
       commands.push({
         kind: "aura-burst",
-        damage: Math.max(1, Math.floor(next.combat.damage * 0.35)),
+        damage: Math.max(1, Math.floor(
+          next.combat.damage * (mechanics?.domainDamageScale ?? 0.35)
+        )),
         count: 2 + Math.floor(state.stacks / 2)
       });
     }
@@ -2197,7 +2204,8 @@ export function advanceGongfaRuntime(
     }
     // Surge "updraft": each Evade looses a stack-scaled volley of its pattern.
     if (next.surge && learned(event.learnedMasteryIds, SURGE_UPDRAFT_IDS)) {
-      const count = Math.max(1, next.combat.count + next.surge.stacks);
+      const stackScale = getSurgeGongfaSpec(next.gongfaId)?.mechanics.updraftStackScale ?? 1;
+      const count = Math.max(1, next.combat.count + Math.floor(next.surge.stacks * stackScale));
       if (next.combat.pattern === "wave") {
         commands.push({ kind: "wave-volley", count, returnShots: 0, aimMode: "nearest" });
       } else if (next.combat.pattern === "aura") {
@@ -2358,7 +2366,10 @@ export function advanceGongfaRuntime(
     );
     if (next.surge.durationRemaining === 0) {
       // A "hold" Transformation banks the resource at half once well stoked.
-      const floor = learned(surgeLearned, SURGE_HOLD_IDS) && next.surge.stacks >= 3 ? 3 : 0;
+      const holdFloor = getSurgeGongfaSpec(next.gongfaId)?.mechanics.holdFloor ?? 3;
+      const floor = learned(surgeLearned, SURGE_HOLD_IDS) && next.surge.stacks >= holdFloor
+        ? holdFloor
+        : 0;
       next.surge.stacks = Math.max(floor, next.surge.stacks - 1);
       if (next.surge.stacks > 0) {
         next.surge.durationRemaining = SURGE_DURATION_MS;
@@ -2924,43 +2935,61 @@ function applyStructuralTransformation(
       const next = copyRuntime(runtime);
       next.combat.pierce += 2;
       next.combat.count = Math.max(1, next.combat.count - 1);
-      next.combat.damage += 4;
+      next.combat.damage = Math.round(next.combat.damage * 1.35 * 100) / 100;
+      next.combat.spreadDeg = Math.round(next.combat.spreadDeg * 0.65);
       return next;
     }
 
     if (transformationId === "feather-storm") {
       const next = copyRuntime(runtime);
       next.combat.count += 3;
-      next.combat.spreadDeg += 18;
+      next.combat.spreadDeg += 24;
+      next.combat.damage = Math.round(next.combat.damage * 0.8 * 100) / 100;
       return next;
     }
 
     if (transformationId === "swift-molt") {
       const next = copyRuntime(runtime);
-      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.78));
+      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.72));
+      next.combat.damage = Math.round(next.combat.damage * 0.82 * 100) / 100;
       next.combat.projectileSpeed += 80;
       return next;
     }
   }
 
   if (runtime.surge) {
+    const mechanics = getSurgeGongfaSpec(runtime.gongfaId)?.mechanics;
     if (SURGE_FOCUS_IDS.has(transformationId)) {
       const next = copyRuntime(runtime);
-      next.combat.pierce += 2;
+      next.combat.pierce += mechanics?.focusPierce ?? 2;
       next.combat.count = Math.max(1, next.combat.count - 1);
-      next.combat.damage += 4;
+      next.combat.damage = Math.round(
+        next.combat.damage * (mechanics?.focusDamageScale ?? 1.35) * 100
+      ) / 100;
+      next.combat.spreadDeg = Math.round(
+        next.combat.spreadDeg * (mechanics?.focusSpreadScale ?? 0.65)
+      );
       return next;
     }
     if (SURGE_SPREAD_IDS.has(transformationId)) {
       const next = copyRuntime(runtime);
-      next.combat.count += 2;
-      next.combat.spreadDeg += 18;
+      next.combat.count += mechanics?.spreadCount ?? 2;
+      next.combat.spreadDeg += mechanics?.spreadDegrees ?? 24;
+      next.combat.damage = Math.round(
+        next.combat.damage * (mechanics?.spreadDamageScale ?? 0.8) * 100
+      ) / 100;
       return next;
     }
     if (SURGE_QUICKEN_IDS.has(transformationId)) {
       const next = copyRuntime(runtime);
-      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.8));
-      next.combat.projectileSpeed += 60;
+      next.combat.cooldownMs = Math.max(
+        180,
+        Math.floor(next.combat.cooldownMs * (mechanics?.quickenCooldownScale ?? 0.72))
+      );
+      next.combat.damage = Math.round(
+        next.combat.damage * (mechanics?.quickenDamageScale ?? 0.82) * 100
+      ) / 100;
+      next.combat.projectileSpeed += mechanics?.quickenSpeed ?? 60;
       return next;
     }
   }

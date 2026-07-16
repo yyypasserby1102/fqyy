@@ -19,6 +19,12 @@ export interface EnemyVisualSnapshot {
   state: "materialize" | "pursue" | "hit" | "defeat";
 }
 
+export interface EnemyPressureModifiers {
+  healthScale: number;
+  contactDamageScale: number;
+  speedScale: number;
+}
+
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   config: EnemyConfig;
   health: number;
@@ -26,16 +32,30 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   contactCooldownUntil = 0;
   embedStacks = 0;
   embedPower = 0;
+  readonly touchDamage: number;
+  readonly chaseSpeed: number;
   visualState: EnemyVisualSnapshot["state"] = "materialize";
 
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private deathEffect?: Phaser.GameObjects.Sprite;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, config: EnemyConfig) {
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    config: EnemyConfig,
+    pressure: EnemyPressureModifiers = {
+      healthScale: 1,
+      contactDamageScale: 1,
+      speedScale: 1
+    }
+  ) {
     const visual = enemyVisualDefinitions[config.id];
     super(scene, x, y, visual.texture, 0);
     this.config = config;
-    this.health = config.maxHealth;
+    this.health = config.maxHealth * pressure.healthScale;
+    this.touchDamage = config.touchDamage * pressure.contactDamageScale;
+    this.chaseSpeed = config.speed * pressure.speedScale;
 
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -74,8 +94,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     const angle = Phaser.Math.Angle.Between(this.x, this.y, target.x, target.y);
     body.setVelocity(
-      Math.cos(angle) * this.config.speed,
-      Math.sin(angle) * this.config.speed,
+      Math.cos(angle) * this.chaseSpeed,
+      Math.sin(angle) * this.chaseSpeed,
     );
     this.setFlipX(target.x < this.x);
   }

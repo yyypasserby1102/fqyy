@@ -42,6 +42,15 @@ function isSpiritTreasureIdArray(value: unknown): value is SpiritTreasureId[] {
   return Array.isArray(value) && value.every((item) => isOneOf(item, ids));
 }
 
+function isSpiritTreasureAttunementArray(value: unknown): boolean {
+  return Array.isArray(value) && value.every(
+    (entry) =>
+      isRecord(entry) &&
+      isOneOf(entry.id, Object.keys(spiritTreasureConfigs) as SpiritTreasureId[]) &&
+      (entry.rank === 1 || entry.rank === 2 || entry.rank === 3)
+  );
+}
+
 function isLinggenId(value: unknown): value is LinggenId {
   return isOneOf(value, Object.keys(linggenConfigs) as LinggenId[]);
 }
@@ -273,6 +282,12 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
   ) {
     return false;
   }
+  if (
+    value.foundationGrowthAppliedTransactions !== undefined &&
+    !isNonNegativeNumber(value.foundationGrowthAppliedTransactions)
+  ) {
+    return false;
+  }
 
   if (
     !isOptionalNonNegativeNumber(value.playerHealth) ||
@@ -335,6 +350,10 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
     return false;
   }
 
+  if (value.tribulationActive !== undefined && typeof value.tribulationActive !== "boolean") {
+    return false;
+  }
+
   if (value.finalBossPhaseIndex !== undefined && !isFinalBossPhaseIndex(value.finalBossPhaseIndex)) {
     return false;
   }
@@ -362,6 +381,12 @@ function isActiveRunCheckpoint(value: unknown): value is ActiveRunCheckpoint {
   if (value.spiritTreasureIds !== undefined && !isSpiritTreasureIdArray(value.spiritTreasureIds)) {
     return false;
   }
+  if (
+    value.spiritTreasureAttunements !== undefined &&
+    !isSpiritTreasureAttunementArray(value.spiritTreasureAttunements)
+  ) {
+    return false;
+  }
 
   return true;
 }
@@ -385,6 +410,8 @@ function normalizeActiveRunCheckpoint(checkpoint: ActiveRunCheckpoint): ActiveRu
     ...checkpoint,
     upgradeSelectionIds: checkpoint.upgradeSelectionIds ?? [],
     guardMitigationBonus: checkpoint.guardMitigationBonus ?? 0,
+    foundationGrowthAppliedTransactions:
+      checkpoint.foundationGrowthAppliedTransactions ?? 0,
     finalBossActive: checkpoint.finalBossActive ?? false,
     finalBossPhaseIndex: checkpoint.finalBossPhaseIndex ?? 0,
     spiritTreasureIds: checkpoint.spiritTreasureIds ?? [],

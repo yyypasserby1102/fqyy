@@ -1,13 +1,15 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { claimOpeningLingcao } from "./helpers/claimOpeningLingcao";
+import { gongfaConfigs } from "../../src/data/gongfa";
 
-type CandidateLinggenId = "fire" | "water" | "metal" | "fire-metal" | "water-metal" | "water-wood";
+type CandidateLinggenId = "fire" | "water" | "metal" | "wood" | "fire-metal" | "water-metal" | "water-wood";
 
 const candidateTestSeeds: Record<CandidateLinggenId, number> = {
   fire: 1,
   water: 0,
   metal: 2,
+  wood: 3,
   "fire-metal": 2,
   "water-metal": 1,
   "water-wood": 0
@@ -17,6 +19,7 @@ const candidateLinggenNames: Record<CandidateLinggenId, string> = {
   fire: "Fire Linggen",
   water: "Water Linggen",
   metal: "Metal Linggen",
+  wood: "Wood Linggen",
   "fire-metal": "Fire-Metal Linggen",
   "water-metal": "Water-Metal Linggen",
   "water-wood": "Water-Wood Linggen"
@@ -184,8 +187,18 @@ async function chooseYujianRank3Transformation(page: Page, transformationId: str
 }
 
 async function advanceOneStage(page: Page) {
+  const startingStage = await page.evaluate(
+    () => window.__gameTest!.getSnapshot().progression.stage
+  );
   await reachJourneyChoiceThroughQi(page);
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().encounter.tribulationActive);
+  await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  await page.waitForFunction(
+    (stage) => window.__gameTest!.getSnapshot().progression.stage !== stage,
+    startingStage
+  );
+  await page.waitForFunction(() => Boolean(window.__gameTest!.getSnapshot().choice));
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
 }
 
@@ -199,6 +212,18 @@ test("boots into game/ui scenes with the dev test harness exposed", async ({ pag
   expect(snapshot.progression.stage).toBe("lianqi");
   expect(snapshot.player.visual.mode).toBe("idle");
   expect(snapshot.player.visual.animationKey).toBe("cultivator-idle");
+});
+
+test("vitality does not regenerate passively after avoiding damage", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
+  const damagedHealth = await page.evaluate(() => window.__gameTest!.getSnapshot().player.health);
+
+  await page.waitForTimeout(4_100);
+
+  expect(await page.evaluate(() => window.__gameTest!.getSnapshot().player.health)).toBe(
+    damagedHealth
+  );
 });
 
 test("production protagonist atlases keep every frame padded and registered", async ({ page }) => {
@@ -491,7 +516,18 @@ test("Yujian Jue integrates ordinary refinements and reserves choices for Transf
   await reachNextMasteryChoiceThroughQi(page);
   const transformation = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(transformation.choice?.title).toContain("Mastery Rank 3");
+  if (process.env.TRANSFORMATION_CHOICE_CAPTURE) {
+    await page.screenshot({ path: process.env.TRANSFORMATION_CHOICE_CAPTURE, fullPage: true });
+  }
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  if (process.env.TRANSFORMATION_CODEX_CAPTURE) {
+    await page.keyboard.press("g");
+    await expect.poll(() => page.evaluate(
+      () => window.__gameTest!.getUiSnapshot().gongfaCodex.visible
+    )).toBe(true);
+    await page.screenshot({ path: process.env.TRANSFORMATION_CODEX_CAPTURE, fullPage: true });
+    await page.keyboard.press("g");
+  }
   await advanceMasteryToRankThroughQi(page, 10);
 
   const rank10 = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -654,6 +690,127 @@ test("dual-root reveals present Gongfa from both compatible root pools", async (
   ]);
 });
 
+test("pure Wood reveals all three Wood Gongfa packages", async ({ page }) => {
+  await startNewRun(page, "wood");
+  await claimOpeningLingcao(page);
+
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.choice?.options.map((option) => option.id)).toEqual([
+    "green-vine-art",
+    "ironwood-wave-form",
+    "verdant-ring-scripture"
+  ]);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.linggen).toBe("wood");
+  expect(snapshot.progression.linggenGrades).toBe("Strong");
+  expect(snapshot.progression.gongfa).toBe("green-vine-art");
+});
+
+for (const gongfaId of [
+  "green-vine-art",
+  "ironwood-wave-form",
+  "verdant-ring-scripture"
+] as const) {
+  test(`${gongfaId} attacks and builds its Wood passive in observable combat`, async ({ page }) => {
+    await startNewRun(page, "wood");
+    await page.evaluate((id) => {
+      window.__gameTest!.forceEquipGongfa(id);
+      window.__gameTest!.forceSpawnEnemies(8);
+    }, gongfaId);
+
+    await expect.poll(() => page.evaluate(
+      (id) => {
+        const snapshot = window.__gameTest!.getSnapshot();
+        const combat = snapshot.progression.gongfaCombats.find((item) => item.gongfaId === id);
+        return {
+          passiveActive: (combat?.passiveStacks ?? 0) > 0 &&
+            (combat?.passiveDamageBonus ?? 0) > 0
+        };
+      },
+      gongfaId
+    ), { timeout: 12_000 }).toMatchObject({
+      passiveActive: true
+    });
+
+    const evidence = await page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (item) => item.gongfaId === id
+      ),
+      gongfaId
+    );
+    expect(evidence?.passiveStacks).toBeGreaterThan(0);
+    expect(evidence?.passiveDamageBonus).toBeGreaterThan(0);
+  });
+}
+
+for (const [gongfaId, cascadeId, skill2Id] of [
+  ["green-vine-art", "growth-cascade", "verdant-root-network"],
+  ["ironwood-wave-form", "heartwood-cascade", "ironwood-surge-form"],
+  ["verdant-ring-scripture", "bloom-cascade", "sprout-sun-circle"]
+] as const) {
+  test(`${gongfaId} exposes transformed passive and live Skill 2 snapshots`, async ({ page }) => {
+    await startNewRun(page, "wood");
+    await page.evaluate((id) => window.__gameTest!.forceEquipGongfa(id), gongfaId);
+
+    const before = await page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (combat) => combat.gongfaId === id
+      ),
+      gongfaId
+    );
+    await reachNextMasteryChoiceThroughQi(page);
+    const rank3 = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    expect(rank3.choice?.options).toHaveLength(3);
+    expect(rank3.choice?.options.every((option) =>
+      Boolean(option.gain && option.cost && option.scope)
+    )).toBe(true);
+    await page.evaluate(() => window.__gameTest!.selectChoice(0));
+    const transformed = await page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (combat) => combat.gongfaId === id
+      ),
+      gongfaId
+    );
+    expect(transformed).not.toEqual(before);
+
+    await advanceMasteryToRankThroughQi(page, 6);
+    const rank6 = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    expect(rank6.choice?.title).toContain("Mastery Rank 6");
+    const cascadeIndex = rank6.choice?.options.findIndex((option) => option.id === cascadeId) ?? -1;
+    expect(cascadeIndex).toBeGreaterThanOrEqual(0);
+    await page.evaluate((index) => window.__gameTest!.selectChoice(index), cascadeIndex);
+    expect(await page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (combat) => combat.gongfaId === id
+      )?.passiveStackGain,
+      gongfaId
+    )).toBe(2);
+
+    await advanceMasteryToRankThroughQi(page, 10);
+    await chooseUntil(page, () => false);
+    await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
+    await page.keyboard.down("d");
+    await expect.poll(() => page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (combat) => combat.gongfaId === id
+      ),
+      gongfaId
+    ), { timeout: 15_000 }).toMatchObject({
+      skill2Id,
+      skill2Casts: expect.any(Number),
+      passiveStackGain: 2
+    });
+    await expect.poll(() => page.evaluate(
+      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+        (combat) => combat.gongfaId === id
+      )?.skill2Casts ?? 0,
+      gongfaId
+    ), { timeout: 15_000 }).toBeGreaterThan(0);
+    await page.keyboard.up("d");
+  });
+}
+
 for (const [choiceIndex, expectedGongfa] of [
   [0, "burning-ring-scripture"],
   [1, "yujian-jue"],
@@ -731,8 +888,23 @@ test("Lianqi Dayuanman requires its Tribulation before the Zhuji Breakthrough", 
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.stage).toBe("lianqi");
+  expect(snapshot.progression.realmPhase).toBe("dayuanman");
+  expect(snapshot.encounter.tribulationActive).toBe(true);
+  expect(snapshot.counts.enemies).toBe(6);
+
+  await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.stage === "zhuji");
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.realmPhase).toBe("chuqi");
+  expect(snapshot.encounter.tribulationActive).toBe(false);
+  expect(snapshot.progression.foundationGrowthTransactions).toBe(4);
+  expect(snapshot.player).toMatchObject({
+    maxHealth: 152,
+    moveSpeed: 232,
+    magnetRadius: 122
+  });
   expect(snapshot.choice?.title).toContain("Revealed");
 });
 
@@ -757,7 +929,7 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   ).toMatchObject({ phase: "zhongqi", completedMilestones: 1 });
   expect(
     await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar.rewardText)
-  ).toContain("Foundation Growth +1");
+  ).toContain("+1 damage");
   expect(
     (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
   ).toContain("phase-transition");
@@ -780,6 +952,9 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   expect(snapshot.choice?.title).toBe("Lianqi Tribulation");
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().encounter.tribulationActive);
+  await page.evaluate(() => window.__gameTest!.forceClearEnemies());
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.stage === "zhuji");
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.choice?.title).toContain("Revealed");
@@ -795,6 +970,14 @@ test("Lianqi cleans up through all phases and persists a second Gongfa in Zhuji"
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.stage).toBe("zhuji");
   expect(snapshot.progression.learnedGongfaIds).toHaveLength(2);
+  const secondGongfaId = snapshot.progression.learnedGongfaIds[1] as keyof typeof gongfaConfigs;
+  const secondCombat = snapshot.progression.gongfaCombats.find(
+    ({ gongfaId }) => gongfaId === secondGongfaId
+  );
+  expect(secondCombat?.damage).toBe(
+    gongfaConfigs[secondGongfaId].stages.lianqi!.damage +
+      snapshot.progression.foundationGrowth.baseDamage
+  );
   expect(snapshot.visuals.arena.variantId).toBe("foundation-terrace");
 
   await page.evaluate(() => window.__gameTest!.forceAdvanceSpawnClock(1_500));
@@ -1030,6 +1213,119 @@ test("Spirit Treasures fill three slots, then offer replace-or-leave", async ({ 
     "windstep-talisman",
     "lodestone-charm"
   ]);
+});
+
+test("duplicate Spirit Treasures deepen Attunement and unlock resonance", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+
+  for (const id of ["jade-heart-pendant", "jade-heart-pendant", "ironhide-seal"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(120);
+  }
+
+  let snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.spiritTreasureAttunements).toEqual([
+    { id: "jade-heart-pendant", rank: 2 },
+    { id: "ironhide-seal", rank: 1 }
+  ]);
+  expect(snapshot.progression.spiritTreasureSignatures).toContain(
+    "jade-heart-pendant:steady-heart"
+  );
+  expect(snapshot.progression.spiritTreasureResonances).toContain("vitality");
+  expect(snapshot.player.maxHealth).toBe(165);
+
+  await page.reload();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.waitForFunction(() => Boolean(window.__gameTest));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.spiritTreasureAttunements[0]).toEqual({
+    id: "jade-heart-pendant",
+    rank: 2
+  });
+  expect(snapshot.player.maxHealth).toBe(165);
+});
+
+test("Windwalk resonance shortens the observable Evade cadence", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  for (const id of ["windstep-talisman", "farsight-mirror"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(100);
+  }
+
+  await page.keyboard.down("d");
+  await page.keyboard.press("Space");
+  await page.keyboard.up("d");
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.spiritTreasureResonances).toContain("windwalk");
+  expect(snapshot.player.evade.cooldownRemainingMs).toBeLessThanOrEqual(1_020);
+});
+
+test("Harvest resonance turns Qi collection into a tactical damage pulse", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  for (const id of ["windstep-talisman", "lodestone-charm"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate(() => {
+    window.__gameTest!.forceSpawnEnemy("jade-rat");
+    window.__gameTest!.forceDamageEnemy("jade-rat", 12);
+    window.__gameTest!.forceSpawnQiOrb(1);
+  });
+
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().counts.orbs === 0);
+  expect(await page.evaluate(() => window.__gameTest!.getSnapshot().counts.enemies)).toBe(0);
+});
+
+test("Bulwark resonance protects follow-up hits instead of granting permanent mitigation", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  for (const id of ["ironhide-seal", "spiritbloom-vial"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(100);
+  }
+  const fullHealth = await page.evaluate(() => window.__gameTest!.getSnapshot().player.health);
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
+  const afterOpeningHit = await page.evaluate(
+    () => window.__gameTest!.getSnapshot().player.health
+  );
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
+  const afterGuardedHit = await page.evaluate(
+    () => window.__gameTest!.getSnapshot().player.health
+  );
+
+  expect(fullHealth - afterOpeningHit).toBe(18);
+  expect(afterOpeningHit - afterGuardedHit).toBe(12);
+});
+
+test("Vitality resonance performs one controlled emergency recovery", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+  for (const id of ["jade-heart-pendant", "ironhide-seal"]) {
+    await page.evaluate((treasureId) => {
+      window.__gameTest!.forceSpawnSpiritTreasure(treasureId);
+    }, id);
+    await page.waitForTimeout(100);
+  }
+  await page.evaluate(() => window.__gameTest!.forceDamagePlayer(120));
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.player.maxHealth).toBe(150);
+  expect(snapshot.player.health).toBe(55);
 });
 
 test("Stage Breakthroughs preserve Yujian Jue and its independent Mastery", async ({ page }) => {
@@ -1404,7 +1700,7 @@ test("Lianqi Chuqi automatically settles into Zhongqi and resumes from that chec
   expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().realmProgressBar)).toMatchObject({
     phase: "zhongqi",
     completedMilestones: 1,
-    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman"]
+    labels: ["Chuqi", "Zhongqi", "Houqi", "Dayuanman", "Breakthrough"]
   });
 
   await page.reload();
@@ -1416,6 +1712,13 @@ test("Lianqi Chuqi automatically settles into Zhongqi and resumes from that chec
   expect(resumed.progression.stage).toBe("lianqi");
   expect(resumed.progression.realmPhase).toBe("zhongqi");
   expect(resumed.progression.foundationGrowthTransactions).toBe(1);
+  expect(resumed.player).toMatchObject({
+    health: beforeReload.player.health,
+    maxHealth: beforeReload.player.maxHealth,
+    moveSpeed: beforeReload.player.moveSpeed,
+    magnetRadius: beforeReload.player.magnetRadius
+  });
+  expect(resumed.progression.gongfaCombats).toEqual(beforeReload.progression.gongfaCombats);
   expect(resumed.counts.orbs).toBe(0);
 });
 

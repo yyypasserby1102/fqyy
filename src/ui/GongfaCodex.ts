@@ -28,6 +28,7 @@ export interface GongfaCodexSnapshot {
   skill2Status?: "locked" | "unlocked";
   cardNames: string[];
   transformationNames: string[];
+  transformationTradeoffs: string[];
   interactiveControlCount: number;
 }
 
@@ -183,8 +184,11 @@ export class GongfaCodex {
       rankText: this.rank.text,
       skill2Status: selected ? (selected.skill2Unlocked ? "unlocked" : "locked") : undefined,
       cardNames: definition ? [definition.skill1.name, definition.passive.name, definition.skill2.name] : [],
-      transformationNames: selected ? this.getTransformationNames(selected) : []
-      ,interactiveControlCount: 3
+      transformationNames: selected ? this.getTransformations(selected).map((item) => item.name) : [],
+      transformationTradeoffs: selected
+        ? this.getTransformations(selected).map((item) => `${item.gain} / ${item.cost}`)
+        : [],
+      interactiveControlCount: 3
     };
   }
 
@@ -241,22 +245,35 @@ export class GongfaCodex {
     const refinements = Object.entries(counts)
       .filter(([id]) => getMasteryChoiceDefinition(id)?.kind === "refinement")
       .map(([id, tiers]) => `${localizeMasteryChoice(locale, id).name} ${tiers >= 2 ? "II" : "I"}`);
-    const transformations = this.getTransformationNames(selected);
+    const transformations = this.getTransformations(selected);
     this.masteryText.setText(localizeRuntimeText(locale,
       refinements.length || transformations.length
         ? [
             `Refinements · ${refinements.join("  ·  ") || "None"}`,
-            `Transformations · ${transformations.join("  ·  ") || "Next choice at Rank 3"}`
+            `Transformations · ${transformations.length
+              ? transformations.map((item) => `${item.name} — ${item.gain} / ${item.cost}`).join("\n")
+              : "Next choice at Rank 3"}`
           ].join("\n")
         : "No refinements integrated yet. The first insight arrives at Mastery Rank 1."
     ));
   }
 
   private getTransformationNames(path: GongfaCodexPath): string[] {
+    return this.getTransformations(path).map((item) => item.name);
+  }
+
+  private getTransformations(path: GongfaCodexPath): Array<{ name: string; gain: string; cost: string }> {
     return path.learnedMasteryIds
       .map((id) => getMasteryChoiceDefinition(id))
       .filter((item) => item?.kind === "transformation")
-      .map((item) => item ? localizeMasteryChoice(getLocale(), item.id).name : "");
+      .map((item) => {
+        const localized = localizeMasteryChoice(getLocale(), item!.id);
+        return {
+          name: localized.name,
+          gain: localized.gain ?? localized.lore,
+          cost: localized.cost ?? ""
+        };
+      });
   }
 
   private text(value: string, size: number, color: string): Phaser.GameObjects.Text {

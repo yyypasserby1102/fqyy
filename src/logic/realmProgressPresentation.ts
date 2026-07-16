@@ -1,6 +1,8 @@
 import { realmPhaseOrder, type RealmPhaseId } from "../data/stages";
+import { formatFoundationGrowthPackage } from "./foundationGrowth";
 
 export const REALM_PHASE_LABELS = ["Chuqi", "Zhongqi", "Houqi", "Dayuanman"] as const;
+export const REALM_PROGRESS_LABELS = [...REALM_PHASE_LABELS, "Breakthrough"] as const;
 
 export interface RealmProgressPresentation {
   phase: RealmPhaseId;
@@ -22,7 +24,8 @@ export function getRealmProgressPresentation(
     phaseLabel: REALM_PHASE_LABELS[phaseIndex],
     phaseIndex,
     completedMilestones: phaseIndex,
-    totalProgress: (phaseIndex + normalizedPhaseProgress / 100) / realmPhaseOrder.length
+    totalProgress:
+      (phaseIndex + Math.min(normalizedPhaseProgress, 96) / 100) / realmPhaseOrder.length
   };
 }
 
@@ -31,5 +34,5 @@ export function formatRealmMilestoneReward(
   foundationGrowthTransactions: number
 ): string {
   const completedIndex = realmPhaseOrder.indexOf(completedPhase);
-  return `${REALM_PHASE_LABELS[completedIndex]} complete · Foundation Growth +1 · Total ${foundationGrowthTransactions}`;
+  return `${REALM_PHASE_LABELS[completedIndex]} complete · ${formatFoundationGrowthPackage()} · Foundation ${foundationGrowthTransactions}`;
 }

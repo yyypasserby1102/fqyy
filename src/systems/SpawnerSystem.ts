@@ -3,9 +3,8 @@ import { enemyConfigs, type EnemyId } from "../data/enemies";
 import { stageWaveSpawns } from "../data/waves";
 import type { StageId } from "../data/stages";
 import { Enemy } from "../entities/Enemy";
+import type { EncounterPressure } from "../logic/encounterPressure";
 import { pickRandom, randomFloat, randomInt } from "../utils/random";
-
-const MAX_CONCURRENT_ENEMIES = 18;
 
 export class SpawnerSystem {
   private readonly scene: Phaser.Scene;
@@ -17,6 +16,7 @@ export class SpawnerSystem {
   private accumulator = 0;
   private currentStage: StageId = "lianqi";
   private readonly onSpawn?: (enemy: Enemy) => void;
+  private spawnIndex = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -32,15 +32,17 @@ export class SpawnerSystem {
     deltaMs: number,
     playerPosition: Phaser.Math.Vector2,
     stage: StageId,
+    pressure: EncounterPressure,
     allowWaveEscalation = true
   ): void {
-    this.advanceClock(deltaMs, playerPosition, stage, allowWaveEscalation);
+    this.advanceClock(deltaMs, playerPosition, stage, pressure, allowWaveEscalation);
   }
 
   advanceClock(
     deltaMs: number,
     playerPosition: Phaser.Math.Vector2,
     stage: StageId,
+    pressure: EncounterPressure,
     allowWaveEscalation: boolean
   ): void {
     if (stage !== this.currentStage) {
@@ -66,8 +68,9 @@ export class SpawnerSystem {
         }
       }
     }
+    this.currentPool = pressure.composition;
 
-    if (this.accumulator < this.currentInterval) {
+    if (this.accumulator < this.currentInterval * pressure.spawnIntervalScale) {
       return;
     }
 
@@ -75,31 +78,61 @@ export class SpawnerSystem {
 
     // Soft concurrency cap: stop adding pressure once the arena is full, so a
     // low-DPS early build is not snowballed to death by unbounded accumulation.
-    if (this.group.countActive(true) >= MAX_CONCURRENT_ENEMIES) {
+    if (this.group.countActive(true) >= pressure.concurrentEnemyBudget) {
       return;
     }
 
-    for (let i = 0; i < this.currentAmount; i += 1) {
+    const spawnAmount = Math.min(
+      this.currentAmount + pressure.spawnAmountBonus,
+      pressure.concurrentEnemyBudget - this.group.countActive(true)
+    );
+    for (let i = 0; i < spawnAmount; i += 1) {
       const enemyId = pickRandom(this.currentPool);
       const config = enemyConfigs[enemyId];
-      const spawnPoint = this.getSpawnPoint(playerPosition);
-      const enemy = new Enemy(this.scene, spawnPoint.x, spawnPoint.y, config);
+      const spawnPoint = this.getSpawnPoint(playerPosition, pressure.geometry, i, spawnAmount);
+      const enemy = new Enemy(this.scene, spawnPoint.x, spawnPoint.y, config, pressure);
       this.group.add(enemy);
       this.onSpawn?.(enemy);
     }
   }
 
-  spawnManual(enemyId: EnemyId, x: number, y: number): Enemy {
+  spawnManual(
+    enemyId: EnemyId,
+    x: number,
+    y: number,
+    pressure?: EncounterPressure
+  ): Enemy {
     const config = enemyConfigs[enemyId];
-    const enemy = new Enemy(this.scene, x, y, config);
+    const enemy = new Enemy(this.scene, x, y, config, pressure);
     this.group.add(enemy);
     this.onSpawn?.(enemy);
     return enemy;
   }
 
-  private getSpawnPoint(playerPosition: Phaser.Math.Vector2): Phaser.Math.Vector2 {
-    const angle = randomFloat() * Math.PI * 2;
-    const radius = randomInt(360, 460);
+  private getSpawnPoint(
+    playerPosition: Phaser.Math.Vector2,
+    geometry: EncounterPressure["geometry"],
+    batchIndex: number,
+    batchSize: number
+  ): Phaser.Math.Vector2 {
+    const anchor = randomFloat() * Math.PI * 2;
+    const sequence = this.spawnIndex++;
+    const angle =
+      geometry === "ring"
+        ? anchor
+        : geometry === "pincer"
+          ? anchor + (batchIndex % 2) * Math.PI
+          : geometry === "flank"
+            ? anchor + (batchIndex % 3) * ((Math.PI * 2) / 3)
+            : anchor + ((sequence + batchIndex) % Math.max(4, batchSize)) * ((Math.PI * 2) / Math.max(4, batchSize));
+    const [minimumRadius, maximumRadius] = geometry === "converge"
+      ? [190, 270]
+      : geometry === "flank"
+        ? [260, 350]
+        : geometry === "pincer"
+          ? [310, 400]
+          : [360, 460];
+    const radius = randomInt(minimumRadius, maximumRadius);
     return new Phaser.Math.Vector2(
       playerPosition.x + Math.cos(angle) * radius,
       playerPosition.y + Math.sin(angle) * radius

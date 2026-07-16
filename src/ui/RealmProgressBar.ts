@@ -4,7 +4,7 @@ import type { RunJourneyCommand } from "../logic/runJourney";
 import {
   formatRealmMilestoneReward,
   getRealmProgressPresentation,
-  REALM_PHASE_LABELS
+  REALM_PROGRESS_LABELS
 } from "../logic/realmProgressPresentation";
 import { getLocale } from "../i18n/runtime";
 import { localizeRuntimeText } from "../i18n/content";
@@ -32,10 +32,10 @@ export class RealmProgressBar {
   constructor(private readonly scene: Phaser.Scene) {
     this.graphics = scene.add.graphics().setScrollFactor(0).setDepth(221);
     this.title = this.createText(13, "#d8f1ef").setOrigin(0.5, 0);
-    this.labels = REALM_PHASE_LABELS.map(() => this.createText(11, "#a8b9bd").setOrigin(0.5, 0));
+    this.labels = REALM_PROGRESS_LABELS.map(() => this.createText(11, "#a8b9bd").setOrigin(0.5, 0));
     this.reward = this.createText(13, "#f5dda0")
       .setOrigin(0.5, 0)
-      .setAlpha(0);
+      .setAlpha(1);
     this.resize();
   }
 
@@ -44,6 +44,9 @@ export class RealmProgressBar {
     this.phaseProgress = phaseProgress;
     this.accent = accent;
     this.draw();
+    if (this.reward.alpha === 1 && !this.scene.tweens.isTweening(this.reward)) {
+      this.showNextRewardPreview();
+    }
   }
 
   showMilestone(command: PhaseMilestoneCommand): void {
@@ -56,7 +59,8 @@ export class RealmProgressBar {
       alpha: 0,
       delay: 2400,
       duration: 600,
-      ease: "Sine.easeOut"
+      ease: "Sine.easeOut",
+      onComplete: () => this.showNextRewardPreview()
     });
   }
 
@@ -67,7 +71,7 @@ export class RealmProgressBar {
       phaseLabel: localizeRuntimeText(getLocale(), presentation.phaseLabel),
       completedMilestones: presentation.completedMilestones,
       totalProgress: presentation.totalProgress,
-      labels: REALM_PHASE_LABELS.map((label) => localizeRuntimeText(getLocale(), label)),
+      labels: REALM_PROGRESS_LABELS.map((label) => localizeRuntimeText(getLocale(), label)),
       rewardText: this.reward.text
     };
   }
@@ -81,10 +85,10 @@ export class RealmProgressBar {
 
   private draw(): void {
     const presentation = getRealmProgressPresentation(this.phase, this.phaseProgress);
-    const width = Math.min(520, Math.max(320, this.scene.scale.width - 760));
+    const width = Math.min(460, Math.max(320, this.scene.scale.width - 820));
     const x = (this.scene.scale.width - width) * 0.5;
     const y = 55;
-    const segmentWidth = width / REALM_PHASE_LABELS.length;
+    const segmentWidth = width / (REALM_PROGRESS_LABELS.length - 1);
 
     this.title
       .setText(localizeRuntimeText(getLocale(), `REALM PROGRESS · ${presentation.phaseLabel} ${Math.round(this.phaseProgress)}%`))
@@ -97,18 +101,35 @@ export class RealmProgressBar {
     this.graphics.fillStyle(this.accent, 0.95);
     this.graphics.fillRoundedRect(x, y, width * presentation.totalProgress, 8, 4);
 
-    REALM_PHASE_LABELS.forEach((label, index) => {
+    REALM_PROGRESS_LABELS.forEach((label, index) => {
       const markerX = x + segmentWidth * index;
-      if (index > 0) {
-        const complete = index <= presentation.completedMilestones;
-        this.graphics.fillStyle(complete ? 0xf5dda0 : 0x51636a, 1);
-        this.graphics.fillCircle(markerX, y + 4, complete ? 4 : 3);
-      }
+      const complete = index <= presentation.completedMilestones;
+      this.graphics.fillStyle(complete ? 0xf5dda0 : 0x51636a, 1);
+      this.graphics.fillCircle(markerX, y + 4, complete ? 4 : 3);
       this.labels[index]
         .setText(localizeRuntimeText(getLocale(), label))
-        .setPosition(x + segmentWidth * (index + 0.5), y + 12)
-        .setColor(index === presentation.phaseIndex ? "#f5dda0" : "#8fa4a9");
+        .setPosition(markerX, y + 12)
+        .setColor(
+          index === presentation.phaseIndex ||
+          (index === REALM_PROGRESS_LABELS.length - 1 && presentation.totalProgress >= 1)
+            ? "#f5dda0"
+            : "#8fa4a9"
+        );
     });
+  }
+
+  private showNextRewardPreview(): void {
+    const presentation = getRealmProgressPresentation(this.phase, this.phaseProgress);
+    const nextLabel = REALM_PROGRESS_LABELS[Math.min(
+      presentation.completedMilestones + 1,
+      REALM_PROGRESS_LABELS.length - 1
+    )];
+    this.reward
+      .setText(localizeRuntimeText(
+        getLocale(),
+        `NEXT REWARD · +1 damage · +8 max HP/heal · +3 movement · +8 orb radius · ${nextLabel}`
+      ))
+      .setAlpha(1);
   }
 
   private createText(fontSize: number, color: string): Phaser.GameObjects.Text {

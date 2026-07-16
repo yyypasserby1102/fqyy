@@ -2140,10 +2140,12 @@ describe("Gongfa runtime", () => {
 
     const storm = applyGongfaImprovement(base, "feather-storm").runtime;
     expect(storm.combat.count).toBe(base.combat.count + 3);
-    expect(storm.combat.spreadDeg).toBe(base.combat.spreadDeg + 18);
+    expect(storm.combat.spreadDeg).toBe(base.combat.spreadDeg + 24);
+    expect(storm.combat.damage).toBeLessThan(base.combat.damage);
 
     const swift = applyGongfaImprovement(base, "swift-molt").runtime;
     expect(swift.combat.cooldownMs).toBeLessThan(base.combat.cooldownMs);
+    expect(swift.combat.damage).toBeLessThan(base.combat.damage);
     expect(swift.combat.projectileSpeed).toBe(base.combat.projectileSpeed + 80);
   });
 
@@ -2317,6 +2319,20 @@ describe("Gongfa runtime", () => {
     const base = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
     const focus = applyGongfaImprovement(base, "lancing-crescent").runtime;
     expect(focus.combat.pierce).toBe(base.combat.pierce + 2);
+    expect(focus.combat.damage).toBeGreaterThan(base.combat.damage);
+
+    const spread = applyGongfaImprovement(base, "wide-crescent").runtime;
+    expect(spread.combat.count).toBe(base.combat.count + 3);
+    expect(spread.combat.damage).toBeLessThan(base.combat.damage);
+
+    const quicken = applyGongfaImprovement(base, "rolling-heat").runtime;
+    expect(quicken.combat.cooldownMs).toBeLessThan(base.combat.cooldownMs);
+    expect(quicken.combat.damage).toBeLessThan(base.combat.damage);
+
+    const frostBase = createGongfaRuntime({ gongfaId: "drifting-frost-needle" });
+    const frostSpread = applyGongfaImprovement(frostBase, "frost-flurry").runtime;
+    expect(frostSpread.combat.count - frostBase.combat.count).toBe(2);
+    expect(frostSpread.combat.spreadDeg).not.toBe(spread.combat.spreadDeg);
 
     const stoked = createGongfaRuntime({ gongfaId: "scarlet-wave-manual", surge: { stacks: 4 } });
     const [crowned] = planGongfaAttack(stoked, 0, { learnedMasteryIds: ["sunfire-crescents"] });
