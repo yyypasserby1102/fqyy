@@ -25,8 +25,11 @@ jobs:
           cache: npm
       - uses: actions/configure-pages@v6
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:all
+      # Browser playtests remain in CI. Pages uses deterministic gates so a
+      # timing-sensitive simulation cannot strand a verified release.
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
       - run: npm run verify:release
       - uses: actions/upload-pages-artifact@v5
         with:
