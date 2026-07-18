@@ -131,13 +131,16 @@ export function mountRunShell(container: HTMLElement): void {
     for (const [index, candidate] of candidates.entries()) {
       const locale = getLocale();
       const localizedLinggen = localizeLinggen(locale, candidate.linggenId);
-      const candidateName = locale === "zh-CN" ? `候选者 ${index + 1}` : candidate.name;
+      const candidateName = locale === "zh-CN" ? candidate.nameZh : candidate.name;
+      const candidateAccessibleName = locale === "zh-CN"
+        ? `候选者 ${index + 1}`
+        : `Candidate ${index + 1}`;
       const candidateButton = document.createElement("button");
       candidateButton.type = "button";
       candidateButton.className = "candidate-card";
       candidateButton.setAttribute(
         "aria-label",
-        t("run.chooseCandidate", { name: candidateName, linggen: localizedLinggen.name })
+        t("run.chooseCandidate", { name: candidateAccessibleName, linggen: localizedLinggen.name })
       );
       candidateButton.style.setProperty(
         "--candidate-accent",

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { projectEncounterPressure } from "../../src/logic/encounterPressure";
+import {
+  getPhaseBreathingRoomMs,
+  projectEncounterPressure
+} from "../../src/logic/encounterPressure";
 
 describe("Encounter pressure", () => {
   it("turns Lianqi Dayuanman into converging anti-kiting pressure", () => {
@@ -42,5 +45,12 @@ describe("Encounter pressure", () => {
       geometry: "flank",
       composition: ["bone-crow", "corpse-cultivator"]
     });
+  });
+
+  it("adds a readable quiet beat after late-Stage phase milestones", () => {
+    expect(getPhaseBreathingRoomMs("lianqi")).toBe(0);
+    expect(getPhaseBreathingRoomMs("zhuji")).toBe(0);
+    expect(getPhaseBreathingRoomMs("jindan")).toBe(4_000);
+    expect(getPhaseBreathingRoomMs("yuanying")).toBe(4_000);
   });
 });

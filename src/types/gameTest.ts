@@ -188,6 +188,8 @@ export interface UiSnapshot {
     title: string;
     subtitle: string;
     optionTitles: string[];
+    optionKinds: ChoiceOption["kind"][];
+    optionVisuals: string[];
   };
   journeyPresentation: JourneyPresentationSnapshot;
   gongfaCodex: GongfaCodexSnapshot;

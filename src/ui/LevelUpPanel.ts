@@ -1,9 +1,16 @@
 import Phaser from "phaser";
 import type { ChoiceOption, ChoiceVisualMode } from "../data/choices";
-import { LINGCAO_ANIMATIONS, WORLD_TEXTURES } from "../visual/worldVisuals";
+import {
+  LINGCAO_ANIMATIONS,
+  SPIRIT_TREASURE_TINTS,
+  WORLD_TEXTURES
+} from "../visual/worldVisuals";
+import { createGongfaSigil } from "../visual/gongfaSigils";
+import { getGongfaVisualIdentity } from "../visual/gongfaVisualIdentity";
 import { getSettings, subscribeSettings } from "../persistence/settingsPersistence";
 
 export class LevelUpPanel {
+  private readonly scene: Phaser.Scene;
   private readonly container: Phaser.GameObjects.Container;
   private readonly title: Phaser.GameObjects.Text;
   private readonly subtitle: Phaser.GameObjects.Text;
@@ -12,6 +19,11 @@ export class LevelUpPanel {
   private readonly awakeningHerb: Phaser.GameObjects.Sprite;
   private readonly options: Array<{
     box: Phaser.GameObjects.Rectangle;
+    kind: Phaser.GameObjects.Text;
+    iconHalo: Phaser.GameObjects.Arc;
+    treasureIncoming: Phaser.GameObjects.Sprite;
+    treasureOutgoing: Phaser.GameObjects.Sprite;
+    sigil?: Phaser.GameObjects.Graphics;
     label: Phaser.GameObjects.Text;
     desc: Phaser.GameObjects.Text;
   }> = [];
@@ -21,6 +33,7 @@ export class LevelUpPanel {
   private motionReduced = false;
 
   constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     const backdrop = scene.add
       .rectangle(0, 0, scene.scale.width, scene.scale.height, 0x02070d, 0.78)
       .setOrigin(0)
@@ -125,26 +138,46 @@ export class LevelUpPanel {
 
     for (let i = 0; i < 4; i += 1) {
       const x = scene.scale.width * 0.5 - 315 + i * 210;
-      const y = scene.scale.height * 0.5 + 28;
+      const y = scene.scale.height * 0.5 + 34;
       const box = scene.add
-        .rectangle(x, y, 194, 270, 0x0d1d2b, 0.96)
+        .rectangle(x, y, 194, 282, 0x0d1d2b, 0.96)
         .setStrokeStyle(2, 0x6fcbd5, 0.7)
         .setInteractive({ useHandCursor: true });
-      const label = scene.add
-        .text(x, y - 108, "", {
+      const kind = scene.add
+        .text(x, y - 126, "", {
           fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
-          fontSize: "20px",
+          fontSize: "10px",
+          color: "#8ed9d4",
+          letterSpacing: 1.4
+        })
+        .setOrigin(0.5);
+      const iconHalo = scene.add
+        .circle(x, y - 82, 34, 0x0a2530, 0.9)
+        .setStrokeStyle(1, 0x72ced7, 0.6);
+      const treasureOutgoing = scene.add
+        .sprite(x - 23, y - 82, WORLD_TEXTURES.pickups, 8)
+        .setDisplaySize(58, 58)
+        .setVisible(false);
+      const treasureIncoming = scene.add
+        .sprite(x + 23, y - 82, WORLD_TEXTURES.pickups, 8)
+        .setDisplaySize(62, 62)
+        .setVisible(false);
+      const label = scene.add
+        .text(x, y - 39, "", {
+          fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
+          fontSize: "17px",
           color: "#f5fbff",
           align: "center",
           wordWrap: { width: 174 }
         })
         .setOrigin(0.5);
       const desc = scene.add
-        .text(x, y - 64, "", {
+        .text(x, y - 4, "", {
           fontFamily: "Noto Sans SC Variable, Trebuchet MS, sans-serif",
-          fontSize: "13px",
+          fontSize: "11px",
           color: "#a9c8da",
-          align: "center",
+          align: "left",
+          lineSpacing: 4,
           wordWrap: { width: 174 }
         })
         .setOrigin(0.5, 0);
@@ -159,11 +192,140 @@ export class LevelUpPanel {
         box.setFillStyle(0x163246, 0.98).setStrokeStyle(3, 0xd7b96d, 0.9);
       });
       box.on("pointerout", () => {
-        box.setFillStyle(0x0d1d2b, 0.96).setStrokeStyle(2, 0x6fcbd5, 0.7);
+        this.styleOption(i);
       });
 
-      this.container.add([box, label, desc]);
-      this.options.push({ box, label, desc });
+      this.container.add([
+        box,
+        kind,
+        iconHalo,
+        treasureOutgoing,
+        treasureIncoming,
+        label,
+        desc
+      ]);
+      this.options.push({
+        box,
+        kind,
+        iconHalo,
+        treasureIncoming,
+        treasureOutgoing,
+        label,
+        desc
+      });
+    }
+  }
+
+  private getChoiceFamily(option: ChoiceOption): "gongfa" | "mastery" | "treasure" | "journey" {
+    if (option.kind === "gongfa") return "gongfa";
+    if (option.kind === "mastery" || option.kind === "upgrade") return "mastery";
+    if (option.kind === "spirit-treasure-replace" || option.kind === "spirit-treasure-leave") {
+      return "treasure";
+    }
+    return "journey";
+  }
+
+  private getKindLabel(option: ChoiceOption): string {
+    const family = this.getChoiceFamily(option);
+    if (family === "gongfa") return "GONGFA · 功法";
+    if (family === "mastery") return "MASTERY · 蜕变";
+    if (family === "treasure") return "LINGBAO · 灵宝";
+    return "JOURNEY · 破境";
+  }
+
+  private getChoiceDetails(option: ChoiceOption): string {
+    if (option.kind === "gongfa") {
+      return [
+        option.playstyle,
+        option.gain ? `＋ ${option.gain}` : "",
+        option.scope ? `◆ ${option.scope}` : "",
+        option.cost ? `◇ ${option.cost}` : ""
+      ].filter(Boolean).join("\n");
+    }
+    if (option.kind === "mastery") {
+      return [
+        option.playstyle,
+        option.gain ? `＋ ${option.gain}` : "",
+        option.cost ? `△ ${option.cost}` : "",
+        option.scope ? `◎ ${option.scope}` : "",
+        option.treasureInteraction ? `◇ ${option.treasureInteraction}` : ""
+      ].filter(Boolean).join("\n");
+    }
+    if (option.kind === "spirit-treasure-replace") {
+      const resonanceChanges = [
+        ...(option.resonanceGained?.map((item) => `✦ +${item}`) ?? []),
+        ...(option.resonanceLost?.map((item) => `✦ −${item}`) ?? [])
+      ];
+      return [
+        option.gain ? `＋ ${option.gain}` : "",
+        option.loss ? `－ ${option.loss}` : "",
+        ...resonanceChanges,
+        ...(option.mechanicsGained?.map((item) => `＋ ${item}`) ?? []),
+        ...(option.mechanicsLost?.map((item) => `－ ${item}`) ?? [])
+      ].filter(Boolean).join("\n");
+    }
+    return option.description;
+  }
+
+  private styleOption(index: number): void {
+    const option = this.currentOptions[index];
+    const slot = this.options[index];
+    if (!option || !slot) return;
+    const family = this.getChoiceFamily(option);
+    if (family === "gongfa") {
+      const accent = option.gongfaId ? getGongfaVisualIdentity(option.gongfaId).accent : 0x72ced7;
+      slot.box.setFillStyle(0x0a2028, 0.98).setStrokeStyle(2, accent, 0.82);
+      slot.iconHalo.setFillStyle(0x0b2930, 0.94).setStrokeStyle(1, accent, 0.7);
+      slot.kind.setColor("#8fe6df");
+    } else if (family === "mastery") {
+      slot.box.setFillStyle(0x171529, 0.98).setStrokeStyle(2, 0xb89be8, 0.82);
+      slot.iconHalo.setFillStyle(0x251c3b, 0.94).setStrokeStyle(1, 0xc5a7f0, 0.72);
+      slot.kind.setColor("#d2b9f4");
+    } else if (family === "treasure") {
+      const accent = option.spiritTreasureId
+        ? SPIRIT_TREASURE_TINTS[option.spiritTreasureId]
+        : 0xd7b96d;
+      slot.box.setFillStyle(0x192016, 0.98).setStrokeStyle(2, accent, 0.84);
+      slot.iconHalo.setFillStyle(0x2a2815, 0.94).setStrokeStyle(1, accent, 0.72);
+      slot.kind.setColor("#ead485");
+    } else {
+      slot.box.setFillStyle(0x0d1d2b, 0.96).setStrokeStyle(2, 0x6fcbd5, 0.7);
+      slot.iconHalo.setFillStyle(0x102735, 0.94).setStrokeStyle(1, 0x72ced7, 0.6);
+      slot.kind.setColor("#8ed9d4");
+    }
+  }
+
+  private renderOptionVisual(index: number, option: ChoiceOption, x: number, y: number): void {
+    const slot = this.options[index];
+    slot.sigil?.destroy();
+    slot.sigil = undefined;
+    slot.treasureIncoming.setVisible(false).setAlpha(1);
+    slot.treasureOutgoing.setVisible(false).setAlpha(1);
+    const family = this.getChoiceFamily(option);
+    if ((family === "gongfa" || family === "mastery") && option.gongfaId) {
+      const sigil = createGongfaSigil(
+        this.scene,
+        x,
+        y - 82,
+        option.gongfaId,
+        family === "gongfa" ? 31 : 27,
+        family === "gongfa" ? 1 : 0.76
+      );
+      this.container.add(sigil);
+      slot.sigil = sigil;
+    } else if (family === "treasure" && option.spiritTreasureId) {
+      const incomingX = option.replacedSpiritTreasureId ? x + 23 : x;
+      slot.treasureIncoming
+        .setPosition(incomingX, y - 82)
+        .setTint(SPIRIT_TREASURE_TINTS[option.spiritTreasureId])
+        .setVisible(true);
+      if (option.replacedSpiritTreasureId) {
+        slot.treasureOutgoing
+          .setPosition(x - 23, y - 82)
+          .setTint(SPIRIT_TREASURE_TINTS[option.replacedSpiritTreasureId])
+          .setAlpha(0.48)
+          .setVisible(true);
+      }
     }
   }
 
@@ -194,21 +356,34 @@ export class LevelUpPanel {
       const slot = this.options[index];
       const x = startX + index * spacing;
       slot.box.setX(x);
+      slot.kind.setX(x);
+      slot.iconHalo.setX(x);
       slot.label.setX(x);
       slot.desc.setX(x);
-      slot.box.setSize(optionWidth, 270);
+      slot.box.setSize(optionWidth, 282);
       slot.label.setWordWrapWidth(optionWidth - 20);
-      slot.desc.setWordWrapWidth(optionWidth - 20);
+      slot.desc.setWordWrapWidth(optionWidth - 24);
+      slot.kind.setText(this.getKindLabel(option));
       slot.label.setText(`${index + 1}. ${option.title}`);
-      slot.desc.setText(option.description);
+      slot.desc.setText(this.getChoiceDetails(option));
+      this.renderOptionVisual(index, option, x, slot.box.y);
+      this.styleOption(index);
       slot.box.setVisible(true);
+      slot.kind.setVisible(true);
+      slot.iconHalo.setVisible(true);
       slot.label.setVisible(true);
       slot.desc.setVisible(true);
     });
 
     for (let i = options.length; i < this.options.length; i += 1) {
       const slot = this.options[i];
+      slot.sigil?.destroy();
+      slot.sigil = undefined;
       slot.box.setVisible(false);
+      slot.kind.setVisible(false);
+      slot.iconHalo.setVisible(false);
+      slot.treasureIncoming.setVisible(false);
+      slot.treasureOutgoing.setVisible(false);
       slot.label.setVisible(false);
       slot.desc.setVisible(false);
     }
@@ -235,6 +410,8 @@ export class LevelUpPanel {
     title: string;
     subtitle: string;
     optionTitles: string[];
+    optionKinds: ChoiceOption["kind"][];
+    optionVisuals: string[];
   } {
     return {
       visible: this.container.visible,
@@ -243,7 +420,13 @@ export class LevelUpPanel {
       motionReduced: this.motionReduced,
       title: this.title.text,
       subtitle: this.subtitle.text,
-      optionTitles: this.currentOptions.map((option) => option.title)
+      optionTitles: this.currentOptions.map((option) => option.title),
+      optionKinds: this.currentOptions.map((option) => option.kind),
+      optionVisuals: this.currentOptions.map((option) => {
+        if (option.gongfaId) return `gongfa:${option.gongfaId}`;
+        if (option.spiritTreasureId) return `lingbao:${option.spiritTreasureId}`;
+        return this.getChoiceFamily(option);
+      })
     };
   }
 }

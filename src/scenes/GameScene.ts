@@ -8,6 +8,7 @@ import {
   type GongfaPattern,
   type GongfaStageState
 } from "../data/gongfa";
+import { getGongfaPackage } from "../data/gongfaPackages";
 import { SURGE_CASCADE_IDS } from "../data/surgeGongfa";
 import {
   getGongfaMasteryEfficiency,
@@ -115,7 +116,10 @@ import {
 } from "../persistence/profilePersistence";
 import { InputController } from "../systems/InputController";
 import { SpawnerSystem } from "../systems/SpawnerSystem";
-import { projectEncounterPressure } from "../logic/encounterPressure";
+import {
+  getPhaseBreathingRoomMs,
+  projectEncounterPressure
+} from "../logic/encounterPressure";
 import { projectFoundationGrowth } from "../logic/foundationGrowth";
 import type { GameSnapshot } from "../types/gameTest";
 import type { ProjectileVisualId } from "../types/combatVisuals";
@@ -309,6 +313,7 @@ export class GameScene extends Phaser.Scene {
   private didSettingsPanelPauseRun = false;
   private bulwarkGuardRemainingMs = 0;
   private vitalityEmergencyCooldownMs = 0;
+  private phaseBreathingRoomMs = 0;
   private unsubscribeSettingsPanel?: () => void;
   private readonly onSettingsPanel = ({ open }: { open: boolean }): void => {
     if (open && !this.runState.paused && !this.choiceActive && !this.runState.gameOver) {
@@ -551,6 +556,7 @@ export class GameScene extends Phaser.Scene {
       0,
       this.vitalityEmergencyCooldownMs - delta
     );
+    this.phaseBreathingRoomMs = Math.max(0, this.phaseBreathingRoomMs - delta);
 
     const movement = this.inputController.getMovementVector();
     if (this.inputController.evadePressed) {
@@ -586,7 +592,11 @@ export class GameScene extends Phaser.Scene {
     this.updateLingcaoResonance(playerPosition);
     if (this.runState.finalBossActive) {
       this.updateFinalBoss(delta, playerPosition);
-    } else if (!this.runState.phaseCleanupActive && !this.runState.tribulationActive) {
+    } else if (
+      !this.runState.phaseCleanupActive &&
+      !this.runState.tribulationActive &&
+      this.phaseBreathingRoomMs <= 0
+    ) {
       this.spawner.update(
         delta,
         playerPosition,
@@ -1156,6 +1166,8 @@ export class GameScene extends Phaser.Scene {
         return {
           id: heldId,
           kind: "spirit-treasure-replace",
+          spiritTreasureId: treasure.treasureId,
+          replacedSpiritTreasureId: heldId,
           title: `Replace ${getSpiritTreasureConfig(heldId).name}`,
           description: `Gain ${comparison.gain} · Lose ${comparison.loss}${resonance ? ` · ${resonance}` : ""}${mechanics ? ` · ${mechanics}` : ""}`,
           gain: comparison.gain,
@@ -1169,6 +1181,7 @@ export class GameScene extends Phaser.Scene {
       {
         id: "leave",
         kind: "spirit-treasure-leave",
+        spiritTreasureId: treasure.treasureId,
         title: "Leave it behind",
         description: "Keep your current three Spirit Treasures."
       }
@@ -2982,14 +2995,18 @@ export class GameScene extends Phaser.Scene {
     );
     const options: ChoiceOption[] = selectedIds.map((id) => {
       const gongfa = gongfaConfigs[id];
+      const packageInfo = getGongfaPackage(id);
+      const masterySpeed = getGongfaMasterySpeedLabel(linggen.id, gongfa.id);
       return {
         id: gongfa.id,
         kind: "gongfa",
+        gongfaId: gongfa.id,
         title: gongfa.name,
-        description: `${gongfa.lore} Mastery Speed: ${getGongfaMasterySpeedLabel(
-          linggen.id,
-          gongfa.id
-        )}.`
+        description: `${gongfa.lore} Mastery Speed: ${masterySpeed}.`,
+        playstyle: packageInfo.combatRole,
+        gain: packageInfo.skill1.name,
+        scope: `${packageInfo.passive.name} · ${packageInfo.passive.resource}`,
+        cost: `${masterySpeed} Mastery`
       };
     });
 
@@ -3304,6 +3321,7 @@ export class GameScene extends Phaser.Scene {
         this.flashCamera(140, 92, 180, 184);
         const nextPhaseLabel = getRealmProgressPresentation(command.nextPhase, 0).phaseLabel;
         this.lastMessage = `Foundation settles into ${nextPhaseLabel}.`;
+        this.phaseBreathingRoomMs = getPhaseBreathingRoomMs(this.runState.stage);
         this.scene.get("ui").events.emit("show-phase-milestone", command);
         this.publishHud(this.lastMessage);
         return;
@@ -4150,6 +4168,7 @@ export class GameScene extends Phaser.Scene {
       return {
         id,
         kind: "mastery",
+        gongfaId: runtime.gongfaId,
         title: definition?.name ?? id,
         description: definition?.playstyle
           ? `${definition.gain === definition.lore ? "" : `${definition.lore} · `}Gain: ${definition.gain} · Cost: ${definition.cost} · Treasure: ${definition.treasureInteraction}`

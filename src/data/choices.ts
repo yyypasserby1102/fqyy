@@ -1,3 +1,6 @@
+import type { GongfaId } from "./gongfa";
+import type { SpiritTreasureId } from "./spiritTreasures";
+
 export type ChoiceKind =
   | "gongfa"
   | "upgrade"
@@ -23,6 +26,9 @@ export interface ChoiceOption {
   resonanceLost?: string[];
   mechanicsGained?: string[];
   mechanicsLost?: string[];
+  gongfaId?: GongfaId;
+  spiritTreasureId?: SpiritTreasureId;
+  replacedSpiritTreasureId?: SpiritTreasureId;
 }
 
 export type ChoiceVisualMode = "choice" | "linggen-awakening";

@@ -516,6 +516,10 @@ test("Yujian Jue integrates ordinary refinements and reserves choices for Transf
   await reachNextMasteryChoiceThroughQi(page);
   const transformation = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(transformation.choice?.title).toContain("Mastery Rank 3");
+  expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().choicePanel)).toMatchObject({
+    optionKinds: ["mastery", "mastery", "mastery"],
+    optionVisuals: ["gongfa:yujian-jue", "gongfa:yujian-jue", "gongfa:yujian-jue"]
+  });
   if (process.env.TRANSFORMATION_CHOICE_CAPTURE) {
     await page.screenshot({ path: process.env.TRANSFORMATION_CHOICE_CAPTURE, fullPage: true });
   }

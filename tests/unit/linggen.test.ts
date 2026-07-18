@@ -74,5 +74,12 @@ describe("Linggen affinity rules", () => {
     expect(first.every((candidate) => candidate.affinityGrades.length === candidate.roots.length)).toBe(
       true
     );
+    expect(new Set(first.map((candidate) => candidate.familyName)).size).toBe(1);
+    expect(new Set(first.map((candidate) => candidate.familyNameZh)).size).toBe(1);
+    expect(new Set(first.map((candidate) => candidate.givenName)).size).toBe(3);
+    expect(new Set(first.map((candidate) => candidate.givenNameZh)).size).toBe(3);
+    expect(first.every((candidate) => candidate.name === `${candidate.familyName} ${candidate.givenName}`)).toBe(true);
+    expect(first.every((candidate) => candidate.nameZh === `${candidate.familyNameZh}${candidate.givenNameZh}`)).toBe(true);
+    expect(first.every((candidate) => !candidate.name.includes("Candidate"))).toBe(true);
   });
 });

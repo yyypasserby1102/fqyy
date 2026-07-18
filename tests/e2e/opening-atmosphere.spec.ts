@@ -62,6 +62,9 @@ test("Candidate selection presents three readable fates without exact Affinity v
   const candidates = page.getByRole("group", { name: "Choose Cultivator Candidate" });
   const cards = candidates.getByRole("button");
   await expect(cards).toHaveCount(3);
+  const candidateNames = await cards.locator(".candidate-card__name").allTextContents();
+  expect(new Set(candidateNames.map((name) => name.split(" ")[0])).size).toBe(1);
+  expect(new Set(candidateNames).size).toBe(3);
   for (const card of await cards.all()) {
     await expect(card.locator(".candidate-card__name")).not.toBeEmpty();
     await expect(card.locator(".candidate-card__linggen")).toContainText("Linggen");
@@ -126,7 +129,13 @@ test("claiming Lingcao blooms into the animated Linggen awakening", async ({ pag
   expect(presentation.choicePanel).toMatchObject({
     visible: true,
     renderedOptionCount: 3,
-    mode: "linggen-awakening"
+    mode: "linggen-awakening",
+    optionKinds: ["gongfa", "gongfa", "gongfa"],
+    optionVisuals: [
+      "gongfa:yujian-jue",
+      "gongfa:jinfeng-gong",
+      "gongfa:gengjin-huti"
+    ]
   });
   expect(presentation.choiceTitle).toBe("Metal Linggen Revealed");
 });

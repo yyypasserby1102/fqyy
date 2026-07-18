@@ -1145,8 +1145,18 @@ function localizeChoiceOption(locale: Locale, option: ChoiceOption): ChoiceOptio
   if (option.kind === "gongfa" && option.id in gongfaConfigs) {
     const id = option.id as GongfaId;
     const gongfa = localizeGongfa(locale, id);
+    const packageInfo = localizeGongfaPackage(locale, id);
     const speed = /Mastery Speed: (Slow|Normal|Fast)/.exec(option.description)?.[1];
-    return { ...option, title: gongfa.name, description: `${gongfa.lore} 精通速度：${speed ? localizeTerm(locale, speed) : "正常"}。` };
+    const localizedSpeed = speed ? localizeTerm(locale, speed) : "正常";
+    return {
+      ...option,
+      title: gongfa.name,
+      description: `${gongfa.lore} 精通速度：${localizedSpeed}。`,
+      playstyle: packageInfo.combatRole,
+      gain: packageInfo.skill1.name,
+      scope: `${packageInfo.passive.name} · ${packageInfo.passive.resource}`,
+      cost: `${localizedSpeed}精通`
+    };
   }
   if (option.kind === "mastery") {
     const choice = localizeMasteryChoice(locale, option.id);

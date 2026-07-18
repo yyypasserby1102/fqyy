@@ -227,6 +227,18 @@ test("the production choice panel renders all four treasure replacement options"
       "Replace Windstep Talisman",
       "Replace Lodestone Charm",
       "Leave it behind"
+    ],
+    optionKinds: [
+      "spirit-treasure-replace",
+      "spirit-treasure-replace",
+      "spirit-treasure-replace",
+      "spirit-treasure-leave"
+    ],
+    optionVisuals: [
+      "lingbao:ironhide-seal",
+      "lingbao:ironhide-seal",
+      "lingbao:ironhide-seal",
+      "lingbao:ironhide-seal"
     ]
   });
   if (process.env.CHOICE_PANEL_CAPTURE) {

@@ -25,6 +25,11 @@ export interface LinggenConfig {
 export interface CultivatorCandidate {
   id: string;
   name: string;
+  nameZh: string;
+  familyName: string;
+  familyNameZh: string;
+  givenName: string;
+  givenNameZh: string;
   linggenId: LinggenId;
   linggenName: string;
   roots: RootId[];
@@ -157,6 +162,75 @@ function seededIndex(seed: number, salt: number, length: number): number {
   return mixed % length;
 }
 
+interface GufengNamePart {
+  zh: string;
+  pinyin: string;
+}
+
+const gufengFamilyNames: GufengNamePart[] = [
+  { zh: "顾", pinyin: "Gu" },
+  { zh: "沈", pinyin: "Shen" },
+  { zh: "谢", pinyin: "Xie" },
+  { zh: "裴", pinyin: "Pei" },
+  { zh: "楚", pinyin: "Chu" },
+  { zh: "白", pinyin: "Bai" },
+  { zh: "苏", pinyin: "Su" },
+  { zh: "陆", pinyin: "Lu" },
+  { zh: "云", pinyin: "Yun" },
+  { zh: "柳", pinyin: "Liu" },
+  { zh: "温", pinyin: "Wen" },
+  { zh: "宁", pinyin: "Ning" },
+  { zh: "林", pinyin: "Lin" },
+  { zh: "江", pinyin: "Jiang" },
+  { zh: "萧", pinyin: "Xiao" }
+];
+
+const gufengGivenNames: GufengNamePart[] = [
+  { zh: "清玄", pinyin: "Qingxuan" },
+  { zh: "长卿", pinyin: "Changqing" },
+  { zh: "怀瑾", pinyin: "Huaijin" },
+  { zh: "昭宁", pinyin: "Zhaoning" },
+  { zh: "凌霄", pinyin: "Lingxiao" },
+  { zh: "归尘", pinyin: "Guichen" },
+  { zh: "若衡", pinyin: "Ruoheng" },
+  { zh: "云舒", pinyin: "Yunshu" },
+  { zh: "景行", pinyin: "Jingxing" },
+  { zh: "知微", pinyin: "Zhiwei" },
+  { zh: "砚舟", pinyin: "Yanzhou" },
+  { zh: "听澜", pinyin: "Tinglan" },
+  { zh: "望舒", pinyin: "Wangshu" },
+  { zh: "星衍", pinyin: "Xingyan" },
+  { zh: "青岚", pinyin: "Qinglan" },
+  { zh: "明夷", pinyin: "Mingyi" },
+  { zh: "言蹊", pinyin: "Yanqi" },
+  { zh: "疏影", pinyin: "Shuying" }
+];
+
+function getCandidateNames(seed: number): Array<{
+  name: string;
+  nameZh: string;
+  familyName: string;
+  familyNameZh: string;
+  givenName: string;
+  givenNameZh: string;
+}> {
+  const family = gufengFamilyNames[seededIndex(seed, 7, gufengFamilyNames.length)];
+  const availableGivenNames = gufengGivenNames.filter(({ zh }) => !zh.startsWith(family.zh));
+
+  return Array.from({ length: 3 }, (_, index) => {
+    const givenIndex = seededIndex(seed, 11 + index, availableGivenNames.length);
+    const [given] = availableGivenNames.splice(givenIndex, 1);
+    return {
+      name: `${family.pinyin} ${given.pinyin}`,
+      nameZh: `${family.zh}${given.zh}`,
+      familyName: family.pinyin,
+      familyNameZh: family.zh,
+      givenName: given.pinyin,
+      givenNameZh: given.zh
+    };
+  });
+}
+
 function pickSeededDistinct(
   pool: LinggenId[],
   seed: number,
@@ -184,12 +258,13 @@ export function getCultivatorCandidates(seed: number): CultivatorCandidate[] {
   const dualRoot = pickSeededDistinct(dualRootPool, seed, 2, selected);
   selected.add(dualRoot);
   selected.add(pickSeededDistinct(firstSliceLinggenPool, seed, 3, selected));
+  const candidateNames = getCandidateNames(seed);
 
   return Array.from(selected).map((linggenId, index) => {
     const linggen = linggenConfigs[linggenId];
     return {
       id: `candidate-${index + 1}`,
-      name: `Candidate ${index + 1}`,
+      ...candidateNames[index],
       linggenId,
       linggenName: linggen.name,
       roots: [...linggen.roots],

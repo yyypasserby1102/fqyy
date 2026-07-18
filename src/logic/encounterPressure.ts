@@ -87,6 +87,15 @@ const phaseComposition: Record<StageId, Record<RealmPhaseId, EnemyId[]>> = {
   }
 };
 
+/**
+ * Late Stages layer three or four active Gongfa over denser encounters. Give
+ * each automatic Phase milestone one short, combat-safe beat so its new state
+ * can be read before the next spawn pattern begins.
+ */
+export function getPhaseBreathingRoomMs(stage: StageId): number {
+  return stage === "jindan" || stage === "yuanying" ? 4_000 : 0;
+}
+
 function roundScale(value: number): number {
   return Math.round(value * 100) / 100;
 }
