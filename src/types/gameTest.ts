@@ -15,6 +15,7 @@ import type { GongfaId } from "../data/gongfa";
 import type { GongfaCodexSnapshot } from "../ui/GongfaCodex";
 import type { EncounterPressure } from "../logic/encounterPressure";
 import type { FoundationGrowthAttributes } from "../logic/foundationGrowth";
+import type { TribulationBossBarSnapshot } from "../ui/TribulationBossBar";
 import type {
   SpiritTreasureAttunement,
   SpiritTreasureResonance,
@@ -33,6 +34,16 @@ export interface GameSnapshot {
   encounter: {
     pressure: EncounterPressure;
     tribulationActive: boolean;
+    boss?: {
+      id: string;
+      name: string;
+      health: number;
+      maxHealth: number;
+      healthRatio: number;
+      enraged: boolean;
+      phaseLabel: string;
+      activeHazards: number;
+    };
   };
   player: {
     x: number;
@@ -180,6 +191,7 @@ export interface UiSnapshot {
     accent: number;
   };
   realmProgressBar: RealmProgressBarSnapshot;
+  bossBar: TribulationBossBarSnapshot;
   choicePanel: {
     visible: boolean;
     renderedOptionCount: number;
@@ -204,6 +216,8 @@ export interface GameTestHarness {
   selectChoice(index: number): void;
   forceDamagePlayer(amount: number): void;
   forceDamageEnemy(enemyId: EnemyId, amount: number): void;
+  forceDamageBoss(amount: number): void;
+  forceTriggerTribulationBossSlam(): void;
   forceClearEnemies(): void;
   forceSpawnQiOrb(qiValue: number): void;
   forceSpawnSpiritTreasure(treasureId: string): void;

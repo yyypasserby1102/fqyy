@@ -895,7 +895,30 @@ test("Lianqi Dayuanman requires its Tribulation before the Zhuji Breakthrough", 
   expect(snapshot.progression.stage).toBe("lianqi");
   expect(snapshot.progression.realmPhase).toBe("dayuanman");
   expect(snapshot.encounter.tribulationActive).toBe(true);
-  expect(snapshot.counts.enemies).toBe(6);
+  expect(snapshot.counts.enemies).toBe(3);
+  expect(snapshot.encounter.boss).toMatchObject({
+    id: "stormfeather-calamity",
+    name: "Stormfeather Calamity",
+    enraged: false
+  });
+  expect(snapshot.encounter.boss?.maxHealth).toBeGreaterThan(700);
+  expect(snapshot.visuals.enemies.filter(({ role }) => role === "tribulation-boss")).toHaveLength(1);
+  expect((await page.evaluate(() => window.__gameTest!.getUiSnapshot())).bossBar).toMatchObject({
+    visible: true,
+    name: "Stormfeather Calamity"
+  });
+
+  await page.evaluate((bossHealth) => {
+    window.__gameTest!.forceDamageBoss(bossHealth * 0.55);
+    window.__gameTest!.forceTriggerTribulationBossSlam();
+  }, snapshot.encounter.boss!.maxHealth);
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.encounter.boss).toMatchObject({
+    enraged: true,
+    activeHazards: 1
+  });
+  await page.waitForFunction(() => window.__gameTest!.getUiSnapshot().bossBar.enraged);
+  expect((await page.evaluate(() => window.__gameTest!.getUiSnapshot())).bossBar.enraged).toBe(true);
 
   await page.evaluate(() => window.__gameTest!.forceClearEnemies());
   await page.waitForFunction(() => window.__gameTest!.getSnapshot().progression.stage === "zhuji");
@@ -1079,7 +1102,7 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   expect(presentation).toMatchObject({
     visible: true,
     kind: "tribulation",
-    title: "Lightning Judgment"
+    title: "Heavenly Judgment Avatar"
   });
   expect(
     (await page.evaluate(() => window.__gameTest!.getSnapshot().audio)).recentCues
@@ -1091,6 +1114,14 @@ test("Yuanying phases lead into the Heavenly Tribulation and complete the Run", 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.finalBossActive).toBe(true);
   expect(snapshot.progression.finalBossPhaseIndex).toBeGreaterThanOrEqual(0);
+  await page.waitForFunction(() => Boolean(window.__gameTest!.getSnapshot().encounter.boss));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.encounter.boss).toMatchObject({
+    id: "heavenly-judgment-avatar",
+    name: "Heavenly Judgment Avatar"
+  });
+  expect(snapshot.encounter.boss?.maxHealth).toBeGreaterThan(9_000);
+  expect((await page.evaluate(() => window.__gameTest!.getUiSnapshot())).bossBar.visible).toBe(true);
 
   for (let phase = snapshot.progression.finalBossPhaseIndex; phase < 3; phase += 1) {
     await page.waitForTimeout(250);
@@ -1601,12 +1632,15 @@ test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unloc
   expect(snapshot.progression.masteryRank).toBeGreaterThanOrEqual(10);
   expect(snapshot.progression.masterySkill2).toBe("furnace-cascade");
 
-  await page.waitForTimeout(400);
-
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   const beforeCascadePressure = snapshot.progression.pressure;
 
-  await page.waitForTimeout(3000);
+  await page.waitForFunction(
+    () => window.__gameTest!.getSnapshot().progression.furnaceCascadeCasts > 0,
+    undefined,
+    { timeout: 12_000 }
+  );
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.furnaceCascadeCasts).toBeGreaterThan(0);

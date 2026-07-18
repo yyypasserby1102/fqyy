@@ -992,6 +992,19 @@ const runtimeExactZh: Record<string, string> = {
   "You leave the Spirit Treasure behind.": "你暂且留下了这件灵宝。",
   "Healing Pill restores your vitality.": "疗伤丹恢复了你的气血。",
   "Lightning judgment descends over Cloudbreak Summit.": "雷霆天罚降临破云峰。",
+  "Stormfeather Calamity": "惊雷劫羽",
+  "A thunder-crowned omen tests whether gathered Qi can endure.": "雷冠凶兆降世，检验初聚灵气能否承受天威。",
+  "Gravebound Foundation": "镇基冥骸",
+  "A ruined cultivator rises to crush an unsteady Dao foundation.": "陨落修士自冥土起身，要将未稳道基彻底碾碎。",
+  "Ninefold Thunder Warden": "九重雷狱使",
+  "A celestial executioner descends to shatter the newborn Golden Core.": "天刑使者降临，誓要击碎初成金丹。",
+  "Heavenly Judgment Avatar": "天刑化身",
+  "The first thunder seal takes form and hunts the Nascent Soul.": "第一重雷印化形，追猎初醒元婴。",
+  "Myriad Calamity Sovereign": "万劫阴君",
+  "The storm grows a will of its own and calls every shadow to judgment.": "雷海生出自身意志，召尽群影共赴天刑。",
+  "Heaven-Rending Dao Eye": "裂天道眼",
+  "The final eye opens as the last sanctuary collapses beneath it.": "终末道眼睁开，最后净域亦在其下崩塌。",
+  "ENRAGED": "狂化",
   "Lightning Judgment": "雷霆裁决",
   "Celestial thunder measures the Cultivator's foundation.": "九天雷霆衡量修士道基。",
   "Tribulation Shades": "劫影群生",
@@ -1039,6 +1052,8 @@ function localizeZhRuntimeText(value: string): string {
   if (stageTribulation) {
     return `渡过${localizeZhRuntimeText(stageTribulation[1])}天劫，并开启下一功法槽位。`;
   }
+  const bossEnraged = /^(.+) · ENRAGED$/.exec(value);
+  if (bossEnraged) return `${localizeZhRuntimeText(bossEnraged[1])} · 狂化`;
   let result = value;
   for (const [source, translated] of Object.entries(runtimeExactZh).sort(
     ([left], [right]) => right.length - left.length
@@ -1093,6 +1108,7 @@ function localizeZhRuntimeText(value: string): string {
     .replace(/^(.+) pressure deepens without breaking the flow\.$/, "$1根基压力加深，修行流转不息。")
     .replace(/^(.+) Chuqi begins\.$/, "$1初期开始。")
     .replace(/^HEAVENLY TRIBULATION · ([0-9]+)\/3$/, "天劫 · $1/3");
+  result = result.replace(/^(.+) TIANJIE$/, "$1天劫");
   return runtimeExactZh[result] ?? result;
 }
 

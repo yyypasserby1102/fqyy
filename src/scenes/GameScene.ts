@@ -118,6 +118,12 @@ import {
 import { InputController } from "../systems/InputController";
 import { SpawnerSystem } from "../systems/SpawnerSystem";
 import { projectEncounterPressure } from "../logic/encounterPressure";
+import {
+  getFinalTribulationBoss,
+  getStageTribulationBoss,
+  projectTribulationBossPressure,
+  type TribulationBossProfile
+} from "../logic/tribulationBoss";
 import { projectFoundationGrowth } from "../logic/foundationGrowth";
 import type { GameSnapshot } from "../types/gameTest";
 import type { ProjectileVisualId } from "../types/combatVisuals";
@@ -182,69 +188,12 @@ const baselineState: CombatState = {
   tint: 0xb6edff
 };
 
-const finalBossPhaseConfigs = [
-  {
-    name: "Lightning Judgment",
-    subtitle: "Celestial thunder measures the Cultivator's foundation.",
-    pool: ["celestial-construct"] as const,
-    intervalMs: 1200,
-    amount: 2,
-    safeZone: false
-  },
-  {
-    name: "Tribulation Shades",
-    subtitle: "Shades gather where the storm refuses the light.",
-    pool: ["tribulation-shade", "celestial-construct"] as const,
-    intervalMs: 1050,
-    amount: 3,
-    safeZone: false
-  },
-  {
-    name: "Collapsing Safe Zones",
-    subtitle: "The last sanctuary contracts beneath a broken sky.",
-    pool: ["celestial-construct", "tribulation-shade"] as const,
-    intervalMs: 900,
-    amount: 4,
-    safeZone: true
-  }
-] as const;
-
-const stageTribulationWaves: Record<Exclude<StageId, "yuanying">, readonly EnemyId[]> = {
-  lianqi: ["mist-wolf", "bone-crow", "mist-wolf", "bone-crow", "mist-wolf", "bone-crow"],
-  zhuji: [
-    "corpse-cultivator",
-    "resentful-spirit",
-    "bone-crow",
-    "corpse-cultivator",
-    "resentful-spirit",
-    "bone-crow",
-    "corpse-cultivator",
-    "resentful-spirit"
-  ],
-  jindan: [
-    "celestial-construct",
-    "tribulation-shade",
-    "celestial-construct",
-    "tribulation-shade",
-    "celestial-construct",
-    "tribulation-shade",
-    "celestial-construct",
-    "tribulation-shade",
-    "celestial-construct",
-    "tribulation-shade"
-  ]
-};
-
-const fallbackFinalBossPhase = {
-  name: "Heavenly Judgment",
-  subtitle: "The heavens answer."
-} as const;
-
 function getFinalBossPhasePresentation(phaseIndex: number): {
   name: string;
   subtitle: string;
 } {
-  return finalBossPhaseConfigs[phaseIndex] ?? fallbackFinalBossPhase;
+  const profile = getFinalTribulationBoss(phaseIndex);
+  return { name: profile.name, subtitle: profile.subtitle };
 }
 
 // A bounded but generous arena (2000x1280, centred on the origin). Large enough
@@ -299,7 +248,13 @@ export class GameScene extends Phaser.Scene {
   private finalBossSafeZoneX = 0;
   private finalBossSafeZoneY = 0;
   private finalBossSafeZoneRadius = 220;
+  private finalBossSafeZoneVisual?: Phaser.GameObjects.Graphics;
   private finalBossPhaseSpawned = false;
+  private activeTribulationBoss?: Enemy;
+  private activeTribulationBossProfile?: TribulationBossProfile;
+  private bossSlamAccumulator = 0;
+  private bossEnrageAnnounced = false;
+  private readonly activeBossHazards = new Set<Phaser.GameObjects.Arc>();
   private activeRunSave: ActiveRunSave | null = null;
   private nextCombatTargetId = 1;
   private nextSkill2ActivationId = 1;
@@ -589,6 +544,8 @@ export class GameScene extends Phaser.Scene {
     this.updateLingcaoResonance(playerPosition);
     if (this.runState.finalBossActive) {
       this.updateFinalBoss(delta, playerPosition);
+    } else if (this.runState.tribulationActive) {
+      this.updateStageTribulation(delta, playerPosition);
     } else if (!this.runState.phaseCleanupActive && !this.runState.tribulationActive) {
       this.spawner.update(
         delta,
@@ -1258,27 +1215,22 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateFinalBoss(delta: number, playerPosition: Phaser.Math.Vector2): void {
-    const phase = finalBossPhaseConfigs[this.runState.finalBossPhaseIndex];
-    if (!phase) {
-      return;
-    }
+    const profile = getFinalTribulationBoss(this.runState.finalBossPhaseIndex);
 
-    if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
+    if (this.finalBossPhaseSpawned && !this.activeTribulationBoss?.active) {
       this.reportFinalBossPhaseCleared();
       return;
     }
 
-    this.finalBossWaveAccumulator += delta;
     if (!this.finalBossPhaseSpawned) {
-      this.spawnFinalBossWave(phase.pool, phase.amount, playerPosition);
+      this.spawnTribulationBossEncounter(profile, playerPosition);
       this.finalBossPhaseSpawned = true;
-      this.finalBossWaveAccumulator = 0;
-    } else if (this.finalBossWaveAccumulator >= phase.intervalMs) {
-      this.spawnFinalBossWave(phase.pool, phase.amount, playerPosition);
-      this.finalBossWaveAccumulator = 0;
+    } else {
+      this.updateTribulationBossMechanics(delta, playerPosition, profile);
     }
 
-    if (phase.safeZone) {
+    if (this.runState.finalBossPhaseIndex === 2) {
+      this.renderFinalBossSafeZone();
       this.finalBossHazardAccumulator += delta;
       if (this.finalBossHazardAccumulator >= 1000) {
         this.finalBossHazardAccumulator = 0;
@@ -1310,26 +1262,161 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    if (this.finalBossPhaseSpawned && this.enemies.countActive(true) === 0) {
+    if (this.finalBossPhaseSpawned && !this.activeTribulationBoss?.active) {
       this.reportFinalBossPhaseCleared();
     }
   }
 
-  private spawnFinalBossWave(
-    pool: (typeof finalBossPhaseConfigs)[number]["pool"],
+  private updateStageTribulation(
+    delta: number,
+    playerPosition: Phaser.Math.Vector2
+  ): void {
+    const profile = this.activeTribulationBossProfile;
+    if (!profile || !this.activeTribulationBoss?.active) return;
+    this.updateTribulationBossMechanics(delta, playerPosition, profile);
+  }
+
+  private updateTribulationBossMechanics(
+    delta: number,
+    playerPosition: Phaser.Math.Vector2,
+    profile: TribulationBossProfile
+  ): void {
+    const boss = this.activeTribulationBoss;
+    if (!boss?.active) return;
+    this.finalBossWaveAccumulator += delta;
+    this.bossSlamAccumulator += delta;
+
+    if (this.finalBossWaveAccumulator >= profile.addIntervalMs) {
+      this.finalBossWaveAccumulator = 0;
+      this.spawnTribulationAdds(profile, profile.addAmount, playerPosition);
+    }
+
+    if (this.bossSlamAccumulator >= profile.slamIntervalMs) {
+      this.bossSlamAccumulator = 0;
+      this.telegraphTribulationSlam(profile);
+    }
+
+    if (boss.isEnraged && !this.bossEnrageAnnounced) {
+      this.bossEnrageAnnounced = true;
+      this.lastMessage = `${profile.name} enters its enraged second form.`;
+      this.flashCamera(150, 255, 108, 108);
+      this.shakeCamera(180, 0.005);
+    }
+  }
+
+  private spawnTribulationBossEncounter(
+    profile: TribulationBossProfile,
+    playerPosition: Phaser.Math.Vector2
+  ): void {
+    const pressure = this.getEncounterPressure();
+    const bossPressure = projectTribulationBossPressure(pressure, profile);
+    this.activeTribulationBossProfile = profile;
+    this.activeTribulationBoss = this.spawner.spawnManual(
+      profile.enemyId,
+      playerPosition.x + 340,
+      playerPosition.y - 90,
+      { ...pressure, ...bossPressure },
+      {
+        role: "tribulation-boss",
+        displayName: profile.name,
+        displayScale: profile.displayScale,
+        auraColor: profile.auraColor
+      }
+    );
+    this.finalBossWaveAccumulator = 0;
+    this.bossSlamAccumulator = 0;
+    this.bossEnrageAnnounced = false;
+    this.spawnTribulationAdds(profile, profile.initialAdds, playerPosition);
+  }
+
+  private spawnTribulationAdds(
+    profile: TribulationBossProfile,
     amount: number,
     playerPosition: Phaser.Math.Vector2
   ): void {
-    for (let i = 0; i < amount; i += 1) {
-      const enemyId = pool[i % pool.length];
-      const angle = (i / Math.max(1, amount)) * Math.PI * 2;
-      const radius = randomInt(300, 420);
+    const activeAdds = (this.enemies.getChildren() as Enemy[]).filter(
+      (enemy) => enemy.active && enemy.role !== "tribulation-boss"
+    ).length;
+    const spawnCount = Math.min(amount, Math.max(0, profile.maxAdds - activeAdds));
+    const pressure = this.getEncounterPressure();
+    for (let i = 0; i < spawnCount; i += 1) {
+      const enemyId = profile.addPool[i % profile.addPool.length];
+      const angle = (Math.PI * 2 * i) / Math.max(1, spawnCount) + this.time.now / 1700;
+      const radius = randomInt(280, 390);
       this.spawner.spawnManual(
         enemyId,
         playerPosition.x + Math.cos(angle) * radius,
-        playerPosition.y + Math.sin(angle) * radius
+        playerPosition.y + Math.sin(angle) * radius,
+        pressure
       );
     }
+  }
+
+  private telegraphTribulationSlam(profile: TribulationBossProfile): void {
+    const boss = this.activeTribulationBoss;
+    if (!boss?.active) return;
+    const x = boss.x;
+    const y = boss.y;
+    const telegraph = this.add
+      .circle(x, y, profile.slamRadius, profile.auraColor, 0.08)
+      .setStrokeStyle(4, profile.auraColor, 0.82)
+      .setDepth(4.75)
+      .setScale(0.2);
+    this.activeBossHazards.add(telegraph);
+    this.tweens.add({
+      targets: telegraph,
+      scale: 1,
+      alpha: 0.9,
+      duration: 720,
+      ease: "Cubic.out"
+    });
+    this.time.delayedCall(720, () => {
+      if (!telegraph.active) return;
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y) <= profile.slamRadius) {
+        this.applyIncomingDamage(profile.slamDamage);
+      }
+      this.flashCamera(90, 215, 185, 109);
+      this.activeBossHazards.delete(telegraph);
+      telegraph.destroy();
+    });
+  }
+
+  private clearTribulationBossEncounter(): void {
+    this.activeBossHazards.forEach((hazard) => hazard.destroy());
+    this.activeBossHazards.clear();
+    this.finalBossSafeZoneVisual?.destroy();
+    this.finalBossSafeZoneVisual = undefined;
+    this.forceClearEnemies();
+    this.activeTribulationBoss = undefined;
+    this.activeTribulationBossProfile = undefined;
+    this.finalBossWaveAccumulator = 0;
+    this.bossSlamAccumulator = 0;
+    this.bossEnrageAnnounced = false;
+  }
+
+  private renderFinalBossSafeZone(): void {
+    this.finalBossSafeZoneVisual ??= this.add.graphics().setDepth(3.8);
+    const visual = this.finalBossSafeZoneVisual;
+    const pulse = 1 + Math.sin(this.time.now / 240) * 0.025;
+    visual.clear();
+    visual.fillStyle(0x8fe8ff, 0.055);
+    visual.fillCircle(
+      this.finalBossSafeZoneX,
+      this.finalBossSafeZoneY,
+      this.finalBossSafeZoneRadius * pulse
+    );
+    visual.lineStyle(5, 0x8fe8ff, 0.78);
+    visual.strokeCircle(
+      this.finalBossSafeZoneX,
+      this.finalBossSafeZoneY,
+      this.finalBossSafeZoneRadius * pulse
+    );
+    visual.lineStyle(2, 0xf5df8c, 0.52);
+    visual.strokeCircle(
+      this.finalBossSafeZoneX,
+      this.finalBossSafeZoneY,
+      Math.max(12, this.finalBossSafeZoneRadius * pulse - 12)
+    );
   }
 
   private collectHealingPill(pill: HealingPill): void {
@@ -3259,40 +3346,38 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
+      const boss = getStageTribulationBoss(decision.stage as Exclude<StageId, "yuanying">);
       this.flashCamera(180, 190, 208, 255);
       this.shakeCamera(180, 0.003);
       this.scene.get("ui").events.emit("show-journey-presentation", {
         kind: "tribulation",
-        eyebrow: "TRIBULATION BEGINS",
-        title: `${stageConfigs[this.runState.stage].name} Tribulation`,
-        subtitle: "Defeat the Tribulation host. The breakthrough is not yet yours.",
-        accent: 0xd7b96d
+        eyebrow: `${stageConfigs[this.runState.stage].name.toUpperCase()} TIANJIE · BOSS`,
+        title: boss.name,
+        subtitle: boss.subtitle,
+        accent: boss.auraColor
       });
     }
   }
 
   private startStageTribulation(stage: Exclude<StageId, "yuanying">): void {
     this.forceClearEnemies();
-    const wave = stageTribulationWaves[stage];
-    const pressure = this.getEncounterPressure();
-    wave.forEach((enemyId, index) => {
-      const angle = (index / wave.length) * Math.PI * 2;
-      const radius = 300 + (index % 2) * 70;
-      this.spawner.spawnManual(
-        enemyId,
-        this.player.x + Math.cos(angle) * radius,
-        this.player.y + Math.sin(angle) * radius,
-        pressure
-      );
-    });
-    this.lastMessage = `${stageConfigs[stage].name} Tribulation: defeat ${wave.length} foes.`;
+    const profile = getStageTribulationBoss(stage);
+    this.spawnTribulationBossEncounter(
+      profile,
+      new Phaser.Math.Vector2(this.player.x, this.player.y)
+    );
+    this.lastMessage = `${stageConfigs[stage].name} Tribulation: defeat ${profile.name}.`;
     this.publishHud(this.lastMessage);
   }
 
   private maybeCompleteTribulation(): void {
-    if (!this.runState.tribulationActive || this.enemies.countActive(true) > 0) {
+    if (!this.runState.tribulationActive || !this.activeTribulationBoss) {
       return;
     }
+    if (this.activeTribulationBoss.active) {
+      return;
+    }
+    this.clearTribulationBossEncounter();
     const result = advanceRunJourney(this.runState, { kind: "tribulation-cleared" });
     this.applyRunJourneyState(result.state);
     this.executeRunJourneyCommands(result.commands);
@@ -3554,6 +3639,7 @@ export class GameScene extends Phaser.Scene {
 
   private publishHud(message?: string): void {
     const gongfaView = projectGongfaRuntimeView(this.gongfaRuntime);
+    const boss = this.getActiveTribulationBossSnapshot();
     this.registry.set("hud", {
       health: this.player?.stats.health ?? 100,
       maxHealth: this.player?.stats.maxHealth ?? 100,
@@ -3622,12 +3708,14 @@ export class GameScene extends Phaser.Scene {
       orbCount: this.orbs?.countActive(true) ?? 0,
       lingcaoCollected: this.runState.lingcaoCollected,
       spiritTreasures: this.spiritTreasureHudText(),
+      boss,
       message: message ?? this.lastMessage
     });
   }
 
   getTestSnapshot(): GameSnapshot {
     const gongfaView = projectGongfaRuntimeView(this.gongfaRuntime);
+    const boss = this.getActiveTribulationBossSnapshot();
     return {
       sceneName: this.scene.key,
       activeScenes: this.scene.manager.getScenes(true).map((scene) => scene.scene.key),
@@ -3681,7 +3769,8 @@ export class GameScene extends Phaser.Scene {
       },
       encounter: {
         pressure: this.getEncounterPressure(),
-        tribulationActive: this.runState.tribulationActive ?? false
+        tribulationActive: this.runState.tribulationActive ?? false,
+        boss
       },
       player: {
         x: this.player?.x ?? 0,
@@ -3976,6 +4065,20 @@ export class GameScene extends Phaser.Scene {
     if (enemy.receiveDamage(amount)) this.resolveEnemyDeath(enemy);
   }
 
+  forceDamageBoss(amount: number): void {
+    const boss = this.activeTribulationBoss;
+    if (!boss?.active || amount <= 0) return;
+    if (boss.receiveDamage(amount)) this.resolveEnemyDeath(boss);
+    this.publishHud(this.lastMessage);
+  }
+
+  forceTriggerTribulationBossSlam(): void {
+    const profile = this.activeTribulationBossProfile;
+    if (!profile || !this.activeTribulationBoss?.active) return;
+    this.telegraphTribulationSlam(profile);
+    this.publishHud(this.lastMessage);
+  }
+
   forceClearEnemies(): void {
     this.enemies.getChildren().forEach((child) => {
       const enemy = child as Enemy;
@@ -4253,11 +4356,30 @@ export class GameScene extends Phaser.Scene {
   }
 
   private reportFinalBossPhaseCleared(): void {
+    this.clearTribulationBossEncounter();
     const result = advanceRunJourney(this.runState, {
       kind: "final-boss-phase-cleared"
     });
     this.applyRunJourneyState(result.state);
     this.executeRunJourneyCommands(result.commands);
+  }
+
+  private getActiveTribulationBossSnapshot(): GameSnapshot["encounter"]["boss"] {
+    const boss = this.activeTribulationBoss;
+    const profile = this.activeTribulationBossProfile;
+    if (!boss?.active || !profile) return undefined;
+    return {
+      id: profile.id,
+      name: profile.name,
+      health: Math.max(0, boss.health),
+      maxHealth: boss.maxHealth,
+      healthRatio: boss.maxHealth > 0 ? Math.max(0, boss.health / boss.maxHealth) : 0,
+      enraged: boss.isEnraged,
+      phaseLabel: this.runState.finalBossActive
+        ? `HEAVENLY TRIBULATION ${this.runState.finalBossPhaseIndex + 1}/3`
+        : `${stageConfigs[this.runState.stage].name.toUpperCase()} TIANJIE`,
+      activeHazards: this.activeBossHazards.size
+    };
   }
 
   private offerJourneyChoice(): void {
@@ -4295,7 +4417,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     if (decision.kind === "tribulation") {
-      return `${stageConfigs[decision.stage].name} Dayuanman clears. Its concluding Tribulation rises.`;
+      const boss = getStageTribulationBoss(decision.stage as Exclude<StageId, "yuanying">);
+      return `${stageConfigs[decision.stage].name} Dayuanman clears. ${boss.name} descends.`;
     }
 
     if (decision.kind === "yuanying-tribulation") {
@@ -4370,6 +4493,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private startYuanyingTribulation(phaseIndex: number): void {
+    this.clearTribulationBossEncounter();
     this.finalBossWaveAccumulator = 0;
     this.finalBossHazardAccumulator = 0;
     this.finalBossPhaseSpawned = false;
@@ -4381,6 +4505,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private advanceFinalBossPhase(phaseIndex: number): void {
+    this.clearTribulationBossEncounter();
     this.finalBossWaveAccumulator = 0;
     this.finalBossHazardAccumulator = 0;
     this.finalBossPhaseSpawned = false;

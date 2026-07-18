@@ -16,6 +16,10 @@ import type { RealmPhaseId } from "../data/stages";
 import { GongfaCodex, type GongfaCodexPath } from "../ui/GongfaCodex";
 import { getLocale } from "../i18n/runtime";
 import { localizeChoicePayload, localizeRuntimeText } from "../i18n/content";
+import {
+  TribulationBossBar,
+  type TribulationBossHudState
+} from "../ui/TribulationBossBar";
 
 interface HudState {
   health: number;
@@ -60,6 +64,7 @@ interface HudState {
   lingcaoCollected: boolean;
   spiritTreasures: string;
   message?: string;
+  boss?: TribulationBossHudState;
 }
 
 export class UIScene extends Phaser.Scene {
@@ -71,6 +76,7 @@ export class UIScene extends Phaser.Scene {
   private levelUpPanel!: LevelUpPanel;
   private journeyPresentation!: JourneyPresentation;
   private realmProgressBar!: RealmProgressBar;
+  private tribulationBossBar!: TribulationBossBar;
   private gongfaCodex!: GongfaCodex;
   private gongfaArchiveButton!: Phaser.GameObjects.Text;
   private inputController!: InputController;
@@ -121,6 +127,7 @@ export class UIScene extends Phaser.Scene {
     this.levelUpPanel = new LevelUpPanel(this);
     this.journeyPresentation = new JourneyPresentation(this);
     this.realmProgressBar = new RealmProgressBar(this);
+    this.tribulationBossBar = new TribulationBossBar(this);
     this.gongfaCodex = new GongfaCodex(this, () => this.setGongfaCodexVisible(false));
     this.gongfaArchiveButton = this.add
       .text(this.scale.width - 18, this.scale.height - 18, localizeRuntimeText(getLocale(), "G · GONGFA"), {
@@ -208,6 +215,8 @@ export class UIScene extends Phaser.Scene {
     this.hudText.setText(hudLines.map((line) => localizeRuntimeText(getLocale(), line)));
     this.hudPresentation.update(hudLines, hud);
     this.realmProgressBar.update(hud.realmPhase as RealmPhaseId, hud.realmProgress, hud.realmAccent);
+    this.realmProgressBar.setVisible(!hud.boss);
+    this.tribulationBossBar.update(hud.boss);
 
     this.messageText.setText(localizeRuntimeText(getLocale(), hud.message ?? ""));
     this.pauseText.setText(localizeRuntimeText(getLocale(),
@@ -242,6 +251,7 @@ export class UIScene extends Phaser.Scene {
         accent: hud?.realmAccent ?? 0
       },
       realmProgressBar: this.realmProgressBar.getSnapshot(),
+      bossBar: this.tribulationBossBar.getSnapshot(),
       choicePanel: this.levelUpPanel.getSnapshot(),
       journeyPresentation: this.journeyPresentation.getSnapshot(),
       gongfaCodex: this.gongfaCodex.getSnapshot()

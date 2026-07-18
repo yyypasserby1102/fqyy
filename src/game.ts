@@ -27,6 +27,9 @@ function attachGameTestHarness(game: Phaser.Game): void {
       forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
       forceDamageEnemy: (enemyId: EnemyId, amount: number) =>
         getGameScene().forceDamageEnemy(enemyId, amount),
+      forceDamageBoss: (amount: number) => getGameScene().forceDamageBoss(amount),
+      forceTriggerTribulationBossSlam: () =>
+        getGameScene().forceTriggerTribulationBossSlam(),
       forceClearEnemies: () => getGameScene().forceClearEnemies(),
       forceSpawnQiOrb: (qiValue: number) => getGameScene().forceSpawnQiOrb(qiValue),
       forceSpawnSpiritTreasure: (treasureId: string) =>

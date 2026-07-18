@@ -160,6 +160,15 @@ test("all seven enemy families use their production pursue visuals", async ({
   const visuals = await page.evaluate(
     () => window.__gameTest!.getSnapshot().visuals.enemies,
   );
+  const movementBehaviors = {
+    "jade-rat": "pursuit",
+    "mist-wolf": "pounce",
+    "bone-crow": "weave",
+    "corpse-cultivator": "pursuit",
+    "resentful-spirit": "phase-flank",
+    "celestial-construct": "celestial-charge",
+    "tribulation-shade": "phase-flank"
+  } as const;
   for (const enemyId of enemyIds) {
     const visual = visuals.find((candidate) => candidate.enemyId === enemyId);
     expect(visual).toMatchObject({
@@ -167,6 +176,7 @@ test("all seven enemy families use their production pursue visuals", async ({
       textureKey: enemyVisuals[enemyId][0],
       animationKey: enemyVisuals[enemyId][1],
       state: "pursue",
+      movementBehavior: movementBehaviors[enemyId]
     });
   }
 });
@@ -324,6 +334,7 @@ test("all thirteen Gongfa render their own projectile treatment and trail", asyn
 
   for (const gongfaId of gongfaIds) {
     await page.evaluate((id) => {
+      window.__gameTest!.forceClearEnemies();
       window.__gameTest!.forceEquipGongfa(id);
       window.__gameTest!.forceSpawnEnemies(3);
     }, gongfaId);

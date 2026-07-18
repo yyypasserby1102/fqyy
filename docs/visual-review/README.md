@@ -77,11 +77,18 @@ These 1280 × 720 browser captures cover the opening-to-awakening journey and th
 | Yuanying nascent-sky dais | [`arena-yuanying.png`](arena-yuanying.png) |
 | Zhuji Stage Breakthrough banner | [`realm-breakthrough.png`](realm-breakthrough.png) |
 | Heavenly Tribulation arrival | [`heavenly-tribulation.png`](heavenly-tribulation.png) |
+| Lianqi named Tianjie boss and persistent health bar | [`tianjie-lianqi-boss.png`](tianjie-lianqi-boss.png) |
+| Yuanying final boss and collapsing safe zone | [`tianjie-yuanying-final-boss.png`](tianjie-yuanying-final-boss.png) |
 | Automatic Chuqi milestone and segmented Realm Progress bar | [`realm-progress-bar.png`](realm-progress-bar.png) |
 
 `tests/e2e/opening-atmosphere.spec.ts` verifies the production opening shell, qualitative candidate information, narrow-viewport layout, Lingcao idle/resonance/collection states, awakening mode, realm variant snapshots, and decoded source padding. The stage captures advance through the real progression choices; the harness is used only to make the run deterministic and accelerate collection.
 
 The transition captures additionally verify the non-blocking UI-scene presentation introduced by [`SENSORY_PERFORMANCE_SPEC.md`](../SENSORY_PERFORMANCE_SPEC.md). Ordinary Chuqi, Zhongqi, and Houqi milestones now remain in flow through the fixed top progress bar; the large banner is reserved for Breakthrough and Tribulation ceremony. The Heavenly Tribulation warning leaves all three HUD scan regions readable. Refresh the Realm Progress capture with `node scripts/capture-realm-progress-visual.mjs` while the dev server is running.
+
+The Tianjie captures use the same public harness to accelerate progression, but
+the named boss bodies, boss-health HUD, summoned adds, aura, and final safe-zone
+rendering are their production combat presentations. Refresh them with
+`node scripts/capture-tianjie-bosses.mjs` while the dev server is running.
 
 ## Production settings review
 

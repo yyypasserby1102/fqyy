@@ -49,6 +49,13 @@ export class RealmProgressBar {
     }
   }
 
+  setVisible(visible: boolean): void {
+    this.graphics.setVisible(visible);
+    this.title.setVisible(visible);
+    this.labels.forEach((label) => label.setVisible(visible));
+    this.reward.setVisible(visible);
+  }
+
   showMilestone(command: PhaseMilestoneCommand): void {
     this.reward
       .setText(localizeRuntimeText(getLocale(), formatRealmMilestoneReward(command.completedPhase, command.foundationGrowthTransactions)))

@@ -14,11 +14,11 @@ export interface EncounterPressure {
   composition: EnemyId[];
 }
 
-const stagePressure: Record<StageId, Pick<EncounterPressure, "healthScale" | "contactDamageScale" | "concurrentEnemyBudget">> = {
-  lianqi: { healthScale: 1, contactDamageScale: 1, concurrentEnemyBudget: 16 },
-  zhuji: { healthScale: 1.3, contactDamageScale: 1.15, concurrentEnemyBudget: 18 },
-  jindan: { healthScale: 1.9, contactDamageScale: 1.45, concurrentEnemyBudget: 22 },
-  yuanying: { healthScale: 2.7, contactDamageScale: 1.75, concurrentEnemyBudget: 26 }
+const stagePressure: Record<StageId, Pick<EncounterPressure, "healthScale" | "contactDamageScale" | "speedScale" | "concurrentEnemyBudget">> = {
+  lianqi: { healthScale: 1, contactDamageScale: 1, speedScale: 1, concurrentEnemyBudget: 16 },
+  zhuji: { healthScale: 1.45, contactDamageScale: 1.2, speedScale: 1.05, concurrentEnemyBudget: 20 },
+  jindan: { healthScale: 2.35, contactDamageScale: 1.55, speedScale: 1.12, concurrentEnemyBudget: 24 },
+  yuanying: { healthScale: 3.4, contactDamageScale: 1.95, speedScale: 1.2, concurrentEnemyBudget: 28 }
 };
 
 const phasePressure: Record<RealmPhaseId, Omit<EncounterPressure, "concurrentEnemyBudget" | "composition"> & { enemyBudgetBonus: number }> = {
@@ -99,18 +99,23 @@ export function projectEncounterPressure(
   const stageProfile = stagePressure[stage];
   const phaseProfile = phasePressure[phase];
   const additionalGongfa = Math.max(0, activeGongfaCount - 1);
-  const gongfaHealthScale = stage === "jindan" || stage === "yuanying" ? 1.3 : 1.2;
+  const gongfaHealthScale: Record<StageId, number> = {
+    lianqi: 1.1,
+    zhuji: 1.3,
+    jindan: 1.5,
+    yuanying: 1.6
+  };
 
   return {
     healthScale: roundScale(
-      stageProfile.healthScale * phaseProfile.healthScale * gongfaHealthScale ** additionalGongfa
+      stageProfile.healthScale * phaseProfile.healthScale * gongfaHealthScale[stage] ** additionalGongfa
     ),
     contactDamageScale: roundScale(
       stageProfile.contactDamageScale *
         phaseProfile.contactDamageScale *
-        1.1 ** additionalGongfa
+        1.12 ** additionalGongfa
     ),
-    speedScale: phaseProfile.speedScale,
+    speedScale: roundScale(stageProfile.speedScale * phaseProfile.speedScale),
     spawnIntervalScale: phaseProfile.spawnIntervalScale,
     spawnAmountBonus: phaseProfile.spawnAmountBonus,
     concurrentEnemyBudget:

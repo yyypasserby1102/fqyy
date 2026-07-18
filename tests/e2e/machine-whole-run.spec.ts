@@ -298,7 +298,19 @@ test("machine-driven whole Run reaches victory and emits feel evidence", async (
     await page.evaluate(() => window.__gameTest!.forceSpawnHealingPill(100));
     await page.waitForTimeout(100);
     await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
-    await page.waitForTimeout(100);
+    for (let sample = 0; sample < 12; sample += 1) {
+      await page.waitForTimeout(100);
+      const game = await page.evaluate(() => window.__gameTest!.getSnapshot());
+      game.visuals.projectiles.forEach((projectile) => {
+        if (!projectile.sourceGongfaId) return;
+        projectileHierarchy.set(projectile.sourceGongfaId, {
+          sourceGongfaId: projectile.sourceGongfaId,
+          visualTier: projectile.visualTier,
+          alpha: projectile.alpha,
+          depth: projectile.depth
+        });
+      });
+    }
     await observe(label);
     await page.evaluate(() => window.__gameTest!.forceClearEnemies());
   };

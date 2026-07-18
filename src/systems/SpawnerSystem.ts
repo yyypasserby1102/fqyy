@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { enemyConfigs, type EnemyId } from "../data/enemies";
 import { stageWaveSpawns } from "../data/waves";
 import type { StageId } from "../data/stages";
-import { Enemy } from "../entities/Enemy";
+import { Enemy, type EnemyPresentationOptions } from "../entities/Enemy";
 import type { EncounterPressure } from "../logic/encounterPressure";
 import { pickRandom, randomFloat, randomInt } from "../utils/random";
 
@@ -100,10 +100,11 @@ export class SpawnerSystem {
     enemyId: EnemyId,
     x: number,
     y: number,
-    pressure?: EncounterPressure
+    pressure?: EncounterPressure,
+    presentation?: EnemyPresentationOptions
   ): Enemy {
     const config = enemyConfigs[enemyId];
-    const enemy = new Enemy(this.scene, x, y, config, pressure);
+    const enemy = new Enemy(this.scene, x, y, config, pressure, presentation);
     this.group.add(enemy);
     this.onSpawn?.(enemy);
     return enemy;
