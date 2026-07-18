@@ -434,6 +434,7 @@ export class GameScene extends Phaser.Scene {
     this.sfx.setAmbience(this.runState.stage);
 
     this.player = new Player(this, 0, 0);
+    this.player.setCultivationPhase(this.runState.realmPhase);
     this.player.setCollideWorldBounds(true);
     const checkpoint = this.activeRunSave?.checkpoint;
     this.player.stats.health = checkpoint?.playerHealth ?? this.player.stats.health;
@@ -3187,6 +3188,7 @@ export class GameScene extends Phaser.Scene {
     const previousFoundationTransactions = this.runState.foundationGrowthTransactions;
     this.runState.stage = state.stage;
     this.runState.realmPhase = state.realmPhase;
+    this.player?.setCultivationPhase(state.realmPhase);
     this.runState.realmProgress = state.realmProgress;
     this.runState.phaseCleanupActive = state.phaseCleanupActive;
     this.runState.foundationGrowthTransactions = state.foundationGrowthTransactions ?? 0;
@@ -3693,7 +3695,12 @@ export class GameScene extends Phaser.Scene {
           mode: "idle",
           facing: "east",
           animationKey: "",
-          activeVfx: []
+          activeVfx: [],
+          cultivationPhase: "chuqi",
+          phaseRegalia: "qi-knot",
+          phaseAuraColor: 0x64c9a7,
+          phaseRingCount: 1,
+          phaseOrbitingMotes: 0
         }
       },
       visuals: {

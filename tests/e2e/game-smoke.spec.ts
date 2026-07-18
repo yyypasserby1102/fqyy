@@ -1740,6 +1740,34 @@ test("automatic phase milestones do not interrupt play with menu actions", async
   expect(snapshot.progression.realmPhase).toBe("zhongqi");
 });
 
+test("the Cultivator gains distinct visible regalia in every Realm Phase", async ({ page }) => {
+  await startNewRun(page);
+  await claimOpeningLingcao(page);
+  await page.evaluate(() => window.__gameTest!.selectChoice(0));
+
+  const visuals = [];
+  visuals.push((await page.evaluate(() => window.__gameTest!.getSnapshot())).player.visual);
+  for (let transition = 0; transition < 3; transition += 1) {
+    await reachNextRealmPhaseThroughQi(page);
+    visuals.push((await page.evaluate(() => window.__gameTest!.getSnapshot())).player.visual);
+  }
+
+  expect(visuals.map(({ cultivationPhase }) => cultivationPhase)).toEqual([
+    "chuqi",
+    "zhongqi",
+    "houqi",
+    "dayuanman"
+  ]);
+  expect(visuals.map(({ phaseRegalia }) => phaseRegalia)).toEqual([
+    "qi-knot",
+    "shoulder-crest",
+    "flowing-mantle",
+    "lotus-crown"
+  ]);
+  expect(new Set(visuals.map(({ phaseAuraColor }) => phaseAuraColor)).size).toBe(4);
+  expect(visuals.map(({ phaseOrbitingMotes }) => phaseOrbitingMotes)).toEqual([0, 2, 4, 6]);
+});
+
 test("starting a new run with an active save requires an abandon confirmation", async ({
   page
 }) => {

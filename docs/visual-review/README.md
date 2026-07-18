@@ -13,6 +13,20 @@ These captures were produced from the running Chromium game at a 1280 × 720 vie
 | Skill release | [`skill-release.png`](skill-release.png) |
 | Defeat collapse/fade | [`defeat.png`](defeat.png) |
 
+The phase-regalia captures were refreshed on 2026-07-17. Cultivation regalia
+remains attached to the player across every atlas animation. The geometry,
+palette, and Qi density all change at each automatic Realm Phase milestone.
+
+| Realm Phase | Character evidence |
+| --- | --- |
+| Chuqi · jade Qi knot | [`character-chuqi.png`](character-chuqi.png) |
+| Zhongqi · azure shoulder crest | [`character-zhongqi.png`](character-zhongqi.png) |
+| Houqi · violet flowing mantle | [`character-houqi.png`](character-houqi.png) |
+| Dayuanman · golden lotus crown | [`character-dayuanman.png`](character-dayuanman.png) |
+
+Refresh these four captures with `node scripts/capture-character-phases.mjs`
+while the dev server is running.
+
 The capture run used the public `window.__gameTest` browser harness only to select deterministic progression, spawn targets, and apply damage. Movement, Evade, ordinary attacks, Skill 2 timing, hit presentation, and defeat presentation all ran through their production gameplay paths.
 
 Atlas registration was checked separately after chroma removal: all production frames are 256 × 256 RGBA cells; locomotion, action, and hit frames have a common `y = 210` lowest opaque point; only the two lower defeat poses use `y = 218`. No production figure touches a cell edge.
