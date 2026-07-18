@@ -6,14 +6,14 @@ test("title screen opens the searchable canonical Gongfa compendium", async ({ p
 
   await expect(page.locator('[data-surface="fqyy-tools"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gongfa Compendium" })).toBeVisible();
-  await expect(page.locator(".tools-gongfa-card")).toHaveCount(13);
+  await expect(page.locator(".tools-gongfa-card")).toHaveCount(25);
   await expect(page.locator('[data-gongfa-detail="yujian-jue"]')).toContainText("Flying Sword Volley");
   if (process.env.TOOLS_CAPTURE) {
     await page.screenshot({ path: `${process.env.TOOLS_CAPTURE}-compendium.png`, fullPage: true });
   }
 
   await page.getByRole("searchbox", { name: "Search Gongfa" }).fill("furnace");
-  await expect(page.locator(".tools-gongfa-card:visible")).toHaveCount(2);
+  await expect(page.locator(".tools-gongfa-card:visible")).toHaveCount(3);
   await page.locator(".tools-gongfa-card:visible").filter({ hasText: "Crimson Furnace Sword Art" }).click();
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Crucible Pressure");
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Jindan");

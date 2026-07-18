@@ -52,7 +52,9 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
       "sword-seal": [1.12, 0.72], corridor: [1.35, 0.62], facets: [0.9, 0.9],
       furnace: [0.76, 1.08], wings: [1.08, 0.56], solar: [1, 1], crescent: [1.28, 0.7],
       constellation: [0.62, 1.12], tide: [1.42, 0.68], lotus: [0.94, 0.94],
-      roots: [0.72, 1.2], bloom: [1.08, 1.08], rings: [1.5, 0.76]
+      roots: [0.72, 1.2], bloom: [1.08, 1.08], rings: [1.5, 0.76],
+      calamity: [1.18, 1.18], wraiths: [0.72, 1.16], impact: [1.24, 0.82],
+      formation: [1.12, 1.12]
     };
     [this.identityScaleX, this.identityScaleY] = silhouette[geometry];
     this.setScale(

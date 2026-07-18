@@ -17,7 +17,10 @@ describe("Linggen affinity rules", () => {
     expect(getCompatibleGongfaIdsForLinggen("wood")).toEqual([
       "green-vine-art",
       "ironwood-wave-form",
-      "verdant-ring-scripture"
+      "verdant-ring-scripture",
+      "thousand-root-formation",
+      "myriad-beast-grove",
+      "ancient-tree-body-art"
     ]);
     expect(getGongfaMasterySpeedLabel("wood", "green-vine-art")).toBe("Fast");
   });

@@ -13,7 +13,11 @@ export type GongfaSigilGeometry =
   | "lotus"
   | "roots"
   | "bloom"
-  | "rings";
+  | "rings"
+  | "calamity"
+  | "wraiths"
+  | "impact"
+  | "formation";
 
 export interface GongfaVisualIdentity {
   motifId: string;
@@ -38,7 +42,19 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "ice-mirror-guard": { motifId: "mirror-lotus", label: "Faceted mirror lotus", geometry: "lotus", accent: 0x90eaff, secondary: 0xf0ffff, spokes: 8, trailStyle: "shattered glass petals" },
   "green-vine-art": { motifId: "verdant-knot", label: "Branching verdant knot", geometry: "roots", accent: 0x72cf75, secondary: 0xcaf59d, spokes: 5, trailStyle: "seeking tendril curls" },
   "verdant-ring-scripture": { motifId: "sprout-sun", label: "Sprouting sun bloom", geometry: "bloom", accent: 0x9bdd70, secondary: 0xf0e99a, spokes: 9, trailStyle: "opening leaf-petal halo" },
-  "ironwood-wave-form": { motifId: "heartwood-rampart", label: "Heartwood growth rampart", geometry: "rings", accent: 0x548f56, secondary: 0xc3b477, spokes: 4, trailStyle: "squared timber splinters" }
+  "ironwood-wave-form": { motifId: "heartwood-rampart", label: "Heartwood growth rampart", geometry: "rings", accent: 0x548f56, secondary: 0xc3b477, spokes: 4, trailStyle: "squared timber splinters" },
+  "nine-sun-calamity-seal": { motifId: "nine-sun-calamity", label: "Descending calamity sun", geometry: "calamity", accent: 0xffc247, secondary: 0xff6847, spokes: 9, trailStyle: "converging solar rays" },
+  "mist-wraith-canon": { motifId: "mist-wraith-retinue", label: "Orbiting mist retinue", geometry: "wraiths", accent: 0x75d9ed, secondary: 0xe5fbff, spokes: 6, trailStyle: "curling spirit tails" },
+  "heavenfall-body-art": { motifId: "heavenfall-impact", label: "Falling-star body seal", geometry: "impact", accent: 0xf0d38a, secondary: 0xffffff, spokes: 8, trailStyle: "forged impact arcs" },
+  "thousand-root-formation": { motifId: "thousand-root-array", label: "Linked root formation", geometry: "formation", accent: 0x82c96b, secondary: 0xd9ed9a, spokes: 7, trailStyle: "branching formation script" },
+  "flame-demon-body-art": { motifId: "furnace-blood-fists", label: "Furnace-blood combination", geometry: "impact", accent: 0xe94b35, secondary: 0xffb14f, spokes: 6, trailStyle: "horned flame impact arcs" },
+  "vermilion-bird-covenant": { motifId: "vermilion-spirit-host", label: "Vermilion spirit host", geometry: "wraiths", accent: 0xff6545, secondary: 0xffd168, spokes: 7, trailStyle: "looping phoenix tails" },
+  "frozen-river-formation": { motifId: "underice-river-array", label: "Under-ice river array", geometry: "formation", accent: 0x69cfe8, secondary: 0xe1fbff, spokes: 6, trailStyle: "cracked frost channels" },
+  "moonfall-tide-ritual": { motifId: "abyssal-moonfall", label: "Abyssal moonfall", geometry: "calamity", accent: 0x5688d8, secondary: 0xbfeaff, spokes: 8, trailStyle: "converging dark tides" },
+  "sword-burial-formation": { motifId: "buried-sword-tomb", label: "Buried sword tomb", geometry: "formation", accent: 0xd9c887, secondary: 0xf5f1dd, spokes: 10, trailStyle: "rising grave blades" },
+  "heaven-sundering-edict": { motifId: "supreme-metal-edict", label: "Heaven-sundering edict", geometry: "calamity", accent: 0xf0df9e, secondary: 0xffffff, spokes: 4, trailStyle: "straight judgment rays" },
+  "myriad-beast-grove": { motifId: "seed-spirit-pack", label: "Seed-spirit hunting pack", geometry: "wraiths", accent: 0x6fbd61, secondary: 0xd7eda0, spokes: 5, trailStyle: "branching beast tracks" },
+  "ancient-tree-body-art": { motifId: "world-tree-impact", label: "Ancient tree body seal", geometry: "impact", accent: 0x688b4b, secondary: 0xd1bd79, spokes: 9, trailStyle: "root-crater growth rings" }
 };
 
 export function getGongfaVisualIdentity(gongfaId: GongfaId): GongfaVisualIdentity {

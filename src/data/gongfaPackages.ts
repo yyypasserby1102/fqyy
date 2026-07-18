@@ -116,6 +116,82 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill1: { id: "ironwood-wave", name: "Ironwood Wave", description: "A thick wooden front drives through an enemy lane with the weight of accumulated Heartwood.", tags: ["wave", "wood"] },
     passive: { name: "Deep Heartwood", resource: "Heartwood", description: "Wave hits deepen Heartwood, adding force and breadth until the stored strength fades." },
     skill2: { id: "ironwood-surge-form", name: "Ironwood Surge Form", description: "A timber rampart repeatedly shoves enemies forward, then splinters into two diagonal return waves.", tags: ["wave", "wood", "defensive"] }
+  },
+  "nine-sun-calamity-seal": {
+    combatRole: "Slow, telegraphed ritual casting that pays off in enormous area damage and lingering burns.",
+    visualMotif: "Gold-red sun seals, converging rays, and a blackened impact corona.",
+    skill1: { id: "falling-sun-seal", name: "Falling Sun Seal", description: "Marks the densest enemy cluster before a condensed sun descends for one devastating strike and repeated burn pulses.", tags: ["ritual", "fire", "explosive", "ailment"] },
+    passive: { name: "Calamity Cycle", resource: "Zenith", description: "Enemies struck by sunfire build Zenith, empowering the next patient cast rather than rewarding constant small hits." },
+    skill2: { id: "heavenly-sun-descent", name: "Heavenly Sun Descent", description: "A vast sun seal charges over the battlefield, then falls in a single boss-breaking detonation with a long inferno aftermath.", tags: ["ritual", "fire", "explosive", "ailment"] }
+  },
+  "mist-wraith-canon": {
+    combatRole: "Summoner pressure: orbiting familiars independently hunt targets and apply repeated drowning frost.",
+    visualMotif: "Pale-cyan spirit lanterns, flowing tails, and concentric mist ripples.",
+    skill1: { id: "mist-wraith-retinue", name: "Mist-Wraith Retinue", description: "Summons orbiting water spirits that choose their own prey and fire several chill bolts before dissolving.", tags: ["summon", "water", "projectile", "ailment"] },
+    passive: { name: "Ghost-Tide Covenant", resource: "Covenant", description: "Wraith hits deepen Covenant, calling additional spirits and strengthening their independent volleys." },
+    skill2: { id: "hundred-ghost-procession", name: "Hundred-Ghost Procession", description: "Calls a procession of empowered wraiths that circle the Cultivator and saturate the arena with seeking frost bolts.", tags: ["summon", "water", "projectile", "ailment"] }
+  },
+  "heavenfall-body-art": {
+    combatRole: "Committed melee bruiser that cleaves nearby packs and reflects contact damage back into attackers.",
+    visualMotif: "Gold-white impact arcs, forged-body facets, and falling-star shock rings.",
+    skill1: { id: "falling-star-combination", name: "Falling-Star Combination", description: "Performs a rapid close-range combination ending in a heavy radial finisher; it cannot reach distant enemies.", tags: ["melee", "metal"] },
+    passive: { name: "Returning Heaven", resource: "Reprisal", description: "Contact damage is answered by metal-body reflection, building Reprisal for stronger melee finishers." },
+    skill2: { id: "star-breaking-descent", name: "Star-Breaking Descent", description: "Crashes down in a massive close-range strike and briefly returns incoming force as a violent shockwave.", tags: ["melee", "metal", "defensive", "reflect"] }
+  },
+  "thousand-root-formation": {
+    combatRole: "Trapper-controller that plants persistent kill zones and lets summoned roots punish pursuit routes.",
+    visualMotif: "Jade formation nodes, branching root script, and pulsing earthen circles.",
+    skill1: { id: "root-seal-array", name: "Root-Seal Array", description: "Plants several root seals beneath likely enemy routes; each persists and pulses repeatedly when the formation awakens.", tags: ["trap", "wood", "summon"] },
+    passive: { name: "Patient Germination", resource: "Growth", description: "Each distinct enemy caught by a seal grows the formation, adding roots and extending future trap fields." },
+    skill2: { id: "myriad-root-killing-field", name: "Myriad-Root Killing Field", description: "Overgrows the battlefield with a wide network of persistent root traps that pulse in a linked sequence.", tags: ["trap", "wood", "summon"] }
+  },
+  "flame-demon-body-art": {
+    combatRole: "An aggressive close-range brawler that turns repeated contact into a crushing fiery finisher.", visualMotif: "Blood-red furnace fists, horned flame arcs, and scorched impact rings.",
+    skill1: { id: "furnace-blood-combination", name: "Furnace-Blood Combination", description: "Chains close fiery blows into a broad finishing smash that ignites survivors.", tags: ["melee", "fire", "ailment"] },
+    passive: { name: "Demon-Heart Reprisal", resource: "Wrath", description: "Melee hits and returned contact force build Wrath, empowering the next combination." },
+    skill2: { id: "asura-conflagration", name: "Asura Conflagration", description: "Assumes an asura stance and unleashes a furious sequence of point-blank detonating strikes.", tags: ["melee", "fire", "explosive", "reflect"] }
+  },
+  "vermilion-bird-covenant": {
+    combatRole: "A mobile summoner whose ember birds divide the arena and repeatedly hunt scattered prey.", visualMotif: "Vermilion wing seals, ember eggs, and looping phoenix trails.",
+    skill1: { id: "ember-bird-brood", name: "Ember-Bird Brood", description: "Calls a brood of fire spirits that independently pursue and scorch nearby targets.", tags: ["summon", "fire", "projectile", "ailment"] },
+    passive: { name: "Phoenix Covenant", resource: "Plumage", description: "Spirit hits gather Plumage, adding birds and heat to later summonings." },
+    skill2: { id: "vermilion-host-descent", name: "Vermilion Host Descent", description: "A blazing host circles the battlefield before diving through every surviving enemy.", tags: ["summon", "fire", "projectile", "ailment"] }
+  },
+  "frozen-river-formation": {
+    combatRole: "A control trapper that freezes pursuit lanes beneath persistent, overlapping river seals.", visualMotif: "Cracked ice channels, pale river knots, and blue-white frost pulses.",
+    skill1: { id: "underice-snare-array", name: "Under-Ice Snare Array", description: "Plants icy river seals along enemy routes; each awakens in repeated freezing pulses.", tags: ["trap", "water", "ailment"] },
+    passive: { name: "Winter Current", resource: "Rime", description: "Enemies caught in the array build Rime, widening and prolonging later traps." },
+    skill2: { id: "frozen-river-prison", name: "Frozen River Prison", description: "Locks a broad region beneath interlinked ice channels that erupt in sequence.", tags: ["trap", "water", "ailment", "defensive"] }
+  },
+  "moonfall-tide-ritual": {
+    combatRole: "A patient caster that trades frequency for immense tidal impacts and lingering undertow.", visualMotif: "Dark moon discs, converging blue tides, and abyssal impact halos.",
+    skill1: { id: "moonfall-collapse", name: "Moonfall Collapse", description: "Marks a crowded region before a moon-heavy tide collapses for one enormous strike and echoing pulses.", tags: ["ritual", "water", "explosive", "ailment"] },
+    passive: { name: "Abyssal Syzygy", resource: "Syzygy", description: "Tidal damage aligns Syzygy, greatly strengthening the next deliberate ritual." },
+    skill2: { id: "moonfall-cataclysm", name: "Moonfall Cataclysm", description: "Draws down an abyssal moon that crushes a vast region and leaves a consuming undertow.", tags: ["ritual", "water", "explosive", "ailment"] }
+  },
+  "sword-burial-formation": {
+    combatRole: "A metal trapper that seeds lanes with buried blades and punishes enemies who cross the gravefield.", visualMotif: "Half-buried gold swords, grave seals, and rising blade circles.",
+    skill1: { id: "buried-sword-array", name: "Buried Sword Array", description: "Plants sword graves beneath likely routes; each repeatedly erupts when the formation resonates.", tags: ["trap", "metal", "sword"] },
+    passive: { name: "Grave-Sword Resonance", resource: "Resonance", description: "Caught enemies deepen Resonance, multiplying and strengthening later sword graves." },
+    skill2: { id: "ten-thousand-sword-tomb", name: "Ten-Thousand Sword Tomb", description: "Consecrates a vast gravefield where linked buried swords rise in relentless waves.", tags: ["trap", "metal", "sword"] }
+  },
+  "heaven-sundering-edict": {
+    combatRole: "A long-cadence execution caster built around precise, enormous single-event damage.", visualMotif: "White-gold mandate script, divided heavens, and razor-straight judgment rays.",
+    skill1: { id: "sundering-stroke", name: "Sundering Stroke", description: "Writes a mandate over the densest enemy group, then cleaves the marked ground in one decisive stroke.", tags: ["ritual", "metal", "sword", "explosive"] },
+    passive: { name: "Judgment Mandate", resource: "Mandate", description: "Targets judged by metal damage accumulate Mandate for the next execution." },
+    skill2: { id: "supreme-sundering-decree", name: "Supreme Sundering Decree", description: "Pronounces a supreme decree that divides a vast battlefield line with boss-breaking force.", tags: ["ritual", "metal", "sword", "explosive"] }
+  },
+  "myriad-beast-grove": {
+    combatRole: "A pack summoner that overwhelms separated enemies with many small autonomous attacks.", visualMotif: "Jade beast masks, seed-spirit tracks, and branching hunting paths.",
+    skill1: { id: "seed-spirit-pack", name: "Seed-Spirit Pack", description: "Germinates woodland spirits that independently chase and harry nearby enemies.", tags: ["summon", "wood", "projectile"] },
+    passive: { name: "Wildwood Kinship", resource: "Kinship", description: "Pack hits build Kinship, calling more spirits and coordinating their attacks." },
+    skill2: { id: "myriad-beast-stampede", name: "Myriad-Beast Stampede", description: "Calls the ancestral grove into a many-spirit stampede across the arena.", tags: ["summon", "wood", "projectile"] }
+  },
+  "ancient-tree-body-art": {
+    combatRole: "A durable melee style whose heavy close strikes and living bark punish surrounding attackers.", visualMotif: "Ancient growth rings, bark fists, and vast root-crater impacts.",
+    skill1: { id: "old-growth-combination", name: "Old-Growth Combination", description: "Delivers slow, weighty close blows ending in a root-lifting ground strike.", tags: ["melee", "wood", "defensive"] },
+    passive: { name: "Living Bark Reprisal", resource: "Bark", description: "Close combat and returned damage thicken Bark, reinforcing the next body-art finisher." },
+    skill2: { id: "world-tree-incarnation", name: "World-Tree Incarnation", description: "Takes the aspect of an ancient tree and answers nearby pressure with colossal root impacts.", tags: ["melee", "wood", "defensive", "reflect"] }
   }
 };
 

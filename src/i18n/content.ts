@@ -133,6 +133,62 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill1: { name: "铁木壁浪", description: "厚重木锋承载心木之力，沿敌阵一路推进。" },
     passive: { name: "深心木", resource: "心木", description: "浪形命中积蓄心木，提升力量与宽度。" },
     skill2: { name: "铁木奔流式", description: "木垒反复推开敌人，随后裂成两道斜向回返浪。" }
+  },
+  "nine-sun-calamity-seal": {
+    name: "九阳劫印", lore: "凝日为印，蓄势后以天火洗尽一方。", combatRole: "缓慢蓄势的大范围术修，一击重创并留下持续灼烧。", visualMotif: "金赤日印、汇聚光芒与焦黑炎冕。",
+    skill1: { name: "坠阳劫印", description: "标记敌群最密处，片刻后坠下凝日，造成巨额伤害与连续灼烧。" },
+    passive: { name: "劫阳轮转", resource: "阳极", description: "日火命中积累阳极，使下一次蓄势施法更为猛烈。" },
+    skill2: { name: "天阳陨世", description: "在战场上空凝成巨型日印，以破敌重击与长久火海轰然降世。" }
+  },
+  "mist-wraith-canon": {
+    name: "雾灵真典", lore: "召雾为灵，随身巡游，寒潮猎敌。", combatRole: "召唤雾灵自主索敌，以连续寒击压制并侵蚀敌群。", visualMotif: "淡青魂灯、流雾长尾与层叠水纹。",
+    skill1: { name: "雾灵侍从", description: "召唤环身水灵，各自寻找猎物并连续射出寒雾灵弹。" },
+    passive: { name: "幽潮灵契", resource: "灵契", description: "雾灵命中加深灵契，增加召唤数量并强化自主齐射。" },
+    skill2: { name: "百鬼夜潮", description: "召来强化雾灵列阵巡游，以追踪寒弹覆盖整片战场。" }
+  },
+  "heavenfall-body-art": {
+    name: "天坠锻体术", lore: "铸身如星，入阵碎敌，以彼之力还彼之身。", combatRole: "贴身强攻的斗战体修，以连击撕开敌群并反震近身伤害。", visualMotif: "金白震弧、锻体棱面与坠星冲击环。",
+    skill1: { name: "坠星连式", description: "在近距离连续猛击，最终以沉重环形震击收式，无法触及远敌。" },
+    passive: { name: "返天劲", resource: "反势", description: "遭受接触伤害时以金身反震，并积累反势强化近战终击。" },
+    skill2: { name: "碎星天坠", description: "以巨力砸落身周，并在短时内将来势化作猛烈震波返还。" }
+  },
+  "thousand-root-formation": {
+    name: "千根伏阵", lore: "植印于地，待敌踏入，万根齐发。", combatRole: "布阵控场，以持续根印封锁追击路线并召根杀敌。", visualMotif: "翠玉阵眼、分枝根纹与脉动地环。",
+    skill1: { name: "伏根印阵", description: "在敌人行路处种下多枚根印，阵成后持续脉动伤敌。" },
+    passive: { name: "静候萌发", resource: "生势", description: "每个被根印困住的新敌都会滋养阵势，增加后续根印与持续时间。" },
+    skill2: { name: "万根诛邪阵", description: "使战场化为宽广根网，多处持久伏阵依序脉动绞杀。" }
+  },
+  "flame-demon-body-art": {
+    name: "炎魔锻体术", lore: "熔血为炉，怒火铸身。", combatRole: "贴身猛攻，以连拳与反震积怒，终以炎爆重击收式。", visualMotif: "血红炉拳、魔角炎弧与焦黑震环。",
+    skill1: { name: "炉血连式", description: "连续施展近身炎拳，最终以大范围重击点燃余敌。" }, passive: { name: "魔心反势", resource: "怒势", description: "近战与反震积累怒势，强化下一轮连式。" }, skill2: { name: "修罗焚世", description: "化身修罗，以连续贴身爆拳焚尽周遭敌群。" }
+  },
+  "vermilion-bird-covenant": {
+    name: "朱雀灵契", lore: "结契朱雀余灵，群羽巡天。", combatRole: "召唤炎鸟自主猎敌，以多次小伤覆盖分散敌群。", visualMotif: "朱红翼印、烬卵与凤凰回旋尾迹。",
+    skill1: { name: "烬鸟灵群", description: "召唤炎鸟灵群，自主追击并灼烧附近敌人。" }, passive: { name: "凤契羽衣", resource: "灵羽", description: "炎鸟命中积累灵羽，增加后续召唤数量与热力。" }, skill2: { name: "朱雀群临", description: "召来朱雀灵群环游战场，俯冲贯穿所有幸存之敌。" }
+  },
+  "frozen-river-formation": {
+    name: "冰河伏阵", lore: "封寒流于地脉，待敌入阵。", combatRole: "以持久冰阵封锁追路，层叠寒脉反复控场伤敌。", visualMotif: "冰裂河道、霜白水结与蓝白寒潮。",
+    skill1: { name: "冰下缚阵", description: "在敌路种下冰河印，苏醒后反复迸发寒潮。" }, passive: { name: "凛冬暗流", resource: "寒霜", description: "困敌积累寒霜，扩大并延长后续伏阵。" }, skill2: { name: "冰河囚界", description: "以相连冰脉封锁广域，依序破冰迸发。" }
+  },
+  "moonfall-tide-ritual": {
+    name: "月坠潮仪", lore: "引幽月沉海，一击覆潮。", combatRole: "以漫长蓄势换取巨型潮击与持久暗流。", visualMotif: "幽月黑盘、汇聚蓝潮与深渊震环。",
+    skill1: { name: "月坠潮崩", description: "标记密集敌群，引月重潮轰击并留下多轮回潮。" }, passive: { name: "深渊合朔", resource: "合朔", description: "潮伤推进合朔，大幅强化下一次蓄势仪式。" }, skill2: { name: "月坠浩劫", description: "引深渊幽月镇压广域，并留下吞噬暗流。" }
+  },
+  "sword-burial-formation": {
+    name: "葬剑伏阵", lore: "藏万剑于土，闻敌而鸣。", combatRole: "沿敌路埋设剑冢，以反复破土剑潮惩罚闯阵之敌。", visualMotif: "半埋金剑、墓印与升腾剑环。",
+    skill1: { name: "埋剑阵", description: "在行路处布下剑冢，阵势共鸣时反复破土。" }, passive: { name: "墓剑共鸣", resource: "共鸣", description: "困敌加深共鸣，增加并强化后续剑冢。" }, skill2: { name: "万剑陵", description: "化广域为剑陵，埋剑相连，连绵升起。" }
+  },
+  "heaven-sundering-edict": {
+    name: "断天敕令", lore: "书金天之令，一笔断生。", combatRole: "以精准长蓄势敕令造成极高单次斩杀伤害。", visualMotif: "金白敕文、裂天直线与裁决光柱。",
+    skill1: { name: "断天一笔", description: "在密集敌群上书敕令，随后一击斩开标记之地。" }, passive: { name: "裁决天命", resource: "天命", description: "受金法裁决者积累天命，强化下一次斩令。" }, skill2: { name: "无上断天令", description: "宣下无上敕令，以破劫之力斩断广阔战线。" }
+  },
+  "myriad-beast-grove": {
+    name: "万兽灵林", lore: "种灵化兽，群猎八荒。", combatRole: "召唤灵兽群，以大量自主小击围猎分散敌人。", visualMotif: "翠玉兽面、种灵足迹与分枝猎路。",
+    skill1: { name: "种灵兽群", description: "萌生林中灵兽，自主追逐并袭扰附近敌人。" }, passive: { name: "荒林同契", resource: "同契", description: "兽群命中积累同契，召来更多灵兽并协同攻击。" }, skill2: { name: "万兽奔潮", description: "唤醒祖林万灵，化作横贯战场的兽潮。" }
+  },
+  "ancient-tree-body-art": {
+    name: "古木锻体术", lore: "身如古木，根深力沉。", combatRole: "以沉重近战与活木反震惩罚围攻之敌。", visualMotif: "古老年轮、树甲重拳与巨根震坑。",
+    skill1: { name: "老树连式", description: "连续施展沉重近击，最终震地掀起巨根。" }, passive: { name: "活木反势", resource: "木甲", description: "近战与反震增厚木甲，强化下一次收式。" }, skill2: { name: "世界树化身", description: "化身古老巨木，以山岳根击回应周遭攻势。" }
   }
 };
 
@@ -186,6 +242,7 @@ const categoryNames: Record<UpgradeConfig["category"], string> = {
 const zhTerms: Record<string, string> = {
   fire: "火", water: "水", metal: "金", wood: "木",
   homing: "追踪", wave: "浪形", aura: "环域", projectile: "投射",
+  summon: "召唤", melee: "近战", trap: "伏阵", ritual: "术式", ailment: "异常", reflect: "反震",
   sword: "剑", explosive: "爆破", defensive: "防御",
   Weak: "下等", Medium: "中等", Strong: "上等",
   Slow: "缓慢", Normal: "正常", Fast: "迅速",
@@ -315,7 +372,7 @@ function localizeZhMasteryChoice(id: string): MasteryChoiceDefinition {
   const packageInfo = gongfaId ? zhGongfa[gongfaId] : undefined;
   const alternativeNames = peers
     .filter((item) => item.id !== id)
-    .map((item) => zhMasteryOverrides[item.id]?.name ?? zhMasteryDrafts[item.id]?.name ?? item.name)
+    .map((item, index) => zhMasteryOverrides[item.id]?.name ?? zhMasteryDrafts[item.id]?.name ?? `${gongfaName}·同阶蜕变${index + 1}`)
     .join("或");
   const opportunityCost = `永久放弃同阶的${alternativeNames}。`;
   const impacts: Record<number, Array<Pick<MasteryChoiceDefinition, "playstyle" | "gain" | "cost" | "scope" | "treasureInteraction">>> = {
@@ -1034,6 +1091,7 @@ export function localizeRuntimeText(locale: Locale, value: string): string {
 }
 
 function localizeZhRuntimeText(value: string): string {
+  if (value === "Foundation Growth Total") return "根基成长累计";
   if (value.length === 0) return value;
   if (runtimeExactZh[value]) return runtimeExactZh[value];
   const nextFoundationReward = /^NEXT REWARD · \+1 damage · \+8 max HP\/heal · \+3 movement · \+8 orb radius · (.+)$/.exec(value);

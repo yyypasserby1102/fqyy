@@ -23,9 +23,9 @@ describe("Encounter pressure", () => {
       healthScale: 1.4,
       contactDamageScale: 1.25,
       speedScale: 1.55,
-      spawnIntervalScale: 0.68,
-      spawnAmountBonus: 3,
-      concurrentEnemyBudget: 28,
+      spawnIntervalScale: 0.54,
+      spawnAmountBonus: 5,
+      concurrentEnemyBudget: 30,
       geometry: "converge",
       composition: ["jade-rat", "mist-wolf", "bone-crow"]
     });
@@ -33,12 +33,12 @@ describe("Encounter pressure", () => {
 
   it("compensates for every additional simultaneously active Gongfa", () => {
     expect(projectEncounterPressure("zhuji", "houqi", 2)).toEqual({
-      healthScale: 2.45,
-      contactDamageScale: 1.61,
-      speedScale: 1.42,
-      spawnIntervalScale: 0.68,
+      healthScale: 3.7,
+      contactDamageScale: 1.81,
+      speedScale: 1.43,
+      spawnIntervalScale: 0.64,
       spawnAmountBonus: 3,
-      concurrentEnemyBudget: 32,
+      concurrentEnemyBudget: 35,
       geometry: "flank",
       composition: ["bone-crow", "corpse-cultivator"]
     });
@@ -46,12 +46,12 @@ describe("Encounter pressure", () => {
 
   it("keeps multi-Gongfa burst builds under pressure in late Stages", () => {
     expect(projectEncounterPressure("jindan", "chuqi", 3)).toMatchObject({
-      healthScale: 5.29,
-      contactDamageScale: 1.94
+      healthScale: 14.37,
+      contactDamageScale: 2.04
     });
     expect(projectEncounterPressure("yuanying", "chuqi", 4)).toMatchObject({
-      healthScale: 13.93,
-      contactDamageScale: 2.74
+      healthScale: 55.14,
+      contactDamageScale: 2.77
     });
   });
 
@@ -71,6 +71,12 @@ describe("Encounter pressure", () => {
       expect(pressures[index].speedScale).toBeGreaterThan(pressures[index - 1].speedScale);
       expect(pressures[index].concurrentEnemyBudget).toBeGreaterThan(
         pressures[index - 1].concurrentEnemyBudget
+      );
+      expect(pressures[index].spawnIntervalScale).toBeLessThan(
+        pressures[index - 1].spawnIntervalScale
+      );
+      expect(pressures[index].healthScale / (index + 1)).toBeGreaterThan(
+        pressures[index - 1].healthScale / index
       );
     }
   });

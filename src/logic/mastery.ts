@@ -681,7 +681,19 @@ const rank10Skill2Ids: Record<GongfaId, string> = {
   "ice-mirror-guard": "frozen-lotus-shell",
   "green-vine-art": "verdant-root-network",
   "verdant-ring-scripture": "sprout-sun-circle",
-  "ironwood-wave-form": "ironwood-surge-form"
+  "ironwood-wave-form": "ironwood-surge-form",
+  "nine-sun-calamity-seal": "heavenly-sun-descent",
+  "mist-wraith-canon": "hundred-ghost-procession",
+  "heavenfall-body-art": "star-breaking-descent",
+  "thousand-root-formation": "myriad-root-killing-field",
+  "flame-demon-body-art": "asura-conflagration",
+  "vermilion-bird-covenant": "vermilion-host-descent",
+  "frozen-river-formation": "frozen-river-prison",
+  "moonfall-tide-ritual": "moonfall-cataclysm",
+  "sword-burial-formation": "ten-thousand-sword-tomb",
+  "heaven-sundering-edict": "supreme-sundering-decree",
+  "myriad-beast-grove": "myriad-beast-stampede",
+  "ancient-tree-body-art": "world-tree-incarnation"
 };
 
 function hashString(input: string): number {

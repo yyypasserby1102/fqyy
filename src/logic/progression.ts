@@ -40,9 +40,9 @@ interface MetalTreeSpec {
 
 const cultivationPacing: Record<StageId, { realm: number; mastery: number }> = {
   lianqi: { realm: 1, mastery: 1 },
-  zhuji: { realm: 0.85, mastery: 0.9 },
-  jindan: { realm: 0.55, mastery: 0.7 },
-  yuanying: { realm: 0.4, mastery: 0.55 }
+  zhuji: { realm: 0.78, mastery: 0.88 },
+  jindan: { realm: 0.42, mastery: 0.68 },
+  yuanying: { realm: 0.26, mastery: 0.58 }
 };
 
 /**
@@ -120,10 +120,10 @@ const metalStageNarratives: Record<
 };
 
 const rootMethodOrder = {
-  fire: ["blazing-feather-art", "scarlet-wave-manual", "burning-ring-scripture", "crimson-furnace-sword-art"],
-  water: ["drifting-frost-needle", "black-tide-scripture", "ice-mirror-guard"],
-  metal: ["yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art"],
-  wood: ["green-vine-art", "ironwood-wave-form", "verdant-ring-scripture"]
+  fire: ["blazing-feather-art", "scarlet-wave-manual", "burning-ring-scripture", "nine-sun-calamity-seal", "flame-demon-body-art", "vermilion-bird-covenant", "crimson-furnace-sword-art"],
+  water: ["drifting-frost-needle", "black-tide-scripture", "ice-mirror-guard", "mist-wraith-canon", "frozen-river-formation", "moonfall-tide-ritual"],
+  metal: ["yujian-jue", "jinfeng-gong", "gengjin-huti", "heavenfall-body-art", "sword-burial-formation", "heaven-sundering-edict", "crimson-furnace-sword-art"],
+  wood: ["green-vine-art", "ironwood-wave-form", "verdant-ring-scripture", "thousand-root-formation", "myriad-beast-grove", "ancient-tree-body-art"]
 } as const;
 
 export function getCompatibleGongfaIdsForLinggen(linggenId: LinggenId): GongfaId[] {
@@ -158,7 +158,11 @@ export function getPresentedGongfaIdsForLinggen(
     );
     const hybrid = ordered.find((gongfaId) => gongfaId === "crimson-furnace-sword-art");
     const picks = [firePick, metalPick, hybrid].filter((gongfaId) => gongfaId !== undefined) as GongfaId[];
-    return picks.length >= 3 ? picks.slice(0, 3) : ordered.slice(0, 3);
+    for (const gongfaId of ordered) {
+      if (picks.length >= 3) break;
+      if (!picks.includes(gongfaId)) picks.push(gongfaId);
+    }
+    return picks.slice(0, 3);
   }
 
   if (ordered.length <= 3) {

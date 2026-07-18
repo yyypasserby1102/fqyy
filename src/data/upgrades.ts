@@ -433,6 +433,102 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["splintered-edge", "Splintered Edge", "Every Skill in the Ironwood package gains piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
     ["deepening-heartwood", "Deepening Heartwood", "Wave hits deepen Heartwood more rapidly.", "surgeBuild", 0.18, "Passive: Deep Heartwood"],
     ["old-growth", "Old Growth", "Heartwood fades more slowly between drives.", "surgeStability", 0.84, "Passive: Deep Heartwood"]
+  ]],
+  ["nine-sun-calamity-seal", [
+    ["sun-seal-tempering", "Sun-Seal Tempering", "Falling Sun Seal strikes with greater ritual force.", "skill1Damage", 12, "Skill 1: Falling Sun Seal"],
+    ["twin-omen-script", "Twin Omen Script", "Each ritual gains another smaller impact seal.", "skill1Count", 1, "Skill 1: Falling Sun Seal"],
+    ["zenith-conduction", "Zenith Conduction", "Zenith empowers both calamity rituals.", "gongfaDamageSynergy", 4, "Owning Gongfa: both Skills"],
+    ["widened-sunscar", "Widened Sunscar", "Every sun seal claims a broader impact ground.", "gongfaRangeSynergy", 12, "Owning Gongfa: both Skills"],
+    ["rising-zenith", "Rising Zenith", "Each burned enemy raises Zenith faster.", "surgeBuild", 0.18, "Passive: Calamity Cycle"],
+    ["fixed-noon", "Fixed Noon", "Zenith fades more slowly between rituals.", "surgeStability", 0.84, "Passive: Calamity Cycle"]
+  ]],
+  ["mist-wraith-canon", [
+    ["wraith-tempering", "Wraith Tempering", "Mist-wraith bolts strike with greater force.", "skill1Damage", 4, "Skill 1: Mist-Wraith Retinue"],
+    ["expanded-retinue", "Expanded Retinue", "Each covenant calls another mist wraith.", "skill1Count", 1, "Skill 1: Mist-Wraith Retinue"],
+    ["ghost-tide-conduction", "Ghost-Tide Conduction", "Covenant empowers both summoning Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["deepwater-bolts", "Deepwater Bolts", "Every wraith bolt pierces another target.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["quickened-covenant", "Quickened Covenant", "Wraith hits deepen Covenant faster.", "surgeBuild", 0.18, "Passive: Ghost-Tide Covenant"],
+    ["remembered-oath", "Remembered Oath", "Covenant fades more slowly without prey.", "surgeStability", 0.84, "Passive: Ghost-Tide Covenant"]
+  ]],
+  ["heavenfall-body-art", [
+    ["vajra-tempering", "Vajra Tempering", "Falling-Star Combination strikes with greater force.", "skill1Damage", 7, "Skill 1: Falling-Star Combination"],
+    ["linked-fists", "Linked Fists", "Add another blow to the close combination.", "skill1Count", 1, "Skill 1: Falling-Star Combination"],
+    ["reprisal-conduction", "Reprisal Conduction", "Reprisal empowers both body-art Skills.", "gongfaDamageSynergy", 3, "Owning Gongfa: both Skills"],
+    ["wider-crater", "Wider Crater", "Every body-art strike reaches farther around the Cultivator.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["returning-breath", "Returning Breath", "Melee and reflected hits build Reprisal faster.", "surgeBuild", 0.18, "Passive: Returning Heaven"],
+    ["tempered-anger", "Tempered Anger", "Reprisal fades more slowly outside danger.", "surgeStability", 0.84, "Passive: Returning Heaven"]
+  ]],
+  ["thousand-root-formation", [
+    ["root-seal-tempering", "Root-Seal Tempering", "Root-Seal Array pulses with greater force.", "skill1Damage", 5, "Skill 1: Root-Seal Array"],
+    ["branching-array", "Branching Array", "Each casting plants another persistent root seal.", "skill1Count", 1, "Skill 1: Root-Seal Array"],
+    ["growth-conduction", "Growth Conduction", "Growth empowers both formation Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["wider-rootweb", "Wider Rootweb", "Every seal controls a broader patch of ground.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["fertile-ground", "Fertile Ground", "Caught enemies feed Growth more quickly.", "surgeBuild", 0.18, "Passive: Patient Germination"],
+    ["deep-burial", "Deep Burial", "Growth recedes more slowly between formations.", "surgeStability", 0.84, "Passive: Patient Germination"]
+  ]],
+  ["flame-demon-body-art", [
+    ["demon-fist-tempering", "Demon-Fist Tempering", "Furnace-Blood blows strike harder.", "skill1Damage", 7, "Skill 1: Furnace-Blood Combination"],
+    ["linked-demon-fists", "Linked Demon Fists", "Adds another close blow.", "skill1Count", 1, "Skill 1: Furnace-Blood Combination"],
+    ["wrath-conduction", "Wrath Conduction", "Wrath empowers both body-art Skills.", "gongfaDamageSynergy", 3, "Owning Gongfa: both Skills"],
+    ["wider-bloodcrater", "Wider Bloodcrater", "Body-art strikes reach farther.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["rising-wrath", "Rising Wrath", "Close hits build Wrath faster.", "surgeBuild", 0.18, "Passive: Demon-Heart Reprisal"],
+    ["banked-wrath", "Banked Wrath", "Wrath fades more slowly.", "surgeStability", 0.84, "Passive: Demon-Heart Reprisal"]
+  ]],
+  ["vermilion-bird-covenant", [
+    ["ember-spirit-tempering", "Ember-Spirit Tempering", "Ember birds scorch harder.", "skill1Damage", 4, "Skill 1: Ember-Bird Brood"],
+    ["expanded-brood", "Expanded Brood", "Calls another ember bird.", "skill1Count", 1, "Skill 1: Ember-Bird Brood"],
+    ["plumage-conduction", "Plumage Conduction", "Plumage empowers both summoning Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["phoenix-pinions", "Phoenix Pinions", "Spirit attacks pierce another target.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["gathering-plumage", "Gathering Plumage", "Spirit hits gather Plumage faster.", "surgeBuild", 0.18, "Passive: Phoenix Covenant"],
+    ["undying-covenant", "Undying Covenant", "Plumage fades more slowly.", "surgeStability", 0.84, "Passive: Phoenix Covenant"]
+  ]],
+  ["frozen-river-formation", [
+    ["river-seal-tempering", "River-Seal Tempering", "Under-Ice seals pulse harder.", "skill1Damage", 5, "Skill 1: Under-Ice Snare Array"],
+    ["branching-river", "Branching River", "Plants another river seal.", "skill1Count", 1, "Skill 1: Under-Ice Snare Array"],
+    ["rime-conduction", "Rime Conduction", "Rime empowers both formation Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["wider-icefield", "Wider Icefield", "River seals cover more ground.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["deepening-rime", "Deepening Rime", "Caught enemies build Rime faster.", "surgeBuild", 0.18, "Passive: Winter Current"],
+    ["perennial-winter", "Perennial Winter", "Rime fades more slowly.", "surgeStability", 0.84, "Passive: Winter Current"]
+  ]],
+  ["moonfall-tide-ritual", [
+    ["moonfall-tempering", "Moonfall Tempering", "Moonfall strikes with greater force.", "skill1Damage", 12, "Skill 1: Moonfall Collapse"],
+    ["twin-moon-omens", "Twin Moon Omens", "Adds another smaller impact.", "skill1Count", 1, "Skill 1: Moonfall Collapse"],
+    ["syzygy-conduction", "Syzygy Conduction", "Syzygy empowers both rituals.", "gongfaDamageSynergy", 4, "Owning Gongfa: both Skills"],
+    ["wider-undertow", "Wider Undertow", "Moonfall claims a broader region.", "gongfaRangeSynergy", 12, "Owning Gongfa: both Skills"],
+    ["rising-syzygy", "Rising Syzygy", "Tidal damage aligns Syzygy faster.", "surgeBuild", 0.18, "Passive: Abyssal Syzygy"],
+    ["fixed-syzygy", "Fixed Syzygy", "Syzygy fades more slowly.", "surgeStability", 0.84, "Passive: Abyssal Syzygy"]
+  ]],
+  ["sword-burial-formation", [
+    ["grave-sword-tempering", "Grave-Sword Tempering", "Buried swords erupt harder.", "skill1Damage", 5, "Skill 1: Buried Sword Array"],
+    ["scattered-graves", "Scattered Graves", "Plants another sword grave.", "skill1Count", 1, "Skill 1: Buried Sword Array"],
+    ["resonance-conduction", "Resonance Conduction", "Resonance empowers both formations.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["wider-gravefield", "Wider Gravefield", "Sword graves control more ground.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["deepening-resonance", "Deepening Resonance", "Caught enemies build Resonance faster.", "surgeBuild", 0.18, "Passive: Grave-Sword Resonance"],
+    ["unbroken-resonance", "Unbroken Resonance", "Resonance fades more slowly.", "surgeStability", 0.84, "Passive: Grave-Sword Resonance"]
+  ]],
+  ["heaven-sundering-edict", [
+    ["edict-tempering", "Edict Tempering", "Sundering Stroke judges harder.", "skill1Damage", 12, "Skill 1: Sundering Stroke"],
+    ["crossed-edicts", "Crossed Edicts", "Adds another judgment stroke.", "skill1Count", 1, "Skill 1: Sundering Stroke"],
+    ["mandate-conduction", "Mandate Conduction", "Mandate empowers both edicts.", "gongfaDamageSynergy", 4, "Owning Gongfa: both Skills"],
+    ["broader-judgment", "Broader Judgment", "Edicts claim a broader ground.", "gongfaRangeSynergy", 12, "Owning Gongfa: both Skills"],
+    ["rising-mandate", "Rising Mandate", "Judgment builds Mandate faster.", "surgeBuild", 0.18, "Passive: Judgment Mandate"],
+    ["fixed-mandate", "Fixed Mandate", "Mandate fades more slowly.", "surgeStability", 0.84, "Passive: Judgment Mandate"]
+  ]],
+  ["myriad-beast-grove", [
+    ["seed-spirit-tempering", "Seed-Spirit Tempering", "Woodland spirits strike harder.", "skill1Damage", 4, "Skill 1: Seed-Spirit Pack"],
+    ["teeming-grove", "Teeming Grove", "Calls another seed spirit.", "skill1Count", 1, "Skill 1: Seed-Spirit Pack"],
+    ["kinship-conduction", "Kinship Conduction", "Kinship empowers both summoning Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["thorned-pack", "Thorned Pack", "Spirit attacks pierce another target.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["growing-kinship", "Growing Kinship", "Pack hits build Kinship faster.", "surgeBuild", 0.18, "Passive: Wildwood Kinship"],
+    ["ancestral-kinship", "Ancestral Kinship", "Kinship fades more slowly.", "surgeStability", 0.84, "Passive: Wildwood Kinship"]
+  ]],
+  ["ancient-tree-body-art", [
+    ["old-growth-tempering", "Old-Growth Tempering", "Ancient-tree blows strike harder.", "skill1Damage", 7, "Skill 1: Old-Growth Combination"],
+    ["ringed-combination", "Ringed Combination", "Adds another heavy blow.", "skill1Count", 1, "Skill 1: Old-Growth Combination"],
+    ["bark-conduction", "Bark Conduction", "Bark empowers both body-art Skills.", "gongfaDamageSynergy", 3, "Owning Gongfa: both Skills"],
+    ["wider-rootcrater", "Wider Rootcrater", "Body-art strikes reach farther.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["living-bark", "Living Bark", "Close hits thicken Bark faster.", "surgeBuild", 0.18, "Passive: Living Bark Reprisal"],
+    ["evergreen-bark", "Evergreen Bark", "Bark fades more slowly.", "surgeStability", 0.84, "Passive: Living Bark Reprisal"]
   ]]
 ];
 
@@ -449,7 +545,19 @@ const skill2FamilyNames: Record<GongfaId, readonly [string, string, string]> = {
   "ice-mirror-guard": ["Lotus Tempering", "Layered Lotus", "Rapid Reflection"],
   "green-vine-art": ["Root Tempering", "Branching Network", "Quickened Sap"],
   "verdant-ring-scripture": ["Sunroot Tempering", "Fuller Circle", "Early Spring"],
-  "ironwood-wave-form": ["Surge Tempering", "Broad Trunk", "Driving Rings"]
+  "ironwood-wave-form": ["Surge Tempering", "Broad Trunk", "Driving Rings"],
+  "nine-sun-calamity-seal": ["Descent Tempering", "World-Sized Omen", "Swift Apocalypse"],
+  "mist-wraith-canon": ["Procession Tempering", "Countless Ghosts", "Hastened Crossing"],
+  "heavenfall-body-art": ["Descent Tempering", "Wider Crater", "Swift Reprisal"],
+  "thousand-root-formation": ["Killing-Field Tempering", "Endless Rootweb", "Quickened Germination"],
+  "flame-demon-body-art": ["Asura Tempering", "Wider Conflagration", "Swift Wrath"],
+  "vermilion-bird-covenant": ["Host Tempering", "Countless Pinions", "Swift Descent"],
+  "frozen-river-formation": ["Prison Tempering", "Endless River", "Flash Freeze"],
+  "moonfall-tide-ritual": ["Cataclysm Tempering", "Abyssal Moon", "Swift Syzygy"],
+  "sword-burial-formation": ["Sword-Tomb Tempering", "Endless Graves", "Swift Burial"],
+  "heaven-sundering-edict": ["Decree Tempering", "Supreme Judgment", "Swift Mandate"],
+  "myriad-beast-grove": ["Stampede Tempering", "Ancestral Host", "Swift Germination"],
+  "ancient-tree-body-art": ["Incarnation Tempering", "Worldroot Crater", "Swift Growth"]
 };
 
 const slug = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");

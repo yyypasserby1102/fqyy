@@ -421,6 +421,30 @@ export type GongfaRuntimeCommand =
       distanceScale: number;
       speedScale: number;
       masteryCast: MasterySkill2Cast;
+    }
+  | { kind: "ritual-impact"; count: number; damage: number; radius: number; telegraphMs: number; burnPulses: number; burnDelayMs: number }
+  | { kind: "summon-wraiths"; count: number; shotsPerWraith: number; damage: number; pierce: number; orbitMs: number }
+  | { kind: "melee-combination"; strikeCount: number; damage: number; radius: number; finisherScale: number; staggerMs: number }
+  | { kind: "root-trap-array"; count: number; pulses: number; damage: number; radius: number; pulseDelayMs: number; lifetimeMs: number }
+  | {
+      kind: "heavenly-sun-descent";
+      impactCount: number; damage: number; radius: number; telegraphMs: number; burnPulses: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "hundred-ghost-procession";
+      wraithCount: number; shotsPerWraith: number; damage: number; pierce: number; orbitMs: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "star-breaking-descent";
+      strikeCount: number; damage: number; radius: number; finisherScale: number; staggerMs: number;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "myriad-root-killing-field";
+      trapCount: number; pulses: number; damage: number; radius: number; pulseDelayMs: number; lifetimeMs: number;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -502,7 +526,19 @@ export type AuthoredSkill2Intent =
   | "frozen-lotus-shell"
   | "verdant-root-network"
   | "sprout-sun-circle"
-  | "ironwood-surge-form";
+  | "ironwood-surge-form"
+  | "heavenly-sun-descent"
+  | "hundred-ghost-procession"
+  | "star-breaking-descent"
+  | "myriad-root-killing-field"
+  | "asura-conflagration"
+  | "vermilion-host-descent"
+  | "frozen-river-prison"
+  | "moonfall-cataclysm"
+  | "ten-thousand-sword-tomb"
+  | "supreme-sundering-decree"
+  | "myriad-beast-stampede"
+  | "world-tree-incarnation";
 
 export interface AuthoredSkill2Plan {
   intent: AuthoredSkill2Intent;
@@ -575,7 +611,27 @@ const authoredSkill2Plans: Record<AuthoredSkill2Intent, AuthoredSkill2Plan> = {
     intent: "ironwood-surge-form",
     trigger: "timed",
     cooldownMs: 2800
-  }
+  },
+  "heavenly-sun-descent": {
+    intent: "heavenly-sun-descent", trigger: "timed", cooldownMs: 5200
+  },
+  "hundred-ghost-procession": {
+    intent: "hundred-ghost-procession", trigger: "timed", cooldownMs: 4200
+  },
+  "star-breaking-descent": {
+    intent: "star-breaking-descent", trigger: "timed", cooldownMs: 3800
+  },
+  "myriad-root-killing-field": {
+    intent: "myriad-root-killing-field", trigger: "timed", cooldownMs: 4400
+  },
+  "asura-conflagration": { intent: "asura-conflagration", trigger: "timed", cooldownMs: 3900 },
+  "vermilion-host-descent": { intent: "vermilion-host-descent", trigger: "timed", cooldownMs: 4300 },
+  "frozen-river-prison": { intent: "frozen-river-prison", trigger: "timed", cooldownMs: 4400 },
+  "moonfall-cataclysm": { intent: "moonfall-cataclysm", trigger: "timed", cooldownMs: 5300 },
+  "ten-thousand-sword-tomb": { intent: "ten-thousand-sword-tomb", trigger: "timed", cooldownMs: 4500 },
+  "supreme-sundering-decree": { intent: "supreme-sundering-decree", trigger: "timed", cooldownMs: 5500 },
+  "myriad-beast-stampede": { intent: "myriad-beast-stampede", trigger: "timed", cooldownMs: 4300 },
+  "world-tree-incarnation": { intent: "world-tree-incarnation", trigger: "timed", cooldownMs: 4000 }
 };
 
 const skill2GongfaIds: Record<AuthoredSkill2Intent, GongfaId> = {
@@ -591,7 +647,19 @@ const skill2GongfaIds: Record<AuthoredSkill2Intent, GongfaId> = {
   "frozen-lotus-shell": "ice-mirror-guard",
   "verdant-root-network": "green-vine-art",
   "sprout-sun-circle": "verdant-ring-scripture",
-  "ironwood-surge-form": "ironwood-wave-form"
+  "ironwood-surge-form": "ironwood-wave-form",
+  "heavenly-sun-descent": "nine-sun-calamity-seal",
+  "hundred-ghost-procession": "mist-wraith-canon",
+  "star-breaking-descent": "heavenfall-body-art",
+  "myriad-root-killing-field": "thousand-root-formation",
+  "asura-conflagration": "flame-demon-body-art",
+  "vermilion-host-descent": "vermilion-bird-covenant",
+  "frozen-river-prison": "frozen-river-formation",
+  "moonfall-cataclysm": "moonfall-tide-ritual",
+  "ten-thousand-sword-tomb": "sword-burial-formation",
+  "supreme-sundering-decree": "heaven-sundering-edict",
+  "myriad-beast-stampede": "myriad-beast-grove",
+  "world-tree-incarnation": "ancient-tree-body-art"
 };
 
 const emptyYujianTransformationTriggers: YujianTransformationTriggers = {
@@ -1061,6 +1129,22 @@ function buildExplicitTimedSkill2Command(
       return { kind: skill2.intent, spokeCount: Math.max(8, combat.count + 5 + resource + coverage * 2), pulseCount: 3 + coverage, pulseDelayMs: delay(220), damage: damage(combat.damage * (1.1 + resource * 0.07)), radius: 100 + resource * 12 + coverage * 18, masteryCast };
     case "ironwood-surge-form":
       return { kind: skill2.intent, waveCount: Math.max(3, combat.count + 1 + coverage), returnShots: 2 + coverage, growthScale: 1.25 + resource * 0.05, damage: damage(combat.damage * (1.1 + resource * 0.08)), width: 80 + resource * 12 + coverage * 18, pushStrength: 170 + resource * 18 + coverage * 20, pierce: combat.pierce + 1, speed: combat.projectileSpeed, lifetimeMs: combat.projectileLifetimeMs + 360, distanceScale, speedScale, masteryCast };
+    case "heavenly-sun-descent":
+    case "moonfall-cataclysm":
+    case "supreme-sundering-decree":
+      return { kind: "heavenly-sun-descent", impactCount: 1 + coverage, damage: damage(combat.damage * (2.4 + resource * 0.16)), radius: combat.auraRadius * 1.75 + coverage * 24, telegraphMs: delay(1150), burnPulses: 5 + coverage + Math.floor(resource / 2), masteryCast };
+    case "hundred-ghost-procession":
+    case "vermilion-host-descent":
+    case "myriad-beast-stampede":
+      return { kind: "hundred-ghost-procession", wraithCount: Math.max(8, combat.count * 2 + resource + coverage * 2), shotsPerWraith: 3 + coverage, damage: damage(combat.damage * (0.9 + resource * 0.05)), pierce: combat.pierce + 1, orbitMs: delay(520), masteryCast };
+    case "star-breaking-descent":
+    case "asura-conflagration":
+    case "world-tree-incarnation":
+      return { kind: "star-breaking-descent", strikeCount: combat.count + 3 + coverage, damage: damage(combat.damage * (1.3 + resource * 0.08)), radius: combat.auraRadius * 1.7 + coverage * 18, finisherScale: 2.4 + resource * 0.12, staggerMs: delay(75), masteryCast };
+    case "myriad-root-killing-field":
+    case "frozen-river-prison":
+    case "ten-thousand-sword-tomb":
+      return { kind: "myriad-root-killing-field", trapCount: Math.max(8, combat.count * 2 + resource + coverage * 2), pulses: 5 + coverage, damage: damage(combat.damage * (0.9 + resource * 0.06)), radius: combat.auraRadius * 1.35 + coverage * 16, pulseDelayMs: delay(260), lifetimeMs: combat.projectileLifetimeMs + 1800 + coverage * 400, masteryCast };
     default:
       return undefined;
   }
@@ -2068,7 +2152,19 @@ export function advanceGongfaRuntime(
         "feather-rain-formation",
         "sunset-wave-apex",
         "mirror-needle-constellation",
-        "verdant-root-network"
+        "verdant-root-network",
+        "heavenly-sun-descent",
+        "hundred-ghost-procession",
+        "star-breaking-descent",
+        "myriad-root-killing-field",
+        "asura-conflagration",
+        "vermilion-host-descent",
+        "frozen-river-prison",
+        "moonfall-cataclysm",
+        "ten-thousand-sword-tomb",
+        "supreme-sundering-decree",
+        "myriad-beast-stampede",
+        "world-tree-incarnation"
       ]).has(skill2.intent);
       const lacksDirection =
         skill2.intent === "ironwood-surge-form" && event.hasMovementDirection !== true;
@@ -2206,7 +2302,9 @@ export function advanceGongfaRuntime(
     if (next.surge && learned(event.learnedMasteryIds, SURGE_UPDRAFT_IDS)) {
       const stackScale = getSurgeGongfaSpec(next.gongfaId)?.mechanics.updraftStackScale ?? 1;
       const count = Math.max(1, next.combat.count + Math.floor(next.surge.stacks * stackScale));
-      if (next.combat.pattern === "wave") {
+      if (["ritual", "summon", "melee", "trap"].includes(next.combat.pattern)) {
+        commands.push(...planGongfaAttack(next, 0, { learnedMasteryIds: [] }));
+      } else if (next.combat.pattern === "wave") {
         commands.push({ kind: "wave-volley", count, returnShots: 0, aimMode: "nearest" });
       } else if (next.combat.pattern === "aura") {
         commands.push({ kind: "aura-burst", damage: next.combat.damage, count });
@@ -2666,6 +2764,49 @@ export function planGongfaAttack(
   options = {
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
+  const archetypeBonus = surgeBonusCount(runtime, options.learnedMasteryIds ?? []);
+  if (runtime.combat.pattern === "ritual") {
+    return [{
+      kind: "ritual-impact",
+      count: Math.max(1, runtime.combat.count + Math.floor(archetypeBonus / 3)),
+      damage: runtime.combat.damage,
+      radius: runtime.combat.auraRadius,
+      telegraphMs: runtime.combat.projectileLifetimeMs,
+      burnPulses: Math.max(2, runtime.combat.returnShots),
+      burnDelayMs: 360
+    }];
+  }
+  if (runtime.combat.pattern === "summon") {
+    return [{
+      kind: "summon-wraiths",
+      count: Math.max(1, runtime.combat.count + archetypeBonus),
+      shotsPerWraith: Math.max(2, runtime.combat.returnShots),
+      damage: runtime.combat.damage,
+      pierce: runtime.combat.pierce,
+      orbitMs: 320
+    }];
+  }
+  if (runtime.combat.pattern === "melee") {
+    return [{
+      kind: "melee-combination",
+      strikeCount: Math.max(2, runtime.combat.count + archetypeBonus),
+      damage: runtime.combat.damage,
+      radius: runtime.combat.auraRadius,
+      finisherScale: 1.55 + (runtime.surge?.stacks ?? 0) * 0.08,
+      staggerMs: runtime.combat.projectileLifetimeMs
+    }];
+  }
+  if (runtime.combat.pattern === "trap") {
+    return [{
+      kind: "root-trap-array",
+      count: Math.max(1, runtime.combat.count + archetypeBonus),
+      pulses: Math.max(2, runtime.combat.returnShots),
+      damage: runtime.combat.damage,
+      radius: runtime.combat.auraRadius,
+      pulseDelayMs: 420,
+      lifetimeMs: runtime.combat.projectileLifetimeMs
+    }];
+  }
   if (runtime.crimsonFurnace) {
     const learnedMasteryIds = options.learnedMasteryIds ?? [];
     let count = runtime.combat.count;

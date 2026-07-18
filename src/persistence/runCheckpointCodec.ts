@@ -110,7 +110,19 @@ const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype> = {
   "ice-mirror-guard": "surge",
   "green-vine-art": "surge",
   "verdant-ring-scripture": "surge",
-  "ironwood-wave-form": "surge"
+  "ironwood-wave-form": "surge",
+  "nine-sun-calamity-seal": "surge",
+  "mist-wraith-canon": "surge",
+  "heavenfall-body-art": "surge",
+  "thousand-root-formation": "surge",
+  "flame-demon-body-art": "surge",
+  "vermilion-bird-covenant": "surge",
+  "frozen-river-formation": "surge",
+  "moonfall-tide-ritual": "surge",
+  "sword-burial-formation": "surge",
+  "heaven-sundering-edict": "surge",
+  "myriad-beast-grove": "surge",
+  "ancient-tree-body-art": "surge"
 };
 
 function hasNonNegativeFields(value: unknown, fields: readonly string[]): value is Record<string, unknown> {

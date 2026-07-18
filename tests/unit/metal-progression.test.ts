@@ -12,11 +12,14 @@ import {
 } from "../../src/logic/progression";
 
 describe("Metal progression tree", () => {
-  it("exposes the exact Metal Gongfa trio for pure Metal Linggen", () => {
+  it("exposes six complete Metal Gongfa paths for pure Metal Linggen", () => {
     expect(getCompatibleGongfaIdsForLinggen("metal")).toEqual([
       "yujian-jue",
       "jinfeng-gong",
-      "gengjin-huti"
+      "gengjin-huti",
+      "heavenfall-body-art",
+      "sword-burial-formation",
+      "heaven-sundering-edict"
     ]);
   });
 
@@ -25,9 +28,15 @@ describe("Metal progression tree", () => {
       "drifting-frost-needle",
       "black-tide-scripture",
       "ice-mirror-guard",
+      "mist-wraith-canon",
+      "frozen-river-formation",
+      "moonfall-tide-ritual",
       "yujian-jue",
       "jinfeng-gong",
-      "gengjin-huti"
+      "gengjin-huti",
+      "heavenfall-body-art",
+      "sword-burial-formation",
+      "heaven-sundering-edict"
     ]);
   });
 
@@ -47,9 +56,9 @@ describe("Metal progression tree", () => {
         "crimson-furnace-sword-art"
       ])
     ).toEqual([
-      "blazing-feather-art",
       "scarlet-wave-manual",
-      "jinfeng-gong"
+      "jinfeng-gong",
+      "blazing-feather-art"
     ]);
   });
 
@@ -203,10 +212,12 @@ describe("Metal progression tree", () => {
     );
   });
 
-  it("falls back to the Jindan combat state for stages without authored stats", () => {
-    expect(getGongfaStageState("blazing-feather-art", "yuanying")).toEqual(
-      getGongfaStageState("blazing-feather-art", "jindan")
-    );
+  it("evolves legacy Gongfa into stronger authored Yuanying combat states", () => {
+    const jindan = getGongfaStageState("blazing-feather-art", "jindan");
+    const yuanying = getGongfaStageState("blazing-feather-art", "yuanying");
+    expect(yuanying.damage).toBeGreaterThan(jindan.damage);
+    expect(yuanying.cooldownMs).toBeLessThan(jindan.cooldownMs);
+    expect(yuanying.projectileSpeed).toBeGreaterThan(jindan.projectileSpeed);
   });
 
   it("exposes projectile, explosive, fire, and metal tags for Crimson Furnace Sword Art", () => {
@@ -240,7 +251,7 @@ describe("Metal progression tree", () => {
   it("returns the remaining compatible Gongfa when a reveal has three or fewer choices", () => {
     expect(
       getPresentedGongfaIdsForLinggen("metal", ["yujian-jue", "jinfeng-gong"])
-    ).toEqual(["gengjin-huti"]);
+    ).toEqual(["gengjin-huti", "heavenfall-body-art", "sword-burial-formation"]);
   });
 
   it("does not repeat the first breakthrough after Linggen is already revealed", () => {

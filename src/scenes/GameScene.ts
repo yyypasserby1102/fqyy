@@ -913,6 +913,16 @@ export class GameScene extends Phaser.Scene {
     this.applyIncomingDamage(enemy.touchDamage);
     this.maybeReboundEdge(enemy);
 
+    for (const runtime of this.learnedGongfaRuntimes) {
+      if (runtime.combat.pattern !== "melee" || runtime.combat.retaliationDamage <= 0) continue;
+      const reflected = runtime.combat.retaliationDamage * (1 + (runtime.surge?.stacks ?? 0) * 0.08);
+      const ring = this.add.circle(enemy.x, enemy.y, 34, 0xf0d38a, 0.08)
+        .setStrokeStyle(3, 0xffffff, 0.82).setDepth(12);
+      this.tweens.add({ targets: ring, scale: 1.8, alpha: 0, duration: 220, onComplete: () => ring.destroy() });
+      this.stokeSkill2Resource(runtime.gongfaId);
+      if (enemy.receiveDamage(reflected)) this.resolveEnemyDeath(enemy);
+    }
+
     if (this.combatState.pattern === "aura" && this.combatState.retaliationDamage > 0) {
       this.emitAuraBurst(this.combatState.retaliationDamage, Math.max(4, Math.floor(this.combatState.count / 2)));
     }
@@ -2225,8 +2235,173 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "ironwood-surge-form") {
         this.fireIronwoodSurgeForm(command);
+        return;
+      }
+
+      if (command.kind === "ritual-impact") {
+        this.fireRitualImpact(command);
+        return;
+      }
+
+      if (command.kind === "summon-wraiths") {
+        this.summonMistWraiths(command);
+        return;
+      }
+
+      if (command.kind === "melee-combination") {
+        this.fireMeleeCombination(command);
+        return;
+      }
+
+      if (command.kind === "root-trap-array") {
+        this.plantRootTrapArray(command);
+        return;
+      }
+
+      if (command.kind === "heavenly-sun-descent") {
+        this.fireRitualImpact({
+          kind: "ritual-impact", count: command.impactCount, damage: command.damage,
+          radius: command.radius, telegraphMs: command.telegraphMs,
+          burnPulses: command.burnPulses, burnDelayMs: 300
+        });
+        return;
+      }
+
+      if (command.kind === "hundred-ghost-procession") {
+        this.summonMistWraiths({
+          kind: "summon-wraiths", count: command.wraithCount,
+          shotsPerWraith: command.shotsPerWraith, damage: command.damage,
+          pierce: command.pierce, orbitMs: command.orbitMs
+        });
+        return;
+      }
+
+      if (command.kind === "star-breaking-descent") {
+        this.fireMeleeCombination({
+          kind: "melee-combination", strikeCount: command.strikeCount,
+          damage: command.damage, radius: command.radius,
+          finisherScale: command.finisherScale, staggerMs: command.staggerMs
+        });
+        return;
+      }
+
+      if (command.kind === "myriad-root-killing-field") {
+        this.plantRootTrapArray({
+          kind: "root-trap-array", count: command.trapCount, pulses: command.pulses,
+          damage: command.damage, radius: command.radius,
+          pulseDelayMs: command.pulseDelayMs, lifetimeMs: command.lifetimeMs
+        });
       }
     });
+  }
+
+  private fireRitualImpact(command: Extract<GongfaRuntimeCommand, { kind: "ritual-impact" }>): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    if (!sourceGongfaId) return;
+    const identity = getGongfaVisualIdentity(sourceGongfaId);
+    const targets = this.getDensestClusterTargets(Math.max(1, command.count), command.radius * 1.5);
+    const anchors = targets.length > 0 ? targets : this.getNearestEnemies(1);
+    anchors.slice(0, command.count).forEach((target, index) => {
+      const x = target.x + (index - (command.count - 1) / 2) * command.radius * 0.7;
+      const y = target.y;
+      const omen = this.add.graphics().setDepth(13);
+      omen.fillStyle(identity.accent, 0.08).fillCircle(x, y, command.radius);
+      omen.lineStyle(3, identity.accent, 0.9).strokeCircle(x, y, command.radius);
+      omen.lineStyle(1, identity.secondary, 0.75).strokeCircle(x, y, command.radius * 0.62);
+      this.tweens.add({ targets: omen, alpha: 0.35, yoyo: true, repeat: 2, duration: Math.max(90, command.telegraphMs / 6) });
+      this.time.delayedCall(command.telegraphMs, () => {
+        omen.destroy();
+        const impact = createGongfaSigil(this, x, y, sourceGongfaId, command.radius, 0.95).setDepth(14);
+        this.tweens.add({ targets: impact, scale: 1.28, alpha: 0, duration: 420, onComplete: () => impact.destroy() });
+        this.damageEnemiesWithin(x, y, command.radius, command.damage, sourceGongfaId);
+        for (let pulse = 1; pulse <= command.burnPulses; pulse += 1) {
+          this.time.delayedCall(pulse * command.burnDelayMs, () => {
+            const scar = this.add.circle(x, y, command.radius * (0.72 + pulse * 0.025), identity.accent, 0.08).setDepth(3);
+            this.tweens.add({ targets: scar, alpha: 0, duration: command.burnDelayMs, onComplete: () => scar.destroy() });
+            this.damageEnemiesWithin(x, y, command.radius * 0.9, Math.max(1, Math.floor(command.damage * 0.14)), sourceGongfaId);
+          });
+        }
+      });
+    });
+  }
+
+  private summonMistWraiths(command: Extract<GongfaRuntimeCommand, { kind: "summon-wraiths" }>): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    if (!sourceGongfaId) return;
+    const combat = { ...this.combatState };
+    for (let index = 0; index < command.count; index += 1) {
+      const angle = (Math.PI * 2 * index) / command.count;
+      const radius = 42 + (index % 2) * 18;
+      const wraith = createGongfaSigil(
+        this,
+        this.player.x + Math.cos(angle) * radius,
+        this.player.y + Math.sin(angle) * radius,
+        sourceGongfaId,
+        14,
+        0.9
+      ).setDepth(12);
+      this.tweens.add({ targets: wraith, rotation: angle + Math.PI, scale: 1.18, yoyo: true, duration: command.orbitMs, repeat: command.shotsPerWraith - 1 });
+      for (let shot = 0; shot < command.shotsPerWraith; shot += 1) {
+        this.time.delayedCall(command.orbitMs * (shot + 1) + index * 32, () => {
+          const target = this.getNearestEnemies(command.count + 2)[index % Math.max(1, this.getNearestEnemies(command.count + 2).length)];
+          if (!target?.active || !wraith.active) return;
+          this.spawnProjectileAtTarget(wraith.x, wraith.y, target, command.damage, command.pierce,
+            combat.projectileSpeed, combat.projectileLifetimeMs,
+            combat.projectileTexture, combat.tint, { sourceGongfaId });
+        });
+      }
+      this.time.delayedCall(command.orbitMs * (command.shotsPerWraith + 1), () => {
+        if (!wraith.active) return;
+        this.tweens.add({ targets: wraith, alpha: 0, scale: 0.4, duration: 180, onComplete: () => wraith.destroy() });
+      });
+    }
+  }
+
+  private fireMeleeCombination(command: Extract<GongfaRuntimeCommand, { kind: "melee-combination" }>): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    if (!sourceGongfaId) return;
+    const identity = getGongfaVisualIdentity(sourceGongfaId);
+    for (let strike = 0; strike < command.strikeCount; strike += 1) {
+      this.time.delayedCall(strike * command.staggerMs, () => {
+        if (!this.player.active) return;
+        const finisher = strike === command.strikeCount - 1;
+        const radius = command.radius * (finisher ? 1.18 : 0.82);
+        const damage = command.damage * (finisher ? command.finisherScale : 0.55);
+        const arc = this.add.circle(this.player.x, this.player.y, radius, identity.accent, 0.06)
+          .setStrokeStyle(finisher ? 5 : 2, finisher ? identity.secondary : identity.accent, 0.85).setDepth(11);
+        this.tweens.add({ targets: arc, scale: finisher ? 1.2 : 1.08, alpha: 0, duration: 180, onComplete: () => arc.destroy() });
+        this.damageEnemiesWithin(this.player.x, this.player.y, radius, damage, sourceGongfaId);
+        if (finisher) this.pushEnemiesAwayFrom(this.player.x, this.player.y, radius, 220);
+      });
+    }
+  }
+
+  private plantRootTrapArray(command: Extract<GongfaRuntimeCommand, { kind: "root-trap-array" }>): void {
+    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
+    if (!sourceGongfaId) return;
+    const targets = this.getNearestEnemies(command.count);
+    const activationId = this.beginSkill2Activation();
+    for (let index = 0; index < command.count; index += 1) {
+      const target = targets[index % Math.max(1, targets.length)];
+      const angle = (Math.PI * 2 * index) / command.count;
+      const x = target?.x ?? this.player.x + Math.cos(angle) * (90 + (index % 3) * 38);
+      const y = target?.y ?? this.player.y + Math.sin(angle) * (90 + (index % 3) * 38);
+      const seal = createGongfaSigil(this, x, y, sourceGongfaId, command.radius, 0.58).setDepth(4);
+      for (let pulse = 0; pulse < command.pulses; pulse += 1) {
+        const delay = 180 + pulse * command.pulseDelayMs;
+        if (delay > command.lifetimeMs) break;
+        this.time.delayedCall(delay, () => {
+          if (!seal.active) return;
+          seal.setScale(1.08).setAlpha(0.9);
+          this.tweens.add({ targets: seal, scale: 1, alpha: 0.58, duration: 150 });
+          this.damageEnemiesWithin(x, y, command.radius, command.damage, sourceGongfaId, activationId);
+        });
+      }
+      this.time.delayedCall(command.lifetimeMs, () => {
+        if (!seal.active) return;
+        this.tweens.add({ targets: seal, alpha: 0, duration: 220, onComplete: () => seal.destroy() });
+      });
+    }
   }
 
   private fireFeatherRainFormation(
@@ -4506,6 +4681,11 @@ export class GameScene extends Phaser.Scene {
 
   private advanceFinalBossPhase(phaseIndex: number): void {
     this.clearTribulationBossEncounter();
+    // Each celestial form is a discrete boss round. Recover part of the damage
+    // between forms so the sequence tests three mechanics instead of silently
+    // carrying one unavoidable contact mistake into a later instant death.
+    this.player.heal(this.player.stats.maxHealth * 0.35);
+    this.spawnPickupBurst(this.player.x, this.player.y, 0xaeeaff, 96);
     this.finalBossWaveAccumulator = 0;
     this.finalBossHazardAccumulator = 0;
     this.finalBossPhaseSpawned = false;

@@ -103,6 +103,44 @@ export function createGongfaSigil(
         graphic.lineBetween(a.x, a.y, b.x, b.y);
       }
       break;
+    case "calamity":
+      graphic.strokeCircle(0, 0, radius * 0.58).strokeCircle(0, 0, radius * 0.82);
+      for (let i = 0; i < identity.spokes; i += 1) {
+        const angle = (Math.PI * 2 * i) / identity.spokes;
+        const inner = point(angle, radius * 0.42);
+        const outer = point(angle, radius);
+        graphic.lineBetween(inner.x, inner.y, outer.x, outer.y);
+      }
+      graphic.fillCircle(0, 0, radius * 0.18);
+      break;
+    case "wraiths":
+      graphic.strokeCircle(0, 0, radius * 0.45);
+      for (let i = 0; i < identity.spokes; i += 1) {
+        const angle = (Math.PI * 2 * i) / identity.spokes;
+        const spirit = point(angle, radius * 0.8);
+        graphic.strokeCircle(spirit.x, spirit.y, radius * 0.12);
+        graphic.lineBetween(spirit.x, spirit.y, spirit.x - Math.cos(angle) * radius * 0.3, spirit.y - Math.sin(angle) * radius * 0.3);
+      }
+      break;
+    case "impact":
+      for (let i = 0; i < identity.spokes; i += 1) {
+        const angle = (Math.PI * 2 * i) / identity.spokes;
+        const inner = point(angle, radius * 0.25);
+        const outer = point(angle, radius * (i % 2 ? 0.72 : 1));
+        graphic.lineBetween(inner.x, inner.y, outer.x, outer.y);
+      }
+      graphic.strokeCircle(0, 0, radius * 0.28);
+      break;
+    case "formation":
+      graphic.strokeCircle(0, 0, radius * 0.88);
+      for (let i = 0; i < identity.spokes; i += 1) {
+        const angle = (Math.PI * 2 * i) / identity.spokes;
+        const node = point(angle, radius * 0.72);
+        const next = point(angle + (Math.PI * 2) / identity.spokes, radius * 0.72);
+        graphic.strokeCircle(node.x, node.y, radius * 0.09);
+        graphic.lineBetween(node.x, node.y, next.x, next.y).lineBetween(0, 0, node.x, node.y);
+      }
+      break;
   }
   return graphic;
 }
