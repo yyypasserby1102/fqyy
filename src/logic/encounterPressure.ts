@@ -17,8 +17,8 @@ export interface EncounterPressure {
 const stagePressure: Record<StageId, Pick<EncounterPressure, "healthScale" | "contactDamageScale" | "concurrentEnemyBudget">> = {
   lianqi: { healthScale: 1, contactDamageScale: 1, concurrentEnemyBudget: 16 },
   zhuji: { healthScale: 1.3, contactDamageScale: 1.15, concurrentEnemyBudget: 18 },
-  jindan: { healthScale: 1.75, contactDamageScale: 1.35, concurrentEnemyBudget: 22 },
-  yuanying: { healthScale: 2.3, contactDamageScale: 1.6, concurrentEnemyBudget: 26 }
+  jindan: { healthScale: 1.9, contactDamageScale: 1.45, concurrentEnemyBudget: 22 },
+  yuanying: { healthScale: 2.7, contactDamageScale: 1.75, concurrentEnemyBudget: 26 }
 };
 
 const phasePressure: Record<RealmPhaseId, Omit<EncounterPressure, "concurrentEnemyBudget" | "composition"> & { enemyBudgetBonus: number }> = {
@@ -87,15 +87,6 @@ const phaseComposition: Record<StageId, Record<RealmPhaseId, EnemyId[]>> = {
   }
 };
 
-/**
- * Late Stages layer three or four active Gongfa over denser encounters. Give
- * each automatic Phase milestone one short, combat-safe beat so its new state
- * can be read before the next spawn pattern begins.
- */
-export function getPhaseBreathingRoomMs(stage: StageId): number {
-  return stage === "jindan" || stage === "yuanying" ? 4_000 : 0;
-}
-
 function roundScale(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -108,10 +99,11 @@ export function projectEncounterPressure(
   const stageProfile = stagePressure[stage];
   const phaseProfile = phasePressure[phase];
   const additionalGongfa = Math.max(0, activeGongfaCount - 1);
+  const gongfaHealthScale = stage === "jindan" || stage === "yuanying" ? 1.3 : 1.2;
 
   return {
     healthScale: roundScale(
-      stageProfile.healthScale * phaseProfile.healthScale * 1.2 ** additionalGongfa
+      stageProfile.healthScale * phaseProfile.healthScale * gongfaHealthScale ** additionalGongfa
     ),
     contactDamageScale: roundScale(
       stageProfile.contactDamageScale *

@@ -38,6 +38,29 @@ interface MetalTreeSpec {
   branches: MetalBranchSpec[];
 }
 
+const cultivationPacing: Record<StageId, { realm: number; mastery: number }> = {
+  lianqi: { realm: 1, mastery: 1 },
+  zhuji: { realm: 0.85, mastery: 0.9 },
+  jindan: { realm: 0.55, mastery: 0.7 },
+  yuanying: { realm: 0.4, mastery: 0.55 }
+};
+
+/**
+ * Realm advancement slows as cultivation deepens. Mastery stays somewhat
+ * faster so a newly learned Gongfa can still mature during its current Stage.
+ */
+export function getCultivationProgressGain(
+  stage: StageId,
+  qi: number,
+  efficiency: number
+): { realm: number; mastery: number } {
+  const pacing = cultivationPacing[stage];
+  return {
+    realm: qi * 4 * efficiency * pacing.realm,
+    mastery: qi * 8 * efficiency * pacing.mastery
+  };
+}
+
 
 const metalStageNarratives: Record<
   "yujian-jue" | "jinfeng-gong" | "gengjin-huti",
