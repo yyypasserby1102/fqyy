@@ -323,11 +323,11 @@ for (const visualCase of [
   });
 }
 
-test("all ten projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("all nine projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
     "yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art",
-    "blazing-feather-art", "burning-ring-scripture",
+    "blazing-feather-art",
     "drifting-frost-needle", "ice-mirror-guard",
     "green-vine-art", "ironwood-wave-form"
   ] as const;
@@ -360,9 +360,9 @@ test("all ten projectile-based Gongfa render their own treatment and trail", asy
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(10);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(10);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(10);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(9);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(9);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(9);
 });
 
 test("all twelve archetype Gongfa execute their authored attacks and cast motifs", async ({ page }) => {

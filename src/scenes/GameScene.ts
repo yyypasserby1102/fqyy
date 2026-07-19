@@ -269,6 +269,8 @@ export class GameScene extends Phaser.Scene {
   private moonfallMarker?: Phaser.GameObjects.Graphics;
   private readonly moonfallVelocityRecord = new Map<number, { x: number; y: number }>();
   private verdantGlyphMarker?: Phaser.GameObjects.Graphics;
+  private burningCoronaMarker?: Phaser.GameObjects.Graphics;
+  private readonly burningSunspotEntrants = new Set<number>();
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -2020,34 +2022,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private collapseSunspot(radius: number, damage: number): void {
-    const target = this.getEnemiesWithinRadius(radius)
-      .filter((enemy) => enemy.active)
-      .reduce<Enemy | undefined>(
-        (sturdiest, enemy) =>
-          !sturdiest || enemy.health > sturdiest.health ? enemy : sturdiest,
-        undefined
-      );
-    if (!target) {
-      return;
-    }
-
-    const baseAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, target.x, target.y);
-    for (let i = 0; i < 4; i += 1) {
-      const angle = baseAngle + (i - 1.5) * 0.18;
-      this.spawnWaveProjectile(
-        this.player.x,
-        this.player.y,
-        angle,
-        Math.max(1, Math.floor(damage / 4)),
-        this.combatState.pierce + 1,
-        this.combatState.projectileSpeed + 90,
-        this.combatState.projectileLifetimeMs + 200,
-        1.0
-      );
-    }
-  }
-
   private emitAuraBurst(
     damage: number,
     count: number,
@@ -2380,16 +2354,6 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (command.kind === "sunspot-collapse") {
-        this.collapseSunspot(command.radius, command.damage);
-        return;
-      }
-
-      if (command.kind === "burning-ring-volley") {
-        this.fireBurningRingVolley(command);
-        return;
-      }
-
       if (command.kind === "crimson-furnace-volley") {
         this.fireCrimsonFurnaceVolley(command);
         return;
@@ -2446,8 +2410,8 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (command.kind === "solar-flare-cycle") {
-        this.fireSolarFlareCycle(command);
+      if (command.kind === "authored-burning-corona") {
+        this.applyAuthoredBurningCorona(command);
         return;
       }
 
@@ -4552,45 +4516,74 @@ export class GameScene extends Phaser.Scene {
     runtime.mastery.masterySkill2Casts = next.masterySkill2Casts;
   }
 
-  private fireSolarFlareCycle(
-    command: Extract<GongfaRuntimeCommand, { kind: "solar-flare-cycle" }>
+  private applyAuthoredBurningCorona(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-burning-corona" }>
   ): void {
-    const combat = { ...this.combatState };
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const baseAngle = this.getAimAngle();
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    this.burningCoronaMarker ??= this.applyGongfaEffectVisualHierarchy(
+      this.add.graphics(),
+      command.sourceGongfaId
+    ).setDepth(16);
+    const visual = this.burningCoronaMarker;
+    visual.clear().setPosition(this.player.x, this.player.y);
 
-    for (let ring = 0; ring < 2; ring += 1) {
-      const direction = ring === 0 ? 1 : -1;
-      const ringRadius = command.ringRadius + ring * 10;
-      for (let i = 0; i < command.segmentCount; i += 1) {
-        const angle =
-          baseAngle + ((Math.PI * 2) / command.segmentCount) * i * direction;
-        const projectile = new Projectile(
-          this,
-          this.player.x + Math.cos(angle) * ringRadius,
-          this.player.y + Math.sin(angle) * ringRadius,
-          combat.projectileTexture
-        );
-        projectile.sourceGongfaId = sourceGongfaId;
-        projectile.damage = Math.floor(command.baseDamage * 0.85 * command.damageScale);
-        projectile.pierceRemaining = combat.pierce + 1;
-        projectile.setTint(combat.tint);
-        projectile.setVisualScale(0.9);
-        const travelAngle = angle + (Math.PI / 2) * direction;
-        projectile.setAngle(Phaser.Math.RadToDeg(travelAngle));
-        this.projectiles.add(projectile);
-        const body = projectile.body as Phaser.Physics.Arcade.Body;
-        body.setVelocity(
-          Math.cos(travelAngle) * (combat.projectileSpeed + 35),
-          Math.sin(travelAngle) * (combat.projectileSpeed + 35)
-        );
-        this.time.delayedCall(combat.projectileLifetimeMs + 160, () => {
-          if (projectile.active) {
-            projectile.destroy();
+    const activeEnemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+    const hitCounts = new Map<number, number>();
+    for (const ring of command.rings) {
+      const step = (Math.PI * 2) / ring.segmentCount;
+      const orbit = command.rotation * ring.direction;
+      visual.lineStyle(command.guard ? 12 : 9, command.guard ? identity.secondary : identity.accent, command.guard ? 0.98 : 0.88);
+      for (let segment = 0; segment < ring.visibleSegments; segment += 1) {
+        const center = orbit + segment * step;
+        visual.beginPath();
+        visual.arc(0, 0, ring.radius, center - step * ring.arcFraction / 2, center + step * ring.arcFraction / 2);
+        visual.strokePath();
+      }
+
+      for (const enemy of activeEnemies) {
+        if (!enemy.active) continue;
+        const dx = enemy.x - this.player.x;
+        const dy = enemy.y - this.player.y;
+        const distance = Math.hypot(dx, dy);
+        if (Math.abs(distance - ring.radius) > 25) continue;
+        const relative = Phaser.Math.Angle.Wrap(Math.atan2(dy, dx) - orbit);
+        const wrapped = (relative + Math.PI * 2) % (Math.PI * 2);
+        const slot = Math.floor((wrapped + step / 2) / step) % ring.segmentCount;
+        const slotCenter = slot * step;
+        const fromCenter = Math.abs(Phaser.Math.Angle.Wrap(wrapped - slotCenter));
+        const onSegment = slot < ring.visibleSegments && fromCenter <= step * ring.arcFraction / 2;
+        if (!onSegment) {
+          if (command.sunspotLure) {
+            enemy.applySlow(0.42, 360);
+            this.burningSunspotEntrants.add(enemy.combatTargetId);
           }
-        });
+          continue;
+        }
+        const caught = this.burningSunspotEntrants.delete(enemy.combatTargetId);
+        const damage = Math.max(1, Math.floor(ring.damage * (caught ? 1.85 : 1)));
+        hitCounts.set(enemy.combatTargetId, (hitCounts.get(enemy.combatTargetId) ?? 0) + 1);
+        if (enemy.receiveDamage(damage)) this.resolveEnemyDeath(enemy);
       }
     }
+
+    // Intersections are deliberately stronger because an enemy can contact
+    // both independently rotating rings during the same sample.
+    for (const [targetId, hits] of hitCounts) {
+      if (hits < 2) continue;
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (enemy?.active && enemy.receiveDamage(Math.max(1, Math.floor(this.combatState.damage * 0.55)))) {
+        this.resolveEnemyDeath(enemy);
+      }
+    }
+    if (command.guard) {
+      this.pushEnemiesAwayFrom(this.player.x, this.player.y, 152, command.pushStrength);
+      for (const hazard of [...this.activeBossHazards]) {
+        if (Phaser.Math.Distance.Between(hazard.x, hazard.y, this.player.x, this.player.y) > 154) continue;
+        hazard.destroy();
+        this.activeBossHazards.delete(hazard);
+      }
+    }
+    this.recordGongfaMotif(`${identity.motifId}:${command.guard ? "complete-guard" : "broken-corona"}`);
   }
 
   private fireFurnaceCascade(
@@ -4716,87 +4709,6 @@ export class GameScene extends Phaser.Scene {
       Math.floor(command.baseDamage * 0.82 * command.damageScale),
       command.baseBladeCount + 2 + command.bonusBlades
     );
-  }
-
-  private fireBurningRingVolley(
-    command: Extract<GongfaRuntimeCommand, { kind: "burning-ring-volley" }>
-  ): void {
-    const combat = { ...this.combatState };
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const baseAngle = this.getAimAngle();
-
-    for (let ring = 0; ring < 2; ring += 1) {
-      const direction = ring === 0 ? 1 : -1;
-      const radius = command.ringRadius + ring * 12;
-      const start = Math.floor((command.segmentCount - command.visibleSegments) / 2);
-
-      for (let i = 0; i < command.visibleSegments; i += 1) {
-        const segmentIndex = start + i;
-        const angle =
-          baseAngle +
-          command.rotation * direction +
-          ((Math.PI * 2) / command.segmentCount) * segmentIndex;
-        const projectile = new Projectile(
-          this,
-          this.player.x + Math.cos(angle) * radius,
-          this.player.y + Math.sin(angle) * radius,
-          combat.projectileTexture
-        );
-        projectile.sourceGongfaId = sourceGongfaId;
-        projectile.damage = Math.max(
-          1,
-          Math.floor(combat.damage * (ring === 0 ? 1 : 0.9) * (command.damageScale ?? 1))
-        );
-        projectile.pierceRemaining = combat.pierce;
-        projectile.setTint(combat.tint);
-        projectile.setVisualScale(ring === 0 ? 1 : 0.84);
-        const travelAngle = angle + direction * (Math.PI / 2);
-        projectile.setAngle(Phaser.Math.RadToDeg(travelAngle));
-        this.projectiles.add(projectile);
-        const body = projectile.body as Phaser.Physics.Arcade.Body;
-        body.setVelocity(
-          Math.cos(travelAngle) * (combat.projectileSpeed + 50),
-          Math.sin(travelAngle) * (combat.projectileSpeed + 50)
-        );
-        this.time.delayedCall(combat.projectileLifetimeMs + 120, () => {
-          if (projectile.active) {
-            projectile.destroy();
-          }
-        });
-
-        // Scattered Ember Orbit: leave a short-lived burning patch in the wake.
-        if (command.scatterEmbers && ring === 0) {
-          this.spawnEmberPatch(
-            this.player.x + Math.cos(angle) * radius,
-            this.player.y + Math.sin(angle) * radius,
-            combat,
-            sourceGongfaId
-          );
-        }
-      }
-    }
-  }
-
-  private spawnEmberPatch(
-    x: number,
-    y: number,
-    combat: CombatState = this.combatState,
-    sourceGongfaId = this.gongfaRuntime?.gongfaId
-  ): void {
-    const ember = new Projectile(this, x, y, combat.projectileTexture);
-    ember.sourceGongfaId = sourceGongfaId;
-    ember.damage = Math.max(1, Math.floor(combat.damage * 0.4));
-    ember.pierceRemaining = 999;
-    ember.setTint(combat.tint);
-    ember.setVisualScale(0.7);
-    this.projectiles.add(ember);
-    const body = ember.body as Phaser.Physics.Arcade.Body;
-    body.setVelocity(0, 0);
-    this.time.delayedCall(700, () => {
-      if (ember.active) {
-        ember.destroy();
-      }
-    });
   }
 
   private getNearestEnemies(count: number): Enemy[] {

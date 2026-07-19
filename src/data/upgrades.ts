@@ -368,7 +368,7 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["penetrating-intent", "Penetrating Intent", "Intent drives both Yujian Skills through additional targets.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"]
   ]],
   ["burning-ring-scripture", [
-    ["ember-step", "Ember Step", "Every Evade kindles Heat for the entire Burning Ring package.", "evadeSynergy", 8, "Cultivator Evade → Passive: Kindled Meridians"]
+    ["ember-step", "Wheel-Turning Step", "Every Evade advances the existing broken corona by one sixth-turn without creating Heat or another attack.", "evadeSynergy", 8, "Cultivator Evade → Skill 1: Revolving Broken Corona"]
   ]],
   ["blazing-feather-art", [
     ["tempered-plumage", "Tempered Plumage", "Blazing Feathers strike with greater force.", "skill1Damage", 4, "Skill 1: Blazing Feathers"],

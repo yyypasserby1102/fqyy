@@ -376,19 +376,19 @@ describe("mastery progression", () => {
     })).not.toContain("sword-bloom");
   });
 
-  it("offers exactly the Burning Ring rank-3 Transformation milestone choices and drops counterflow-ring from ordinary refinements", () => {
+  it("offers exactly the authored Burning Ring rank-3 Transformations", () => {
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "burning-ring-scripture",
       rank: 3,
       seed: "seed-123",
       learnedIds: []
     })).toEqual([
-      "counterflow-ring",
-      "condensed-furnace-ring",
-      "scattered-ember-orbit"
+      "counter-rotating-twin-rings",
+      "furnace-heart-lone-ring",
+      "wandering-luminary-rings"
     ]);
 
-    expect(getMasteryChoiceDefinition("counterflow-ring")).toMatchObject({
+    expect(getMasteryChoiceDefinition("counter-rotating-twin-rings")).toMatchObject({
       kind: "transformation",
       milestoneRank: 3,
       exclusivityGroup: "burning-ring-scripture:rank-3"
@@ -408,7 +408,7 @@ describe("mastery progression", () => {
       gongfaId: "burning-ring-scripture",
       rank: 3,
       seed: "seed-123",
-      learnedIds: ["condensed-furnace-ring"]
+      learnedIds: ["furnace-heart-lone-ring"]
     })).toEqual([]);
   });
 
@@ -417,15 +417,15 @@ describe("mastery progression", () => {
       gongfaId: "burning-ring-scripture",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["condensed-furnace-ring"]
+      learnedIds: ["furnace-heart-lone-ring"]
     })).toEqual([
       "banked-sun",
-      "aura-furnace",
-      "meridian-ignition"
+      "myriad-enemies-as-furnace",
+      "lone-true-sun"
     ]);
 
-    expect(getMasteryChoiceDefinition("meridian-ignition")).toMatchObject({
-      name: "Meridian Ignition",
+    expect(getMasteryChoiceDefinition("lone-true-sun")).toMatchObject({
+      name: "Lone True Sun",
       kind: "transformation",
       milestoneRank: 6,
       exclusivityGroup: "burning-ring-scripture:rank-6"
@@ -437,7 +437,7 @@ describe("mastery progression", () => {
       gongfaId: "burning-ring-scripture",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["condensed-furnace-ring", "banked-sun"]
+      learnedIds: ["furnace-heart-lone-ring", "banked-sun"]
     })).toEqual([]);
   });
 
@@ -446,15 +446,15 @@ describe("mastery progression", () => {
       gongfaId: "burning-ring-scripture",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["condensed-furnace-ring", "banked-sun"]
+      learnedIds: ["furnace-heart-lone-ring", "banked-sun"]
     })).toEqual([
-      "perfect-solar-orbit",
-      "sunspot-collapse",
-      "phoenix-passage"
+      "perfect-sun-consumption",
+      "sunspot-lure",
+      "reverse-wheel-reflection"
     ]);
 
-    expect(getMasteryChoiceDefinition("phoenix-passage")).toMatchObject({
-      name: "Phoenix Passage",
+    expect(getMasteryChoiceDefinition("reverse-wheel-reflection")).toMatchObject({
+      name: "Reverse-Wheel Reflection",
       kind: "transformation",
       milestoneRank: 9,
       exclusivityGroup: "burning-ring-scripture:rank-9"
@@ -466,7 +466,7 @@ describe("mastery progression", () => {
       gongfaId: "burning-ring-scripture",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["condensed-furnace-ring", "banked-sun", "perfect-solar-orbit"]
+      learnedIds: ["furnace-heart-lone-ring", "banked-sun", "perfect-sun-consumption"]
     })).toEqual([]);
   });
 

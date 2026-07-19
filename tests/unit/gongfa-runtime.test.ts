@@ -505,6 +505,7 @@ describe("Gongfa runtime", () => {
       expect(plan, `${gongfaId} declares unsupported Skill 2 ${skill2Id}`).toBeDefined();
 
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "burning-ring-scripture") runtime.burningRing!.heat = 100;
       if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (gongfaId === "vermilion-bird-covenant") {
         runtime.authored.targetLedger[-20] = 1;
@@ -566,7 +567,12 @@ describe("Gongfa runtime", () => {
               kind: "tick",
               deltaMs: plan.cooldownMs,
               nearbyEnemyCount: 1,
-              skill2Id
+              skill2Id,
+              playerX: 0,
+              playerY: 0,
+              targets: gongfaId === "burning-ring-scripture"
+                ? [{ targetId: 50, x: 108, y: 0, healthRatio: 1, rank: "ordinary" }]
+                : undefined
             })
           : plan?.trigger === "threshold"
             ? advanceGongfaRuntime(runtime, {
@@ -862,7 +868,7 @@ describe("Gongfa runtime", () => {
         embedPower: 0
       }
     );
-    expect(burningRing.runtime.burningRing?.heat).toBeGreaterThan(0);
+    expect(burningRing.runtime.burningRing?.heat).toBe(0);
   });
 
   it("owns tick threat radii for passives that need nearby enemy facts", () => {
@@ -1152,35 +1158,24 @@ describe("Gongfa runtime", () => {
     expect(advanced.gengjin?.bladeShellCharge).toBeGreaterThan(0);
   });
 
-  it("owns Burning Ring heat, refinement interpretation, and attack planning", () => {
+  it("owns Burning Ring distinct-target Heat and never schedules a substitute volley", () => {
     const initial = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
     const heated = advanceGongfaRuntime(initial, {
       kind: "tick",
       deltaMs: 1000,
-      nearbyEnemyCount: 2
+      nearbyEnemyCount: 2,
+      playerX: 0,
+      playerY: 0,
+      targets: [
+        { targetId: 1, x: 108, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: -108, y: 0, healthRatio: 1, rank: "ordinary" }
+      ]
     }).runtime;
-    const refined = applyGongfaImprovement(heated, "counterflow-ring").runtime;
-    const strengthened = applyGongfaImprovement(refined, "gathering-heat").runtime;
-
-    expect(strengthened.burningRing).toMatchObject({
-      heat: 2.4,
-      heatBuildRate: 1.38,
-      ringSegments: 6,
-      counterflowRingSegments: 1,
-      counterflowRingAppliedSegments: 1
-    });
-    expect(planGongfaAttack(strengthened, 2000)).toEqual([
-      {
-        kind: "burning-ring-volley",
-        rotation: 1.8,
-        segmentCount: 7,
-        visibleSegments: 5,
-        ringRadius: 24
-      }
-    ]);
+    expect(heated.burningRing?.heat).toBe(15);
+    expect(planGongfaAttack(heated, 2000)).toEqual([]);
   });
 
-  it("restores durable Burning Ring state and emits a Solar Flare command", () => {
+  it("restores durable Burning Ring state without casting below full Heat", () => {
     const restored = createGongfaRuntime({
       gongfaId: "burning-ring-scripture",
       burningRing: {
@@ -1199,34 +1194,19 @@ describe("Gongfa runtime", () => {
       skill2Id: "solar-flare-cycle"
     });
 
-    expect(result.runtime.burningRing).toMatchObject({
-      heat: 39.675,
-      solarFlareCooldownRemaining: 2800,
-      solarFlareCasts: 3
-    });
-    expect(result.commands).toEqual([
-      {
-        kind: "solar-flare-cycle",
-        baseDamage: 8,
-        damageScale: 1,
-        segmentCount: 6,
-        ringRadius: 43,
-        masteryCast: {
-          skill2Id: "solar-flare-cycle"
-        }
-      }
-    ]);
+    expect(result.runtime.burningRing).toMatchObject({ heat: 29, solarFlareCasts: 2 });
+    expect(result.commands.some((command) => "masteryCast" in command)).toBe(false);
   });
 
-  it("builds heat from projectile hits without Phaser", () => {
+  it("does not build Heat from projectile hits", () => {
     const initial = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
     const result = advanceGongfaRuntime(initial, {
       kind: "projectile-hit",
       damage: 10
     });
 
-    expect(result.runtime.burningRing?.heat).toBe(1.5);
-    expect(result.runtime.combat.cooldownMs).toBeLessThan(initial.combat.cooldownMs);
+    expect(result.runtime.burningRing?.heat).toBe(0);
+    expect(result.runtime.combat.cooldownMs).toBe(initial.combat.cooldownMs);
   });
 
   it("owns Jinfeng momentum, refinements, and combat projection without Phaser", () => {
@@ -1921,38 +1901,48 @@ describe("Gongfa runtime", () => {
     expect(moving.commands.some((command) => command.kind === "aura-burst")).toBe(true);
   });
 
-  it("Condensed Furnace Ring trades segments for fiercer hotspots", () => {
+  const burningTarget = (targetId: number, rank: "ordinary" | "elite" | "boss" = "ordinary") =>
+    ({ targetId, x: 108, y: 0, healthRatio: 1, rank });
+
+  it("emits a persistent broken corona with real R3 geometry", () => {
     const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
-    const [base] = planGongfaAttack(ring, 0);
-    const [condensed] = planGongfaAttack(ring, 0, {
-      learnedMasteryIds: ["condensed-furnace-ring"]
-    });
-    if (base.kind !== "burning-ring-volley" || condensed.kind !== "burning-ring-volley") {
-      throw new Error("expected burning-ring-volley");
-    }
-    expect(condensed.segmentCount).toBeLessThan(base.segmentCount);
-    expect(condensed.damageScale).toBeGreaterThan(1);
-    expect(base.damageScale).toBeUndefined();
+    const base = advanceGongfaRuntime(ring, {
+      kind: "tick", deltaMs: 150, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [burningTarget(1)]
+    }).commands.find((command) => command.kind === "authored-burning-corona");
+    const twin = advanceGongfaRuntime(ring, {
+      kind: "tick", deltaMs: 150, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [burningTarget(1)], learnedMasteryIds: ["counter-rotating-twin-rings"]
+    }).commands.find((command) => command.kind === "authored-burning-corona");
+    const lone = advanceGongfaRuntime(ring, {
+      kind: "tick", deltaMs: 150, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [burningTarget(1)], learnedMasteryIds: ["furnace-heart-lone-ring"]
+    }).commands.find((command) => command.kind === "authored-burning-corona");
+    expect(base?.rings).toHaveLength(1);
+    expect(twin?.rings.map((candidate) => candidate.direction)).toEqual([1, -1]);
+    expect(lone?.rings[0]).toMatchObject({ segmentCount: 6, visibleSegments: 2 });
+    expect(lone!.rings[0]!.damage).toBeGreaterThan(base!.rings[0]!.damage);
   });
 
-  it("Scattered Ember Orbit flags the volley to leave burning patches", () => {
+  it("Wandering Luminary Rings exposes transition downtime", () => {
     const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
-    const [scattered] = planGongfaAttack(ring, 0, {
-      learnedMasteryIds: ["scattered-ember-orbit"]
+    const result = advanceGongfaRuntime(ring, {
+      kind: "tick", deltaMs: 150, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [burningTarget(1)], learnedMasteryIds: ["wandering-luminary-rings"]
     });
-    const [plain] = planGongfaAttack(ring, 0);
-    expect(scattered.kind === "burning-ring-volley" && scattered.scatterEmbers).toBe(true);
-    expect(plain.kind === "burning-ring-volley" && plain.scatterEmbers).toBeUndefined();
+    const corona = result.commands.find((command) => command.kind === "authored-burning-corona");
+    expect(corona?.rings).toEqual([]);
   });
 
   it("Banked Sun floors Heat decay at half", () => {
     const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
       kind: "tick",
-      deltaMs: 12000,
-      nearbyEnemyCount: 5,
-      isMoving: false
+      deltaMs: 1000,
+      nearbyEnemyCount: 1,
+      playerX: 0, playerY: 0,
+      targets: [burningTarget(1)]
     }).runtime;
-    expect(heated.burningRing!.heat).toBeGreaterThan(50);
+    heated.burningRing!.heat = 70;
 
     const banked = advanceGongfaRuntime(heated, {
       kind: "tick",
@@ -1971,106 +1961,63 @@ describe("Gongfa runtime", () => {
     expect(bled.burningRing!.heat).toBeLessThan(50);
   });
 
-  it("Aura Furnace stokes more Heat per hit", () => {
+  it("R6 paths weight distinct enemy ranks instead of hits", () => {
     const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
-    const hitFacts = {
-      sourceGongfaId: "burning-ring-scripture" as const,
-      targetId: 1,
-      damage: 10,
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    };
-
-    const furnace = advanceGongfaRuntimeForProjectileHit(ring, {
-      ...hitFacts,
-      learnedMasteryIds: ["aura-furnace"]
-    }).runtime;
-    const ordinary = advanceGongfaRuntimeForProjectileHit(ring, {
-      ...hitFacts,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(furnace.burningRing!.heat).toBeGreaterThan(ordinary.burningRing!.heat);
+    const tick = (learnedMasteryIds: string[], target: ReturnType<typeof burningTarget>) =>
+      advanceGongfaRuntime(ring, { kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1,
+        playerX: 0, playerY: 0, targets: [target], learnedMasteryIds }).runtime.burningRing!.heat;
+    expect(tick(["myriad-enemies-as-furnace"], burningTarget(1))).toBeGreaterThan(
+      tick(["lone-true-sun"], burningTarget(1))
+    );
+    expect(tick(["lone-true-sun"], burningTarget(2, "boss"))).toBeGreaterThan(
+      tick(["myriad-enemies-as-furnace"], burningTarget(2, "boss"))
+    );
   });
 
-  it("Meridian Ignition bursts and resets Heat at full", () => {
-    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
-      kind: "tick",
-      deltaMs: 12000,
-      nearbyEnemyCount: 10,
-      isMoving: false
-    }).runtime;
-    expect(full.burningRing!.heat).toBe(100);
-
-    const ignited = advanceGongfaRuntime(full, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 5,
-      isMoving: false,
-      learnedMasteryIds: ["meridian-ignition"]
-    });
-    expect(ignited.runtime.burningRing!.heat).toBeLessThan(100);
-    expect(ignited.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-  });
-
-  it("Perfect Solar Orbit adds Heat-scaled segments and closes ring gaps", () => {
-    const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
-      kind: "tick",
-      deltaMs: 12000,
-      nearbyEnemyCount: 5,
-      isMoving: false
-    }).runtime;
-    expect(heated.burningRing!.heat).toBeGreaterThan(40);
-
-    const [base] = planGongfaAttack(heated, 0);
-    const [perfect] = planGongfaAttack(heated, 0, {
-      learnedMasteryIds: ["perfect-solar-orbit"]
-    });
-    if (base.kind !== "burning-ring-volley" || perfect.kind !== "burning-ring-volley") {
-      throw new Error("expected burning-ring-volley");
-    }
-    expect(perfect.segmentCount).toBeGreaterThan(base.segmentCount);
-    expect(perfect.visibleSegments).toBe(perfect.segmentCount);
-  });
-
-  it("Sunspot Collapse condenses on a cooldown", () => {
+  it("Perfect-Sun closes gaps while draining and Sunspot widens them", () => {
     const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
-    const first = advanceGongfaRuntime(ring, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 3,
-      isMoving: false,
-      learnedMasteryIds: ["sunspot-collapse"]
-    });
-    expect(first.commands.some((command) => command.kind === "sunspot-collapse")).toBe(true);
-    expect(first.runtime.burningRing!.sunspotCooldownRemaining).toBeGreaterThan(0);
+    ring.burningRing!.heat = 80;
+    const perfect = advanceGongfaRuntime(ring, { kind: "tick", deltaMs: 150,
+      nearbyEnemyCount: 1, playerX: 0, playerY: 0, targets: [burningTarget(1)],
+      learnedMasteryIds: ["perfect-sun-consumption"] });
+    const perfectCorona = perfect.commands.find((command) => command.kind === "authored-burning-corona");
+    expect(perfectCorona?.rings[0]?.visibleSegments).toBe(8);
+    expect(perfect.runtime.burningRing!.heat).toBeLessThan(80);
 
-    const second = advanceGongfaRuntime(first.runtime, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 3,
-      isMoving: false,
-      learnedMasteryIds: ["sunspot-collapse"]
-    });
-    expect(second.commands.some((command) => command.kind === "sunspot-collapse")).toBe(false);
+    const sunspot = advanceGongfaRuntime(ring, { kind: "tick", deltaMs: 150,
+      nearbyEnemyCount: 1, playerX: 0, playerY: 0, targets: [burningTarget(1)],
+      learnedMasteryIds: ["sunspot-lure"] });
+    const sunspotCorona = sunspot.commands.find((command) => command.kind === "authored-burning-corona");
+    expect(sunspotCorona).toMatchObject({ sunspotLure: true });
+    expect(sunspotCorona?.rings[0]?.visibleSegments).toBe(3);
   });
 
-  it("Phoenix Passage leaves a ring copy on Evade", () => {
-    const heated = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "burning-ring-scripture" }), {
-      kind: "tick",
-      deltaMs: 12000,
-      nearbyEnemyCount: 5,
-      isMoving: false
-    }).runtime;
+  it("Reverse-Wheel Reflection spends Heat and reverses without spawning attacks", () => {
+    const heated = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
+    heated.burningRing!.heat = 40;
 
     const evaded = advanceGongfaRuntime(heated, {
       kind: "evade",
-      learnedMasteryIds: ["phoenix-passage"]
+      learnedMasteryIds: ["reverse-wheel-reflection"]
     });
-    expect(evaded.commands.some((command) => command.kind === "burning-ring-volley")).toBe(true);
+    expect(evaded.runtime.burningRing).toMatchObject({ heat: 22, rotationDirection: -1 });
+    expect(evaded.commands).toHaveLength(0);
+  });
 
-    const inert = advanceGongfaRuntime(heated, { kind: "evade", learnedMasteryIds: [] });
-    expect(inert.commands).toHaveLength(0);
+  it("Sunlit Guard requires full Heat and danger, prevents damage, then consumes Heat", () => {
+    const ring = createGongfaRuntime({ gongfaId: "burning-ring-scripture" });
+    ring.burningRing!.heat = 100;
+    const cast = advanceGongfaRuntime(ring, { kind: "tick", deltaMs: 16,
+      nearbyEnemyCount: 1, playerX: 0, playerY: 0, targets: [burningTarget(1)],
+      skill2Id: "solar-flare-cycle" });
+    expect(cast.commands.find((command) => command.kind === "authored-burning-corona")).toMatchObject({
+      guard: true, pushStrength: 300, masteryCast: { skill2Id: "solar-flare-cycle" }
+    });
+    const blocked = advanceGongfaRuntime(cast.runtime, { kind: "incoming-damage", amount: 999 });
+    expect(blocked.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 0 });
+    const ended = advanceGongfaRuntime(cast.runtime, { kind: "tick", deltaMs: 1300,
+      nearbyEnemyCount: 0, playerX: 0, playerY: 0, targets: [], skill2Id: "solar-flare-cycle" });
+    expect(ended.runtime.burningRing).toMatchObject({ guardRemaining: 0, heat: 0 });
   });
 
   it("applies Crimson Furnace rank-3 and rank-6 structural Transformations", () => {

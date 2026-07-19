@@ -1529,7 +1529,7 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   expect(snapshot.progression.bladeShellCasts).toBeGreaterThan(0);
 });
 
-test("Burning Ring Scripture builds Heat and accelerates aura cycling", async ({ page }) => {
+test("Burning Ring Scripture builds Heat only while distinct enemies occupy its danger band", async ({ page }) => {
   await startNewRun(page, "fire");
   await claimOpeningLingcao(page);
   await page.evaluate(() => {
@@ -1554,6 +1554,10 @@ test("Burning Ring Scripture builds Heat and accelerates aura cycling", async ({
   expect(snapshot.progression.heat).toBeGreaterThan(0);
   expect(snapshot.progression.heat).toBeLessThanOrEqual(100);
   expect(snapshot.combat.cooldownMs).toBeLessThan(beforeHeatCooldown);
+  expect(snapshot.visuals.gongfaMotifs).toContain("revolving-corona:broken-corona");
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "burning-ring-scripture"
+  )).toBe(false);
 });
 
 test("Blazing Feather Art unlocks Feather Rain Formation as an observable Skill 2", async ({

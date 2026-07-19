@@ -87,10 +87,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "天羽焚阵", description: "多轮炎羽落向最密集的敌群，并继续追索幸存目标。" }
   },
   "burning-ring-scripture": {
-    name: "焚轮经", lore: "烈焰环身，以持续近战灼尽群敌。", combatRole: "高风险近身火环，持续贴敌可换取强大回报。", visualMotif: "分节日轮、逆向旋火与扩散炎冕。",
-    skill1: { name: "旋焰轮", description: "分节火环绕身旋转，反复灼烧近敌，并保留可辨认的间隙。" },
-    passive: { name: "燃脉", resource: "热力", description: "火环接触不同目标积累热力，加速所有环域类术法。" },
-    skill2: { name: "日耀轮回", description: "两重完整日轮成形，释放受热力强化的波动，同时维持旋焰。" }
+    name: "焚轮经", lore: "旋焰缺轮随身而行，以近险养热，以满阳守身。", combatRole: "有真实缺口的近身实体日轮；维持不同敌人在危险带内才能蓄热。", visualMotif: "金赤实体焰段、醒目暗隙与短暂闭合的护体日冕。",
+    skill1: { name: "旋焰缺轮", description: "实体焰段随修士转动，只有焰段接触造成伤害，清晰可见的缺口完全无伤。" },
+    passive: { name: "燃脉热力", resource: "热力", description: "危险带内每个不同敌人独立供热；重复命中无效，离开近险会迅速冷却。" },
+    skill2: { name: "日耀护轮", description: "满热且近身有敌时短暂闭合全部缺口，免疫伤害、焚除近处敌术并推开敌人，结束后耗尽热力。" }
   },
   "scarlet-wave-manual": {
     name: "赤浪真诀", lore: "左潮留痕，右潮映月；两面真交，方生熔缝。", combatRole: "先保留一面左月潮，再施镜像右月潮；只有两片真实波面相交才生成第三条移动熔缝。", visualMotif: "左右可分辨的赤月波面、只在交点生成的亮金熔缝与对岸巨潮。",
@@ -821,41 +821,41 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "不间断的前进",
     "lore": "高防御运动会攻击附近的敌人并增强闪避能力。"
   },
-  "counterflow-ring": {
-    "name": "逆流环",
-    "lore": "添加第二个具有交叉热区的反向旋转环。"
+  "counter-rotating-twin-rings": {
+    "name": "双轮逆转",
+    "lore": "内外两道弱轮逆向转动，交点灼伤更强，但非交点伤害下降。"
   },
-  "condensed-furnace-ring": {
-    "name": "冷凝炉环",
-    "lore": "将片段合并为更少、更激烈的优先燃烧热点。"
+  "furnace-heart-lone-ring": {
+    "name": "熔心孤轮",
+    "lore": "只保留两段缓慢重焰，单段伤害大增，同时留下巨大缺口。"
   },
-  "scattered-ember-orbit": {
-    "name": "分散的余烬轨道",
-    "lore": "分段撞击会在环的尾迹中留下短暂的燃烧痕迹。"
+  "wandering-luminary-rings": {
+    "name": "游曜错环",
+    "lore": "日轮在内外危险带间交替，每次换轨都会短暂停转。"
   },
   "banked-sun": {
-    "name": "太阳银行",
-    "lore": "一旦加热，热量就不会再流失到一半以下。"
+    "name": "藏阳守轮",
+    "lore": "热力达到一半后不再跌破五十，但上限降至七十八，无法形成满热护轮。"
   },
-  "aura-furnace": {
-    "name": "灵气熔炉",
-    "lore": "任何带有光环标记的技能命中都会明显增加热量。"
+  "myriad-enemies-as-furnace": {
+    "name": "众敌为炉",
+    "lore": "不同普通敌人供热更强，精英与首领供热很弱。"
   },
-  "meridian-ignition": {
-    "name": "经络点火",
-    "lore": "全热会引发短暂的高输出爆发，然后重置。"
+  "lone-true-sun": {
+    "name": "独镇真阳",
+    "lore": "精英与首领供热更强，普通敌人供热很弱。"
   },
-  "perfect-solar-orbit": {
-    "name": "完美的太阳轨道",
-    "lore": "热量会增加环段并闭合轨道间隙。"
+  "perfect-sun-consumption": {
+    "name": "完阳蚀火",
+    "lore": "高热时闭合全部轮位，但维持完整日轮会持续消耗热力。"
   },
-  "sunspot-collapse": {
-    "name": "太阳黑子崩溃",
-    "lore": "定期将戒指凝聚到附近最坚固的敌人身上。"
+  "sunspot-lure": {
+    "name": "黑子纳敌",
+    "lore": "扩大缺口并减速入隙敌人，随后捕获它的焰段造成重伤。"
   },
-  "phoenix-passage": {
-    "name": "凤凰通道",
-    "lore": "每次逃避都会在其起源处留下一个临时的热鳞环副本。"
+  "reverse-wheel-reflection": {
+    "name": "逆轮回照",
+    "lore": "闪避消耗十八热力并逆转现有日轮，不会生成额外攻击。"
   },
   "crimson-piercing-needles": {
     "name": "穿孔炉针",
@@ -926,12 +926,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "rebounding-edge": { name: "回弹锋刃" },
   "iron-wake": { name: "铁壁留痕" },
   "gengjin-fortress": { name: "庚金堡垒" },
-  "banked-sun": { name: "蕴日藏火" },
-  "aura-furnace": { name: "环域熔炉" },
-  "meridian-ignition": { name: "经脉点燃" },
-  "perfect-solar-orbit": { name: "圆满日轮" },
-  "sunspot-collapse": { name: "日斑坍缩" },
-  "phoenix-passage": { name: "凤凰过隙" },
+  "counter-rotating-twin-rings": { name: "双轮逆转", gain: "生成内外两道逆转日轮，交点追加伤害", cost: "每道日轮在非交点处伤害降低 28%", scope: "日轮层数、转向与分节接触" },
+  "furnace-heart-lone-ring": { name: "熔心孤轮", gain: "只留两段重焰，单段伤害提高 85%", cost: "六个轮位只占两个，缺口显著扩大", scope: "日轮转速、覆盖与分节伤害" },
+  "wandering-luminary-rings": { name: "游曜错环", gain: "日轮在 76 与 138 距离的危险带间交替", cost: "每次换轨有 250 毫秒无焰空档", scope: "日轮半径与持续时间" },
+  "banked-sun": { name: "藏阳守轮", gain: "达到五十热力后最低保留五十", cost: "热力上限降至七十八，无法发动满热护轮", scope: "燃脉热力的下限与上限" },
+  "myriad-enemies-as-furnace": { name: "众敌为炉", gain: "每个不同普通敌人的供热提高至 1.4 倍", cost: "精英仅供热 0.65 倍，首领仅供热 0.2 倍", scope: "不同敌人的热力权重" },
+  "lone-true-sun": { name: "独镇真阳", gain: "精英供热 1.55 倍，首领供热 2.2 倍", cost: "普通敌人仅供热 0.2 倍", scope: "不同敌人的热力权重" },
+  "perfect-sun-consumption": { name: "完阳蚀火", gain: "热力不低于七十二时闭合八个轮位", cost: "完整日轮每秒消耗十点热力", scope: "高热覆盖与持续消耗" },
+  "sunspot-lure": { name: "黑子纳敌", gain: "入隙敌人减速，捕获焰段伤害提高 85%", cost: "八个轮位只保留三个", scope: "缺口、减速与下一次焰段接触" },
+  "reverse-wheel-reflection": { name: "逆轮回照", gain: "闪避逆转全部现有日轮", cost: "每次逆转消耗十八热力，且不生成攻击", scope: "闪避与现有日轮转向" },
   "crimson-piercing-needles": { name: "赤炉贯针" },
   "volatile-embeds": { name: "易爆埋针" },
   "sustained-crucible": { name: "恒压熔炉" },

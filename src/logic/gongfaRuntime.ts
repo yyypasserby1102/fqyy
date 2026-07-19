@@ -175,6 +175,11 @@ export interface BurningRingState {
   solarFlareCooldownRemaining: number;
   solarFlareCasts: number;
   sunspotCooldownRemaining: number;
+  rotation: number;
+  rotationDirection: 1 | -1;
+  coronaTickRemaining: number;
+  radiusPhaseRemaining: number;
+  guardRemaining: number;
 }
 
 export interface CrimsonFurnaceState {
@@ -333,22 +338,21 @@ export type GongfaRuntimeCommand =
       count: number;
     }
   | {
-      kind: "burning-ring-volley";
+      kind: "authored-burning-corona";
       rotation: number;
-      segmentCount: number;
-      visibleSegments: number;
-      ringRadius: number;
-      damageScale?: number;
-      scatterEmbers?: boolean;
-    }
-  | { kind: "sunspot-collapse"; radius: number; damage: number }
-  | {
-      kind: "solar-flare-cycle";
-      segmentCount: number;
-      ringRadius: number;
-      damageScale: number;
-      baseDamage: number;
-      masteryCast: MasterySkill2Cast;
+      rings: Array<{
+        radius: number;
+        direction: 1 | -1;
+        segmentCount: number;
+        visibleSegments: number;
+        arcFraction: number;
+        damage: number;
+      }>;
+      guard: boolean;
+      sunspotLure: boolean;
+      pushStrength: number;
+      sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
     }
   | {
       kind: "blade-shell-rebound";
@@ -1550,7 +1554,12 @@ const burningRingDefaults: BurningRingState = {
   counterflowRingCooldownRemaining: 0,
   solarFlareCooldownRemaining: 0,
   solarFlareCasts: 0,
-  sunspotCooldownRemaining: 0
+  sunspotCooldownRemaining: 0,
+  rotation: 0,
+  rotationDirection: 1,
+  coronaTickRemaining: 0,
+  radiusPhaseRemaining: 1800,
+  guardRemaining: 0
 };
 
 const crimsonFurnaceDefaults: CrimsonFurnaceState = {
@@ -3487,6 +3496,29 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "solar-flare-cycle" && next.burningRing) {
+      const closeDanger = (event.nearbyEnemyCount ?? 0) > 0;
+      if (next.burningRing.heat >= 99.5 && closeDanger && next.burningRing.guardRemaining <= 0) {
+        next.burningRing.guardRemaining = 1250;
+        next.burningRing.solarFlareCasts += 1;
+        commands.push({
+          kind: "authored-burning-corona",
+          rotation: next.burningRing.rotation,
+          rings: [{
+            radius: 108, direction: next.burningRing.rotationDirection,
+            segmentCount: 12, visibleSegments: 12, arcFraction: 0.94,
+            damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.7))
+          }],
+          guard: true, sunspotLure: false, pushStrength: 300,
+          sourceGongfaId: next.gongfaId,
+          masteryCast: {
+            skill2Id: "solar-flare-cycle",
+            cooldownMs: Math.floor(authoredSkill2Plans["solar-flare-cycle"].cooldownMs * skill2Stats.cadenceScale)
+          }
+        });
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "sunset-wave-apex" && next.gongfaId === "scarlet-wave-manual") {
       const record = next.authored.anchors.find((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
       if (next.authored.cycleCount >= 3 && record) {
@@ -4032,12 +4064,8 @@ export function advanceGongfaRuntime(
     if (!state) {
       return { runtime: next, commands };
     }
-    // Aura Furnace: aura-tagged hits stoke markedly more Heat.
-    const heatGain = (event.learnedMasteryIds ?? []).includes("aura-furnace")
-      ? Math.max(0.8, event.damage * 0.3)
-      : Math.max(0.4, event.damage * 0.15);
-    state.heat = Math.min(100, state.heat + heatGain);
-    syncBurningRingCombat(next);
+    // Burning Ring Heat is maintained by distinct bodies in its danger band;
+    // repeated projectile/segment hits never generate Heat.
     return { runtime: next, commands };
   }
 
@@ -4116,8 +4144,7 @@ export function advanceGongfaRuntime(
       syncYujianCombat(next);
     }
     if (next.burningRing && event.learnedMasteryIds.includes("ember-step")) {
-      next.burningRing.heat = Math.min(100, next.burningRing.heat + 8);
-      syncBurningRingCombat(next);
+      next.burningRing.rotation += Math.PI / 3;
     }
     // Flowing Iron Body: each Evade grants Guard and a defensive shockwave.
     if (next.gengjin && event.learnedMasteryIds.includes("flowing-iron-body")) {
@@ -4161,16 +4188,12 @@ export function advanceGongfaRuntime(
         commands.push({ kind: "homing-volley", count });
       }
     }
-    // Phoenix Passage: leave a Heat-scaled ring copy at the Evade's origin.
-    if (next.burningRing && event.learnedMasteryIds.includes("phoenix-passage")) {
-      const extraSegments = Math.floor(next.burningRing.heat / 15);
-      commands.push({
-        kind: "burning-ring-volley",
-        rotation: 0,
-        segmentCount: 6 + extraSegments,
-        visibleSegments: Math.max(4, 4 + extraSegments),
-        ringRadius: 24 + Math.floor(next.burningRing.heat * 0.3)
-      });
+    // Reverse-Wheel Reflection changes the existing corona; it never spawns
+    // an attack at the Evade origin.
+    if (next.burningRing && event.learnedMasteryIds.includes("reverse-wheel-reflection") && next.burningRing.heat >= 18) {
+      next.burningRing.rotationDirection = next.burningRing.rotationDirection === 1 ? -1 : 1;
+      next.burningRing.heat -= 18;
+      syncBurningRingCombat(next);
     }
     return { runtime: next, commands };
   }
@@ -4241,6 +4264,11 @@ export function advanceGongfaRuntime(
       next.authored.charges > 0 && (event.healthRatio ?? 1) <= 0.12) {
       next.authored.charges -= 1;
       next.authored.resource = next.authored.charges / Math.max(1, next.authored.maxCharges);
+      commands.push({ kind: "incoming-damage", finalDamage: 0 });
+      return { runtime: next, commands };
+    }
+
+    if (next.burningRing?.guardRemaining && next.burningRing.guardRemaining > 0) {
       commands.push({ kind: "incoming-damage", finalDamage: 0 });
       return { runtime: next, commands };
     }
@@ -4505,68 +4533,115 @@ export function advanceGongfaRuntime(
 
   const state = next.burningRing;
   const burningLearnedMasteryIds = event.learnedMasteryIds ?? [];
-  if (event.nearbyEnemyCount > 0) {
+  const playerX = event.playerX ?? 0;
+  const playerY = event.playerY ?? 0;
+  const dangerTargets = (event.targets ?? []).filter((target) => {
+    const distance = Math.hypot(target.x - playerX, target.y - playerY);
+    return distance >= 48 && distance <= next.combat.auraRadius + 82;
+  });
+  const heatWeight = (target: AuthoredTargetFact): number => {
+    if (burningLearnedMasteryIds.includes("myriad-enemies-as-furnace")) {
+      return target.rank === "ordinary" ? 1.4 : target.rank === "elite" ? 0.65 : 0.2;
+    }
+    if (burningLearnedMasteryIds.includes("lone-true-sun")) {
+      return target.rank === "boss" ? 2.2 : target.rank === "elite" ? 1.55 : 0.2;
+    }
+    return 1;
+  };
+  const heatCap = burningLearnedMasteryIds.includes("banked-sun") ? 78 : 100;
+  if (dangerTargets.length > 0) {
+    const distinctWeight = dangerTargets.reduce((sum, target) => sum + heatWeight(target), 0);
     state.heat = Math.min(
-      100,
-      state.heat + event.nearbyEnemyCount * state.heatBuildRate * deltaSeconds
+      heatCap,
+      state.heat + distinctWeight * 7.5 * (state.heatBuildRate / burningRingDefaults.heatBuildRate) * deltaSeconds
     );
   } else {
-    // Banked Sun: stoked Heat no longer bleeds below half.
     const heatFloor =
       burningLearnedMasteryIds.includes("banked-sun") && state.heat >= 50 ? 50 : 0;
-    state.heat = Math.max(heatFloor, state.heat - state.heatDecayRate * deltaSeconds);
+    state.heat = Math.max(
+      heatFloor,
+      state.heat - 22 * (state.heatDecayRate / burningRingDefaults.heatDecayRate) * deltaSeconds
+    );
   }
-
-  // Meridian Ignition: full Heat ignites into a high-output burst, then resets.
-  if (burningLearnedMasteryIds.includes("meridian-ignition") && state.heat >= 100) {
-    state.heat = 20;
+  next.mastery.masterySkill2CooldownRemaining = Math.max(
+    0,
+    next.mastery.masterySkill2CooldownRemaining - event.deltaMs
+  );
+  if (
+    event.skill2Id === "solar-flare-cycle" &&
+    state.heat >= 99.5 &&
+    dangerTargets.length > 0 &&
+    state.guardRemaining <= 0 &&
+    next.mastery.masterySkill2CooldownRemaining === 0
+  ) {
+    const skill2Stats = skill2RefinementStats(next);
+    state.guardRemaining = 1250;
+    state.solarFlareCasts += 1;
     commands.push({
-      kind: "aura-burst",
-      damage: Math.max(1, Math.floor(next.combat.damage * 1.8)),
-      count: 12
+      kind: "authored-burning-corona",
+      rotation: state.rotation,
+      rings: [{
+        radius: 108, direction: state.rotationDirection,
+        segmentCount: 12, visibleSegments: 12, arcFraction: 0.94,
+        damage: Math.max(1, Math.floor(skill2Combat(next).damage * skill2Stats.damageScale * 0.7))
+      }],
+      guard: true, sunspotLure: false, pushStrength: 300,
+      sourceGongfaId: next.gongfaId,
+      masteryCast: {
+        skill2Id: "solar-flare-cycle",
+        cooldownMs: Math.floor(authoredSkill2Plans["solar-flare-cycle"].cooldownMs * skill2Stats.cadenceScale)
+      }
     });
   }
-
-  // Sunspot Collapse: periodically condense the ring onto a sturdy nearby enemy.
-  state.sunspotCooldownRemaining = Math.max(
-    0,
-    state.sunspotCooldownRemaining - Math.max(0, event.deltaMs)
-  );
-  if (burningLearnedMasteryIds.includes("sunspot-collapse") && state.sunspotCooldownRemaining === 0) {
-    state.sunspotCooldownRemaining = 2000;
+  state.guardRemaining = Math.max(0, state.guardRemaining - event.deltaMs);
+  if (state.guardRemaining === 0 && next.authored.phase === 2) {
+    state.heat = 0;
+    next.authored.phase = 0;
+  } else if (state.guardRemaining > 0) {
+    next.authored.phase = 2;
+  }
+  const perfectSunActive =
+    burningLearnedMasteryIds.includes("perfect-sun-consumption") &&
+    state.heat >= 72 &&
+    state.guardRemaining <= 0;
+  if (perfectSunActive) state.heat = Math.max(0, state.heat - 10 * deltaSeconds);
+  state.rotation += deltaSeconds *
+    (burningLearnedMasteryIds.includes("furnace-heart-lone-ring") ? 0.7 : 1.55);
+  state.radiusPhaseRemaining = Math.max(0, state.radiusPhaseRemaining - event.deltaMs);
+  if (state.radiusPhaseRemaining === 0) {
+    state.radiusPhaseRemaining = burningLearnedMasteryIds.includes("wandering-luminary-rings") ? 1650 : 1800;
+    next.authored.phase = next.authored.phase === 1 ? 0 : 1;
+  }
+  state.coronaTickRemaining = Math.max(0, state.coronaTickRemaining - event.deltaMs);
+  if (state.coronaTickRemaining === 0) {
+    state.coronaTickRemaining = 150;
+    const fullGuard = state.guardRemaining > 0;
+    const perfect = perfectSunActive;
+    const lone = burningLearnedMasteryIds.includes("furnace-heart-lone-ring");
+    const twin = burningLearnedMasteryIds.includes("counter-rotating-twin-rings");
+    const wandering = burningLearnedMasteryIds.includes("wandering-luminary-rings");
+    const transition = wandering && state.radiusPhaseRemaining > 1400;
+    const baseDamage = Math.max(1, Math.floor(next.combat.damage * (lone ? 1.85 : 0.72)));
+    const visibleSegments = fullGuard ? 12 : perfect ? 8 :
+      burningLearnedMasteryIds.includes("sunspot-lure") ? 3 : lone ? 2 : 5;
+    const baseRadius = next.combat.auraRadius + 18;
+    const rings = transition ? [] : twin
+      ? [
+          { radius: baseRadius - 26, direction: state.rotationDirection, segmentCount: 6, visibleSegments: fullGuard ? 6 : 4, arcFraction: fullGuard ? 0.96 : 0.58, damage: Math.floor(baseDamage * 0.72) },
+          { radius: baseRadius + 24, direction: state.rotationDirection === 1 ? -1 as const : 1 as const, segmentCount: 6, visibleSegments: fullGuard ? 6 : 4, arcFraction: fullGuard ? 0.96 : 0.58, damage: Math.floor(baseDamage * 0.72) }
+        ]
+      : [{
+          radius: wandering ? (next.authored.phase === 0 ? baseRadius - 32 : baseRadius + 30) : baseRadius,
+          direction: state.rotationDirection, segmentCount: fullGuard ? 12 : lone ? 6 : 8,
+          visibleSegments, arcFraction: fullGuard ? 0.96 : perfect ? 0.9 : lone ? 0.48 : 0.62, damage: baseDamage
+        }];
     commands.push({
-      kind: "sunspot-collapse",
-      radius: 220,
-      damage: Math.max(1, Math.floor(next.combat.damage * 1.5 + state.heat))
+      kind: "authored-burning-corona", rotation: state.rotation, rings,
+      guard: fullGuard, sunspotLure: burningLearnedMasteryIds.includes("sunspot-lure"),
+      pushStrength: fullGuard ? 300 : 0, sourceGongfaId: next.gongfaId
     });
   }
   syncBurningRingCombat(next);
-
-  const skill2 = getAuthoredSkill2Plan(event.skill2Id);
-  if (skill2?.intent === "solar-flare-cycle") {
-    const skill2Stats = skill2RefinementStats(next);
-    state.solarFlareCooldownRemaining = Math.max(
-      0,
-      state.solarFlareCooldownRemaining - Math.max(0, event.deltaMs)
-    );
-    if (state.solarFlareCooldownRemaining === 0) {
-      state.solarFlareCasts += 1;
-      state.solarFlareCooldownRemaining = Math.floor(skill2.cooldownMs * skill2Stats.cadenceScale);
-      commands.push({
-        kind: "solar-flare-cycle",
-        segmentCount: Math.max(
-          6,
-          state.ringSegments + state.counterflowRingAppliedSegments + skill2Stats.coverage * 2
-        ),
-        ringRadius: 32 + Math.floor(state.heat * 0.3) + state.counterflowRingRadiusBonus + skill2Stats.coverage * 10,
-        damageScale: skill2Stats.damageScale,
-        baseDamage: skill2Combat(next).damage,
-        masteryCast: {
-          skill2Id: "solar-flare-cycle"
-        }
-      });
-    }
-  }
 
   return { runtime: next, commands };
 }
@@ -5229,32 +5304,9 @@ export function planGongfaAttack(
   if (!state) {
     return [];
   }
-
-  const learnedMasteryIds = options.learnedMasteryIds ?? [];
-  const baseSegmentCount = Math.max(
-    6,
-    state.ringSegments + state.counterflowRingAppliedSegments
-  );
-  // Condensed Furnace Ring: merge into fewer, fiercer priority-burning hotspots.
-  const condensed = learnedMasteryIds.includes("condensed-furnace-ring");
-  // Perfect Solar Orbit: Heat adds segments and closes the ring's gaps.
-  const perfectOrbit = learnedMasteryIds.includes("perfect-solar-orbit");
-  const segmentCount =
-    (condensed ? Math.max(3, Math.floor(baseSegmentCount / 2)) : baseSegmentCount) +
-    (perfectOrbit ? Math.floor(state.heat / 20) : 0);
-  return [
-    {
-      kind: "burning-ring-volley",
-      rotation: (Math.max(0, elapsedMs) / 1000) * 0.9,
-      segmentCount,
-      visibleSegments: perfectOrbit
-        ? segmentCount
-        : Math.min(segmentCount, Math.max(4, segmentCount - 2)),
-      ringRadius: 24 + Math.floor(state.heat * 0.3),
-      ...(condensed ? { damageScale: 1.8 } : {}),
-      ...(learnedMasteryIds.includes("scattered-ember-orbit") ? { scatterEmbers: true } : {})
-    }
-  ];
+  // The corona is a persistent body advanced by tick facts, not an attack
+  // volley. The normal attack scheduler must never launch a substitute wave.
+  return [];
 }
 
 export interface CrimsonTargetFact {

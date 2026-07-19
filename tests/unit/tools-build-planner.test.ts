@@ -55,8 +55,8 @@ describe("FQYY Tools build planner", () => {
     expect(summary.skillNames).toEqual([
       "Furnace Needles",
       "Furnace Cascade",
-      "Revolving Flame Ring",
-      "Solar Flare Cycle"
+      "Revolving Broken Corona",
+      "Sunlit Guard Ring"
     ]);
     expect(summary.synergies.map((item) => item.title)).toContain("Shared fire core");
     expect(summary.synergies.map((item) => item.title)).toContain("Layered engagement");

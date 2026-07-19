@@ -62,11 +62,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "feather-rain-formation", name: "Feather Rain Formation", description: "Successive fans of fire feathers descend on the densest cluster and retarget surviving enemies.", tags: ["homing", "projectile", "fire"] }
   },
   "burning-ring-scripture": {
-    combatRole: "Risky close orbit that rewards sustained contact with enemy packs.",
-    visualMotif: "Segmented orange solar rings, counter-rotation, and expanding coronas.",
-    skill1: { id: "revolving-flame-ring", name: "Revolving Flame Ring", description: "Flame segments rotate around the Cultivator, repeatedly scorching enemies while leaving readable gaps.", tags: ["aura", "fire"] },
-    passive: { name: "Kindled Meridians", resource: "Heat", description: "Unique aura targets build Heat, accelerating all aura-tagged Skills until it decays." },
-    skill2: { id: "solar-flare-cycle", name: "Solar Flare Cycle", description: "Two complete solar rings form and release Heat-scaled waves while the flame ring keeps turning.", tags: ["aura", "fire", "explosive"] }
+    combatRole: "A physical broken corona that rewards holding distinct enemies inside a dangerous close band.",
+    visualMotif: "Gold-red solid fire arcs orbit the moving Cultivator with large, readable black gaps.",
+    skill1: { id: "revolving-flame-ring", name: "Revolving Broken Corona", description: "Persistent flame segments follow the Cultivator; only physical arc contact deals damage and the visible gaps remain harmless.", tags: ["aura", "fire"] },
+    passive: { name: "Kindled Heat", resource: "Heat", description: "Each distinct enemy maintained in the danger band contributes Heat once per sample; hits add nothing and retreat cools it rapidly." },
+    skill2: { id: "solar-flare-cycle", name: "Sunlit Guard Ring", description: "At full Heat near danger, every gap closes briefly to prevent damage, burn nearby hostile projectiles, and push close enemies before consuming all Heat.", tags: ["aura", "fire", "defensive"] }
   },
   "scarlet-wave-manual": {
     combatRole: "Alternates one preserved left crescent and one mirrored right crescent; only real spatial overlap creates a third moving seam.",

@@ -822,30 +822,30 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
     exclusivityGroup: "gengjin-huti:rank-9"
   },
   {
-    // Counterflow Ring keeps its existing effect in upgradeConfigs (durable,
-    // checkpointed runtime state); registering it here promotes it from an
-    // ordinary refinement to its proper rank-3 Transformation milestone.
-    id: "counterflow-ring",
-    name: "Counterflow Ring",
-    lore: "Add a second counter-rotating ring with intersection hot zones.",
+    id: "counter-rotating-twin-rings",
+    name: "Counter-Rotating Twin Rings",
+    lore: "Gain two weaker inner and outer coronas whose intersections burn harder; pay with lower damage away from intersections.",
+    playstyle: "Intersection weaving", gain: "Two counter-rotating danger bands; double contact gains intersection damage", cost: "Each ring deals 28% less damage outside intersections", scope: "Corona geometry and segment contact", treasureInteraction: "Spirit Treasure effects apply after segment contact",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 3,
     exclusivityGroup: "burning-ring-scripture:rank-3"
   },
   {
-    id: "condensed-furnace-ring",
-    name: "Condensed Furnace Ring",
-    lore: "Merge segments into fewer, fiercer priority-burning hotspots.",
+    id: "furnace-heart-lone-ring",
+    name: "Furnace-Heart Lone Ring",
+    lore: "Gain two slow, heavy segments; pay with enormous openings between them.",
+    playstyle: "Heavy gap timing", gain: "+85% segment damage with two slow heavy arcs", cost: "Only two of six slots are occupied, leaving enormous gaps", scope: "Corona speed, coverage, and segment damage", treasureInteraction: "Spirit Treasure effects apply after segment contact",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 3,
     exclusivityGroup: "burning-ring-scripture:rank-3"
   },
   {
-    id: "scattered-ember-orbit",
-    name: "Scattered Ember Orbit",
-    lore: "Segment hits leave short-lived burning patches in the ring's wake.",
+    id: "wandering-luminary-rings",
+    name: "Wandering Luminary Rings",
+    lore: "Gain alternating inner and outer danger bands; pay with visible transition downtime.",
+    playstyle: "Alternating range", gain: "Corona alternates between 76 and 138 range", cost: "Each radius change has 250 ms with no active segment", scope: "Corona radius and uptime", treasureInteraction: "Spirit Treasure effects apply after segment contact",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 3,
@@ -854,52 +854,58 @@ export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
   {
     id: "banked-sun",
     name: "Banked Sun",
-    lore: "Heat no longer bleeds below half once it is stoked.",
+    lore: "Gain a half-Heat floor after stoking; pay with a lower Heat ceiling that cannot form Sunlit Guard.",
+    playstyle: "Steady bank", gain: "Heat no longer falls below 50 after reaching it", cost: "Heat is capped at 78, disabling the full-Heat Guard", scope: "Kindled Heat floor and ceiling", treasureInteraction: "Spirit Treasure effects do not bypass the Heat ceiling",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 6,
     exclusivityGroup: "burning-ring-scripture:rank-6"
   },
   {
-    id: "aura-furnace",
-    name: "Aura Furnace",
-    lore: "Any aura-tagged Skill hit stokes markedly more Heat.",
+    id: "myriad-enemies-as-furnace",
+    name: "Myriad Enemies as Furnace",
+    lore: "Gain much more Heat from distinct ordinary enemies; elite and boss bodies contribute little.",
+    playstyle: "Crowd furnace", gain: "Each distinct ordinary enemy contributes 1.4× Heat", cost: "Elites contribute 0.65× and bosses 0.2× Heat", scope: "Distinct-enemy Heat weighting", treasureInteraction: "Spirit Treasure hits never count as new Heat sources",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 6,
     exclusivityGroup: "burning-ring-scripture:rank-6"
   },
   {
-    id: "meridian-ignition",
-    name: "Meridian Ignition",
-    lore: "Full Heat ignites into a brief high-output burst, then resets.",
+    id: "lone-true-sun",
+    name: "Lone True Sun",
+    lore: "Gain much more Heat from elite and boss contact; ordinary enemies contribute little.",
+    playstyle: "Champion furnace", gain: "Elites contribute 1.55× and bosses 2.2× Heat", cost: "Ordinary enemies contribute only 0.2× Heat", scope: "Distinct-enemy Heat weighting", treasureInteraction: "Spirit Treasure hits never count as new Heat sources",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 6,
     exclusivityGroup: "burning-ring-scripture:rank-6"
   },
   {
-    id: "perfect-solar-orbit",
-    name: "Perfect Solar Orbit",
-    lore: "Heat adds ring segments and closes the orbit's gaps.",
+    id: "perfect-sun-consumption",
+    name: "Perfect-Sun Consumption",
+    lore: "Gain a nearly complete corona above high Heat; pay continuous Heat while its gaps remain closed.",
+    playstyle: "Consume the perfect sun", gain: "At 72+ Heat, all eight corona slots close", cost: "The complete corona drains 10 Heat per second", scope: "High-Heat corona coverage and drain", treasureInteraction: "Spirit Treasure effects do not stop the Heat drain",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 9,
     exclusivityGroup: "burning-ring-scripture:rank-9"
   },
   {
-    id: "sunspot-collapse",
-    name: "Sunspot Collapse",
-    lore: "Periodically condense the ring onto the sturdiest nearby enemy.",
+    id: "sunspot-lure",
+    name: "Sunspot Lure",
+    lore: "Gain slowing gaps and a powerful catching segment; pay with wider openings and lower steady coverage.",
+    playstyle: "Bait through the sunspot", gain: "Gap entrants are slowed; the segment that catches them deals +85% damage", cost: "Only three of eight slots remain occupied", scope: "Corona gaps, slow, and next segment contact", treasureInteraction: "Spirit Treasure control applies after the sunspot slow",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 9,
     exclusivityGroup: "burning-ring-scripture:rank-9"
   },
   {
-    id: "phoenix-passage",
-    name: "Phoenix Passage",
-    lore: "Each Evade leaves a temporary Heat-scaled ring copy at its origin.",
+    id: "reverse-wheel-reflection",
+    name: "Reverse-Wheel Reflection",
+    lore: "Evade reverses the existing corona; each reversal costs Heat and creates no extra attack.",
+    playstyle: "Reflect the wheel", gain: "Evade reverses every active corona rotation", cost: "Each reversal costs 18 Heat and creates no attack", scope: "Evade and existing corona direction", treasureInteraction: "Spirit Treasure Evade effects remain independent",
     kind: "transformation",
     requiredGongfaIds: ["burning-ring-scripture"],
     milestoneRank: 9,
@@ -1115,9 +1121,9 @@ export function getDeterministicMasteryChoiceIds(
   const authoredPool = upgradeConfigs
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(context.gongfaId))
     .filter((upgrade) => (upgrade.unlockRank ?? 0) <= context.rank)
-    // An upgrade that is also a milestone Transformation (e.g. counterflow-ring)
-    // is offered only at its milestone, never in the ordinary refinement pool.
-    .filter((upgrade) => !transformationIdSet.has(upgrade.id))
+    // Legacy counterflow-ring remains checkpoint-readable but is superseded by
+    // the authored twin-ring Transformation and must never be offered again.
+    .filter((upgrade) => upgrade.id !== "counterflow-ring" && !transformationIdSet.has(upgrade.id))
     .filter((upgrade) => {
       const limit = upgrade.maxSelections ?? Infinity;
       return (learnedCounts[upgrade.id] ?? 0) < limit;
@@ -1153,7 +1159,7 @@ export function hasAvailableGongfaRefinement(
 
   return upgradeConfigs
     .filter((upgrade) => upgrade.requiredGongfaIds?.includes(gongfaId))
-    .filter((upgrade) => !transformationIdSet.has(upgrade.id))
+    .filter((upgrade) => upgrade.id !== "counterflow-ring" && !transformationIdSet.has(upgrade.id))
     .some((upgrade) => (learnedCounts[upgrade.id] ?? 0) < (upgrade.maxSelections ?? Infinity));
 }
 

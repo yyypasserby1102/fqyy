@@ -190,6 +190,19 @@ describe("localization", () => {
     expect(thorns.cost).toContain("根符控制削弱，叶符不再重演");
   });
 
+  it("shows Burning Ring choices with explicit Chinese gains and costs", () => {
+    const twin = localizeMasteryChoice("zh-CN", "counter-rotating-twin-rings");
+    expect(twin).toMatchObject({
+      name: "双轮逆转",
+      gain: "生成内外两道逆转日轮，交点追加伤害",
+      scope: "日轮层数、转向与分节接触"
+    });
+    expect(twin.cost).toContain("非交点处伤害降低 28%");
+    const reflection = localizeMasteryChoice("zh-CN", "reverse-wheel-reflection");
+    expect(reflection.gain).toContain("闪避逆转全部现有日轮");
+    expect(reflection.cost).toContain("消耗十八热力");
+  });
+
   it("localizes treasure replacement gains, losses, and resonance changes", () => {
     const payload = localizeChoicePayload("zh-CN", {
       title: "Windstep Talisman found",
