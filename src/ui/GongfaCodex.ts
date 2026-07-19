@@ -1,6 +1,10 @@
 import Phaser from "phaser";
 import type { GongfaId } from "../data/gongfa";
 import { getMasteryChoiceDefinition } from "../logic/mastery";
+import {
+  projectGongfaProgression,
+  type GongfaProgressionChoiceState
+} from "../logic/gongfaProgression";
 import { createGongfaSigil } from "../visual/gongfaSigils";
 import { getLocale } from "../i18n/runtime";
 import {
@@ -17,6 +21,15 @@ export interface GongfaCodexPath {
   skill2Unlocked: boolean;
   fullyMastered: boolean;
   learnedMasteryIds: string[];
+  pendingRanks: number[];
+}
+
+export interface GongfaCodexMilestoneSnapshot {
+  rank: number;
+  selectedNames: string[];
+  unselectedNames: string[];
+  availableNames: string[];
+  futureNames: string[];
 }
 
 export interface GongfaCodexSnapshot {
@@ -29,6 +42,8 @@ export interface GongfaCodexSnapshot {
   cardNames: string[];
   transformationNames: string[];
   transformationTradeoffs: string[];
+  progressRankCount: number;
+  milestones: GongfaCodexMilestoneSnapshot[];
   interactiveControlCount: number;
 }
 
@@ -58,6 +73,13 @@ export class GongfaCodex {
   }> = [];
   private readonly masteryLabel: Phaser.GameObjects.Text;
   private readonly masteryText: Phaser.GameObjects.Text;
+  private readonly progressRanks: Phaser.GameObjects.Rectangle[] = [];
+  private readonly milestoneCards: Array<{
+    frame: Phaser.GameObjects.Rectangle;
+    title: Phaser.GameObjects.Text;
+    status: Phaser.GameObjects.Text;
+    choices: Phaser.GameObjects.Text[];
+  }> = [];
   private sigil?: Phaser.GameObjects.Graphics;
   private paths: GongfaCodexPath[] = [];
   private selectedIndex = 0;
@@ -66,7 +88,7 @@ export class GongfaCodex {
     const locale = getLocale();
     this.scene = scene;
     this.backdrop = scene.add.rectangle(0, 0, scene.scale.width, scene.scale.height, 0x02070d, 0.9).setOrigin(0).setInteractive().on("pointerdown", onRequestClose);
-    this.panel = scene.add.rectangle(0, 0, 1120, 610, 0x07131d, 0.99).setStrokeStyle(2, 0x79d8d0, 0.78).setInteractive().on(
+    this.panel = scene.add.rectangle(0, 0, 1120, 690, 0x07131d, 0.99).setStrokeStyle(2, 0x79d8d0, 0.78).setInteractive().on(
       "pointerdown",
       (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => event.stopPropagation()
     );
@@ -85,11 +107,23 @@ export class GongfaCodex {
 
     for (let i = 0; i < 3; i += 1) {
       this.cards.push({
-        frame: scene.add.rectangle(0, 0, 330, 250, i === 1 ? 0x0c2022 : 0x0c1a26, 0.98).setStrokeStyle(1, i === 1 ? 0xd2ad57 : 0x4f8d9d, 0.7),
+        frame: scene.add.rectangle(0, 0, 330, 178, i === 1 ? 0x0c2022 : 0x0c1a26, 0.98).setStrokeStyle(1, i === 1 ? 0xd2ad57 : 0x4f8d9d, 0.7),
         kind: this.text("", 11, i === 1 ? "#e4c66e" : "#70cfd0").setLetterSpacing(1.2),
         name: this.text("", 21, "#f2f5ed"),
         tags: this.text("", 12, "#79a9b8"),
         description: this.text("", 14, "#bad0d7")
+      });
+    }
+
+    for (let rank = 1; rank <= 22; rank += 1) {
+      this.progressRanks.push(scene.add.rectangle(0, 0, 39, 13, 0x162a35, 1).setStrokeStyle(1, 0x365462, 0.8));
+    }
+    for (const rank of [3, 6, 9, 10]) {
+      this.milestoneCards.push({
+        frame: scene.add.rectangle(0, 0, 250, 116, 0x0a1822, 0.98).setStrokeStyle(1, 0x365462, 0.9),
+        title: this.text(`R${rank}`, 12, "#d7e7e8").setLetterSpacing(1),
+        status: this.text("", 10, "#7899a8").setLetterSpacing(1),
+        choices: Array.from({ length: 3 }, () => this.text("", 11, "#7899a8"))
       });
     }
 
@@ -99,6 +133,8 @@ export class GongfaCodex {
       this.closeButton, this.masteryLabel, this.masteryText
     ];
     for (const card of this.cards) children.push(card.frame, card.kind, card.name, card.tags, card.description);
+    children.push(...this.progressRanks);
+    for (const milestone of this.milestoneCards) children.push(milestone.frame, milestone.title, milestone.status, ...milestone.choices);
     this.container = scene.add.container(0, 0, children).setDepth(760).setVisible(false);
     this.resize();
   }
@@ -123,9 +159,13 @@ export class GongfaCodex {
   }
 
   update(paths: GongfaCodexPath[]): void {
-    const signature = (items: GongfaCodexPath[]) => items.map((item) => `${item.gongfaId}:${item.rank}:${item.learnedMasteryIds.join(",")}`).join("|");
+    const signature = (items: GongfaCodexPath[]) => items.map((item) => `${item.gongfaId}:${item.rank}:${item.learnedMasteryIds.join(",")}:${item.pendingRanks.join(",")}`).join("|");
     if (signature(paths) === signature(this.paths)) return;
-    this.paths = paths.map((path) => ({ ...path, learnedMasteryIds: [...path.learnedMasteryIds] }));
+    this.paths = paths.map((path) => ({
+      ...path,
+      learnedMasteryIds: [...path.learnedMasteryIds],
+      pendingRanks: [...path.pendingRanks]
+    }));
     this.selectedIndex = Phaser.Math.Clamp(this.selectedIndex, 0, Math.max(0, this.paths.length - 1));
     if (this.visible) this.render();
   }
@@ -148,34 +188,44 @@ export class GongfaCodex {
     const centerY = height * 0.5;
     this.backdrop.setSize(width, height);
     this.panel.setPosition(centerX, centerY);
-    this.eyebrow.setPosition(centerX - 520, centerY - 280);
-    this.title.setPosition(centerX - 520, centerY - 244);
-    this.rank.setPosition(centerX + 520, centerY - 234).setOrigin(1, 0);
-    this.role.setPosition(centerX - 520, centerY - 196).setWordWrapWidth(770);
-    this.tabs.setPosition(centerX - 520, centerY - 152);
-    this.hint.setPosition(centerX + 520, centerY - 275).setOrigin(1, 0);
-    this.previousButton.setPosition(centerX - 520, centerY + 246);
-    this.nextButton.setPosition(centerX - 405, centerY + 246);
-    this.closeButton.setPosition(centerX + 520, centerY - 202).setOrigin(1, 0);
-    this.ornament.clear().lineStyle(1, 0xd1ad5b, 0.4).lineBetween(centerX - 520, centerY - 166, centerX + 520, centerY - 166);
+    this.eyebrow.setPosition(centerX - 520, centerY - 325);
+    this.title.setPosition(centerX - 520, centerY - 292);
+    this.rank.setPosition(centerX + 520, centerY - 282).setOrigin(1, 0);
+    this.role.setPosition(centerX - 520, centerY - 247).setWordWrapWidth(770);
+    this.tabs.setPosition(centerX - 520, centerY - 207);
+    this.hint.setPosition(centerX + 520, centerY - 322).setOrigin(1, 0);
+    this.previousButton.setPosition(centerX - 520, centerY + 300);
+    this.nextButton.setPosition(centerX - 405, centerY + 300);
+    this.closeButton.setPosition(centerX + 520, centerY - 250).setOrigin(1, 0);
+    this.ornament.clear().lineStyle(1, 0xd1ad5b, 0.4).lineBetween(centerX - 520, centerY - 220, centerX + 520, centerY - 220);
     const startX = centerX - 355;
     this.cards.forEach((card, index) => {
       const x = startX + index * 355;
-      const y = centerY + 6;
+      const y = centerY - 116;
       card.frame.setPosition(x, y);
-      card.kind.setPosition(x - 145, y - 105);
-      card.name.setPosition(x - 145, y - 78).setWordWrapWidth(290);
-      card.tags.setPosition(x - 145, y - 35).setWordWrapWidth(290);
-      card.description.setPosition(x - 145, y + 3).setWordWrapWidth(290);
+      card.kind.setPosition(x - 145, y - 72);
+      card.name.setPosition(x - 145, y - 48).setWordWrapWidth(290);
+      card.tags.setPosition(x - 145, y - 12).setWordWrapWidth(290);
+      card.description.setPosition(x - 145, y + 17).setWordWrapWidth(290);
     });
-    this.masteryLabel.setPosition(centerX - 520, centerY + 154);
-    this.masteryText.setPosition(centerX - 520, centerY + 180).setWordWrapWidth(1040);
-    this.sigil?.setPosition(centerX + 455, centerY + 198);
+    this.masteryLabel.setPosition(centerX - 520, centerY - 16);
+    this.progressRanks.forEach((node, index) => node.setPosition(centerX - 500 + index * 47.5, centerY + 17));
+    this.milestoneCards.forEach((card, index) => {
+      const x = centerX - 390 + index * 260;
+      const y = centerY + 103;
+      card.frame.setPosition(x, y);
+      card.title.setPosition(x - 112, y - 48);
+      card.status.setPosition(x + 112, y - 47).setOrigin(1, 0);
+      card.choices.forEach((choice, choiceIndex) => choice.setPosition(x - 112, y - 20 + choiceIndex * 24).setWordWrapWidth(224));
+    });
+    this.masteryText.setPosition(centerX - 520, centerY + 174).setWordWrapWidth(1040);
+    this.sigil?.setPosition(centerX + 475, centerY + 254);
   }
 
   getSnapshot(): GongfaCodexSnapshot {
     const selected = this.paths[this.selectedIndex];
     const definition = selected ? localizeGongfaPackage(getLocale(), selected.gongfaId) : undefined;
+    const progression = selected ? this.getProgressionSnapshot(selected) : [];
     return {
       visible: this.visible,
       learnedPathCount: this.paths.length,
@@ -188,6 +238,8 @@ export class GongfaCodex {
       transformationTradeoffs: selected
         ? this.getTransformations(selected).map((item) => `${item.gain} / ${item.cost}`)
         : [],
+      progressRankCount: selected ? 22 : 0,
+      milestones: progression,
       interactiveControlCount: 3
     };
   }
@@ -206,6 +258,11 @@ export class GongfaCodex {
         card.kind.setText(localizeRuntimeText(locale, "SEALED")); card.name.setText(localizeRuntimeText(locale, "Unknown")); card.tags.setText(""); card.description.setText(localizeRuntimeText(locale, "This meridian has not yet opened."));
       });
       this.masteryText.setText(localizeRuntimeText(locale, "No refinements integrated yet."));
+      this.progressRanks.forEach((node) => node.setFillStyle(0x162a35).setStrokeStyle(1, 0x365462, 0.8));
+      this.milestoneCards.forEach((card) => {
+        card.status.setText(localizeRuntimeText(locale, "FUTURE"));
+        card.choices.forEach((choice) => choice.setText(""));
+      });
       return;
     }
 
@@ -215,7 +272,7 @@ export class GongfaCodex {
     this.sigil = createGongfaSigil(
       this.scene,
       this.scene.scale.width * 0.5 + 455,
-      this.scene.scale.height * 0.5 + 198,
+      this.scene.scale.height * 0.5 + 254,
       selected.gongfaId,
       72,
       0.16
@@ -238,6 +295,7 @@ export class GongfaCodex {
       card.description.setText(item.description);
       card.frame.setAlpha(index === 2 && !selected.skill2Unlocked ? 0.62 : 1);
     });
+    this.renderProgression(selected);
     const counts = selected.learnedMasteryIds.reduce<Record<string, number>>((result, id) => {
       result[id] = (result[id] ?? 0) + 1;
       return result;
@@ -245,17 +303,71 @@ export class GongfaCodex {
     const refinements = Object.entries(counts)
       .filter(([id]) => getMasteryChoiceDefinition(id)?.kind === "refinement")
       .map(([id, tiers]) => `${localizeMasteryChoice(locale, id).name} ${tiers >= 2 ? "II" : "I"}`);
-    const transformations = this.getTransformations(selected);
     this.masteryText.setText(localizeRuntimeText(locale,
-      refinements.length || transformations.length
-        ? [
-            `Refinements · ${refinements.join("  ·  ") || "None"}`,
-            `Transformations · ${transformations.length
-              ? transformations.map((item) => `${item.name} — ${item.gain} / ${item.cost}`).join("\n")
-              : "Next choice at Rank 3"}`
-          ].join("\n")
+      refinements.length
+        ? `Refinements · ${refinements.join("  ·  ")}`
         : "No refinements integrated yet. The first insight arrives at Mastery Rank 1."
     ));
+  }
+
+  private renderProgression(path: GongfaCodexPath): void {
+    const locale = getLocale();
+    const progression = projectGongfaProgression({ ...path });
+    progression.ranks.forEach((rank, index) => {
+      const node = this.progressRanks[index];
+      if (rank.state === "completed") node.setFillStyle(0x3f9f8e).setStrokeStyle(1, 0x8fe0cf, 1);
+      else if (rank.state === "current") node.setFillStyle(0xd2ad57).setStrokeStyle(2, 0xffe49a, 1);
+      else node.setFillStyle(0x162a35).setStrokeStyle(1, 0x365462, 0.8);
+    });
+    progression.milestones.forEach((milestone, index) => {
+      const card = this.milestoneCards[index];
+      const aggregate = milestone.choices.some((choice) => choice.state === "selected")
+        ? "selected"
+        : milestone.choices.some((choice) => choice.state === "available") ? "available" : "future";
+      const style = this.choiceStyle(aggregate);
+      const label = milestone.rank === 10 ? "SECOND SKILL" : milestone.rank === 3 ? "SKILL FORM" : milestone.rank === 6 ? "PASSIVE PATH" : "CAPSTONE PATH";
+      card.title.setText(`R${milestone.rank} · ${localizeRuntimeText(locale, label)}`);
+      card.status.setText(localizeRuntimeText(locale, aggregate.toUpperCase())).setColor(style.color);
+      card.frame.setStrokeStyle(aggregate === "selected" ? 2 : 1, style.stroke, 0.95).setFillStyle(style.fill, 0.98);
+      card.choices.forEach((text, choiceIndex) => {
+        const choice = milestone.choices[choiceIndex];
+        if (!choice) {
+          text.setText("");
+          return;
+        }
+        const choiceStyle = this.choiceStyle(choice.state);
+        const prefix = choice.state === "selected" ? "◆" : choice.state === "unselected" ? "×" : choice.state === "available" ? "◈" : "◇";
+        const name = milestone.rank === 10
+          ? localizeGongfaPackage(locale, path.gongfaId).skill2.name
+          : localizeMasteryChoice(locale, choice.id).name;
+        text.setText(`${prefix} ${name}`).setColor(choiceStyle.color).setAlpha(choice.state === "unselected" ? 0.55 : 1);
+      });
+    });
+  }
+
+  private choiceStyle(state: GongfaProgressionChoiceState): { color: string; fill: number; stroke: number } {
+    if (state === "selected") return { color: "#f4d77d", fill: 0x18251f, stroke: 0xd2ad57 };
+    if (state === "unselected") return { color: "#8a7880", fill: 0x17151c, stroke: 0x58434d };
+    if (state === "available") return { color: "#83eee1", fill: 0x0c272a, stroke: 0x63d9cf };
+    return { color: "#7899a8", fill: 0x0a1822, stroke: 0x365462 };
+  }
+
+  private getProgressionSnapshot(path: GongfaCodexPath): GongfaCodexMilestoneSnapshot[] {
+    const locale = getLocale();
+    return projectGongfaProgression({ ...path }).milestones.map((milestone) => {
+      const names = (state: GongfaProgressionChoiceState): string[] => milestone.choices
+        .filter((choice) => choice.state === state)
+        .map((choice) => milestone.rank === 10
+          ? localizeGongfaPackage(locale, path.gongfaId).skill2.name
+          : localizeMasteryChoice(locale, choice.id).name);
+      return {
+        rank: milestone.rank,
+        selectedNames: names("selected"),
+        unselectedNames: names("unselected"),
+        availableNames: names("available"),
+        futureNames: names("future")
+      };
+    });
   }
 
   private getTransformationNames(path: GongfaCodexPath): string[] {

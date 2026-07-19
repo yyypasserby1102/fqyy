@@ -3841,7 +3841,8 @@ export class GameScene extends Phaser.Scene {
         rank: runtime.mastery.masteryRank,
         skill2Unlocked: Boolean(runtime.mastery.masterySkill2Id),
         fullyMastered: this.summarizeGongfaMastery(runtime).fullyMastered,
-        learnedMasteryIds: [...runtime.mastery.masteryLearnedIds]
+        learnedMasteryIds: [...runtime.mastery.masteryLearnedIds],
+        pendingRanks: [...runtime.mastery.masteryPendingRanks]
       })),
       galeMomentum: gongfaView.galeMomentum,
       heat: gongfaView.heat,

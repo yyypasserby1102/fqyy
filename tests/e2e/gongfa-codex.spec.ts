@@ -29,8 +29,12 @@ test("Gongfa codex exposes the learned Skill, passive, and locked Skill 2", asyn
     selectedRank: 0,
     skill2Status: "locked",
     cardNames: ["Flying Sword Volley", "Unbroken Sword Intent", "Returning Sword Formation"],
+    progressRankCount: 22,
     interactiveControlCount: 3
   });
+  expect(codex.milestones.map((milestone) => milestone.rank)).toEqual([3, 6, 9, 10]);
+  expect(codex.milestones.flatMap((milestone) => milestone.futureNames).length).toBeGreaterThan(0);
+  expect(codex.milestones.flatMap((milestone) => milestone.selectedNames)).toEqual([]);
   if (process.env.GONGFA_CODEX_CAPTURE) {
     await page.screenshot({ path: process.env.GONGFA_CODEX_CAPTURE, fullPage: true });
   }
