@@ -54,7 +54,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "sword-burial-formation": { motifId: "buried-sword-tomb", label: "Buried sword tomb", geometry: "formation", accent: 0xd9c887, secondary: 0xf5f1dd, spokes: 10, trailStyle: "rising grave blades" },
   "heaven-sundering-edict": { motifId: "supreme-metal-edict", label: "Heaven-sundering edict", geometry: "calamity", accent: 0xf0df9e, secondary: 0xffffff, spokes: 4, trailStyle: "straight judgment rays" },
   "myriad-beast-grove": { motifId: "three-beast-kinship", label: "Boar Fox Deer hunting formation", geometry: "formation", accent: 0x6fbd61, secondary: 0xd7eda0, spokes: 3, trailStyle: "three species-specific hunting routes" },
-  "ancient-tree-body-art": { motifId: "world-tree-impact", label: "Ancient tree body seal", geometry: "impact", accent: 0x688b4b, secondary: 0xd1bd79, spokes: 9, trailStyle: "root-crater growth rings" }
+  "ancient-tree-body-art": { motifId: "rooted-growth-rings", label: "Root trunk canopy transformation", geometry: "rings", accent: 0x688b4b, secondary: 0xd1bd79, spokes: 7, trailStyle: "age rings and occupied branch sectors" }
 };
 
 export function getGongfaVisualIdentity(gongfaId: GongfaId): GongfaVisualIdentity {

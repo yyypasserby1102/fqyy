@@ -189,8 +189,8 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill1: { name: "三兽猎群", description: "固定维持岩豕、灵狐、青鹿各一只；它们拥有独立生命、位置、索敌职责与种子重生。" }, passive: { name: "荒林同契", resource: "亲缘", description: "不同存活物种共同助攻一次击杀才增长亲缘；三兽齐印还会治疗猎群。" }, skill2: { name: "万兽祖庭", description: "亲缘圆满时，当前每个存活物种各唤出一尊巨型祖灵完成一次本命行动，随后消散。" }
   },
   "ancient-tree-body-art": {
-    name: "古木锻体术", lore: "身如古木，根深力沉。", combatRole: "以沉重近战与活木反震惩罚围攻之敌。", visualMotif: "古老年轮、树甲重拳与巨根震坑。",
-    skill1: { name: "老树连式", description: "连续施展沉重近击，最终震地掀起巨根。" }, passive: { name: "活木反势", resource: "木甲", description: "近战与反震增厚木甲，强化下一次收式。" }, skill2: { name: "世界树化身", description: "化身古老巨木，以山岳根击回应周遭攻势。" }
+    name: "古木锻体术", lore: "止步生根，以岁月为轮，身化参天古木。", combatRole: "临敌静止后扎根，以扎根时间生长年轮，并用根域、枝区、树冠三层自动攻势取代普通连击。", visualMotif: "可数年轮、依序占据的枝区、外层树冠与唯一不动的世界树主干。",
+    skill1: { name: "古木身", description: "危险附近静止会自动扎根；只有扎根时间能生长年轮并扩张根、枝、冠三层攻势。" }, passive: { name: "生长年轮", resource: "年轮", description: "命中、击杀与受伤均不增长年轮；移动会开始可见拔根，成功拔根后年轮归零。" }, skill2: { name: "世界树化身", description: "年轮圆满后化为限时不可移动的世界树主干，结束时强制恢复行动并失去全部年轮。" }
   }
 };
 
@@ -1008,7 +1008,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "unending-rotating-hunt": { name: "轮猎不息" },
   "ancestors-run-the-wild": { name: "群祖奔荒" },
   "ancestral-encirclement": { name: "祖灵围猎" },
-  "ancestors-return-to-the-grove": { name: "祖林归巢" }
+  "ancestors-return-to-the-grove": { name: "祖林归巢" },
+  "great-rooted-banyan": { name: "盘根古榕" },
+  "iron-crowned-divine-tree": { name: "铁冠神木" },
+  "spirit-fruit-fusang": { name: "灵果扶桑" },
+  "one-ring-in-a-thousand-years": { name: "千年一轮" },
+  "spring-flourishing": { name: "春荣催生" },
+  "hollow-trunk-tribulation": { name: "空心渡劫" },
+  "myriad-roots-cover-the-realm": { name: "万根覆界" },
+  "one-tree-upholds-heaven": { name: "一木擎天" },
+  "world-sheltering-canopy": { name: "庇世华盖" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

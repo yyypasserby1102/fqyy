@@ -188,10 +188,10 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "myriad-beast-stampede", name: "Ancestral Menagerie", description: "At full Kinship, each currently living species calls one giant ancestor action, then vanishes.", tags: ["summon", "wood", "explosive"] }
   },
   "ancient-tree-body-art": {
-    combatRole: "A durable melee style whose heavy close strikes and living bark punish surrounding attackers.", visualMotif: "Ancient growth rings, bark fists, and vast root-crater impacts.",
-    skill1: { id: "old-growth-combination", name: "Old-Growth Combination", description: "Delivers slow, weighty close blows ending in a root-lifting ground strike.", tags: ["melee", "wood", "defensive"] },
-    passive: { name: "Living Bark Reprisal", resource: "Bark", description: "Close combat and returned damage thicken Bark, reinforcing the next body-art finisher." },
-    skill2: { id: "world-tree-incarnation", name: "World-Tree Incarnation", description: "Takes the aspect of an ancient tree and answers nearby pressure with colossal root impacts.", tags: ["melee", "wood", "defensive", "reflect"] }
+    combatRole: "A stationary transformation that replaces attacks with growing root, branch, and canopy layers.", visualMotif: "Visible growth rings, radial branch sectors, an outer canopy, and one immovable world-tree trunk.",
+    skill1: { id: "old-growth-combination", name: "Ancient Tree Body", description: "Standing near danger roots the body; rooted time alone grows Rings and expands three automatic attack layers.", tags: ["melee", "wood", "defensive"] },
+    passive: { name: "Growth Rings", resource: "Rings", description: "Only rooted time grows Rings; uprooting removes every Ring and takes longer at greater age." },
+    skill2: { id: "world-tree-incarnation", name: "World-Tree Incarnation", description: "At maximum Rings, become an immovable timed world-tree, then forcibly return mobile with zero Rings.", tags: ["melee", "wood", "defensive"] }
   }
 };
 

@@ -396,6 +396,10 @@ export class GameScene extends Phaser.Scene {
         });
       return `Pack: ${labels.join(" · ")} · Kinship ${Math.floor(runtime.authored.resource * 100)}%`;
     }
+    if (runtime.gongfaId === "ancient-tree-body-art") {
+      const state = runtime.authored.phase === 0 ? "Mobile" : runtime.authored.phase === 1 ? "Rooted" : runtime.authored.phase === 2 ? "Uprooting" : "World-Tree";
+      return `Ancient Tree: ${state} · Rings ${runtime.authored.charges}/${runtime.authored.maxCharges}${runtime.authored.phase === 2 ? ` · ${Math.ceil(runtime.authored.phaseElapsedMs / 100) / 10}s` : ""}`;
+    }
     return undefined;
   }
 
@@ -564,7 +568,11 @@ export class GameScene extends Phaser.Scene {
       }
     }
     const evadeState = this.evade.state;
-    const presentedMovement = evadeState.active
+    const treeRuntime = this.gongfaCollection.byId["ancient-tree-body-art"];
+    const treeMovementLocked = treeRuntime && [1, 2, 3].includes(treeRuntime.authored.phase);
+    const presentedMovement = treeMovementLocked
+      ? new Phaser.Math.Vector2(0, 0)
+      : evadeState.active
       ? new Phaser.Math.Vector2(evadeState.direction.x, evadeState.direction.y)
       : movement;
     this.player.move(
@@ -2519,6 +2527,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-ancient-tree-cycle") {
+        this.fireAuthoredAncientTreeCycle(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3490,6 +3503,40 @@ export class GameScene extends Phaser.Scene {
     }
     this.tweens.add({ targets: visual, alpha: 0, scale: 1.12, duration: 900, onComplete: () => visual.destroy() });
     this.recordGongfaMotif(`${identity.motifId}:ancestors-${command.fate}`);
+  }
+
+  private fireAuthoredAncientTreeCycle(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-ancient-tree-cycle" }>
+  ): void {
+    const x = command.x || this.player.x;
+    const y = command.y || this.player.y;
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const tree = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(14);
+    tree.lineStyle(command.worldTree ? 9 : 5, identity.accent, 0.78);
+    for (let ring = 1; ring <= Math.max(1, command.rings); ring += 1) {
+      tree.strokeCircle(x, y, command.rootRadius * ring / Math.max(1, command.rings));
+    }
+    tree.lineStyle(6, identity.secondary, 0.82);
+    for (let sector = 0; sector < command.branchSectors; sector += 1) {
+      const angle = sector / command.branchSectors * Math.PI * 2;
+      tree.lineBetween(x, y, x + Math.cos(angle) * command.canopyRadius, y + Math.sin(angle) * command.canopyRadius);
+    }
+    tree.lineStyle(command.worldTree ? 12 : 5, identity.secondary, 0.55);
+    tree.strokeCircle(x, y, command.canopyRadius);
+    let enemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+    const strongest = [...enemies].sort((a, b) => b.maxHealth - a.maxHealth)[0];
+    if (command.law === "one-tree") enemies = strongest ? [strongest] : [];
+    for (const enemy of enemies) {
+      const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
+      if (distance > command.canopyRadius + 14) continue;
+      if (command.canopyFocus && distance > command.rootRadius && enemy.role !== "tribulation-boss" && enemy.maxHealth < 150) continue;
+      const bossScale = enemy.role === "tribulation-boss" && command.law === "many-roots" ? 0.35 : 1;
+      if (distance <= command.rootRadius) enemy.applySlow(0.18, 720);
+      if (enemy.receiveDamage(command.damage * bossScale)) this.resolveEnemyDeath(enemy);
+    }
+    if (command.heal > 0) this.player.heal(command.heal);
+    this.tweens.add({ targets: tree, alpha: 0, scale: 1.04, duration: 780, onComplete: () => tree.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:${command.worldTree ? "world-tree" : command.law}`);
   }
 
   private fireFeatherRainFormation(

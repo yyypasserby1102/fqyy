@@ -20,7 +20,7 @@ const archetypes = [
   ["sword-burial-formation", "authored-line-strike", "ten-thousand-sword-tomb", "authored-line-strike"],
   ["heaven-sundering-edict", "ritual-impact", "supreme-sundering-decree", "heavenly-sun-descent"],
   ["myriad-beast-grove", "authored-beast-action", "myriad-beast-stampede", "authored-beast-ancestors"],
-  ["ancient-tree-body-art", "melee-combination", "world-tree-incarnation", "star-breaking-descent"]
+  ["ancient-tree-body-art", "authored-ancient-tree-cycle", "world-tree-incarnation", "authored-ancient-tree-cycle"]
 ] as const satisfies ReadonlyArray<readonly [GongfaId, string, string, string]>;
 
 describe("expanded Gongfa archetypes", () => {
@@ -103,6 +103,11 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.resource = 1;
       }
       if (gongfaId === "myriad-beast-grove") runtime.authored.resource = 1;
+      if (gongfaId === "ancient-tree-body-art") {
+        runtime.authored.phase = 1;
+        runtime.authored.charges = runtime.authored.maxCharges;
+        runtime.authored.resource = 1;
+      }
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -142,10 +147,11 @@ describe("expanded Gongfa archetypes", () => {
     const outputs = archetypes.flatMap(([gongfaId]) => {
       const runtime = createGongfaRuntime({ gongfaId });
       runtime.combat = { ...runtime.combat, ...gongfaConfigs[gongfaId].stages.yuanying! };
+      if (gongfaId === "ancient-tree-body-art") runtime.authored.phase = 1;
       const targets = [{ targetId: 77, x: 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];
-      const command = gongfaId === "vermilion-bird-covenant" || gongfaId === "myriad-beast-grove"
+      const command = gongfaId === "vermilion-bird-covenant" || gongfaId === "myriad-beast-grove" || gongfaId === "ancient-tree-body-art"
         ? advanceGongfaRuntime(runtime, {
-            kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+            kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: gongfaId !== "ancient-tree-body-art",
             movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0, targets
           }).commands[0]!
         : planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets })[0]!;
@@ -178,6 +184,7 @@ describe("expanded Gongfa archetypes", () => {
         expect(command.target.targetId).toBe(77);
         return [];
       }
+      if (command.kind === "authored-ancient-tree-cycle") return [];
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];
       }

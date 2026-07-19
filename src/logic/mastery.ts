@@ -202,7 +202,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "thousand-root-formation",
   "black-tide-scripture",
   "vermilion-bird-covenant",
-  "myriad-beast-grove"
+  "myriad-beast-grove",
+  "ancient-tree-body-art"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -343,6 +344,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["ancestors-run-the-wild", "Ancestors Run the Wild", "Each ancestor crosses the field for strong crowd clearing.", "Repeat boss hits are limited.", "Ancestral Menagerie field routes"],
       ["ancestral-encirclement", "Ancestral Encirclement", "All living-species ancestors focus the strongest threat.", "It provides little area clearing.", "Ancestral Menagerie focus target"],
       ["ancestors-return-to-the-grove", "Ancestors Return to the Grove", "The ancestors revive downed beasts and protect the pack.", "Ancestral damage is sharply reduced.", "Ancestral Menagerie restoration"]
+    ]
+  },
+  "ancient-tree-body-art": {
+    3: [
+      ["great-rooted-banyan", "Great Rooted Banyan", "Roots gain maximum reach and control.", "Branch and canopy damage are low.", "Root-trunk-canopy proportions"],
+      ["iron-crowned-divine-tree", "Iron-Crowned Divine Tree", "The canopy focuses elites and bosses for heavy damage.", "The root zone is small.", "Canopy priority and root reach"],
+      ["spirit-fruit-fusang", "Spirit-Fruit Fusang", "Growth cycles heal the Cultivator and injured companions.", "Rings grow slowly and attack reach is reduced.", "Growth healing and maturation"]
+    ],
+    6: [
+      ["one-ring-in-a-thousand-years", "One Ring in a Thousand Years", "Three slow Rings are exceptionally strong.", "Maturation takes much longer.", "Ring count, interval, and power"],
+      ["spring-flourishing", "Spring Flourishing", "Seven weak Rings grow rapidly.", "Uprooting becomes sharply slower with age.", "Ring count, interval, and uprooting"],
+      ["hollow-trunk-tribulation", "Hollow-Trunk Tribulation", "One Ring prevents a fatal blow.", "That layer's reach and power are permanently lost until uprooting.", "Fatal-hit prevention and Ring loss"]
+    ],
+    9: [
+      ["myriad-roots-cover-the-realm", "Myriad Roots Cover the Realm", "A hunting root reaches every ordinary enemy.", "Boss damage is weak.", "World-tree ordinary-enemy routing"],
+      ["one-tree-upholds-heaven", "One Tree Upholds Heaven", "All main roots concentrate on the strongest enemy.", "Other enemies are ignored.", "World-tree focus routing"],
+      ["world-sheltering-canopy", "World-Sheltering Canopy", "The canopy protects and heals allies.", "World-tree damage is low.", "World-tree protection and healing"]
     ]
   }
 };

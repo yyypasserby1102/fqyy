@@ -511,6 +511,11 @@ describe("Gongfa runtime", () => {
         runtime.authored.resource = 1;
       }
       if (gongfaId === "myriad-beast-grove") runtime.authored.resource = 1;
+      if (gongfaId === "ancient-tree-body-art") {
+        runtime.authored.phase = 1;
+        runtime.authored.charges = runtime.authored.maxCharges;
+        runtime.authored.resource = 1;
+      }
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -2524,5 +2529,41 @@ describe("Gongfa runtime", () => {
     expect(ancestor?.species).toEqual(["boar", "deer"]);
     expect(ancestor?.fate).toBe("encirclement");
     expect(result.runtime.authored.resource).toBe(0);
+  });
+
+  it("grows Ancient Tree Rings only while rooted and loses them after readable uprooting", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 600, nearbyEnemyCount: 2, isMoving: false, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.phase).toBe(1);
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1300, nearbyEnemyCount: 2, isMoving: false, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.charges).toBe(1);
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 2, isMoving: true, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.phase).toBe(2);
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 2, isMoving: true, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.phase).toBe(0);
+    expect(runtime.authored.charges).toBe(0);
+  });
+
+  it("requires maximum Ancient Tree Rings for the timed World-Tree incarnation", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+    runtime.authored.phase = 1;
+    runtime.authored.charges = runtime.authored.maxCharges;
+    runtime.authored.resource = 1;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "world-tree-incarnation",
+      learnedMasteryIds: ["world-sheltering-canopy"]
+    });
+    const cycle = result.commands.find((command) => command.kind === "authored-ancient-tree-cycle");
+    expect(result.runtime.authored.phase).toBe(3);
+    expect(cycle?.worldTree).toBe(true);
+    expect(cycle?.law).toBe("sheltering");
   });
 });

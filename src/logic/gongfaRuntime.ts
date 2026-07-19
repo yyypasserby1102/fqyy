@@ -632,6 +632,13 @@ export type GongfaRuntimeCommand =
       fate: "wild-run" | "encirclement" | "return-grove";
       sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-ancient-tree-cycle";
+      x: number; y: number; rings: number; rootRadius: number; branchSectors: number;
+      canopyRadius: number; damage: number; law: "many-roots" | "one-tree" | "sheltering";
+      heal: number; worldTree: boolean; canopyFocus: boolean; sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2420,7 +2427,7 @@ function advanceAuthoredWorldFacts(
       state.resource = Math.min(1, state.phaseElapsedMs / phaseDuration);
       state.charges = Math.min(3, state.cycleCount);
     }
-  } else {
+  } else if (runtime.gongfaId !== "ancient-tree-body-art") {
     state.phaseElapsedMs += event.deltaMs;
   }
 
@@ -2684,6 +2691,65 @@ function advanceAuthoredWorldFacts(
     state.targetLedger[-40] = cooldown;
     state.charges = living.length;
     state.secondaryResource = living.length / 3;
+  }
+
+  if (runtime.gongfaId === "ancient-tree-body-art") {
+    const playerX = event.playerX ?? 0;
+    const playerY = event.playerY ?? 0;
+    const moving = event.isMoving === true;
+    const thousand = learnedIds.includes("one-ring-in-a-thousand-years");
+    const spring = learnedIds.includes("spring-flourishing");
+    const fusang = learnedIds.includes("spirit-fruit-fusang");
+    const maxRings = thousand ? 3 : spring ? 7 : 5;
+    state.maxCharges = maxRings;
+    if (state.phase === 0) {
+      state.resource = 0;
+      state.charges = 0;
+      state.phaseElapsedMs = moving || event.nearbyEnemyCount === 0 ? 0 : state.phaseElapsedMs + event.deltaMs;
+      if (state.phaseElapsedMs >= 520) { state.phase = 1; state.phaseElapsedMs = 0; }
+    } else if (state.phase === 1) {
+      if (moving) {
+        state.phase = 2;
+        state.phaseElapsedMs = 360 + state.charges * (spring ? 310 : 170);
+      } else {
+        const interval = thousand ? 2600 : spring ? 620 : fusang ? 1900 : 1250;
+        state.secondaryResource += event.deltaMs;
+        while (state.secondaryResource >= interval && state.charges < maxRings) {
+          state.secondaryResource -= interval;
+          state.charges += 1;
+        }
+        state.resource = state.charges / maxRings;
+      }
+    } else if (state.phase === 2) {
+      state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
+      if (state.phaseElapsedMs === 0) {
+        state.phase = 0; state.charges = 0; state.resource = 0; state.secondaryResource = 0;
+      }
+    } else if (state.phase === 3) {
+      state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
+      if (state.phaseElapsedMs === 0) {
+        state.phase = 0; state.charges = 0; state.resource = 0; state.secondaryResource = 0;
+      }
+    }
+    let attackTimer = Math.max(0, (state.targetLedger[-60] ?? 0) - event.deltaMs);
+    if ((state.phase === 1 || state.phase === 3) && attackTimer === 0 && event.nearbyEnemyCount > 0) {
+      const banyan = learnedIds.includes("great-rooted-banyan");
+      const ironCrown = learnedIds.includes("iron-crowned-divine-tree");
+      const law = learnedIds.includes("one-tree-upholds-heaven") ? "one-tree" as const :
+        learnedIds.includes("world-sheltering-canopy") ? "sheltering" as const : "many-roots" as const;
+      const ringPower = thousand ? 1.65 : spring ? 0.72 : 1;
+      commands.push({
+        kind: "authored-ancient-tree-cycle", x: playerX, y: playerY, rings: state.charges,
+        rootRadius: (banyan ? 112 : ironCrown ? 48 : 72) + state.charges * (banyan ? 15 : 10),
+        branchSectors: Math.max(1, state.charges + 1),
+        canopyRadius: (fusang ? 150 : 205) + state.charges * 18,
+        damage: Math.max(1, Math.floor(runtime.combat.damage * ringPower * (banyan ? 0.58 : fusang ? 0.62 : 1) * (state.phase === 3 ? 1.45 : 0.72))),
+        law, heal: fusang || law === "sheltering" ? 2 + state.charges : 0,
+        worldTree: state.phase === 3, canopyFocus: ironCrown, sourceGongfaId: runtime.gongfaId
+      });
+      attackTimer = state.phase === 3 ? 520 : 920;
+    }
+    state.targetLedger[-60] = attackTimer;
   }
 
   state.anchors = state.anchors.filter((anchor) => {
@@ -3058,6 +3124,24 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "world-tree-incarnation" && next.gongfaId === "ancient-tree-body-art") {
+      if (next.authored.phase === 1 && next.authored.charges >= next.authored.maxCharges) {
+        const law = event.learnedMasteryIds.includes("one-tree-upholds-heaven") ? "one-tree" as const :
+          event.learnedMasteryIds.includes("world-sheltering-canopy") ? "sheltering" as const : "many-roots" as const;
+        next.authored.phase = 3;
+        next.authored.phaseElapsedMs = 5600;
+        next.authored.targetLedger[-60] = 0;
+        commands.push({
+          kind: "authored-ancient-tree-cycle", x: 0, y: 0, rings: next.authored.charges,
+          rootRadius: 150 + next.authored.charges * 14, branchSectors: next.authored.charges + 2,
+          canopyRadius: 260 + next.authored.charges * 20,
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * (law === "sheltering" ? 0.42 : 1.2))),
+          law, heal: law === "sheltering" ? 12 : 0, worldTree: true, canopyFocus: false, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "world-tree-incarnation", cooldownMs: Math.floor(authoredSkill2Plans["world-tree-incarnation"].cooldownMs * skill2Stats.cadenceScale) }
+        });
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "myriad-beast-stampede" && next.gongfaId === "myriad-beast-grove") {
       const livingSpecies = next.authored.anchors
         .filter((anchor) => anchor.kind === "beast" && anchor.beastState === "living")
@@ -3658,6 +3742,15 @@ export function advanceGongfaRuntime(
       }
     }
 
+    if (next.gongfaId === "ancient-tree-body-art" &&
+      event.learnedMasteryIds.includes("hollow-trunk-tribulation") &&
+      next.authored.charges > 0 && (event.healthRatio ?? 1) <= 0.12) {
+      next.authored.charges -= 1;
+      next.authored.resource = next.authored.charges / Math.max(1, next.authored.maxCharges);
+      commands.push({ kind: "incoming-damage", finalDamage: 0 });
+      return { runtime: next, commands };
+    }
+
     const state = next.gengjin;
     if (!state) {
       commands.push({
@@ -4211,6 +4304,7 @@ export function planGongfaAttack(
   if (runtime.gongfaId === "myriad-beast-grove") {
     return [];
   }
+  if (runtime.gongfaId === "ancient-tree-body-art") return [];
   if (runtime.gongfaId === "frozen-river-formation") {
     const targets = (options.targets ?? []).filter((target) =>
       !runtime.authored.anchors.some((anchor) =>
