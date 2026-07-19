@@ -176,10 +176,10 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "ten-thousand-sword-tomb", name: "Ten-Thousand Sword Tomb", description: "Consecrates a vast gravefield where linked buried swords rise in relentless waves.", tags: ["trap", "metal", "sword"] }
   },
   "heaven-sundering-edict": {
-    combatRole: "A long-cadence execution caster built around precise, enormous single-event damage.", visualMotif: "White-gold mandate script, divided heavens, and razor-straight judgment rays.",
-    skill1: { id: "sundering-stroke", name: "Sundering Stroke", description: "Writes a mandate over the densest enemy group, then cleaves the marked ground in one decisive stroke.", tags: ["ritual", "metal", "sword", "explosive"] },
-    passive: { name: "Judgment Mandate", resource: "Mandate", description: "Targets judged by metal damage accumulate Mandate for the next execution." },
-    skill2: { id: "supreme-sundering-decree", name: "Supreme Sundering Decree", description: "Pronounces a supreme decree that divides a vast battlefield line with boss-breaking force.", tags: ["ritual", "metal", "sword", "explosive"] }
+    combatRole: "Draw one automatically chosen physical sword line, fix it in world space, then judge the exact same line after a delay.", visualMotif: "A thin gold physical inscription followed by a brighter white spell judgment on identical coordinates.",
+    skill1: { id: "sundering-stroke", name: "Sundering Stroke", description: "Draws the best threat line once, fixes it, then repeats it as delayed spell judgment; enemies must remain on it for the complete hit.", tags: ["ritual", "metal", "sword"] },
+    passive: { name: "Judgment Mandate", resource: "Mandate", description: "Only same-target physical-plus-spell hits write Mandate and record line quality." },
+    skill2: { id: "supreme-sundering-decree", name: "Supreme Sundering Decree", description: "At full Mandate, extends retained line records to arena boundaries and repeats their exact two-stage judgment.", tags: ["ritual", "metal", "sword"] }
   },
   "myriad-beast-grove": {
     combatRole: "A fixed mixed pack whose Boar, Fox, and Deer must survive and meaningfully assist the same kills.", visualMotif: "Three distinct jade beast bodies, species marks, formation routes, and giant one-action ancestors.",

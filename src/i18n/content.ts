@@ -181,8 +181,8 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill1: { name: "埋剑阵", description: "在行路处布下剑冢，阵势共鸣时反复破土。" }, passive: { name: "墓剑共鸣", resource: "共鸣", description: "困敌加深共鸣，增加并强化后续剑冢。" }, skill2: { name: "万剑陵", description: "化广域为剑陵，埋剑相连，连绵升起。" }
   },
   "heaven-sundering-edict": {
-    name: "断天敕令", lore: "书金天之令，一笔断生。", combatRole: "以精准长蓄势敕令造成极高单次斩杀伤害。", visualMotif: "金白敕文、裂天直线与裁决光柱。",
-    skill1: { name: "断天一笔", description: "在密集敌群上书敕令，随后一击斩开标记之地。" }, passive: { name: "裁决天命", resource: "天命", description: "受金法裁决者积累天命，强化下一次斩令。" }, skill2: { name: "无上断天令", description: "宣下无上敕令，以破劫之力斩断广阔战线。" }
+    name: "断天敕令", lore: "先书一笔，再敕同痕；留于线者，方受全判。", combatRole: "自动选择威胁线完成一次物理书写，将其固定在世界坐标，延迟后由法术裁决原样重写。", visualMotif: "细金物理敕线、完全重合的白色法术复判与保留线章。",
+    skill1: { name: "断天一笔", description: "自动书写最佳敌线并固定；延迟法术在同一坐标复判，敌人必须仍在线上才受完整裁决。" }, passive: { name: "裁决天命", resource: "天命", description: "只有同一目标同时受物理书写与法术复判才增长天命，并记录该线质量。" }, skill2: { name: "无上断天令", description: "天命圆满时，将保留敕线延伸至战场边界，并按原方向完成两段裁决。" }
   },
   "myriad-beast-grove": {
     name: "万兽灵林", lore: "一豕、一狐、一鹿，各司其猎，同契一林。", combatRole: "维持固定三兽猎群，让独立存活、各司其职的灵兽共同助攻同一场击杀。", visualMotif: "岩豕、灵狐、青鹿三种清晰兽影，物种印记、猎阵路线与一次显化的巨祖灵。",
@@ -1026,7 +1026,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "heaven-turning-pivot": { name: "回天转斗" },
   "mountain-piercing-star-lance": { name: "穿岳星槊" },
   "heavenfall-crater": { name: "天坑陨界" },
-  "reverse-star-return": { name: "逆星回天" }
+  "reverse-star-return": { name: "逆星回天" },
+  "one-line-mountain-sundering": { name: "一线断岳" },
+  "crossed-golden-edict": { name: "十字金章" },
+  "swift-short-edict": { name: "疾书短令" },
+  "lenient-record": { name: "宽赦留章" },
+  "aggravated-judgment": { name: "重罪加刑" },
+  "collective-sentence": { name: "连坐成狱" },
+  "lone-heaven-scar": { name: "天痕独断" },
+  "twin-edicts": { name: "双敕并书" },
+  "heaven-moving-amendment": { name: "移天改诏" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

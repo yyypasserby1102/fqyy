@@ -521,6 +521,10 @@ describe("Gongfa runtime", () => {
         runtime.authored.resource = 1;
         runtime.authored.phaseElapsedMs = 6000;
       }
+      if (gongfaId === "heaven-sundering-edict") {
+        runtime.authored.resource = 1;
+        runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
+      }
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -2603,5 +2607,35 @@ describe("Gongfa runtime", () => {
     expect(descent?.fate).toBe("reverse-return");
     expect(result.runtime.authored.resource).toBe(0);
     expect(result.runtime.authored.phase).toBe(0);
+  });
+
+  it("writes Heaven-Sundering Mandate only from complete double judgments", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "heaven-sundering-edict" });
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "authored-edict-result", doubleHits: 0, partialHits: 3, eliteDoubleHits: 0,
+      lineQuality: 2, lines: [{ x: 0, y: 0, angle: 0, length: 460 }]
+    }).runtime;
+    expect(runtime.authored.resource).toBe(0);
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "authored-edict-result", doubleHits: 2, partialHits: 0, eliteDoubleHits: 1,
+      lineQuality: 4, lines: [{ x: 0, y: 0, angle: Math.PI / 4, length: 460 }]
+    }).runtime;
+    expect(runtime.authored.resource).toBeCloseTo(0.36);
+    expect(runtime.authored.anchors[0]?.angle).toBe(Math.PI / 4);
+  });
+
+  it("extends retained Heaven-Sundering records without rotating them", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "heaven-sundering-edict" });
+    runtime.authored.resource = 1;
+    runtime.authored.anchors.push({ kind: "trail", x: 10, y: 20, angle: 0.7, value: 5, maxValue: 500 });
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "supreme-sundering-decree",
+      targets: [{ targetId: 1, x: 200, y: 100, healthRatio: 1, rank: "elite" }],
+      learnedMasteryIds: ["heaven-moving-amendment"]
+    });
+    const decree = result.commands.find((command) => command.kind === "authored-sundering-edict");
+    expect(decree?.lines[0]).toMatchObject({ x: 200, y: 100, angle: 0.7, length: 1200 });
+    expect(result.runtime.authored.anchors).toHaveLength(0);
+    expect(result.runtime.authored.resource).toBe(0);
   });
 });

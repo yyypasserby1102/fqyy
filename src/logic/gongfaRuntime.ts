@@ -219,6 +219,12 @@ export type GongfaRuntimeEvent =
       learnedMasteryIds?: string[];
     }
   | {
+      kind: "authored-edict-result";
+      doubleHits: number; partialHits: number; eliteDoubleHits: number; lineQuality: number;
+      lines: Array<{ x: number; y: number; angle: number; length: number }>;
+      learnedMasteryIds?: string[];
+    }
+  | {
       kind: "yujian-projectile-hit";
       targetId: number;
       damage: number;
@@ -650,6 +656,13 @@ export type GongfaRuntimeCommand =
       kind: "authored-star-descent";
       x: number; y: number; angle: number; mass: number; damage: number; radius: number;
       fate: "star-lance" | "crater" | "reverse-return"; sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-sundering-edict";
+      lines: Array<{ x: number; y: number; angle: number; length: number }>;
+      width: number; physicalDamage: number; judgmentDamage: number; delayMs: number;
+      supreme: boolean; translateTo?: { x: number; y: number }; sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     };
 
@@ -2357,6 +2370,31 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "authored-edict-result" && runtime.gongfaId === "heaven-sundering-edict") {
+    const lenient = learnedIds.includes("lenient-record");
+    const aggravated = learnedIds.includes("aggravated-judgment");
+    const collective = learnedIds.includes("collective-sentence");
+    let gain = event.doubleHits * 0.18 + (lenient ? event.partialHits * 0.05 : 0);
+    if (aggravated) gain = event.eliteDoubleHits * 0.36 + (event.doubleHits - event.eliteDoubleHits) * 0.06;
+    if (collective) gain *= event.doubleHits >= 3 ? 2 : 0.45;
+    if (learnedIds.includes("swift-short-edict")) gain *= 0.68;
+    state.resource = Math.min(lenient ? 0.78 : 1, state.resource + gain);
+    const records = event.lines.map((line) => ({
+      kind: "trail" as const, x: line.x, y: line.y, angle: line.angle,
+      value: event.lineQuality, maxValue: line.length
+    }));
+    if (learnedIds.includes("twin-edicts")) {
+      state.anchors = [...state.anchors.filter((anchor) => anchor.kind !== "trail"), ...state.anchors.filter((anchor) => anchor.kind === "trail"), ...records].slice(-2);
+    } else {
+      const best = [...state.anchors.filter((anchor) => anchor.kind === "trail"), ...records]
+        .sort((a, b) => b.value - a.value)[0];
+      state.anchors = best ? [best] : [];
+    }
+    state.secondaryResource = event.lineQuality;
+    state.charges = state.anchors.length;
+    return;
+  }
+
   if (event.kind === "evade" && runtime.gongfaId === "myriad-beast-grove") {
     const playerX = event.playerX ?? 0;
     const playerY = event.playerY ?? 0;
@@ -3094,7 +3132,7 @@ export function advanceGongfaRuntime(
   let next = copyRuntime(runtime);
   const commands: GongfaRuntimeCommand[] = [];
   advanceAuthoredWorldFacts(next, event, commands);
-  if (event.kind === "enemy-death" || event.kind === "authored-beast-assist") {
+  if (event.kind === "enemy-death" || event.kind === "authored-beast-assist" || event.kind === "authored-edict-result") {
     return { runtime: next, commands };
   }
 
@@ -3193,6 +3231,30 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "supreme-sundering-decree" && next.gongfaId === "heaven-sundering-edict") {
+      const cap = event.learnedMasteryIds.includes("lenient-record") ? 0.78 : 1;
+      const records = next.authored.anchors.filter((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
+      if (next.authored.resource >= cap - 0.001 && records.length > 0) {
+        const amendment = event.learnedMasteryIds.includes("heaven-moving-amendment");
+        const dense = event.targets?.[0];
+        commands.push({
+          kind: "authored-sundering-edict",
+          lines: records.map((record) => ({
+            x: amendment && dense ? dense.x : record.x, y: amendment && dense ? dense.y : record.y,
+            angle: record.angle!, length: 1200
+          })),
+          width: event.learnedMasteryIds.includes("lone-heaven-scar") ? 16 : 34,
+          physicalDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.38)),
+          judgmentDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
+            (amendment ? 1.15 : event.learnedMasteryIds.includes("twin-edicts") ? 1.05 : 1.65))),
+          delayMs: 900, supreme: true, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "supreme-sundering-decree", cooldownMs: Math.floor(authoredSkill2Plans["supreme-sundering-decree"].cooldownMs * skill2Stats.cadenceScale) }
+        });
+        next.authored.resource = 0; next.authored.secondaryResource = 0; next.authored.charges = 0;
+        next.authored.anchors = next.authored.anchors.filter((anchor) => anchor.kind !== "trail");
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "star-breaking-descent" && next.gongfaId === "heavenfall-body-art") {
       const cap = event.learnedMasteryIds.includes("wandering-star-light-body") ? 0.68 :
         event.learnedMasteryIds.includes("heaven-turning-pivot") ? 0.78 : 1;
@@ -4279,6 +4341,37 @@ export function planGongfaAttack(
       length: Math.max(240, runtime.combat.range + (soul?.value ?? 0) * 55),
       ...(learnedIds.includes("wandering-mist-host") ? { maxHits: 3 } : {}),
       sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "heaven-sundering-edict") {
+    const targets = options.targets ?? [];
+    if (targets.length === 0) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const longLine = learnedIds.includes("one-line-mountain-sundering");
+    const crossed = learnedIds.includes("crossed-golden-edict");
+    const swift = learnedIds.includes("swift-short-edict");
+    const length = longLine ? 620 : crossed ? 310 : swift ? 300 : 460;
+    const width = longLine ? 18 : crossed ? 28 : swift ? 34 : 30;
+    const candidates = targets.map((target) => {
+      const angle = Math.atan2(target.y - playerY, target.x - playerX);
+      const score = targets.reduce((total, other) => {
+        const along = (other.x - playerX) * Math.cos(angle) + (other.y - playerY) * Math.sin(angle);
+        const across = Math.abs((other.x - playerX) * Math.sin(angle) - (other.y - playerY) * Math.cos(angle));
+        return total + (Math.abs(along) <= length / 2 && across <= width ? (other.rank === "boss" ? 4 : other.rank === "elite" ? 2 : 1) : 0);
+      }, 0);
+      return { angle, score };
+    }).sort((a, b) => b.score - a.score);
+    const angle = candidates[0]?.angle ?? 0;
+    const lines = [{ x: playerX, y: playerY, angle, length }];
+    if (crossed) lines.push({ x: playerX, y: playerY, angle: angle + Math.PI / 2, length });
+    return [{
+      kind: "authored-sundering-edict", lines, width,
+      physicalDamage: Math.max(1, Math.floor(runtime.combat.damage * (longLine ? 0.34 : crossed ? 0.22 : 0.28))),
+      judgmentDamage: Math.max(1, Math.floor(runtime.combat.damage * (longLine ? 1.65 : crossed ? 0.72 : swift ? 0.82 : 1.25))),
+      delayMs: swift ? 340 : longLine ? 1050 : 760,
+      supreme: false, sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "flame-demon-body-art") {

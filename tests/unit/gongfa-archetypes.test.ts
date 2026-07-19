@@ -18,7 +18,7 @@ const archetypes = [
   ["frozen-river-formation", "authored-cold-debt-placement", "frozen-river-prison", "authored-frozen-river-network"],
   ["moonfall-tide-ritual", "ritual-impact", "moonfall-cataclysm", "heavenly-sun-descent"],
   ["sword-burial-formation", "authored-line-strike", "ten-thousand-sword-tomb", "authored-line-strike"],
-  ["heaven-sundering-edict", "ritual-impact", "supreme-sundering-decree", "heavenly-sun-descent"],
+  ["heaven-sundering-edict", "authored-sundering-edict", "supreme-sundering-decree", "authored-sundering-edict"],
   ["myriad-beast-grove", "authored-beast-action", "myriad-beast-stampede", "authored-beast-ancestors"],
   ["ancient-tree-body-art", "authored-ancient-tree-cycle", "world-tree-incarnation", "authored-ancient-tree-cycle"]
 ] as const satisfies ReadonlyArray<readonly [GongfaId, string, string, string]>;
@@ -120,6 +120,10 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.resource = 1;
         runtime.authored.phaseElapsedMs = 6000;
       }
+      if (gongfaId === "heaven-sundering-edict") {
+        runtime.authored.resource = 1;
+        runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
+      }
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -199,6 +203,7 @@ describe("expanded Gongfa archetypes", () => {
       }
       if (command.kind === "authored-ancient-tree-cycle") return [];
       if (command.kind === "authored-heavenfall-body") return [];
+      if (command.kind === "authored-sundering-edict") return [];
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];
       }

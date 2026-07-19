@@ -404,6 +404,9 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "heavenfall-body-art") {
       return `Falling Star: ${runtime.authored.phase === 1 ? "Transformed" : "Ready"} · Mass ${Math.floor(runtime.authored.resource * 100)}% · ${Math.max(0, Math.ceil((6000 - runtime.authored.phaseElapsedMs) / 100) / 10)}s`;
     }
+    if (runtime.gongfaId === "heaven-sundering-edict") {
+      return `Edict: Mandate ${Math.floor(runtime.authored.resource * 100)}% · Records ${runtime.authored.charges} · Best ${runtime.authored.secondaryResource.toFixed(1)}`;
+    }
     return undefined;
   }
 
@@ -2563,6 +2566,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-sundering-edict") {
+        this.fireAuthoredSunderingEdict(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3638,6 +3646,70 @@ export class GameScene extends Phaser.Scene {
     if (command.fate === "reverse-return") hitPass(x, y, this.player.x, this.player.y, 0.52);
     this.tweens.add({ targets: impact, alpha: 0, scale: 1.12, duration: command.fate === "crater" ? 1050 : 620, onComplete: () => impact.destroy() });
     this.recordGongfaMotif(`${identity.motifId}:${command.fate}`);
+  }
+
+  private fireAuthoredSunderingEdict(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-sundering-edict" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const seal = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(15);
+    const onLine = (enemy: Enemy, line: (typeof command.lines)[number]): boolean => {
+      const dx = Math.cos(line.angle); const dy = Math.sin(line.angle);
+      const along = (enemy.x - line.x) * dx + (enemy.y - line.y) * dy;
+      const across = Math.abs((enemy.x - line.x) * dy - (enemy.y - line.y) * dx);
+      return Math.abs(along) <= line.length / 2 && across <= command.width + 12;
+    };
+    const physicalIds = new Set<number>();
+    for (const line of command.lines) {
+      const halfX = Math.cos(line.angle) * line.length / 2;
+      const halfY = Math.sin(line.angle) * line.length / 2;
+      seal.lineStyle(command.supreme ? 11 : 5, identity.accent, 0.85);
+      seal.lineBetween(line.x - halfX, line.y - halfY, line.x + halfX, line.y + halfY);
+      for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active && onLine(candidate, line))) {
+        physicalIds.add(enemy.combatTargetId);
+      }
+    }
+    for (const targetId of physicalIds) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (enemy?.active && enemy.receiveDamage(command.physicalDamage)) this.resolveEnemyDeath(enemy);
+    }
+    this.time.delayedCall(command.delayMs, () => {
+      const judgmentIds = new Set<number>();
+      const judgment = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(16);
+      for (const line of command.lines) {
+        const halfX = Math.cos(line.angle) * line.length / 2;
+        const halfY = Math.sin(line.angle) * line.length / 2;
+        judgment.lineStyle(command.supreme ? 15 : 8, identity.secondary, 0.96);
+        judgment.lineBetween(line.x - halfX, line.y - halfY, line.x + halfX, line.y + halfY);
+        for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active && onLine(candidate, line))) {
+          judgmentIds.add(enemy.combatTargetId);
+        }
+      }
+      let eliteDoubleHits = 0;
+      const doubleHits = [...judgmentIds].filter((id) => physicalIds.has(id));
+      for (const targetId of judgmentIds) {
+        const enemy = this.getEnemyByCombatTargetId(targetId);
+        if (!enemy?.active) continue;
+        if (physicalIds.has(targetId) && (enemy.role === "tribulation-boss" || enemy.maxHealth >= 150)) eliteDoubleHits += 1;
+        if (enemy.receiveDamage(command.judgmentDamage)) this.resolveEnemyDeath(enemy);
+      }
+      const runtime = this.gongfaCollection.byId[command.sourceGongfaId];
+      if (runtime && !command.supreme) {
+        const result = advanceGongfaRuntime(runtime, {
+          kind: "authored-edict-result", doubleHits: doubleHits.length,
+          partialHits: new Set([...physicalIds, ...judgmentIds]).size - doubleHits.length,
+          eliteDoubleHits,
+          lineQuality: doubleHits.length + eliteDoubleHits * 1.5 + command.lines.reduce((sum, line) => sum + line.length / 900, 0),
+          lines: command.lines,
+          learnedMasteryIds: runtime.mastery.masteryLearnedIds
+        });
+        this.gongfaCollection.byId[runtime.gongfaId] = result.runtime;
+        if (this.gongfaCollection.primaryGongfaId === runtime.gongfaId) this.adoptPrimaryRuntime(result.runtime);
+      }
+      this.tweens.add({ targets: judgment, alpha: 0, duration: 420, onComplete: () => judgment.destroy() });
+    });
+    this.tweens.add({ targets: seal, alpha: 0.28, duration: command.delayMs, onComplete: () => seal.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "supreme-record" : "fixed-double-line"}`);
   }
 
   private fireFeatherRainFormation(

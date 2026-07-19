@@ -204,7 +204,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "vermilion-bird-covenant",
   "myriad-beast-grove",
   "ancient-tree-body-art",
-  "heavenfall-body-art"
+  "heavenfall-body-art",
+  "heaven-sundering-edict"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -379,6 +380,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["mountain-piercing-star-lance", "Mountain-Piercing Star Lance", "The finish pierces the strongest threat in a narrow line.", "It creates almost no crater.", "Descent shape and priority"],
       ["heavenfall-crater", "Heavenfall Crater", "The finish makes a huge controlling crater.", "Recovery is long.", "Descent radius and recovery"],
       ["reverse-star-return", "Reverse-Star Return", "The body rebounds along its approach route for a second pass.", "Both passes are weaker and create no crater.", "Descent return route"]
+    ]
+  },
+  "heaven-sundering-edict": {
+    3: [
+      ["one-line-mountain-sundering", "One-Line Mountain Sundering", "One line becomes longer, narrower, and stronger on complete judgment.", "Partial hits are weak.", "Stroke length, width, and double-hit power"],
+      ["crossed-golden-edict", "Crossed Golden Edict", "Two short lines add an intersection judgment.", "Each line is weak.", "Two-line geometry and intersection"],
+      ["swift-short-edict", "Swift Short Edict", "The fixed judgment repeats quickly.", "The line is short and grants less Mandate.", "Delay, line length, and record value"]
+    ],
+    6: [
+      ["lenient-record", "Lenient Record", "One-stage hits grant partial Mandate.", "The capstone ceiling is lower.", "Partial-hit Mandate and cap"],
+      ["aggravated-judgment", "Aggravated Judgment", "Elite and boss double hits grant heavy Mandate.", "Ordinary mobs contribute little.", "Target-rank Mandate weighting"],
+      ["collective-sentence", "Collective Sentence", "Three-plus complete judgments grant double Mandate.", "Single-target judgment is weak.", "Multi-target double-hit reward"]
+    ],
+    9: [
+      ["lone-heaven-scar", "Lone Heaven Scar", "Only the best narrow record is retained at full force.", "No second line is retained.", "Record count and width"],
+      ["twin-edicts", "Twin Edicts", "The latest two weaker records repeat together.", "Each line deals lower damage.", "Two-record capstone geometry"],
+      ["heaven-moving-amendment", "Heaven-Moving Amendment", "The recorded orientation translates to the current dense group.", "Damage is lower and orientation cannot rotate.", "Record translation without rotation"]
     ]
   }
 };
