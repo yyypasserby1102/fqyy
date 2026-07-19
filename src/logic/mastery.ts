@@ -205,7 +205,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "myriad-beast-grove",
   "ancient-tree-body-art",
   "heavenfall-body-art",
-  "heaven-sundering-edict"
+  "heaven-sundering-edict",
+  "nine-sun-calamity-seal"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -397,6 +398,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["lone-heaven-scar", "Lone Heaven Scar", "Only the best narrow record is retained at full force.", "No second line is retained.", "Record count and width"],
       ["twin-edicts", "Twin Edicts", "The latest two weaker records repeat together.", "Each line deals lower damage.", "Two-record capstone geometry"],
       ["heaven-moving-amendment", "Heaven-Moving Amendment", "The recorded orientation translates to the current dense group.", "Damage is lower and orientation cannot rotate.", "Record translation without rotation"]
+    ]
+  },
+  "nine-sun-calamity-seal": {
+    3: [
+      ["solitary-heavenly-judgment", "Solitary Heavenly Judgment", "A smaller slower center lands with much greater force.", "Outer hits are weak.", "Seal radius, delay, and center power"],
+      ["twin-luminary-eclipse", "Twin Luminary Eclipse", "Two staggered predictions cover separate threats.", "Each impact has low single-target damage.", "Prediction count and stagger"],
+      ["swift-eclipse-calamity", "Swift Eclipse Calamity", "Telegraphs and Zenith growth are faster.", "Maximum impact power is lower.", "Telegraph duration and Zenith cap"]
+    ],
+    6: [
+      ["fixed-noon-sun", "Fixed-Noon Sun", "One-third Zenith remains after commitment.", "The Zenith cap is lower.", "Zenith retention and cap"],
+      ["dark-sun-calamity", "Dark-Sun Calamity", "A long warning condenses great center power.", "Enemies have much longer to escape.", "Telegraph and shrinking center"],
+      ["unsetting-high-noon", "Unsetting High Noon", "Only full Zenith casts and creates the largest impact.", "Casts are least frequent.", "Cast threshold and maximum payoff"]
+    ],
+    9: [
+      ["center-forged-solar-soul", "Center-Forged Solar Soul", "Center hits grant two omens.", "Outer hits grant none.", "Omen source by impact band"],
+      ["myriad-beings-calamity", "Myriad-Beings Calamity", "Many distinct victims grant several omens.", "Boss-only preparation is slow.", "Omen source by distinct targets"],
+      ["returning-afterglow", "Returning Afterglow", "A miss still grants one dim omen.", "Dim omens weaken Nine Suns in One.", "Miss recovery and capstone power"]
     ]
   }
 };

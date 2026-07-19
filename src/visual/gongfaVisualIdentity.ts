@@ -43,7 +43,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "green-vine-art": { motifId: "verdant-knot", label: "Branching verdant knot", geometry: "roots", accent: 0x72cf75, secondary: 0xcaf59d, spokes: 5, trailStyle: "seeking tendril curls" },
   "verdant-ring-scripture": { motifId: "sprout-sun", label: "Sprouting sun bloom", geometry: "bloom", accent: 0x9bdd70, secondary: 0xf0e99a, spokes: 9, trailStyle: "opening leaf-petal halo" },
   "ironwood-wave-form": { motifId: "heartwood-rampart", label: "Heartwood growth rampart", geometry: "rings", accent: 0x548f56, secondary: 0xc3b477, spokes: 4, trailStyle: "squared timber splinters" },
-  "nine-sun-calamity-seal": { motifId: "nine-sun-calamity", label: "Descending calamity sun", geometry: "calamity", accent: 0xffc247, secondary: 0xff6847, spokes: 9, trailStyle: "converging solar rays" },
+  "nine-sun-calamity-seal": { motifId: "fixed-nine-layer-sun", label: "Fixed future-ground solar prediction", geometry: "calamity", accent: 0xffc247, secondary: 0xff6847, spokes: 9, trailStyle: "nine omen rings collapsing into one sun" },
   "mist-wraith-canon": { motifId: "mist-wraith-retinue", label: "Orbiting mist retinue", geometry: "wraiths", accent: 0x75d9ed, secondary: 0xe5fbff, spokes: 6, trailStyle: "curling spirit tails" },
   "heavenfall-body-art": { motifId: "mobile-meteor-mass", label: "Mass-building falling-star body", geometry: "impact", accent: 0xf0d38a, secondary: 0xffffff, spokes: 5, trailStyle: "compressed meteor wake and projected landing" },
   "thousand-root-formation": { motifId: "lifebound-root-lineages", label: "Living host root lineages", geometry: "roots", accent: 0x5fbd63, secondary: 0xdff0a0, spokes: 5, trailStyle: "body-bursting roots converging into one mother" },

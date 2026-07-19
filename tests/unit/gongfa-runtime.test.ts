@@ -525,6 +525,7 @@ describe("Gongfa runtime", () => {
         runtime.authored.resource = 1;
         runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
       }
+      if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -579,6 +580,8 @@ describe("Gongfa runtime", () => {
                   { targetId: 96, x: 120, y: 0, healthRatio: 1, rank: "elite" }
                 ] : gongfaId === "myriad-beast-grove" ? [
                   { targetId: 97, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+                ] : gongfaId === "nine-sun-calamity-seal" ? [
+                  { targetId: 98, x: 120, y: 0, healthRatio: 1, rank: "elite" }
                 ] : undefined
               });
 
@@ -2637,5 +2640,42 @@ describe("Gongfa runtime", () => {
     expect(decree?.lines[0]).toMatchObject({ x: 200, y: 100, angle: 0.7, length: 1200 });
     expect(result.runtime.authored.anchors).toHaveLength(0);
     expect(result.runtime.authored.resource).toBe(0);
+  });
+
+  it("grows Nine-Sun Zenith only outside a committed fixed seal", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1
+    }).runtime;
+    expect(runtime.authored.resource).toBeCloseTo(0.055);
+    runtime.authored.phase = 1;
+    const charging = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1
+    }).runtime;
+    expect(charging.authored.resource).toBeCloseTo(0.055);
+  });
+
+  it("turns a Nine-Sun miss into only a dim Returning Afterglow omen", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
+    runtime.authored.phase = 1;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "authored-sun-result", hitCount: 0, centerHits: 0, missed: true,
+      supreme: false, learnedMasteryIds: ["returning-afterglow"]
+    });
+    expect(result.runtime.authored.phase).toBe(0);
+    expect(result.runtime.authored.charges).toBe(1);
+    expect(result.runtime.authored.secondaryResource).toBe(1);
+  });
+
+  it("condenses nine visible omens into one fixed Nine-Suns impact", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
+    runtime.authored.charges = 9;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "heavenly-sun-descent",
+      targets: [{ targetId: 4, x: 160, y: -40, healthRatio: 1, rank: "boss" }]
+    });
+    const sun = result.commands.find((command) => command.kind === "authored-falling-sun");
+    expect(sun?.seals).toEqual([{ x: 160, y: -40, delayMs: 2400 }]);
+    expect(sun?.supreme).toBe(true);
   });
 });

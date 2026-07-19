@@ -118,11 +118,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "ironwood-surge-form", name: "Ironwood Surge Form", description: "A timber rampart repeatedly shoves enemies forward, then splinters into two diagonal return waves.", tags: ["wave", "wood", "defensive"] }
   },
   "nine-sun-calamity-seal": {
-    combatRole: "Slow, telegraphed ritual casting that pays off in enormous area damage and lingering burns.",
-    visualMotif: "Gold-red sun seals, converging rays, and a blackened impact corona.",
-    skill1: { id: "falling-sun-seal", name: "Falling Sun Seal", description: "Marks the densest enemy cluster before a condensed sun descends for one devastating strike and repeated burn pulses.", tags: ["ritual", "fire", "explosive", "ailment"] },
-    passive: { name: "Calamity Cycle", resource: "Zenith", description: "Enemies struck by sunfire build Zenith, empowering the next patient cast rather than rewarding constant small hits." },
-    skill2: { id: "heavenly-sun-descent", name: "Heavenly Sun Descent", description: "A vast sun seal charges over the battlefield, then falls in a single boss-breaking detonation with a long inferno aftermath.", tags: ["ritual", "fire", "explosive", "ailment"] }
+    combatRole: "Automatically predicts future enemy ground, commits one fixed long-warning sun, and accepts a real miss risk.",
+    visualMotif: "Fixed concentric solar warning seals, a shrinking bright center, nine visible omen rings, and one condensed sun impact.",
+    skill1: { id: "falling-sun-seal", name: "Falling Sun Seal", description: "Predicts the highest-threat or densest future ground, fixes a visible seal, then lands one center-weighted impact without tracking.", tags: ["ritual", "fire", "explosive"] },
+    passive: { name: "Zenith", resource: "Zenith", description: "Zenith rises only while no sun is committed and is spent completely on impact, including a miss." },
+    skill2: { id: "heavenly-sun-descent", name: "Nine Suns in One", description: "At nine omens, fixes a huge nine-layer prediction and condenses every omen into one center-heavy impact.", tags: ["ritual", "fire", "explosive"] }
   },
   "mist-wraith-canon": {
     combatRole: "Summoner pressure: orbiting familiars independently hunt targets and apply repeated drowning frost.",

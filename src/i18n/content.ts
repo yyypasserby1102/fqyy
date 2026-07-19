@@ -135,10 +135,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "铁木奔流式", description: "木垒反复推开敌人，随后裂成两道斜向回返浪。" }
   },
   "nine-sun-calamity-seal": {
-    name: "九阳劫印", lore: "凝日为印，蓄势后以天火洗尽一方。", combatRole: "缓慢蓄势的大范围术修，一击重创并留下持续灼烧。", visualMotif: "金赤日印、汇聚光芒与焦黑炎冕。",
-    skill1: { name: "坠阳劫印", description: "标记敌群最密处，片刻后坠下凝日，造成巨额伤害与连续灼烧。" },
-    passive: { name: "劫阳轮转", resource: "阳极", description: "日火命中积累阳极，使下一次蓄势施法更为猛烈。" },
-    skill2: { name: "天阳陨世", description: "在战场上空凝成巨型日印，以破敌重击与长久火海轰然降世。" }
+    name: "九阳劫印", lore: "预断来位，定印不移；九兆归一，一日坠天。", combatRole: "自动预判高威胁或密集敌群的未来地面，固定长警示太阳印，并承担敌人逃离后的真实落空风险。", visualMotif: "固定同心日印、收缩明亮中心、九层可见日兆与归一凝日冲击。",
+    skill1: { name: "坠阳劫印", description: "预判未来敌位并固定可见地印，长延迟后落下一次中心加权冲击，承诺后绝不追踪。" },
+    passive: { name: "阳极", resource: "阳极", description: "只有未在蓄印或坠落时才增长阳极；冲击时无论命中或落空都会消耗。" },
+    skill2: { name: "九阳归一", description: "九枚日兆齐备后固定九层巨印，将全部日兆凝为一次中心重击，不留下火场。" }
   },
   "mist-wraith-canon": {
     name: "雾灵真典", lore: "召雾为灵，随身巡游，寒潮猎敌。", combatRole: "召唤雾灵自主索敌，以连续寒击压制并侵蚀敌群。", visualMotif: "淡青魂灯、流雾长尾与层叠水纹。",
@@ -1035,7 +1035,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "collective-sentence": { name: "连坐成狱" },
   "lone-heaven-scar": { name: "天痕独断" },
   "twin-edicts": { name: "双敕并书" },
-  "heaven-moving-amendment": { name: "移天改诏" }
+  "heaven-moving-amendment": { name: "移天改诏" },
+  "solitary-heavenly-judgment": { name: "独日天刑" },
+  "twin-luminary-eclipse": { name: "双曜蚀界" },
+  "swift-eclipse-calamity": { name: "迅蚀劫光" },
+  "fixed-noon-sun": { name: "定午守阳" },
+  "dark-sun-calamity": { name: "晦日养劫" },
+  "unsetting-high-noon": { name: "极昼不落" },
+  "center-forged-solar-soul": { name: "正中炼阳" },
+  "myriad-beings-calamity": { name: "众生为劫" },
+  "returning-afterglow": { name: "残照归天" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

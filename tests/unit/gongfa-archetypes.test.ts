@@ -9,7 +9,7 @@ import { getGongfaVisualIdentity } from "../../src/visual/gongfaVisualIdentity";
 import { authoredGongfaMechanics } from "../../src/data/authoredGongfaMechanics";
 
 const archetypes = [
-  ["nine-sun-calamity-seal", "ritual-impact", "heavenly-sun-descent", "heavenly-sun-descent"],
+  ["nine-sun-calamity-seal", "authored-falling-sun", "heavenly-sun-descent", "authored-falling-sun"],
   ["mist-wraith-canon", "authored-line-strike", "hundred-ghost-procession", "authored-line-strike"],
   ["heavenfall-body-art", "authored-heavenfall-body", "star-breaking-descent", "authored-star-descent"],
   ["thousand-root-formation", "authored-root-infection", "myriad-root-killing-field", "authored-root-ancestor"],
@@ -124,6 +124,7 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.resource = 1;
         runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
       }
+      if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -143,6 +144,8 @@ describe("expanded Gongfa archetypes", () => {
           { targetId: 95, x: 120, y: 0, healthRatio: 1, rank: "elite" }
         ] : gongfaId === "myriad-beast-grove" ? [
           { targetId: 96, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+        ] : gongfaId === "nine-sun-calamity-seal" ? [
+          { targetId: 97, x: 120, y: 0, healthRatio: 1, rank: "elite" }
         ] : undefined
       });
       expect(result.commands[0]?.kind).toBe(expectedCommand);
@@ -204,6 +207,7 @@ describe("expanded Gongfa archetypes", () => {
       if (command.kind === "authored-ancient-tree-cycle") return [];
       if (command.kind === "authored-heavenfall-body") return [];
       if (command.kind === "authored-sundering-edict") return [];
+      if (command.kind === "authored-falling-sun") return [];
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];
       }

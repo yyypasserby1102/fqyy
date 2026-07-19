@@ -225,6 +225,10 @@ export type GongfaRuntimeEvent =
       learnedMasteryIds?: string[];
     }
   | {
+      kind: "authored-sun-result"; hitCount: number; centerHits: number; missed: boolean;
+      supreme: boolean; learnedMasteryIds?: string[];
+    }
+  | {
       kind: "yujian-projectile-hit";
       targetId: number;
       damage: number;
@@ -664,6 +668,12 @@ export type GongfaRuntimeCommand =
       width: number; physicalDamage: number; judgmentDamage: number; delayMs: number;
       supreme: boolean; translateTo?: { x: number; y: number }; sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-falling-sun";
+      seals: Array<{ x: number; y: number; delayMs: number }>;
+      radius: number; centerRadius: number; damage: number; zenith: number;
+      supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2395,6 +2405,22 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "authored-sun-result" && runtime.gongfaId === "nine-sun-calamity-seal") {
+    state.phase = 0;
+    if (event.supreme) {
+      state.charges = 0; state.resource = 0; state.secondaryResource = 0;
+      return;
+    }
+    let omens = 0;
+    if (learnedIds.includes("center-forged-solar-soul")) omens = event.centerHits > 0 ? 2 : 0;
+    else if (learnedIds.includes("myriad-beings-calamity")) omens = Math.min(3, event.hitCount);
+    else if (event.missed && learnedIds.includes("returning-afterglow")) {
+      omens = 1; state.secondaryResource = Math.min(9, state.secondaryResource + 1);
+    } else if (event.hitCount > 0) omens = 1;
+    state.charges = Math.min(9, state.charges + omens);
+    return;
+  }
+
   if (event.kind === "evade" && runtime.gongfaId === "myriad-beast-grove") {
     const playerX = event.playerX ?? 0;
     const playerY = event.playerY ?? 0;
@@ -2859,6 +2885,12 @@ function advanceAuthoredWorldFacts(
     }
   }
 
+  if (runtime.gongfaId === "nine-sun-calamity-seal" && state.phase === 0) {
+    const cap = learnedIds.includes("fixed-noon-sun") ? 0.67 : learnedIds.includes("swift-eclipse-calamity") ? 0.78 : 1;
+    const rate = learnedIds.includes("swift-eclipse-calamity") ? 0.000085 : 0.000055;
+    state.resource = Math.min(cap, state.resource + event.deltaMs * rate);
+  }
+
   state.anchors = state.anchors.filter((anchor) => {
     if (anchor.remainingMs === undefined) return true;
     anchor.remainingMs -= event.deltaMs;
@@ -3132,7 +3164,7 @@ export function advanceGongfaRuntime(
   let next = copyRuntime(runtime);
   const commands: GongfaRuntimeCommand[] = [];
   advanceAuthoredWorldFacts(next, event, commands);
-  if (event.kind === "enemy-death" || event.kind === "authored-beast-assist" || event.kind === "authored-edict-result") {
+  if (event.kind === "enemy-death" || event.kind === "authored-beast-assist" || event.kind === "authored-edict-result" || event.kind === "authored-sun-result") {
     return { runtime: next, commands };
   }
 
@@ -3231,6 +3263,25 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "heavenly-sun-descent" && next.gongfaId === "nine-sun-calamity-seal") {
+      const targets = event.targets ?? [];
+      const target = [...targets].sort((a, b) => {
+        const rank = (item: AuthoredTargetFact): number => item.rank === "boss" ? 3 : item.rank === "elite" ? 2 : 1;
+        return rank(b) + b.healthRatio - rank(a) - a.healthRatio;
+      })[0];
+      if (next.authored.phase === 0 && next.authored.charges >= 9 && target) {
+        const dimScale = Math.max(0.45, 1 - next.authored.secondaryResource * 0.06);
+        next.authored.phase = 1;
+        commands.push({
+          kind: "authored-falling-sun", seals: [{ x: target.x, y: target.y, delayMs: 2400 }],
+          radius: 220, centerRadius: 58,
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 3.4 * dimScale)),
+          zenith: next.authored.resource, supreme: true, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "heavenly-sun-descent", cooldownMs: Math.floor(authoredSkill2Plans["heavenly-sun-descent"].cooldownMs * skill2Stats.cadenceScale) }
+        });
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "supreme-sundering-decree" && next.gongfaId === "heaven-sundering-edict") {
       const cap = event.learnedMasteryIds.includes("lenient-record") ? 0.78 : 1;
       const records = next.authored.anchors.filter((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
@@ -4372,6 +4423,36 @@ export function planGongfaAttack(
       judgmentDamage: Math.max(1, Math.floor(runtime.combat.damage * (longLine ? 1.65 : crossed ? 0.72 : swift ? 0.82 : 1.25))),
       delayMs: swift ? 340 : longLine ? 1050 : 760,
       supreme: false, sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "nine-sun-calamity-seal") {
+    if (runtime.authored.phase !== 0 || runtime.authored.charges >= 9) return [];
+    const targets = options.targets ?? [];
+    if (targets.length === 0) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const unsetting = learnedIds.includes("unsetting-high-noon");
+    if (unsetting && runtime.authored.resource < 0.999) return [];
+    const twin = learnedIds.includes("twin-luminary-eclipse");
+    const solitary = learnedIds.includes("solitary-heavenly-judgment");
+    const swift = learnedIds.includes("swift-eclipse-calamity");
+    const dark = learnedIds.includes("dark-sun-calamity");
+    const density = (target: AuthoredTargetFact): number => targets.filter((other) =>
+      distanceSquared(target.x, target.y, other.x, other.y) <= 120 ** 2
+    ).length + (target.rank === "boss" ? 4 : target.rank === "elite" ? 2 : 0);
+    const ordered = [...targets].sort((a, b) => density(b) - density(a));
+    const delay = dark ? 2100 : swift ? 720 : solitary ? 1850 : 1450;
+    const seals = ordered.slice(0, twin ? 2 : 1).map((target, index) => ({
+      x: target.x, y: target.y, delayMs: delay + index * 420
+    }));
+    const zenith = runtime.authored.resource;
+    runtime.authored.phase = 1;
+    runtime.authored.resource = learnedIds.includes("fixed-noon-sun") ? zenith / 3 : 0;
+    return [{
+      kind: "authored-falling-sun", seals,
+      radius: solitary ? 76 : twin ? 92 : 118,
+      centerRadius: dark ? 22 : solitary ? 28 : 42,
+      damage: Math.max(1, Math.floor(runtime.combat.damage * (solitary ? 2.4 : twin ? 0.8 : swift ? 0.88 : 1.35) * (1 + zenith * (unsetting ? 2.2 : dark ? 1.8 : 1.35)))),
+      zenith, supreme: false, sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "flame-demon-body-art") {

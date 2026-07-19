@@ -407,6 +407,9 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "heaven-sundering-edict") {
       return `Edict: Mandate ${Math.floor(runtime.authored.resource * 100)}% · Records ${runtime.authored.charges} · Best ${runtime.authored.secondaryResource.toFixed(1)}`;
     }
+    if (runtime.gongfaId === "nine-sun-calamity-seal") {
+      return `Nine Sun: ${runtime.authored.phase === 1 ? "Seal Falling" : "Zenith Rising"} · Zenith ${Math.floor(runtime.authored.resource * 100)}% · Omens ${runtime.authored.charges}/9`;
+    }
     return undefined;
   }
 
@@ -2571,6 +2574,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-falling-sun") {
+        this.fireAuthoredFallingSun(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3710,6 +3718,57 @@ export class GameScene extends Phaser.Scene {
     });
     this.tweens.add({ targets: seal, alpha: 0.28, duration: command.delayMs, onComplete: () => seal.destroy() });
     this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "supreme-record" : "fixed-double-line"}`);
+  }
+
+  private fireAuthoredFallingSun(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-falling-sun" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    let resolved = 0;
+    let totalHits = 0;
+    let centerHits = 0;
+    for (const seal of command.seals) {
+      const omen = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(12);
+      const layers = command.supreme ? 9 : 3;
+      for (let layer = 1; layer <= layers; layer += 1) {
+        omen.lineStyle(command.supreme ? 3 : 2, layer % 2 ? identity.accent : identity.secondary, 0.5 + layer / layers * 0.35);
+        omen.strokeCircle(seal.x, seal.y, command.radius * layer / layers);
+      }
+      omen.fillStyle(identity.accent, 0.12);
+      omen.fillCircle(seal.x, seal.y, command.centerRadius);
+      this.time.delayedCall(seal.delayMs, () => {
+        const impact = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(17);
+        impact.fillStyle(identity.secondary, 0.82);
+        impact.fillCircle(seal.x, seal.y, command.centerRadius);
+        impact.lineStyle(command.supreme ? 18 : 9, identity.accent, 0.95);
+        impact.strokeCircle(seal.x, seal.y, command.radius);
+        for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+          const distance = Phaser.Math.Distance.Between(enemy.x, enemy.y, seal.x, seal.y);
+          if (distance > command.radius + 12) continue;
+          totalHits += 1;
+          const center = distance <= command.centerRadius;
+          if (center) centerHits += 1;
+          const edgeScale = center ? 1.55 : Math.max(0.28, 1 - distance / command.radius * 0.65);
+          if (enemy.receiveDamage(command.damage * edgeScale)) this.resolveEnemyDeath(enemy);
+        }
+        resolved += 1;
+        omen.destroy();
+        this.tweens.add({ targets: impact, alpha: 0, scale: 1.22, duration: 650, onComplete: () => impact.destroy() });
+        if (resolved === command.seals.length) {
+          const runtime = this.gongfaCollection.byId[command.sourceGongfaId];
+          if (runtime) {
+            const result = advanceGongfaRuntime(runtime, {
+              kind: "authored-sun-result", hitCount: totalHits, centerHits,
+              missed: totalHits === 0, supreme: command.supreme,
+              learnedMasteryIds: runtime.mastery.masteryLearnedIds
+            });
+            this.gongfaCollection.byId[runtime.gongfaId] = result.runtime;
+            if (this.gongfaCollection.primaryGongfaId === runtime.gongfaId) this.adoptPrimaryRuntime(result.runtime);
+          }
+        }
+      });
+    }
+    this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "nine-in-one" : "fixed-prediction"}`);
   }
 
   private fireFeatherRainFormation(
