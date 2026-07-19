@@ -105,10 +105,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "镜针星阵", description: "环绕星阵分批射出霜针覆盖近敌，并重新锁定倒下目标。" }
   },
   "black-tide-scripture": {
-    name: "玄潮经", lore: "凝水成潮，重浪层叠席卷四方。", combatRole: "沉重潮锋先推后卷，将幸存敌人重新聚回。", visualMotif: "深蓝月弧、玄水层带与逆转潮环。",
-    skill1: { name: "玄水重潮", description: "层叠水气化作宽阔潮锋向前碾压，并随潮势高涨。" },
-    passive: { name: "月引潮生", resource: "潮势", description: "浪形命中提升潮势，增强后续潮锋的力量与宽度。" },
-    skill2: { name: "月潮穹阵", description: "环形潮水先将敌人推开，再逆卷幸存者并造成第二次打击。" }
+    name: "玄潮经", lore: "观一界月潮，以顺逆行止改写退、静、涨三相潮历。", combatRole: "全场潮历控场，玩家移动只改变世界潮相的快慢，不瞄准任何局部中心。", visualMotif: "贯穿战场的四向玄水带、潮向罗盘与边界泄洪。",
+    skill1: { name: "天地潮历", description: "依全局潮相自动施展退潮牵引、静水迟滞或涨潮水墙。" },
+    passive: { name: "月引潮序", resource: "潮相", description: "顺流加快潮历，逆流拖慢潮历；每完成一轮，天地潮向反转。" },
+    skill2: { name: "洪潮敕令", description: "完成三轮潮历后锁定全局流向，使普通敌人保持相对位置一同冲向泄洪边界。" }
   },
   "ice-mirror-guard": {
     name: "冰镜护体", lore: "寒水凝镜护身，碎裂时反射锋芒。", combatRole: "近身反射防御，绽放为精准霜晶碎片。", visualMotif: "青蓝镜瓣、琉璃切面与碎莲轮廓。",
@@ -979,7 +979,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "strong-seed-chooses-its-host": { name: "强种择主" },
   "many-mouths-devour-life": { name: "众口噬生" },
   "one-heart-strangles-life": { name: "独心绞命" },
-  "wither-and-flourish-leave-a-seed": { name: "枯荣留种" }
+  "wither-and-flourish-leave-a-seed": { name: "枯荣留种" },
+  "azure-sea-withdraws-the-border": { name: "沧海退界" },
+  "still-sea-mystic-mirror": { name: "静海玄镜" },
+  "great-flood-presses-the-realm": { name: "洪涛压境" },
+  "ride-the-tide": { name: "乘潮行舟" },
+  "hold-the-moon-against-the-tide": { name: "逆潮留月" },
+  "heaven-timed-tide": { name: "天时定潮" },
+  "all-beings-share-the-flow": { name: "众生同流" },
+  "mystic-water-anchors-the-realm": { name: "玄水镇界" },
+  "dry-sea-splits-the-shore": { name: "枯海裂岸" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

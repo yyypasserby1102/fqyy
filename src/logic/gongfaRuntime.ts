@@ -567,6 +567,28 @@ export type GongfaRuntimeCommand =
       fate: "many-mouths" | "one-heart" | "wither-seed";
       sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-world-tide-band";
+      phase: "ebb" | "still" | "flood";
+      direction: 0 | 1 | 2 | 3;
+      damage: number;
+      bandCount: number;
+      bandWidth: number;
+      force: number;
+      slowMultiplier: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-deluge-mandate";
+      direction: 0 | 1 | 2 | 3;
+      damage: number;
+      force: number;
+      durationMs: number;
+      bossSlowMultiplier: number;
+      fate: "shared-flow" | "anchored-water" | "dry-sea";
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2098,6 +2120,10 @@ function distanceSquared(ax: number, ay: number, bx: number, by: number): number
   return dx * dx + dy * dy;
 }
 
+function cardinalFlowAngle(direction: number): number {
+  return [0, Math.PI / 2, Math.PI, -Math.PI / 2][direction] ?? 0;
+}
+
 function advanceAuthoredWorldFacts(
   runtime: GongfaRuntime,
   event: GongfaRuntimeEvent,
@@ -2259,7 +2285,6 @@ function advanceAuthoredWorldFacts(
 
   if (event.kind !== "tick") return;
 
-  state.phaseElapsedMs += event.deltaMs;
   if (runtime.gongfaId === "flame-demon-body-art") {
     state.secondaryResource = Math.max(0, Math.min(1, event.healthRatio ?? 1));
     state.resource = 1 - state.secondaryResource;
@@ -2272,6 +2297,42 @@ function advanceAuthoredWorldFacts(
     state.continuousMovementMs = 0;
     state.continuousDistance = 0;
     state.lastMovementAngle = undefined;
+  }
+
+  if (runtime.gongfaId === "black-tide-scripture") {
+    const lockRemaining = state.targetLedger[-99] ?? 0;
+    if (lockRemaining > 0) {
+      state.targetLedger[-99] = Math.max(0, lockRemaining - event.deltaMs);
+    } else {
+      const direction = Math.max(0, Math.min(3, Math.floor(state.secondaryResource)));
+      const movementAngle = event.movementAngle;
+      const flowAlignment = event.isMoving && movementAngle !== undefined
+        ? Math.cos(movementAngle - cardinalFlowAngle(direction))
+        : 0;
+      const timeScale = learnedIds.includes("heaven-timed-tide")
+        ? 0.78
+        : learnedIds.includes("ride-the-tide")
+          ? flowAlignment > 0.55 ? 2.2 : flowAlignment < -0.55 ? 0.9 : 1
+          : learnedIds.includes("hold-the-moon-against-the-tide")
+            ? flowAlignment < -0.55 ? 0.34 : flowAlignment > 0.55 ? 1.15 : 1
+            : flowAlignment > 0.55 ? 1.45 : flowAlignment < -0.55 ? 0.68 : 1;
+      state.phaseElapsedMs += event.deltaMs * timeScale;
+      let phaseDuration = state.phase === 2 && learnedIds.includes("dry-sea-splits-the-shore") ? 3000 : 6200;
+      while (state.phaseElapsedMs >= phaseDuration) {
+        state.phaseElapsedMs -= phaseDuration;
+        state.phase += 1;
+        if (state.phase > 2) {
+          state.phase = 0;
+          state.cycleCount += 1;
+          state.secondaryResource = (direction + 2) % 4;
+        }
+        phaseDuration = state.phase === 2 && learnedIds.includes("dry-sea-splits-the-shore") ? 3000 : 6200;
+      }
+      state.resource = Math.min(1, state.phaseElapsedMs / phaseDuration);
+      state.charges = Math.min(3, state.cycleCount);
+    }
+  } else {
+    state.phaseElapsedMs += event.deltaMs;
   }
 
   state.anchors = state.anchors.filter((anchor) => {
@@ -2646,6 +2707,36 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "moon-tide-vault" && next.gongfaId === "black-tide-scripture") {
+      if (next.authored.cycleCount >= 3) {
+        const learnedIds = event.learnedMasteryIds;
+        const fate = learnedIds.includes("mystic-water-anchors-the-realm")
+          ? "anchored-water" as const
+          : learnedIds.includes("dry-sea-splits-the-shore")
+            ? "dry-sea" as const
+            : "shared-flow" as const;
+        const durationMs = fate === "dry-sea" ? 900 : fate === "anchored-water" ? 1800 : 1500;
+        commands.push({
+          kind: "authored-deluge-mandate",
+          direction: Math.max(0, Math.min(3, Math.floor(next.authored.secondaryResource))) as 0 | 1 | 2 | 3,
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
+            (fate === "dry-sea" ? 2.15 : fate === "anchored-water" ? 0.55 : 0.72))),
+          force: fate === "shared-flow" ? 250 : fate === "dry-sea" ? 75 : 0,
+          durationMs,
+          bossSlowMultiplier: fate === "anchored-water" ? 0.22 : fate === "shared-flow" ? 0.42 : 0.58,
+          fate,
+          sourceGongfaId: next.gongfaId,
+          masteryCast: {
+            skill2Id: "moon-tide-vault",
+            cooldownMs: Math.floor(authoredSkill2Plans["moon-tide-vault"].cooldownMs * skill2Stats.cadenceScale)
+          }
+        });
+        next.authored.cycleCount = 0;
+        next.authored.charges = 0;
+        next.authored.targetLedger[-99] = durationMs;
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "frozen-river-prison" && next.gongfaId === "frozen-river-formation") {
       const activeTargets = event.targets ?? [];
       const nodes = next.authored.anchors
@@ -3607,6 +3698,48 @@ export function planGongfaAttack(
       damage: Math.max(1, Math.floor(runtime.combat.damage * 0.3)),
       width: 7,
       length: Math.max(220, runtime.combat.range * 0.82),
+      sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "black-tide-scripture") {
+    if ((runtime.authored.targetLedger[-99] ?? 0) > 0) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const phase = (["ebb", "still", "flood"] as const)[runtime.authored.phase] ?? "ebb";
+    const selectedPhase = learnedIds.includes("azure-sea-withdraws-the-border")
+      ? "ebb"
+      : learnedIds.includes("still-sea-mystic-mirror")
+        ? "still"
+        : learnedIds.includes("great-flood-presses-the-realm")
+          ? "flood"
+          : undefined;
+    const phaseTradeScale = selectedPhase ? selectedPhase === phase ? 1.58 : 0.68 : 1;
+    const baseDamageScale = phase === "ebb" ? 0.28 : phase === "still" ? 0.52 : 1.35;
+    const r9DamageScale = learnedIds.includes("all-beings-share-the-flow")
+      ? 0.62
+      : learnedIds.includes("mystic-water-anchors-the-realm")
+        ? 0.56
+        : learnedIds.includes("dry-sea-splits-the-shore") && phase === "flood"
+          ? 1.55
+          : 1;
+    const baseForce = phase === "ebb" ? -95 : phase === "still" ? 0 : 150;
+    const r9ForceScale = learnedIds.includes("all-beings-share-the-flow")
+      ? 1.65
+      : learnedIds.includes("mystic-water-anchors-the-realm")
+        ? 0.22
+        : learnedIds.includes("dry-sea-splits-the-shore")
+          ? 0.48
+          : 1;
+    return [{
+      kind: "authored-world-tide-band",
+      phase,
+      direction: Math.max(0, Math.min(3, Math.floor(runtime.authored.secondaryResource))) as 0 | 1 | 2 | 3,
+      damage: Math.max(1, Math.floor(runtime.combat.damage * baseDamageScale * phaseTradeScale * r9DamageScale)),
+      bandCount: phase === "ebb" ? 3 : 2,
+      bandWidth: phase === "ebb" ? 112 : phase === "still" ? 84 : 68,
+      force: baseForce * r9ForceScale,
+      slowMultiplier: phase === "still"
+        ? learnedIds.includes("mystic-water-anchors-the-realm") ? 0.24 : 0.5
+        : 0.82,
       sourceGongfaId: runtime.gongfaId
     }];
   }

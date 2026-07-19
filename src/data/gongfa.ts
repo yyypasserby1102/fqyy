@@ -345,7 +345,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
     requiredRoots: ["water"],
     pattern: "wave",
     title: "Black Tide Scripture",
-    lore: "Compressed water qi rolls outward in layered tides.",
+    lore: "Read one world-scale moon tide; move with or against its cardinal calendar before the whole realm floods.",
     projectileTexture: "metal-wave",
     tint: 0x72c9ff,
     stages: {

@@ -35,6 +35,7 @@ interface HudState {
   masterySkill2Casts: number;
   masteryFullyMastered: boolean;
   gongfaPaths: string;
+  gongfaMechanicStatus?: string;
   gongfaCodexPaths: GongfaCodexPath[];
   galeMomentum: number;
   guard: number;
@@ -191,6 +192,7 @@ export class UIScene extends Phaser.Scene {
         masterySkill2Casts: hud.masterySkill2Casts,
         masteryFullyMastered: hud.masteryFullyMastered,
         gongfaPaths: hud.gongfaPaths,
+        gongfaMechanicStatus: hud.gongfaMechanicStatus,
         galeMomentum: hud.galeMomentum,
         skillTags: hud.skillTags,
         guard: hud.guard,

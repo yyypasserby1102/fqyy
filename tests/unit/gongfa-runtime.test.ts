@@ -492,7 +492,7 @@ describe("Gongfa runtime", () => {
       "blazing-feather-art": "feather-rain-formation",
       "scarlet-wave-manual": "sunset-wave-apex",
       "drifting-frost-needle": "mirror-needle-constellation",
-      "black-tide-scripture": "moon-tide-vault",
+      "black-tide-scripture": "authored-deluge-mandate",
       "ice-mirror-guard": "frozen-lotus-shell",
       "green-vine-art": "verdant-root-network",
       "verdant-ring-scripture": "sprout-sun-circle",
@@ -504,6 +504,7 @@ describe("Gongfa runtime", () => {
       expect(plan, `${gongfaId} declares unsupported Skill 2 ${skill2Id}`).toBeDefined();
 
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -629,6 +630,7 @@ describe("Gongfa runtime", () => {
   it("projects defining resource-scaled behavior for every newly authored Skill 2", () => {
     const cast = (gongfaId: GongfaId) => {
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (runtime.blazingFeather) runtime.blazingFeather.emberStacks = 6;
       if (runtime.surge) runtime.surge.stacks = 6;
       return advanceGongfaRuntime(runtime, {
@@ -656,9 +658,9 @@ describe("Gongfa runtime", () => {
       pierce: 3
     });
     expect(cast("black-tide-scripture")).toMatchObject({
-      kind: "moon-tide-vault",
-      radius: 252,
-      controlStrength: 270
+      kind: "authored-deluge-mandate",
+      fate: "shared-flow",
+      force: 250
     });
     expect(cast("ice-mirror-guard")).toMatchObject({
       kind: "frozen-lotus-shell",

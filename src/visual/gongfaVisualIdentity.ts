@@ -38,7 +38,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "burning-ring-scripture": { motifId: "revolving-corona", label: "Revolving solar corona", geometry: "solar", accent: 0xff8b4f, secondary: 0xffef9a, spokes: 10, trailStyle: "segmented solar orbit" },
   "scarlet-wave-manual": { motifId: "sunset-crossing", label: "Crossing sunset crescents", geometry: "crescent", accent: 0xff5f42, secondary: 0xffbb69, spokes: 2, trailStyle: "molten crescent wake" },
   "drifting-frost-needle": { motifId: "hoarfrost-stars", label: "Hoarfrost needle stars", geometry: "constellation", accent: 0x8fe3ff, secondary: 0xe8fbff, spokes: 6, trailStyle: "crystal point glints" },
-  "black-tide-scripture": { motifId: "moon-tide-vault", label: "Moon-drawn tide vault", geometry: "tide", accent: 0x4da8ef, secondary: 0xa8e7ff, spokes: 3, trailStyle: "reversing dark-water bands" },
+  "black-tide-scripture": { motifId: "world-cardinal-tide", label: "World-scale cardinal tide", geometry: "tide", accent: 0x286da8, secondary: 0xa8e7ff, spokes: 4, trailStyle: "arena-wide parallel black-water bands" },
   "ice-mirror-guard": { motifId: "mirror-lotus", label: "Faceted mirror lotus", geometry: "lotus", accent: 0x90eaff, secondary: 0xf0ffff, spokes: 8, trailStyle: "shattered glass petals" },
   "green-vine-art": { motifId: "verdant-knot", label: "Branching verdant knot", geometry: "roots", accent: 0x72cf75, secondary: 0xcaf59d, spokes: 5, trailStyle: "seeking tendril curls" },
   "verdant-ring-scripture": { motifId: "sprout-sun", label: "Sprouting sun bloom", geometry: "bloom", accent: 0x9bdd70, secondary: 0xf0e99a, spokes: 9, trailStyle: "opening leaf-petal halo" },

@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -607,6 +607,11 @@ describe("mastery progression", () => {
       gongfaId: "thousand-root-formation", rank: 9, seed: "s", learnedIds: []
     })).toEqual([
       "many-mouths-devour-life", "one-heart-strangles-life", "wither-and-flourish-leave-a-seed"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "black-tide-scripture", rank: 6, seed: "s", learnedIds: []
+    })).toEqual([
+      "ride-the-tide", "hold-the-moon-against-the-tide", "heaven-timed-tide"
     ]);
   });
 

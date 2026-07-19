@@ -67,6 +67,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private movementMode: EnemyMovementMode = "pursue";
   private movementSlowMultiplier = 1;
   private movementSlowUntil = 0;
+  private forcedVelocityX = 0;
+  private forcedVelocityY = 0;
+  private forcedVelocityUntil = 0;
   private deathEffect?: Phaser.GameObjects.Sprite;
 
   constructor(
@@ -137,6 +140,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     if (this.scene.time.now >= this.movementSlowUntil) {
       this.movementSlowMultiplier = 1;
     }
+    if (this.scene.time.now < this.forcedVelocityUntil) {
+      body.setVelocity(this.forcedVelocityX, this.forcedVelocityY);
+      this.movementMode = "pursue";
+      return;
+    }
     const movement = projectEnemyMovement({
       // Boss challenge comes from slams, adds, enrage, and arena hazards. Keep
       // the large boss body on a readable pursuit line so aimed Gongfa do not
@@ -186,6 +194,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       Phaser.Math.Clamp(multiplier, 0.1, 1)
     );
     this.movementSlowUntil = Math.max(this.movementSlowUntil, this.scene.time.now + durationMs);
+  }
+
+  applyForcedVelocity(angle: number, speed: number, durationMs: number): void {
+    if (!this.active || durationMs <= 0) return;
+    this.forcedVelocityX = Math.cos(angle) * speed;
+    this.forcedVelocityY = Math.sin(angle) * speed;
+    this.forcedVelocityUntil = Math.max(this.forcedVelocityUntil, this.scene.time.now + durationMs);
   }
 
   presentDefeat(): boolean {

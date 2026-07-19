@@ -199,7 +199,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "sword-burial-formation",
   "flame-demon-body-art",
   "frozen-river-formation",
-  "thousand-root-formation"
+  "thousand-root-formation",
+  "black-tide-scripture"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -289,6 +290,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["many-mouths-devour-life", "Many Mouths Devour Life", "Each erupting root routes through a different ordinary enemy before merging.", "Boss convergence is slow and weak.", "Root-Mother crowd route"],
       ["one-heart-strangles-life", "One Heart Strangles Life", "Every root converges through the strongest infected host for great focused damage.", "It provides almost no crowd clear.", "Root-Mother convergence target"],
       ["wither-and-flourish-leave-a-seed", "Wither and Flourish Leave a Seed", "After merging, one mature seed remains in the healthiest survivor.", "The Root-Mother payoff is sharply reduced.", "Post-capstone lineage preservation"]
+    ]
+  },
+  "black-tide-scripture": {
+    3: [
+      ["azure-sea-withdraws-the-border", "Azure Sea Withdraws the Border", "Ebb currents gain much greater force and damage.", "Still and Flood output are reduced.", "Ebb phase global bands"],
+      ["still-sea-mystic-mirror", "Still-Sea Mystic Mirror", "Still water bands gain stronger damage and control.", "Ebb and Flood output are reduced.", "Still phase global bands"],
+      ["great-flood-presses-the-realm", "Great Flood Presses the Realm", "Flood walls gain much greater force and damage.", "Ebb and Still output are reduced.", "Flood phase global bands"]
+    ],
+    6: [
+      ["ride-the-tide", "Ride the Tide", "Moving with the current advances the tide calendar extremely quickly.", "Against-current movement can no longer hold a useful phase effectively.", "Player movement and tide-calendar rate"],
+      ["hold-the-moon-against-the-tide", "Hold the Moon Against the Tide", "Against-current movement nearly suspends the current phase.", "The Cultivator moves more slowly while this law is active.", "Player movement speed and tide-calendar delay"],
+      ["heaven-timed-tide", "Heaven-Timed Tide", "Every phase follows a fixed predictable duration regardless of movement.", "Completing three cycles for Deluge Mandate takes longer.", "Fixed world-tide calendar"]
+    ],
+    9: [
+      ["all-beings-share-the-flow", "All Beings Share the Flow", "All ordinary enemies receive maximum shared displacement.", "Tide damage is low.", "Global current and Deluge Mandate"],
+      ["mystic-water-anchors-the-realm", "Mystic Water Anchors the Realm", "Still water and Deluge apply maximum slowing control.", "Movement and damage are weak.", "Global slow and anchored Deluge"],
+      ["dry-sea-splits-the-shore", "Dry Sea Splits the Shore", "Flood becomes a short violent draining wave with maximum damage.", "It provides little movement control and ends quickly.", "Flood duration and Deluge burst"]
     ]
   }
 };

@@ -366,6 +366,69 @@ describe("approved Gongfa mechanic contracts", () => {
     ]);
   });
 
+  it("advances the Black-Tide world calendar with or against its cardinal current", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "black-tide-scripture" });
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 3000, nearbyEnemyCount: 1,
+      isMoving: true, movementAngle: 0, movementDistance: 100, targets: []
+    }).runtime;
+    expect(runtime.authored).toMatchObject({ phase: 0, phaseElapsedMs: 4350, secondaryResource: 0 });
+
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1,
+      isMoving: true, movementAngle: Math.PI, movementDistance: 30, targets: []
+    }).runtime;
+    expect(runtime.authored.phaseElapsedMs).toBe(5030);
+
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1170, nearbyEnemyCount: 1,
+      isMoving: false, targets: []
+    }).runtime;
+    expect(runtime.authored).toMatchObject({ phase: 1, phaseElapsedMs: 0 });
+  });
+
+  it("makes each Black-Tide phase and R3 doctrine produce a different world band", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "black-tide-scripture" });
+    const empoweredEbb = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["azure-sea-withdraws-the-border"]
+    })[0];
+    const sacrificedEbb = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["great-flood-presses-the-realm"]
+    })[0];
+    expect(empoweredEbb).toMatchObject({
+      kind: "authored-world-tide-band", phase: "ebb", direction: 0, force: -95
+    });
+    if (empoweredEbb?.kind === "authored-world-tide-band" &&
+        sacrificedEbb?.kind === "authored-world-tide-band") {
+      expect(empoweredEbb.damage).toBeGreaterThan(sacrificedEbb.damage);
+    }
+    runtime.authored.phase = 2;
+    const flood = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["dry-sea-splits-the-shore"]
+    })[0];
+    expect(flood).toMatchObject({ kind: "authored-world-tide-band", phase: "flood" });
+    if (flood?.kind === "authored-world-tide-band") expect(flood.force).toBe(72);
+  });
+
+  it("spends three complete Black-Tide cycles on one locked Deluge law", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "black-tide-scripture" });
+    runtime.authored.cycleCount = 3;
+    runtime.authored.secondaryResource = 2;
+    const deluge = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "moon-tide-vault", nearbyEnemyCount: 5,
+      eligibleTargetCount: 5, hasMovementDirection: true,
+      learnedMasteryIds: ["dry-sea-splits-the-shore"]
+    });
+    expect(deluge.commands).toEqual([
+      expect.objectContaining({
+        kind: "authored-deluge-mandate", direction: 2, fate: "dry-sea", durationMs: 900
+      })
+    ]);
+    expect(deluge.runtime.authored.cycleCount).toBe(0);
+    expect(deluge.runtime.authored.targetLedger[-99]).toBe(900);
+    expect(planGongfaAttack(deluge.runtime, 0)).toEqual([]);
+  });
+
   it("persists authored inventories while resetting transient movement continuity", () => {
     let collection = learnGongfa(createGongfaCollectionRuntime(), "sword-burial-formation", true);
     const runtime = collection.byId["sword-burial-formation"]!;

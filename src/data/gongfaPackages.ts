@@ -83,11 +83,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "mirror-needle-constellation", name: "Mirror Needle Constellation", description: "An orbiting constellation distributes staggered frost needles across nearby enemies and retargets the fallen.", tags: ["homing", "projectile", "water"] }
   },
   "black-tide-scripture": {
-    combatRole: "Heavy water fronts that push outward and pull survivors back.",
-    visualMotif: "Deep-blue moon arcs, dark water bands, and reversing tidal rings.",
-    skill1: { id: "black-tide", name: "Black Tide", description: "Layered water-qi surges crush forward in a broad front and swell with accumulated Tide.", tags: ["wave", "water"] },
-    passive: { name: "Moon-Drawn Tide", resource: "Tide", description: "Wave hits raise Tide, empowering the force and breadth of later surges until it ebbs." },
-    skill2: { id: "moon-tide-vault", name: "Moon Tide Vault", description: "A circular tide drives enemies outward before reversing to pull survivors inward for a second strike.", tags: ["wave", "water", "defensive"] }
+    combatRole: "A world-current controller whose Ebb, Still, and Flood calendar is accelerated or delayed by movement.",
+    visualMotif: "Arena-wide cardinal black-water bands, one compass flow, and a boundary-draining deluge.",
+    skill1: { id: "black-tide", name: "World Tide Calendar", description: "Automatically applies Ebb pull, Still slow, or Flood walls across the arena according to one visible cardinal phase.", tags: ["wave", "water"] },
+    passive: { name: "Moon-Guided Tide Order", resource: "Tide Phase", description: "Moving with the current advances world time; moving against it delays time; each full cycle reverses the current." },
+    skill2: { id: "moon-tide-vault", name: "Deluge Mandate", description: "After three full cycles, locks one global velocity and carries all ordinary enemies together toward the destination boundary.", tags: ["wave", "water", "defensive"] }
   },
   "ice-mirror-guard": {
     combatRole: "Reflective close defense that blooms into aimed frost shrapnel.",

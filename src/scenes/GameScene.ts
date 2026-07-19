@@ -363,6 +363,21 @@ export class GameScene extends Phaser.Scene {
     );
   }
 
+  private get gongfaMechanicStatus(): string | undefined {
+    const primaryId = this.gongfaCollection.primaryGongfaId;
+    const runtime = primaryId ? this.gongfaCollection.byId[primaryId] : undefined;
+    if (!runtime) return undefined;
+    if (runtime.gongfaId === "black-tide-scripture") {
+      const phases = ["Ebb", "Still", "Flood"] as const;
+      const directions = ["East", "South", "West", "North"] as const;
+      const phase = phases[runtime.authored.phase] ?? "Ebb";
+      const next = phases[(runtime.authored.phase + 1) % 3] ?? "Still";
+      const direction = directions[Math.floor(runtime.authored.secondaryResource)] ?? "East";
+      return `Tide: ${phase} → ${next} · ${direction} · ${Math.floor(runtime.authored.resource * 100)}% · Cycles ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
+    return undefined;
+  }
+
   private adoptPrimaryRuntime(runtime: GongfaRuntime): void {
     this.gongfaCollection.byId[runtime.gongfaId] = runtime;
     this.gongfaRuntime = runtime;
@@ -533,7 +548,9 @@ export class GameScene extends Phaser.Scene {
       : movement;
     this.player.move(
       presentedMovement,
-      evadeState.active ? evadeState.speed : this.player.stats.moveSpeed
+      evadeState.active
+        ? evadeState.speed
+        : this.player.stats.moveSpeed * this.getBlackTidePlayerMoveScale(movement)
     );
     this.player.advanceVisual(delta, presentedMovement);
     if (movement.lengthSq() > 0) {
@@ -2113,6 +2130,16 @@ export class GameScene extends Phaser.Scene {
     return this.lastAimAngle;
   }
 
+  private getBlackTidePlayerMoveScale(movement: Phaser.Math.Vector2): number {
+    const runtime = this.gongfaCollection.byId["black-tide-scripture"];
+    if (!runtime?.mastery.masteryLearnedIds.includes("hold-the-moon-against-the-tide")) return 1;
+    if (movement.lengthSq() === 0) return 0.82;
+    const direction = Math.max(0, Math.min(3, Math.floor(runtime.authored.secondaryResource)));
+    const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][direction] ?? 0;
+    const movementAngle = movement.angle();
+    return Math.cos(movementAngle - flowAngle) < -0.55 ? 0.72 : 0.82;
+  }
+
   private getWaveAimAngle(aimMode: "nearest" | "last" = "last"): number {
     if (aimMode === "last") {
       return this.lastAimAngle;
@@ -2424,6 +2451,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-root-ancestor") {
         this.fireAuthoredRootAncestor(command);
+        return;
+      }
+
+      if (command.kind === "authored-world-tide-band") {
+        this.fireAuthoredWorldTide(command);
+        return;
+      }
+
+      if (command.kind === "authored-deluge-mandate") {
+        this.fireAuthoredDelugeMandate(command);
         return;
       }
 
@@ -3022,6 +3059,98 @@ export class GameScene extends Phaser.Scene {
       const isBoss = enemy.role === "tribulation-boss";
       if (enemy.receiveDamage(damage * (isBoss ? bossDamageScale : 1))) this.resolveEnemyDeath(enemy);
     }
+  }
+
+  private fireAuthoredWorldTide(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-world-tide-band" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const bounds = this.physics.world.bounds;
+    const tide = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(7);
+    const horizontal = command.direction === 0 || command.direction === 2;
+    const phaseAlpha = command.phase === "ebb" ? 0.16 : command.phase === "still" ? 0.24 : 0.34;
+    for (let band = 0; band < command.bandCount; band += 1) {
+      const ratio = (band + 0.5) / command.bandCount;
+      tide.fillStyle(band % 2 === 0 ? identity.accent : identity.secondary, phaseAlpha);
+      if (horizontal) {
+        tide.fillRect(bounds.x, bounds.y + bounds.height * ratio - command.bandWidth / 2, bounds.width, command.bandWidth);
+      } else {
+        tide.fillRect(bounds.x + bounds.width * ratio - command.bandWidth / 2, bounds.y, command.bandWidth, bounds.height);
+      }
+    }
+    tide.lineStyle(command.phase === "flood" ? 4 : 2, identity.secondary, 0.7);
+    const waveLines = command.phase === "ebb" ? 7 : command.phase === "still" ? 4 : 10;
+    for (let line = 0; line < waveLines; line += 1) {
+      if (horizontal) {
+        const y = bounds.y + (line + 1) * bounds.height / (waveLines + 1);
+        tide.lineBetween(bounds.x, y, bounds.right, y);
+      } else {
+        const x = bounds.x + (line + 1) * bounds.width / (waveLines + 1);
+        tide.lineBetween(x, bounds.y, x, bounds.bottom);
+      }
+    }
+    const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][command.direction] ?? 0;
+    const forceAngle = command.force < 0 ? flowAngle + Math.PI : flowAngle;
+    for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+      if (command.phase === "still") enemy.applySlow(command.slowMultiplier, 850);
+      if (enemy.role === "tribulation-boss") {
+        if (command.force !== 0) enemy.applySlow(0.72, 620);
+      } else if (command.force !== 0) {
+        enemy.applyForcedVelocity(forceAngle, Math.abs(command.force), 420);
+      }
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    const travel = command.phase === "flood" ? 65 : command.phase === "ebb" ? -35 : 0;
+    this.tweens.add({
+      targets: tide,
+      x: Math.cos(flowAngle) * travel,
+      y: Math.sin(flowAngle) * travel,
+      alpha: 0,
+      duration: command.phase === "still" ? 720 : 520,
+      onComplete: () => tide.destroy()
+    });
+    this.recordGongfaMotif(`${identity.motifId}:world-${command.phase}-${command.direction}`);
+  }
+
+  private fireAuthoredDelugeMandate(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-deluge-mandate" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const bounds = this.physics.world.bounds;
+    const flood = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(14);
+    flood.fillStyle(identity.accent, command.fate === "dry-sea" ? 0.48 : 0.32);
+    flood.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+    flood.lineStyle(command.fate === "dry-sea" ? 7 : 4, identity.secondary, 0.9);
+    const horizontal = command.direction === 0 || command.direction === 2;
+    for (let line = 0; line < 12; line += 1) {
+      if (horizontal) {
+        const y = bounds.y + (line + 0.5) * bounds.height / 12;
+        flood.lineBetween(bounds.x, y, bounds.right, y);
+      } else {
+        const x = bounds.x + (line + 0.5) * bounds.width / 12;
+        flood.lineBetween(x, bounds.y, x, bounds.bottom);
+      }
+    }
+    const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][command.direction] ?? 0;
+    for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+      if (enemy.role === "tribulation-boss") {
+        enemy.applySlow(command.bossSlowMultiplier, command.durationMs);
+      } else if (command.force > 0) {
+        enemy.applyForcedVelocity(flowAngle, command.force, command.durationMs);
+      } else {
+        enemy.applySlow(0.25, command.durationMs);
+      }
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.tweens.add({
+      targets: flood,
+      x: Math.cos(flowAngle) * (command.force > 0 ? 140 : 20),
+      y: Math.sin(flowAngle) * (command.force > 0 ? 140 : 20),
+      alpha: 0,
+      duration: command.durationMs,
+      onComplete: () => flood.destroy()
+    });
+    this.recordGongfaMotif(`${identity.motifId}:deluge-${command.fate}`);
   }
 
   private fireFeatherRainFormation(
@@ -4456,6 +4585,7 @@ export class GameScene extends Phaser.Scene {
       masterySkill2Casts: this.primaryMastery.masterySkill2Casts,
       masteryFullyMastered: this.primaryMasteryFullyMastered,
       gongfaPaths: this.gongfaPathsHudLine,
+      gongfaMechanicStatus: this.gongfaMechanicStatus,
       gongfaCodexPaths: this.learnedGongfaRuntimes.map((runtime) => ({
         gongfaId: runtime.gongfaId,
         rank: runtime.mastery.masteryRank,
