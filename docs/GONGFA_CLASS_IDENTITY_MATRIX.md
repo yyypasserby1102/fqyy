@@ -47,6 +47,9 @@ the purpose of the capstone.
 
 ## Uniqueness Gate
 
+Detailed player-approved mechanics and implementation status are recorded in
+[`GONGFA_REVIEW_SPECS.md`](GONGFA_REVIEW_SPECS.md).
+
 Every Gongfa must pass this gate before implementation approval. Sharing an element,
 family, or surface tag is allowed; sharing the same complete combat loop is not.
 

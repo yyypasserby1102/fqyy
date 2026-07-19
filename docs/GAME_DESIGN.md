@@ -22,6 +22,8 @@ capstone ownership is defined in
 [`GONGFA_CLASS_IDENTITY_MATRIX.md`](GONGFA_CLASS_IDENTITY_MATRIX.md). The roster
 uses five xiuxian class families with five Gongfa each; Linggen determines
 elemental expression while class family determines combat behavior.
+Detailed player-approved mechanics and their implementation status are recorded in
+[`GONGFA_REVIEW_SPECS.md`](GONGFA_REVIEW_SPECS.md).
 
 ## Target Run Structure
 
