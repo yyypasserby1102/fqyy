@@ -57,10 +57,10 @@ function getContentAdapter(locale: Locale): ContentAdapter | undefined {
 
 const zhGongfa: Record<GongfaId, GongfaTranslation> = {
   "yujian-jue": {
-    name: "御剑诀", lore: "以严整金气驾驭飞剑。", combatRole: "灵活游走，以精准剑阵清剿中程敌群。", visualMotif: "淡蓝剑印、整齐剑路与回旋剑弧。",
-    skill1: { name: "飞剑齐射", description: "飞剑依序追击附近敌人，以严整剑势贯穿优先目标。" },
-    passive: { name: "不灭剑意", resource: "剑意", description: "齐射命中积累剑意，提升御剑伤害与所有投射类术法。" },
-    skill2: { name: "回锋剑阵", description: "剑阵横穿最密集的敌阵，随后逆势回斩并刷新剑意。" }
+    name: "御剑诀", lore: "以严整金气驾驭四柄实体飞剑。", combatRole: "管理有限剑匣与真实往返剑路；飞剑未归便无法再次出鞘。", visualMotif: "肩侧四剑、持续可见的往返剑路与交汇回锋。",
+    skill1: { name: "御剑出鞘", description: "每轮自动分配一柄已归剑，越过目标后沿原路回匣；归匣前不可复用。" },
+    passive: { name: "剑匣轮转", resource: "已归飞剑", description: "四剑依次负责最近、最健壮、最高威胁与最佳贯穿线目标；走位会改变分配。" },
+    skill2: { name: "万剑归宗", description: "至少三剑在外时，所有飞剑立刻沿各自完整剑路逆返，交点再次斩击。" }
   },
   "jinfeng-gong": {
     name: "金锋功", lore: "金气化作锐利锋潮向外迸发。", combatRole: "沿移动方向斩开长廊，主动走位方能尽显锋芒。", visualMotif: "金白风刃、横贯长空的锋线与流动尾迹。",
@@ -339,7 +339,7 @@ function localizeZhUpgrade(id: string): UpgradeConfig {
   const gongfaName = source.requiredGongfaIds?.[0]
     ? zhGongfa[source.requiredGongfaIds[0]].name
     : "修士根基";
-  const specialName = id === "sword-intent-sharpening" ? "剑意淬锋" : null;
+  const specialName = id === "sword-intent-sharpening" ? "剑匣淬锋" : null;
   return {
     ...source,
     name: specialName ?? `${gongfaName}·${categoryNames[source.category]}`,
@@ -617,30 +617,6 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "逆转剑道",
     "lore": "御剑一技剑穿过敌人返回到修真者身上。"
   },
-  "still-sword-heart": {
-    "name": "依旧剑心",
-    "lore": "受到的伤害不再分散累积的剑意。"
-  },
-  "myriad-blade-resonance": {
-    "name": "万刀共鸣",
-    "lore": "带有射弹标记的命中可以更快地提供剑意。"
-  },
-  "intent-unleashed": {
-    "name": "意图释放",
-    "lore": "意图充分时，下一次剑齐射会爆发出额外的剑刃。"
-  },
-  "sword-crown": {
-    "name": "剑冠",
-    "lore": "当前意图以较弱的光谱剑来完成齐射。"
-  },
-  "intent-domain": {
-    "name": "意图域",
-    "lore": "命中后会留下短暂的刀刃场，并随意图而扩展。"
-  },
-  "void-step-formation": {
-    "name": "虚阶阵",
-    "lore": "每次闪避都会从其路径上失去一次额外的剑齐射。"
-  },
   "heaven-splitting-line": {
     "name": "裂天线",
     "lore": "将切割前沿压缩成一条长的穿透通道。"
@@ -789,15 +765,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "unbroken-iron-city": { name: "不破铁城" },
   "mountain-collapse-timber-array": { name: "崩山木阵" },
   "walking-city": { name: "行城移岳" },
-  "execution-seal": { name: "诛敌剑印", lore: "御剑诀初式反复命中被标记的关键目标时，伤害会逐步提升。" },
-  "sword-bloom": { name: "剑华分影", lore: "御剑诀初式首次命中时分裂出较弱飞剑，分别追索其他敌人。" },
-  "reversing-sword-path": { name: "回锋剑路", lore: "御剑诀初式穿敌后折返修士身旁，再次贯穿沿途目标。" },
-  "still-sword-heart": { name: "不动剑心", lore: "受到伤害时不再散失已经积累的剑意。" },
-  "myriad-blade-resonance": { name: "万剑共鸣", lore: "所有投射类术法命中都能更快地积累剑意。" },
-  "intent-unleashed": { name: "剑意迸发", lore: "剑意充盈时，下一轮飞剑齐射会额外迸发剑刃。" },
-  "sword-crown": { name: "剑冠", lore: "当前剑意会为每轮齐射补充较弱的灵体飞剑。" },
-  "intent-domain": { name: "剑意领域", lore: "命中后留下短暂剑域，其范围随剑意扩大。" },
-  "void-step-formation": { name: "虚步剑阵", lore: "每次闪避都会沿移动路径额外释放一轮飞剑。" },
+  "execution-seal": { name: "诛首剑令", lore: "轮转飞剑改为持续围攻最强威胁，牺牲分散清群。", gain: "不同飞剑连续锁定当前最强威胁。", cost: "放弃四种轮转分工，清理分散敌群更弱", scope: "自动目标分配与单体压制" },
+  "sword-bloom": { name: "剑华分影", lore: "实体剑出鞘时分出两道一次性剑影，但本体威力下降。", gain: "每次出鞘最多分出两道剑影攻击其他敌人。", cost: "实体飞剑的去程伤害降低", scope: "去程清群与实体剑伤害" },
+  "reversing-sword-path": { name: "回锋剑路", lore: "主要伤害转移到归途；提前接剑会牺牲尚未走完的回锋。", gain: "归途伤害大幅提高。", cost: "去程伤害降低，提前接剑会截断回锋收益", scope: "去程、归途与接剑时机" },
+  "still-sword-edge": { name: "静剑养锋", lore: "匣中静置越久，下一次出鞘越强，但飞剑返程更慢。", gain: "已归飞剑随静置时间积蓄额外去程伤害。", cost: "每柄飞剑的完整往返时间延长", scope: "匣中蓄力与飞剑周转" },
+  "linked-sword-catch": { name: "连环接剑", lore: "迎向返程飞剑可提前接剑并立刻准备下一发；错过则没有加速。", gain: "贴近返程飞剑时提前归匣，并立刻准备下次出鞘。", cost: "必须主动迎接；错过飞剑不会获得任何加速", scope: "移动接剑与攻击节奏" },
+  "four-symbols-together": { name: "四象齐出", lore: "剑匣完整时四剑同出；任一未归时都不能再次发动。", gain: "完整剑匣一次放出全部四柄实体飞剑。", cost: "必须等四剑全部归匣才能再次出鞘", scope: "整匣爆发与全空真空期" },
+  "heavenly-sword-crown": { name: "天剑为冠", lore: "一剑常驻头顶护持，主动剑匣缩为三柄。", gain: "保留一柄常驻支援天剑。", cost: "可出鞘的实体剑由四柄减为三柄", scope: "常驻支援与剑匣容量" },
+  "three-enclosure-sword-domain": { name: "三垣剑域", lore: "修士与在外飞剑之间形成切割线，接回飞剑会缩小剑域。", gain: "修士与在外飞剑之间生成可见切割线。", cost: "每接回一剑，剑域边数与覆盖范围都会缩小", scope: "在外剑位、切割线与接剑取舍" },
+  "void-step-recall": { name: "虚步收锋", lore: "闪避令全部飞剑折返，不会凭空生成新剑。", gain: "闪避时立即令所有在外飞剑转入返程。", cost: "该次闪避只用于收锋，不附带额外攻击", scope: "闪避与全剑召回" },
   "golden-gale-fan": { name: "金风巨扇" },
   "crescent-wake": { name: "月牙尾流" },
   "unbroken-current": { name: "势流不绝" },

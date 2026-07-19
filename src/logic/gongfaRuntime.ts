@@ -125,8 +125,8 @@ export interface YujianState {
   executionSealTriggers: number;
   swordBloomTriggers: number;
   reversingSwordPathTriggers: number;
+  /** Legacy checkpoint fields retained for save decoding; they have no live effect. */
   executionSealStacksByTarget: Record<number, number>;
-  // Unbroken Sword Intent passive.
   intentStacks: number;
   intentDurationRemaining: number;
   intentAppliedDamageBonus: number;
@@ -843,6 +843,26 @@ export type GongfaRuntimeCommand =
       points: Array<{ targetId: number; x: number; y: number; damage: number }>;
       sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-yujian-flight";
+      swordId: number;
+      targetId: number;
+      route: Array<{ x: number; y: number }>;
+      outboundDamage: number;
+      returnDamage: number;
+      shadeTargetIds: number[];
+      domainTargetIds: number[];
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-myriad-swords-return";
+      routes: Array<{ swordId: number; points: Array<{ x: number; y: number }>; targetId?: number }>;
+      targetIds: number[];
+      damage: number;
+      intersectionDamage: number;
+      sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -937,7 +957,7 @@ export interface AuthoredSkill2Plan {
 const authoredSkill2Plans: Record<AuthoredSkill2Intent, AuthoredSkill2Plan> = {
   "returning-sword-formation": {
     intent: "returning-sword-formation",
-    trigger: "timed",
+    trigger: "threshold",
     cooldownMs: 2400
   },
   "golden-gale-corridor": {
@@ -1048,12 +1068,6 @@ const skill2GongfaIds: Record<AuthoredSkill2Intent, GongfaId> = {
   "supreme-sundering-decree": "heaven-sundering-edict",
   "myriad-beast-stampede": "myriad-beast-grove",
   "world-tree-incarnation": "ancient-tree-body-art"
-};
-
-const emptyYujianTransformationTriggers: YujianTransformationTriggers = {
-  executionSeal: false,
-  swordBloom: false,
-  reversingSwordPath: false
 };
 
 export function getAuthoredSkill2Plan(skill2Id: string | undefined): AuthoredSkill2Plan | undefined {
@@ -1711,8 +1725,19 @@ const legacyCrimsonMasteryIds: Record<string, string> = {
   "crucible-nova": "falling-star-forge"
 };
 
+const legacyYujianMasteryIds: Record<string, string> = {
+  "still-sword-heart": "still-sword-edge",
+  "myriad-blade-resonance": "linked-sword-catch",
+  "intent-unleashed": "four-symbols-together",
+  "sword-crown": "heavenly-sword-crown",
+  "intent-domain": "three-enclosure-sword-domain",
+  "void-step-formation": "void-step-recall"
+};
+
 function migrateCrimsonMasteryId(gongfaId: GongfaId, id: string): string {
-  return gongfaId === "crimson-furnace-sword-art" ? legacyCrimsonMasteryIds[id] ?? id : id;
+  if (gongfaId === "crimson-furnace-sword-art") return legacyCrimsonMasteryIds[id] ?? id;
+  if (gongfaId === "yujian-jue") return legacyYujianMasteryIds[id] ?? id;
+  return id;
 }
 
 const yujianDefaults: YujianState = {
@@ -1727,8 +1752,6 @@ const yujianDefaults: YujianState = {
   intentAppliedPierceBonus: 0,
   intentPotencyBonus: 0
 };
-
-const INTENT_DURATION_MS = 3000;
 
 const SURGE_DURATION_MS = 2600;
 const MAX_SURGE_STACKS = 6;
@@ -1778,30 +1801,6 @@ function surgeBonusCount(runtime: GongfaRuntime, learnedMasteryIds: string[]): n
     bonus += Math.floor(state.stacks * (mechanics?.crownPerStack ?? 1));
   }
   return bonus;
-}
-
-function syncYujianCombat(runtime: GongfaRuntime): void {
-  const state = runtime.yujian;
-  if (!state) {
-    return;
-  }
-
-  // Each Intent stack improves Yujian damage and projectile flight speed;
-  // five stacks grant +1 pierce.
-  const intentPotency =
-    masteryEffectTiers(runtime.mastery.masteryLearnedIds, "resourcePotency") +
-    state.intentPotencyBonus;
-  const desiredDamageBonus = state.intentStacks * (2 + intentPotency);
-  const desiredSpeedBonus = state.intentStacks * 24;
-  const desiredPierceBonus = state.intentStacks >= 5 ? 1 : 0;
-
-  runtime.combat.damage += desiredDamageBonus - state.intentAppliedDamageBonus;
-  runtime.combat.projectileSpeed += desiredSpeedBonus - state.intentAppliedSpeedBonus;
-  runtime.combat.pierce += desiredPierceBonus - state.intentAppliedPierceBonus;
-
-  state.intentAppliedDamageBonus = desiredDamageBonus;
-  state.intentAppliedSpeedBonus = desiredSpeedBonus;
-  state.intentAppliedPierceBonus = desiredPierceBonus;
 }
 
 function restoreSkill1RefinementLedger(runtime: GongfaRuntime): Skill1RefinementState {
@@ -3436,6 +3435,50 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (runtime.gongfaId === "yujian-jue") {
+    const swords = state.anchors.filter((anchor) => anchor.kind === "sword");
+    state.phaseElapsedMs += event.deltaMs;
+    runtime.mastery.masterySkill2CooldownRemaining = Math.max(
+      0,
+      runtime.mastery.masterySkill2CooldownRemaining - event.deltaMs
+    );
+    for (const sword of swords) {
+      const total = Math.max(1, sword.maxValue ?? 2200);
+      sword.remainingMs = Math.max(0, (sword.remainingMs ?? total) - event.deltaMs);
+      const elapsed = total - sword.remainingMs;
+      const half = total / 2;
+      const origin = sword.routePoints?.[0] ?? {
+        x: sword.originPlayerX ?? event.playerX ?? 0,
+        y: sword.originPlayerY ?? event.playerY ?? 0
+      };
+      const endpoint = sword.routePoints?.at(-1) ?? { x: sword.x, y: sword.y };
+      if (elapsed <= half) {
+        const progress = elapsed / half;
+        sword.x = origin.x + (endpoint.x - origin.x) * progress;
+        sword.y = origin.y + (endpoint.y - origin.y) * progress;
+      } else {
+        const progress = Math.min(1, (elapsed - half) / half);
+        sword.x = endpoint.x + ((event.playerX ?? origin.x) - endpoint.x) * progress;
+        sword.y = endpoint.y + ((event.playerY ?? origin.y) - endpoint.y) * progress;
+        if (learnedIds.includes("linked-sword-catch") &&
+            Math.hypot(sword.x - (event.playerX ?? 0), sword.y - (event.playerY ?? 0)) <= 48) {
+          sword.remainingMs = 0;
+          runtime.attackCooldownRemaining = 0;
+        }
+      }
+    }
+    const returned = swords.filter((sword) => (sword.remainingMs ?? 0) <= 0).length;
+    if (returned > 0) {
+      state.anchors = state.anchors.filter((anchor) =>
+        anchor.kind !== "sword" || (anchor.remainingMs ?? 0) > 0
+      );
+      state.charges = Math.min(state.maxCharges, state.charges + returned);
+      if (state.anchors.every((anchor) => anchor.kind !== "sword")) state.phase = 0;
+    }
+    state.resource = state.charges / Math.max(1, state.maxCharges);
+    return;
+  }
+
   if (runtime.gongfaId === "blazing-feather-art") {
     const maxCharges = learnedIds.includes("endless-plumage") ? 8 :
       learnedIds.includes("swift-molt") ? 3 : state.maxCharges;
@@ -4708,6 +4751,7 @@ export function advanceGongfaRuntime(
     next.gongfaId !== "heavenfall-body-art" &&
     next.gongfaId !== "ancient-tree-body-art" &&
     next.gongfaId !== "flame-demon-body-art"
+    && next.gongfaId !== "yujian-jue"
   ) {
     const cooldown = advanceTimedMasterySkill2Cooldown(
       next.mastery.masterySkill2Id,
@@ -4731,61 +4775,8 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "yujian-projectile-hit") {
-    const state = next.yujian;
-    if (!state) {
-      return { runtime: next, commands };
-    }
-
-    if (event.learnedMasteryIds.includes("execution-seal")) {
-      const nextStack = Math.min(
-        3,
-        (state.executionSealStacksByTarget[event.targetId] ?? 0) + 1
-      );
-      state.executionSealStacksByTarget[event.targetId] = nextStack;
-
-      if (nextStack >= 2) {
-        state.executionSealTriggers += 1;
-        commands.push({
-          kind: "apply-target-damage",
-          targetId: event.targetId,
-          amount: Math.max(1, Math.floor(next.combat.damage * (0.35 + nextStack * 0.15))),
-          source: "execution-seal"
-        });
-      }
-    }
-
-    if (event.learnedMasteryIds.includes("sword-bloom")) {
-      state.swordBloomTriggers += 1;
-      commands.push({
-        kind: "spawn-yujian-bloom",
-        originTargetId: event.targetId,
-        maxTargets: 2,
-        damage: Math.max(1, Math.floor(next.combat.damage * 0.5)),
-        pierce: 1
-      });
-    }
-
-    // Unbroken Sword Intent: a successful hit builds a stack and refreshes its
-    // duration (applied after this hit's Skill-1 effects). Myriad Blade
-    // Resonance feeds Intent faster.
-    const intentGain = (event.learnedMasteryIds.includes("myriad-blade-resonance") ? 2 : 1) +
-      masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
-    state.intentStacks = Math.min(5, state.intentStacks + intentGain);
-    state.intentDurationRemaining = INTENT_DURATION_MS *
-      (1 + masteryEffectTiers(event.learnedMasteryIds, "surgeStability") * 0.25);
-    syncYujianCombat(next);
-
-    // Intent Domain: hits leave an Intent-scaled blade field. Evaluated after
-    // the gain, matching the equivalent Ember (searing-domain) and Surge
-    // (domain) capstones so all three include the just-added stack.
-    if (event.learnedMasteryIds.includes("intent-domain") && state.intentStacks > 0) {
-      commands.push({
-        kind: "aura-burst",
-        damage: Math.max(1, Math.floor(next.combat.damage * 0.4)),
-        count: 2 + state.intentStacks
-      });
-    }
-
+    // Accepted only so old in-flight checkpoint events can drain harmlessly.
+    // Authored Yujian uses direct physical-route commands, never hit stacks.
     return { runtime: next, commands };
   }
 
@@ -5359,33 +5350,6 @@ export function advanceGongfaRuntime(
       }
       return { runtime: next, commands };
     }
-    if (
-      event.skill2Id === "returning-sword-formation" &&
-      next.yujian &&
-      (event.eligibleTargetCount ?? 0) > 0
-    ) {
-      commands.push({
-        kind: "returning-sword-formation",
-        count: Math.max(1, skill2Base.count + skill2Stats.coverage),
-        opening: {
-          damage: Math.floor(skill2Base.damage * 0.72 * skill2Stats.damageScale),
-          pierce: skill2Base.pierce + 1,
-          speed: skill2Base.projectileSpeed + 55,
-          lifetimeMs: skill2Base.projectileLifetimeMs + 280
-        },
-        returnPath: {
-          delayMs: Math.floor(240 * skill2Stats.cadenceScale),
-          damage: Math.floor(skill2Base.damage * 0.58 * skill2Stats.damageScale),
-          pierce: skill2Base.pierce + 1,
-          speed: skill2Base.projectileSpeed + 75,
-          lifetimeMs: skill2Base.projectileLifetimeMs + 340
-        },
-        masteryCast: {
-          skill2Id: "returning-sword-formation",
-          cooldownMs: Math.floor(authoredSkill2Plans["returning-sword-formation"].cooldownMs * skill2Stats.cadenceScale)
-        }
-      });
-    }
     if (event.skill2Id === "golden-gale-corridor" && next.jinfeng) {
       commands.push({
         kind: "golden-gale-corridor",
@@ -5498,6 +5462,7 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "evade") {
+    const evadeLearnedIds = event.learnedMasteryIds ?? next.mastery.masteryLearnedIds;
     if (next.gongfaId === "ice-mirror-guard") {
       const learnedIds = event.learnedMasteryIds ?? [];
       const facets = ensureIceMirrorFacets(next, learnedIds);
@@ -5521,10 +5486,10 @@ export function advanceGongfaRuntime(
         commands.push(mirrorFacetCommand(next, learnedIds));
       }
     }
-    if (next.yujian && event.learnedMasteryIds.includes("swordborne-steps")) {
-      next.yujian.intentStacks = Math.min(5, next.yujian.intentStacks + 1);
-      next.yujian.intentDurationRemaining = INTENT_DURATION_MS;
-      syncYujianCombat(next);
+    if (next.gongfaId === "yujian-jue" && evadeLearnedIds.includes("swordborne-steps")) {
+      for (const sword of next.authored.anchors.filter((anchor) => anchor.kind === "sword")) {
+        sword.remainingMs = Math.max(120, (sword.remainingMs ?? 0) * 0.88);
+      }
     }
     if (next.burningRing && event.learnedMasteryIds.includes("ember-step")) {
       next.burningRing.rotation += Math.PI / 3;
@@ -5536,12 +5501,27 @@ export function advanceGongfaRuntime(
       next.gengjin.postEvadeLayerRemaining = 1000;
       commands.push(gengjinBraceCommand(next));
     }
-    // Void-Step Formation: each Evade looses an extra sword volley.
-    if (next.yujian && event.learnedMasteryIds.includes("void-step-formation")) {
-      commands.push({
-        kind: "homing-volley",
-        count: Math.max(1, next.combat.count)
-      });
+    // Void-Step Recall bends every live physical route home; it creates no
+    // extra ammunition and therefore cannot become another projectile proc.
+    if (next.gongfaId === "yujian-jue" && evadeLearnedIds.includes("void-step-recall")) {
+      const swords = next.authored.anchors.filter((anchor) => anchor.kind === "sword");
+      if (swords.length > 0) {
+        commands.push({
+          kind: "authored-myriad-swords-return",
+          routes: swords.map((sword) => ({
+            swordId: sword.value,
+            points: sword.routePoints?.length
+              ? [...sword.routePoints].reverse()
+              : [{ x: sword.x, y: sword.y }, {
+                  x: event.playerX ?? sword.originPlayerX ?? 0,
+                  y: event.playerY ?? sword.originPlayerY ?? 0
+                }],
+            targetId: sword.targetId
+          })),
+          targetIds: [], damage: 0, intersectionDamage: 0, sourceGongfaId: next.gongfaId
+        });
+        swords.forEach((sword) => { sword.remainingMs = 220; sword.maxValue = 220; });
+      }
     }
     // Surge "updraft": each Evade looses a stack-scaled volley of its pattern.
     if (next.surge && learned(event.learnedMasteryIds, SURGE_UPDRAFT_IDS)) {
@@ -5586,13 +5566,6 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "incoming-damage") {
-    // Unbroken Sword Intent: taking damage sheds two stacks, unless Still Sword
-    // Heart holds them.
-    if (next.yujian && !(event.learnedMasteryIds ?? []).includes("still-sword-heart")) {
-      next.yujian.intentStacks = Math.max(0, next.yujian.intentStacks - 2);
-      syncYujianCombat(next);
-    }
-
     if (next.gongfaId === "ice-mirror-guard") {
       const learnedIds = event.learnedMasteryIds ?? [];
       const facets = ensureIceMirrorFacets(next, learnedIds);
@@ -5866,21 +5839,6 @@ export function advanceGongfaRuntime(
     return { runtime: next, commands };
   }
 
-  if (next.yujian && next.yujian.intentStacks > 0) {
-    // Unbroken Sword Intent fades a stack at a time once its duration lapses.
-    next.yujian.intentDurationRemaining = Math.max(
-      0,
-      next.yujian.intentDurationRemaining - Math.max(0, event.deltaMs)
-    );
-    if (next.yujian.intentDurationRemaining === 0) {
-      next.yujian.intentStacks -= 1;
-      if (next.yujian.intentStacks > 0) {
-        next.yujian.intentDurationRemaining = INTENT_DURATION_MS;
-      }
-      syncYujianCombat(next);
-    }
-  }
-
   if (next.surge && next.surge.stacks > 0) {
     const surgeLearned = event.learnedMasteryIds ?? [];
     next.surge.durationRemaining = Math.max(
@@ -6142,6 +6100,114 @@ export function planGongfaAttack(
     ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
+  if (runtime.gongfaId === "yujian-jue") {
+    const state = runtime.authored;
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const targets = options.targets ?? [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const crown = learnedIds.includes("heavenly-sword-crown");
+    state.maxCharges = crown ? 3 : 4;
+    state.charges = Math.min(state.charges, state.maxCharges);
+    const fourTogether = learnedIds.includes("four-symbols-together");
+    const launchCount = fourTogether ? (state.charges === state.maxCharges ? state.charges : 0) : Math.min(1, state.charges);
+    if (targets.length === 0 || launchCount === 0) return [];
+
+    const rankValue = (target: AuthoredTargetFact): number =>
+      target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 1;
+    const toughest = [...targets].sort((a, b) =>
+      rankValue(b) * 10 + b.healthRatio - rankValue(a) * 10 - a.healthRatio
+    )[0]!;
+    const commands: GongfaRuntimeCommand[] = [];
+    for (let index = 0; index < launchCount; index += 1) {
+      const swordId = state.activationCount++ % state.maxCharges;
+      const nearest = [...targets].sort((a, b) =>
+        distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY)
+      )[0]!;
+      const farthest = [...targets].sort((a, b) =>
+        distanceSquared(b.x, b.y, playerX, playerY) - distanceSquared(a.x, a.y, playerX, playerY)
+      )[0]!;
+      const healthiest = [...targets].sort((a, b) => b.healthRatio - a.healthRatio)[0]!;
+      const assigned = learnedIds.includes("execution-seal")
+        ? toughest
+        : [nearest, healthiest, toughest, farthest][swordId % 4] ?? nearest;
+      const angle = Math.atan2(assigned.y - playerY, assigned.x - playerX);
+      const beyond = 54 + masteryEffectTiers(learnedIds, "skill1Range") * 12;
+      const endpoint = {
+        x: assigned.x + Math.cos(angle) * beyond,
+        y: assigned.y + Math.sin(angle) * beyond
+      };
+      const stillEdge = learnedIds.includes("still-sword-edge");
+      const flightMs = Math.floor((stillEdge ? 2900 : 2200) *
+        Math.pow(0.94, masteryEffectTiers(learnedIds, "skill1Count")) *
+        Math.pow(0.9, masteryEffectTiers(learnedIds, "surgeStability")));
+      const restingCharge = stillEdge ? Math.min(0.65, state.phaseElapsedMs / 4200) : 0;
+      const reversing = learnedIds.includes("reversing-sword-path");
+      const bloom = learnedIds.includes("sword-bloom");
+      const outboundScale = reversing ? 0.42 : bloom ? 0.72 :
+        learnedIds.includes("execution-seal") ? 1.28 : crown ? 1.16 : 1;
+      const returnScale = reversing ? 1.45 : 0.56;
+      const shades = bloom
+        ? targets.filter((target) => target.targetId !== assigned.targetId).slice(0, 2).map((target) => target.targetId)
+        : [];
+      const airborneBefore = state.anchors.filter((anchor) => anchor.kind === "sword");
+      const domainTargets = learnedIds.includes("three-enclosure-sword-domain") && airborneBefore.length > 0
+        ? targets.filter((target) => airborneBefore.some((sword) =>
+            distanceToInfiniteLine(target, { x: playerX, y: playerY }, sword) <= 26
+          )).map((target) => target.targetId)
+        : [];
+      state.anchors.push({
+        kind: "sword", x: endpoint.x, y: endpoint.y, targetId: assigned.targetId,
+        originPlayerX: playerX, originPlayerY: playerY, angle, value: swordId,
+        maxValue: flightMs, remainingMs: flightMs,
+        routePoints: [{ x: playerX, y: playerY }, { x: assigned.x, y: assigned.y }, endpoint]
+      });
+      state.charges -= 1;
+      state.phaseElapsedMs = 0;
+      if (runtime.yujian) {
+        if (learnedIds.includes("execution-seal")) runtime.yujian.executionSealTriggers += 1;
+        if (bloom) runtime.yujian.swordBloomTriggers += 1;
+        if (reversing) runtime.yujian.reversingSwordPathTriggers += 1;
+      }
+      commands.push({
+        kind: "authored-yujian-flight", swordId, targetId: assigned.targetId,
+        route: [{ x: playerX, y: playerY }, { x: assigned.x, y: assigned.y }, endpoint],
+        outboundDamage: Math.max(1, Math.floor(runtime.combat.damage * outboundScale *
+          (1 + restingCharge + masteryEffectTiers(learnedIds, "resourcePotency") * 0.08))),
+        returnDamage: Math.max(1, Math.floor(runtime.combat.damage * returnScale *
+          (1 + masteryEffectTiers(learnedIds, "resourcePotency") * 0.08))),
+        shadeTargetIds: shades, domainTargetIds: domainTargets, sourceGongfaId: runtime.gongfaId
+      });
+    }
+    state.resource = state.charges / Math.max(1, state.maxCharges);
+    const airborne = state.anchors.filter((anchor) => anchor.kind === "sword");
+    if (airborne.length >= 3 && runtime.mastery.masterySkill2Id === "returning-sword-formation" &&
+        state.phase !== 2 &&
+        (runtime.mastery.masterySkill2CooldownRemaining <= 0 || runtime.mastery.masterySkill2Casts === 0)) {
+      const stats = skill2RefinementStats(runtime);
+      const cooldownMs = Math.floor(authoredSkill2Plans["returning-sword-formation"].cooldownMs * stats.cadenceScale);
+      const targetIds = [...new Set(airborne.flatMap((sword) => sword.targetId === undefined ? [] : [sword.targetId]))];
+      commands.push({
+        kind: "authored-myriad-swords-return",
+        routes: airborne.map((sword) => ({
+          swordId: sword.value,
+          points: sword.routePoints?.length
+            ? [...sword.routePoints].reverse()
+            : [{ x: sword.x, y: sword.y }, { x: sword.originPlayerX ?? playerX, y: sword.originPlayerY ?? playerY }],
+          targetId: sword.targetId
+        })),
+        targetIds,
+        damage: Math.max(1, Math.floor(skill2Combat(runtime).damage * 1.25 * stats.damageScale)),
+        intersectionDamage: Math.max(1, Math.floor(skill2Combat(runtime).damage * 0.7 * stats.damageScale)),
+        sourceGongfaId: runtime.gongfaId,
+        masteryCast: { skill2Id: "returning-sword-formation", cooldownMs }
+      });
+      runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+      state.phase = 2;
+      airborne.forEach((sword) => { sword.remainingMs = 360; sword.maxValue = 360; sword.participating = true; });
+    }
+    return commands;
+  }
   if (runtime.gongfaId === "verdant-ring-scripture") return [];
   if (runtime.gongfaId === "blazing-feather-art") {
     const state = runtime.authored;
@@ -6845,47 +6911,10 @@ export function planGongfaAttack(
   switch (runtime.combat.pattern) {
     case "homing": {
       const learnedMasteryIds = options.learnedMasteryIds ?? [];
-      const transformationTriggers = runtime.yujian
-        ? {
-            executionSeal: learnedMasteryIds.includes("execution-seal"),
-            swordBloom: learnedMasteryIds.includes("sword-bloom"),
-            reversingSwordPath: learnedMasteryIds.includes("reversing-sword-path")
-          }
-        : emptyYujianTransformationTriggers;
-      let count = runtime.combat.count;
-      // Intent Unleashed: a full Intent charge empowers the next volley.
-      if (
-        runtime.yujian &&
-        learnedMasteryIds.includes("intent-unleashed") &&
-        runtime.yujian.intentStacks >= 5
-      ) {
-        count += 3;
-      }
-      // Sword Crown: current Intent crowns the volley with spectral swords.
-      if (runtime.yujian && learnedMasteryIds.includes("sword-crown")) {
-        count += runtime.yujian.intentStacks;
-      }
-      count += surgeBonusCount(runtime, learnedMasteryIds);
-      const commands: GongfaRuntimeCommand[] = [
-        {
-          kind: "homing-volley",
-          count,
-          transformationTriggers
-        }
-      ];
-
-      if (runtime.yujian && transformationTriggers.reversingSwordPath) {
-        commands.push({
-          kind: "spawn-yujian-reversal",
-          delayMs: 170,
-          damage: Math.max(1, Math.floor(runtime.combat.damage * 0.58)),
-          pierce: runtime.combat.pierce + 1,
-          speed: runtime.combat.projectileSpeed + 70,
-          lifetimeMs: runtime.combat.projectileLifetimeMs + 160
-        });
-      }
-
-      return commands;
+      return [{
+        kind: "homing-volley",
+        count: runtime.combat.count + surgeBonusCount(runtime, learnedMasteryIds)
+      }];
     }
     case "wave": {
       const learnedMasteryIds = options.learnedMasteryIds ?? [];
@@ -7200,7 +7229,6 @@ export function applyGongfaImprovement(
       if (next.yujian) {
         next.yujian.intentPotencyBonus += upgrade.value;
       }
-      syncYujianCombat(next);
       return { runtime: next };
     case "retaliationDamage":
       next.combat.retaliationDamage += upgrade.value;

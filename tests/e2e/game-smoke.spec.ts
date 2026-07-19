@@ -539,18 +539,20 @@ test("Yujian Jue integrates ordinary refinements and reserves choices for Transf
   expect(rank10.progression.masterySkill2).toBe("returning-sword-formation");
 
   await chooseUntil(page, () => false);
-  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(2));
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(5));
   await page.waitForFunction(
     () => {
       const snapshot = window.__gameTest!.getSnapshot();
-      return snapshot.progression.masterySkill2Casts > 0 && snapshot.player.visual.mode === "skill";
+      return snapshot.progression.masterySkill2Casts > 0 &&
+        snapshot.visuals.gongfaMotifs.includes("returning-sword-rack:myriad-swords-return");
     }
   );
 
   const afterSkill2 = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterSkill2.progression.masterySkill2Casts).toBeGreaterThan(0);
-  expect(afterSkill2.counts.projectiles).toBeGreaterThan(0);
-  expect(afterSkill2.player.visual.activeVfx).toContain("cultivator-skill-gather-vfx");
+  expect(afterSkill2.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "yujian-jue"
+  )).toBe(false);
 });
 
 test("Yujian rank-3 Sword Bloom Transformation splits Skill 1 hits", async ({ page }) => {
@@ -565,7 +567,7 @@ test("Yujian rank-3 Sword Bloom Transformation splits Skill 1 hits", async ({ pa
   expect(snapshot.progression.masteryTransformationTriggers.swordBloom).toBeGreaterThan(0);
 });
 
-test("Yujian rank-3 Execution Seal escalates repeated Skill 1 hits on a target", async ({ page }) => {
+test("Yujian rank-3 Execution Order focuses physical swords on the strongest target", async ({ page }) => {
   await chooseYujianRank3Transformation(page, "execution-seal");
 
   await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(3));

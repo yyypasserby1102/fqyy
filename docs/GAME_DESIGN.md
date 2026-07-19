@@ -472,34 +472,29 @@ Initial Metal Gongfa trio:
 
 #### Yujian Jue
 
-- Primary attack behavior: auto-targeted flying sword volleys that seek nearby enemies in ordered bursts
+- Primary attack behavior: four persistent physical swords rotate through automatic target assignments; each flies beyond its target and must physically return before reuse
 - Skill tags: `projectile`, `metal`, `sword`
-- Defining passive: `Unbroken Sword Intent`
-  - an attack cycle that hits at least one enemy grants one stack, regardless of hit count
-  - maximum 5 stacks; successful hits refresh their duration
-  - stacks slightly improve Yujian damage and globally improve flight speed for all `projectile`-tagged Skills
-  - at 5 stacks, every `projectile`-tagged Skill gains +1 pierce
-  - taking damage removes two stacks; exact values and duration remain tuning parameters
-- Scaling stat: sword count and pierce efficiency
-- Support stat: cooldown recovery
-- Rank-10 Skill 2 — `Returning Sword Formation`:
-  - activates on an independent cooldown while Skill 1 continues
-  - targets the densest enemy lane and sends a sword array outward, then back through enemies
-  - uses Yujian damage bonuses and projectile-tag effects from Intent
-  - a formation that hits grants or refreshes one Intent stack regardless of hit count
+- Defining passive: `Sword-Rack Rotation`; the ready-sword inventory and each live outbound/return path are persistent world state, not hit stacks
+- Player lever: move to change nearest/healthiest/threat/pierce-lane assignments and move toward returning swords to catch them early
+- Failure: with every sword airborne, ordinary attacks stop; moving away from return paths extends downtime
+- Rank-10 Skill 2 — `Myriad Swords Return`:
+  - retained until at least three physical swords are airborne
+  - every airborne sword reverses its own complete recorded route
+  - route intersections cut again, then every sword returns to the rack
+  - creates no duplicate swords and has no independent timer-only cast
 - Skill-2 Refinement families:
   - `Formation Tempering`: formation damage
   - `Expanded Sword Array`: sword count and coverage
   - `Swift Formation`: activation and return speed
   - each family has two authored tiers
-- Intended play pattern: kiting, target selection, and efficient pack thinning from mid-range
+- Intended play pattern: manipulate assignments, launch windows, and physical catches while accepting real empty-rack downtime
 - Pre-rank-10 Mastery pool:
-  - `Twin Sword Split`: more Skill 1 swords
-  - `Refined Sword Channel`: faster Skill 1 cycling
-  - `Sword Intent Sharpening`: stronger Intent damage bonus
-  - `Steady Sword Heart`: longer Intent duration, then reduced stack loss
-  - `Swordborne Steps`: Intent grants Cultivator movement speed
-  - `Penetrating Intent`: stronger projectile flight speed and full-stack pierce
+  - `Balanced Scabbards`: shorter complete physical journeys
+  - `Quick Unsheathing`: faster assignment and launch cadence
+  - `Rack Tempering`: stronger outbound and return cuts
+  - `Returning Thread`: cleaner, faster homeward routes
+  - `Sword-Catching Steps`: Evade shortens live returns without creating ammunition
+  - `Crossing Edge`: stronger route and intersection cuts
 
 Each family has two authored tiers and an explicit Effect Scope.
 
@@ -507,14 +502,14 @@ Each family has two authored tiers and an explicit Effect Scope.
   - `Execution Seal`: mark a priority target and escalate repeated Skill-1 pressure until it dies
   - `Sword Bloom`: split the first hit into weaker swords that seek different enemies
   - `Reversing Sword Path`: return the sword through enemies toward the Cultivator after its strike
-- Rank-6 exclusive passive Transformations:
-  - `Still Sword Heart`: incoming damage no longer removes Intent
-  - `Myriad Blade Resonance`: other projectile-tagged Skills can build or refresh Intent
-  - `Intent Unleashed`: five stacks empower the next Yujian volley and are then consumed
+- Rank-6 exclusive rack Transformations:
+  - `Still-Sword Edge`: resting swords charge stronger launches but return more slowly
+  - `Linked Sword Catch`: an early physical catch readies the next launch immediately; missing gives no acceleration
+  - `Four Symbols Together`: launch a complete four-sword rack together, then wait for all four
 - Rank-9 exclusive capstone Transformations:
-  - `Sword Crown`: Skill 1 gains weaker spectral swords based on current Intent
-  - `Intent Domain`: Skill-1 impacts leave short blade fields whose size and duration scale with Intent
-  - `Void-Step Formation`: after Evade, the next Skill-1 cycle attacks from both the start and endpoint, scaling with Intent
+  - `Heavenly Sword Crown`: keep one support sword overhead and reduce the active rack to three
+  - `Three-Enclosure Sword Domain`: connect player and airborne swords with cutting lines that shrink on catch
+  - `Void-Step Recall`: Evade recalls every live route without creating extra ammunition
 
 #### Jinfeng Gong
 

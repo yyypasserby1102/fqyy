@@ -30,10 +30,10 @@ describe("mastery progression", () => {
 
   it("describes authored special transformations without shared-archetype numbers", () => {
     expect(getMasteryChoiceDefinition("execution-seal")).toMatchObject({
-      playstyle: "Execution Seal",
-      gain: "Repeated Yujian Skill 1 hits escalate against a marked priority target.",
+      playstyle: "Execution Order",
+      gain: "Different rack swords focus the strongest threat with heavier cuts, but abandon their pack-clearing assignments.",
       cost: "Locks out Sword Bloom or Reversing Sword Path at Rank 3.",
-      scope: "Flying Sword Volley form and hit pattern"
+      scope: "Sword Unsheathing form and hit pattern"
     });
     expect(getMasteryChoiceDefinition("eight-wastes-rebound")).toMatchObject({
       gain: "Release reaches up to eight nearby enemies",
@@ -319,9 +319,9 @@ describe("mastery progression", () => {
       rank: 6,
       seed: "seed-123",
       learnedIds: ["sword-bloom"]
-    })).toEqual(["still-sword-heart", "myriad-blade-resonance", "intent-unleashed"]);
+    })).toEqual(["still-sword-edge", "linked-sword-catch", "four-symbols-together"]);
 
-    expect(getMasteryChoiceDefinition("intent-unleashed")).toMatchObject({
+    expect(getMasteryChoiceDefinition("four-symbols-together")).toMatchObject({
       kind: "transformation",
       milestoneRank: 6,
       exclusivityGroup: "yujian-jue:rank-6"
@@ -333,7 +333,7 @@ describe("mastery progression", () => {
       gongfaId: "yujian-jue",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["sword-bloom", "still-sword-heart"]
+      learnedIds: ["sword-bloom", "still-sword-edge"]
     })).toEqual([]);
   });
 
@@ -342,10 +342,10 @@ describe("mastery progression", () => {
       gongfaId: "yujian-jue",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["sword-bloom", "still-sword-heart"]
-    })).toEqual(["sword-crown", "intent-domain", "void-step-formation"]);
+      learnedIds: ["sword-bloom", "still-sword-edge"]
+    })).toEqual(["heavenly-sword-crown", "three-enclosure-sword-domain", "void-step-recall"]);
 
-    expect(getMasteryChoiceDefinition("void-step-formation")).toMatchObject({
+    expect(getMasteryChoiceDefinition("void-step-recall")).toMatchObject({
       kind: "transformation",
       milestoneRank: 9,
       exclusivityGroup: "yujian-jue:rank-9"
@@ -357,7 +357,7 @@ describe("mastery progression", () => {
       gongfaId: "yujian-jue",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["sword-bloom", "still-sword-heart", "intent-domain"]
+      learnedIds: ["sword-bloom", "still-sword-edge", "three-enclosure-sword-domain"]
     })).toEqual([]);
   });
 

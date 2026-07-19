@@ -2,7 +2,7 @@ import type { RootId } from "./linggen";
 import type { StageId } from "./stages";
 import type { ProjectileVisualId } from "../types/combatVisuals";
 
-export type GongfaPattern = "homing" | "wave" | "aura" | "summon" | "melee" | "trap" | "ritual";
+export type GongfaPattern = "homing" | "weapon" | "wave" | "aura" | "summon" | "melee" | "trap" | "ritual";
 export type GongfaTag = GongfaPattern | RootId | "projectile" | "sword" | "defensive" | "explosive" | "ailment" | "reflect";
 
 export type GongfaId =
@@ -67,9 +67,9 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
     id: "yujian-jue",
     name: "Yujian Jue",
     requiredRoots: ["metal"],
-    pattern: "homing",
+    pattern: "weapon",
     title: "Yujian Jue",
-    lore: "Flying swords answer disciplined metal qi.",
+    lore: "Four physical swords obey a disciplined rack and must return before reuse.",
     projectileTexture: "flying-sword",
     tint: 0xb7e3ff,
     stages: {

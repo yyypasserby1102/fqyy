@@ -61,12 +61,12 @@ describe("localization", () => {
 
   it("localizes canonical game content by stable domain IDs", () => {
     expect(localizeGongfa("zh-CN", "yujian-jue").name).toBe("御剑诀");
-    expect(localizeGongfaPackage("zh-CN", "yujian-jue").skill1.name).toBe("飞剑齐射");
+    expect(localizeGongfaPackage("zh-CN", "yujian-jue").skill1.name).toBe("御剑出鞘");
     expect(localizeLinggen("zh-CN", "fire-metal").name).toBe("火金双灵根");
     expect(localizeSpiritTreasure("zh-CN", "jade-heart-pendant").name).toBe("玉心佩");
     expect(localizeStage("zh-CN", "jindan").name).toBe("金丹");
     expect(localizeUpgrade("zh-CN", "sword-intent-sharpening").name).not.toMatch(/[A-Za-z]/);
-    expect(localizeMasteryChoice("zh-CN", "execution-seal").name).toBe("诛敌剑印");
+    expect(localizeMasteryChoice("zh-CN", "execution-seal").name).toBe("诛首剑令");
     expect(localizeMasteryChoice("zh-CN", "lone-bridge-final-crossing").name).toBe("独桥绝渡");
     expect(localizeMasteryChoice("zh-CN", "compensating-ferry").name).toBe("代偿轮渡");
     expect(localizeMasteryChoice("zh-CN", "wither-and-flourish-leave-a-seed").name).toBe("枯荣留种");
@@ -74,7 +74,7 @@ describe("localization", () => {
     expect(localizeMasteryChoice("zh-CN", "true-plume-nirvana").name).toBe("真羽涅槃");
 
     expect(localizeGongfa("en", "yujian-jue").name).toBe("Yujian Jue");
-    expect(localizeGongfaPackage("en", "yujian-jue").skill1.name).toBe("Flying Sword Volley");
+    expect(localizeGongfaPackage("en", "yujian-jue").skill1.name).toBe("Sword Unsheathing");
   });
 
   it("falls back to English content for a future locale without a content catalog", () => {

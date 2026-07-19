@@ -28,7 +28,7 @@ test("Gongfa codex exposes the learned Skill, passive, and locked Skill 2", asyn
     selectedGongfaId: "yujian-jue",
     selectedRank: 0,
     skill2Status: "locked",
-    cardNames: ["Flying Sword Volley", "Unbroken Sword Intent", "Returning Sword Formation"],
+    cardNames: ["Sword Unsheathing", "Sword-Rack Rotation", "Myriad Swords Return"],
     progressRankCount: 22,
     interactiveControlCount: 3
   });

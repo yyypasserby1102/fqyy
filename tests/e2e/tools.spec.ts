@@ -7,7 +7,7 @@ test("title screen opens the searchable canonical Gongfa compendium", async ({ p
   await expect(page.locator('[data-surface="fqyy-tools"]')).toBeVisible();
   await expect(page.getByRole("heading", { name: "Gongfa Compendium" })).toBeVisible();
   await expect(page.locator(".tools-gongfa-card")).toHaveCount(25);
-  await expect(page.locator('[data-gongfa-detail="yujian-jue"]')).toContainText("Flying Sword Volley");
+  await expect(page.locator('[data-gongfa-detail="yujian-jue"]')).toContainText("Sword Unsheathing");
   if (process.env.TOOLS_CAPTURE) {
     await page.screenshot({ path: `${process.env.TOOLS_CAPTURE}-compendium.png`, fullPage: true });
   }
@@ -19,7 +19,7 @@ test("title screen opens the searchable canonical Gongfa compendium", async ({ p
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Jindan");
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Yuanying");
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Deepens Skill 2 damage");
-  await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Focus the needles");
+  await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Concentrate several strong nodes");
 
   await page.getByRole("searchbox", { name: "Search Gongfa" }).fill("corona");
   await expect(page.locator(".tools-gongfa-card").filter({ hasText: "Burning Ring Scripture" })).toBeVisible();

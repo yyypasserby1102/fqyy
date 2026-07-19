@@ -184,17 +184,15 @@ The `Fire + Metal` choice set contains `Burning Ring Scripture`, the hybrid `Cri
 
 #### Yujian Jue
 
-- Behavior: auto-targeted flying sword volleys
+- Behavior: four persistent physical swords with automatic assignments and real outbound/return routes
 - Skill tags: `projectile`, `metal`, `sword`
-- Defining passive: `Unbroken Sword Intent`; a successful Skill-1 attack cycle grants one stack up to five and refreshes its duration. Each stack improves Yujian Skill damage and all `projectile` Skill flight speed; five stacks grant those Skills +1 pierce, and taking damage removes two stacks.
-- Scaling: sword count and pierce efficiency
-- Support stat: cooldown recovery
-- Rank-10 Skill 2: `Returning Sword Formation` independently targets the densest lane, sends a sword array outward and back through enemies, and grants or refreshes one Intent stack when the formation hits while Skill 1 continues.
+- Defining passive: `Sword-Rack Rotation`; only returned swords are ready, and movement changes nearest/healthiest/threat/pierce-lane assignments or catches a returning sword early.
+- Rank-10 Skill 2: `Myriad Swords Return` waits for at least three airborne swords, reverses each exact recorded route, cuts at intersections, and returns the finite inventory.
 - Skill-2 Refinement families: `Formation Tempering` for damage, `Expanded Sword Array` for sword count and coverage, and `Swift Formation` for activation and return speed. Each has two authored tiers.
-- Starting Refinement families: `Twin Sword Split` and `Refined Sword Channel` for Skill 1; `Sword Intent Sharpening` and `Steady Sword Heart` for the passive; `Swordborne Steps` and `Penetrating Intent` for Cultivator movement and projectile-tag synergy. Each has two authored tiers.
+- Starting Refinement families: `Balanced Scabbards` and `Quick Unsheathing` for Skill 1; `Rack Tempering` and `Returning Thread` for the rack; `Sword-Catching Steps` and `Crossing Edge` for movement and route synergy. Each has two authored tiers.
 - Rank-3 Transformations: `Execution Seal` makes repeated Skill-1 hits escalate against a marked priority target; `Sword Bloom` splits the first hit into weaker swords seeking different enemies; `Reversing Sword Path` sends the sword back through enemies toward the Cultivator.
-- Rank-6 Transformations: `Still Sword Heart` prevents incoming damage from removing Intent; `Myriad Blade Resonance` lets other projectile-tagged Skills build or refresh Intent; `Intent Unleashed` empowers the next Yujian volley at five stacks and consumes those stacks.
-- Rank-9 Transformations: `Sword Crown` adds weaker spectral swords based on current Intent; `Intent Domain` leaves short-lived blade fields whose size and duration scale with Intent; `Void-Step Formation` makes the next Skill-1 cycle attack from both ends of an Evade path.
+- Rank-6 Transformations: `Still-Sword Edge`, `Linked Sword Catch`, and `Four Symbols Together` change resting charge, physical catch cadence, or full-rack commitment.
+- Rank-9 Transformations: `Heavenly Sword Crown`, `Three-Enclosure Sword Domain`, and `Void-Step Recall` change support inventory, live route geometry, or Evade recall without generating swords.
 
 #### Jinfeng Gong
 

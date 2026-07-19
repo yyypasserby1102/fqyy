@@ -79,5 +79,5 @@ test("a Chinese run localizes awakening choices, HUD progression, and the Gongfa
   const ui = await page.evaluate(() => window.__gameTest!.getUiSnapshot());
   expect(ui.hudText).toContain("功法：");
   expect(ui.gongfaCodex.rankText).toBe("精通第 0 重");
-  expect(ui.gongfaCodex.cardNames).toEqual(["飞剑齐射", "不灭剑意", "回锋剑阵"]);
+  expect(ui.gongfaCodex.cardNames).toEqual(["御剑出鞘", "剑匣轮转", "万剑归宗"]);
 });

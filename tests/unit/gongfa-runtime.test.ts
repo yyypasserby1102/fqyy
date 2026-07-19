@@ -198,14 +198,15 @@ describe("Gongfa runtime", () => {
     const refined = applyGongfaImprovement(initial, "sword-intent-sharpening");
 
     expect(initial.combat.damage).toBe(15);
-    expect(refined.runtime.combat.damage).toBe(21);
+    expect(refined.runtime.combat.damage).toBe(15);
+    expect(refined.runtime.yujian?.intentPotencyBonus).toBe(1);
     expect(refined.playerEffect).toBeUndefined();
   });
 
   it("owns activation plans for every currently authored Skill 2", () => {
     expect(getAuthoredSkill2Plan("returning-sword-formation")).toEqual({
       intent: "returning-sword-formation",
-      trigger: "timed",
+      trigger: "threshold",
       cooldownMs: 2400
     });
     expect(getAuthoredSkill2Plan("golden-gale-corridor")?.trigger).toBe("timed");
@@ -220,16 +221,8 @@ describe("Gongfa runtime", () => {
     expect(getAuthoredSkill2CooldownMs("returning-sword-formation")).toBe(2400);
     expect(getAuthoredSkill2CooldownMs("missing-skill-2")).toBe(0);
 
-    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 400)).toEqual({
-      cooldownRemainingMs: 600
-    });
     expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 1000, 1000)).toEqual({
-      cooldownRemainingMs: 0,
-      readySkill2Id: "returning-sword-formation"
-    });
-    expect(advanceTimedMasterySkill2Cooldown("returning-sword-formation", 100, 250)).toEqual({
-      cooldownRemainingMs: 0,
-      readySkill2Id: "returning-sword-formation"
+      cooldownRemainingMs: 1000
     });
     expect(advanceTimedMasterySkill2Cooldown("solar-flare-cycle", 1000, 1000)).toEqual({
       cooldownRemainingMs: 1000
@@ -487,6 +480,7 @@ describe("Gongfa runtime", () => {
 
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
     const expectedEffectKinds: Partial<Record<GongfaId, string>> = {
+      "yujian-jue": "authored-myriad-swords-return",
       "blazing-feather-art": "authored-phoenix-horizon",
       "scarlet-wave-manual": "authored-scarlet-tides",
       "drifting-frost-needle": "authored-reverse-winter-thread",
@@ -503,6 +497,7 @@ describe("Gongfa runtime", () => {
       expect(plan, `${gongfaId} declares unsupported Skill 2 ${skill2Id}`).toBeDefined();
 
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "yujian-jue") runtime.mastery.masterySkill2Id = skill2Id;
       if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
       if (gongfaId === "blazing-feather-art") {
         runtime.mastery.masterySkill2Id = skill2Id;
@@ -599,7 +594,17 @@ describe("Gongfa runtime", () => {
           { kind: "infection", targetId: 94, x: 60, y: 0, value: 0, infectionStage: 0 }
         );
       }
-      const result = gongfaId === "blazing-feather-art"
+      const result = gongfaId === "yujian-jue"
+        ? (() => {
+            const targets = [1, 2, 3].map((targetId) => ({
+              targetId, x: 120 + targetId * 45, y: targetId * 12,
+              healthRatio: 1, rank: "ordinary" as const
+            }));
+            planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets });
+            planGongfaAttack(runtime, 1, { playerX: 10, playerY: 0, targets });
+            return { runtime, commands: planGongfaAttack(runtime, 2, { playerX: 20, playerY: 0, targets }) };
+          })()
+        : gongfaId === "blazing-feather-art"
         ? { runtime, commands: planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
             targets: [{ targetId: 203, x: 200, y: 0, healthRatio: 1, rank: "elite" }] }) }
         : gongfaId === "drifting-frost-needle"
@@ -958,17 +963,15 @@ describe("Gongfa runtime", () => {
   });
 
   it("plans generic primary attacks behind the runtime seam", () => {
-    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "yujian-jue" }), 0)).toEqual([
-      {
-        kind: "homing-volley",
-        count: 1,
-        transformationTriggers: {
-          executionSeal: false,
-          swordBloom: false,
-          reversingSwordPath: false
-        }
-      }
-    ]);
+    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "yujian-jue" }), 0, {
+      playerX: 0, playerY: 0,
+      targets: [{ targetId: 1, x: 140, y: 0, healthRatio: 1, rank: "ordinary" }]
+    })[0]).toMatchObject({
+      kind: "authored-yujian-flight",
+      swordId: 0,
+      targetId: 1,
+      shadeTargetIds: []
+    });
 
     expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), 0)).toEqual([
       {
@@ -987,27 +990,43 @@ describe("Gongfa runtime", () => {
 
     expect(
       planGongfaAttack(runtime, 0, {
-        learnedMasteryIds: ["reversing-sword-path"]
+        learnedMasteryIds: ["reversing-sword-path"],
+        playerX: 0, playerY: 0,
+        targets: [{ targetId: 1, x: 140, y: 0, healthRatio: 1, rank: "ordinary" }]
       })
-    ).toEqual([
-      {
-        kind: "homing-volley",
-        count: 1,
-        transformationTriggers: {
-          executionSeal: false,
-          swordBloom: false,
-          reversingSwordPath: true
-        }
-      },
-      {
-        kind: "spawn-yujian-reversal",
-        delayMs: 170,
-        damage: 8,
-        pierce: 2,
-        speed: 500,
-        lifetimeMs: 1560
-      }
-    ]);
+    ).toEqual([expect.objectContaining({
+      kind: "authored-yujian-flight",
+      outboundDamage: 6,
+      returnDamage: 21
+    })]);
+  });
+
+  it("earns Myriad Swords Return from three airborne routes and reverses each one", () => {
+    const runtime = createGongfaRuntime({
+      gongfaId: "yujian-jue",
+      mastery: { masterySkill2Id: "returning-sword-formation" }
+    });
+    const targets = [
+      { targetId: 1, x: 120, y: -30, healthRatio: 0.7, rank: "ordinary" as const },
+      { targetId: 2, x: 180, y: 20, healthRatio: 1, rank: "elite" as const },
+      { targetId: 3, x: 230, y: 70, healthRatio: 0.8, rank: "ordinary" as const }
+    ];
+    planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets });
+    planGongfaAttack(runtime, 1, { playerX: 20, playerY: 0, targets });
+    const commands = planGongfaAttack(runtime, 2, { playerX: 40, playerY: 5, targets });
+    const returned = commands.find((command) => command.kind === "authored-myriad-swords-return");
+    expect(returned?.kind).toBe("authored-myriad-swords-return");
+    if (returned?.kind !== "authored-myriad-swords-return") throw new Error("missing Myriad Swords Return");
+    expect(returned.routes).toHaveLength(3);
+    expect(returned.routes.every((route) => route.points.length === 3)).toBe(true);
+    expect(returned.routes[0]!.points.at(-1)).toEqual({ x: 0, y: 0 });
+    expect(returned.masteryCast).toEqual({
+      skill2Id: "returning-sword-formation",
+      cooldownMs: 2400
+    });
+    expect(runtime.authored.anchors.filter((anchor) =>
+      anchor.kind === "sword" && anchor.participating
+    )).toHaveLength(3);
   });
 
   it("owns projectile-hit mode and Gongfa-specific hit effects", () => {
@@ -1032,7 +1051,7 @@ describe("Gongfa runtime", () => {
         embedPower: 0
       }
     );
-    expect(yujian.commands.map((command) => command.kind)).toEqual(["spawn-yujian-bloom"]);
+    expect(yujian.commands).toEqual([]);
 
     const crimson = advanceGongfaRuntimeForProjectileHit(
       createGongfaRuntime({ gongfaId: "crimson-furnace-sword-art" }),
@@ -1074,36 +1093,13 @@ describe("Gongfa runtime", () => {
     expect(getGongfaRuntimeTickThreatRadius(createGongfaRuntime({ gongfaId: "jinfeng-gong" }))).toBe(0);
   });
 
-  it("plans Returning Sword Formation as a runtime-owned Yujian Skill 2 command", () => {
+  it("does not let a timer bypass Myriad Swords Return's airborne threshold", () => {
     const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-
     expect(advanceGongfaRuntime(runtime, {
       kind: "skill2",
       skill2Id: "returning-sword-formation",
       eligibleTargetCount: 1
-    }).commands).toEqual([
-      {
-        kind: "returning-sword-formation",
-        count: 1,
-        opening: {
-          damage: 10,
-          pierce: 2,
-          speed: 485,
-          lifetimeMs: 1680
-        },
-        returnPath: {
-          delayMs: 240,
-          damage: 8,
-          pierce: 2,
-          speed: 505,
-          lifetimeMs: 1740
-        },
-        masteryCast: {
-          skill2Id: "returning-sword-formation",
-          cooldownMs: 2400
-        }
-      }
-    ]);
+    }).commands).toEqual([]);
   });
 
   it("plans Golden Gale Corridor as a runtime-owned Jinfeng Skill 2 command", () => {
@@ -1139,53 +1135,24 @@ describe("Gongfa runtime", () => {
     ]);
   });
 
-  it("owns Yujian rank-3 hit transformations without Phaser objects", () => {
-    const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-
-    const firstHit = advanceGongfaRuntime(runtime, {
-      kind: "yujian-projectile-hit",
-      targetId: 10,
-      damage: 15,
-      learnedMasteryIds: ["execution-seal", "sword-bloom"]
+  it("owns Yujian rank-3 route transformations without Phaser objects", () => {
+    const targets = [
+      { targetId: 10, x: 120, y: 0, healthRatio: 0.4, rank: "ordinary" as const },
+      { targetId: 11, x: 180, y: 20, healthRatio: 1, rank: "elite" as const },
+      { targetId: 12, x: 210, y: -20, healthRatio: 0.8, rank: "ordinary" as const }
+    ];
+    const cast = (learnedMasteryIds: string[]) => planGongfaAttack(
+      createGongfaRuntime({ gongfaId: "yujian-jue" }), 0,
+      { learnedMasteryIds, playerX: 0, playerY: 0, targets }
+    )[0];
+    expect(cast(["execution-seal"])).toMatchObject({
+      kind: "authored-yujian-flight", targetId: 11, outboundDamage: 19, shadeTargetIds: []
     });
-
-    expect(firstHit.commands).toEqual([
-      {
-        kind: "spawn-yujian-bloom",
-        originTargetId: 10,
-        maxTargets: 2,
-        damage: 7,
-        pierce: 1
-      }
-    ]);
-    expect(firstHit.runtime.yujian).toMatchObject({
-      executionSealTriggers: 0,
-      swordBloomTriggers: 1,
-      reversingSwordPathTriggers: 0,
-      executionSealStacksByTarget: { 10: 1 }
+    expect(cast(["sword-bloom"])).toMatchObject({
+      kind: "authored-yujian-flight", outboundDamage: 10, shadeTargetIds: [11, 12]
     });
-
-    const secondHit = advanceGongfaRuntime(firstHit.runtime, {
-      kind: "yujian-projectile-hit",
-      targetId: 10,
-      damage: 15,
-      learnedMasteryIds: ["execution-seal"]
-    });
-
-    // The first hit's Unbroken Sword Intent stack raises Yujian damage, so the
-    // second hit's execution-seal scales up accordingly.
-    expect(secondHit.commands).toEqual([
-      {
-        kind: "apply-target-damage",
-        targetId: 10,
-        amount: 11,
-        source: "execution-seal"
-      }
-    ]);
-    expect(secondHit.runtime.yujian).toMatchObject({
-      executionSealTriggers: 1,
-      swordBloomTriggers: 1,
-      executionSealStacksByTarget: { 10: 2 }
+    expect(cast(["reversing-sword-path"])).toMatchObject({
+      kind: "authored-yujian-flight", outboundDamage: 6, returnDamage: 21
     });
   });
 
@@ -1283,12 +1250,11 @@ describe("Gongfa runtime", () => {
   });
 
   it("projects UI-visible runtime meters without exposing Gongfa subtype state", () => {
-    const yujian = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "yujian-jue" }), {
-      kind: "yujian-projectile-hit",
-      targetId: 10,
-      damage: 15,
-      learnedMasteryIds: ["execution-seal", "sword-bloom", "reversing-sword-path"]
-    }).runtime;
+    const yujian = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    planGongfaAttack(yujian, 0, {
+      learnedMasteryIds: ["sword-bloom"], playerX: 0, playerY: 0,
+      targets: [{ targetId: 10, x: 120, y: 0, healthRatio: 1, rank: "ordinary" }]
+    });
 
     expect(projectGongfaRuntimeView(yujian)).toMatchObject({
       galeMomentum: 0,
@@ -2336,99 +2302,20 @@ describe("Gongfa runtime", () => {
     expect(command.nodes.filter((node) => node.core)).toHaveLength(2);
   });
 
-  it("Unbroken Sword Intent builds on hits, boosts combat, and fades over time", () => {
-    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-    const baseDamage = runtime.combat.damage;
-    const baseSpeed = runtime.combat.projectileSpeed;
-    const basePierce = runtime.combat.pierce;
-
-    runtime = advanceGongfaRuntime(runtime, {
-      kind: "yujian-projectile-hit",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(runtime.yujian!.intentStacks).toBe(1);
-    expect(runtime.combat.damage).toBeGreaterThan(baseDamage);
-    expect(runtime.combat.projectileSpeed).toBeGreaterThan(baseSpeed);
-
-    for (let i = 0; i < 5; i += 1) {
-      runtime = advanceGongfaRuntime(runtime, {
-        kind: "yujian-projectile-hit",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: []
-      }).runtime;
-    }
-    expect(runtime.yujian!.intentStacks).toBe(5);
-    expect(runtime.combat.pierce).toBe(basePierce + 1);
-
-    // Taking damage sheds two stacks.
-    runtime = advanceGongfaRuntime(runtime, {
-      kind: "incoming-damage",
-      amount: 10,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(runtime.yujian!.intentStacks).toBe(3);
-
-    // Time without hits fades a stack.
-    const faded = advanceGongfaRuntime(runtime, {
-      kind: "tick",
-      deltaMs: 4000,
-      nearbyEnemyCount: 0,
-      isMoving: false
-    }).runtime;
-    expect(faded.yujian!.intentStacks).toBeLessThan(3);
-  });
-
-  it("Still Sword Heart holds Intent through damage; Myriad Blade Resonance builds it faster", () => {
-    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-    for (let i = 0; i < 3; i += 1) {
-      runtime = advanceGongfaRuntime(runtime, {
-        kind: "yujian-projectile-hit",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: []
-      }).runtime;
-    }
-    const held = advanceGongfaRuntime(runtime, {
-      kind: "incoming-damage",
-      amount: 10,
-      learnedMasteryIds: ["still-sword-heart"]
-    }).runtime;
-    expect(held.yujian!.intentStacks).toBe(3);
-
-    const fresh = createGongfaRuntime({ gongfaId: "yujian-jue" });
-    const myriad = advanceGongfaRuntime(fresh, {
-      kind: "yujian-projectile-hit",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: ["myriad-blade-resonance"]
-    }).runtime;
-    const ordinary = advanceGongfaRuntime(fresh, {
-      kind: "yujian-projectile-hit",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(myriad.yujian!.intentStacks).toBeGreaterThan(ordinary.yujian!.intentStacks);
-  });
-
-  it("Intent Unleashed empowers the volley at full Intent", () => {
-    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-    for (let i = 0; i < 5; i += 1) {
-      runtime = advanceGongfaRuntime(runtime, {
-        kind: "yujian-projectile-hit",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: []
-      }).runtime;
-    }
-    const [unleashed] = planGongfaAttack(runtime, 0, { learnedMasteryIds: ["intent-unleashed"] });
-    const [plain] = planGongfaAttack(runtime, 0);
-    const unleashedCount = unleashed.kind === "homing-volley" ? unleashed.count : 0;
-    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
-    expect(unleashedCount).toBeGreaterThan(plainCount);
+  it("Four Symbols Together launches only a complete four-sword rack", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    const targets = [1, 2, 3, 4].map((targetId) => ({
+      targetId, x: 100 + targetId * 25, y: targetId * 8,
+      healthRatio: 1, rank: "ordinary" as const
+    }));
+    const full = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["four-symbols-together"], playerX: 0, playerY: 0, targets
+    });
+    expect(full.filter((command) => command.kind === "authored-yujian-flight")).toHaveLength(4);
+    expect(runtime.authored.charges).toBe(0);
+    expect(planGongfaAttack(runtime, 1, {
+      learnedMasteryIds: ["four-symbols-together"], playerX: 0, playerY: 0, targets
+    })).toEqual([]);
   });
 
   it("Blazing Feather uses a finite non-homing fan with a visibly stronger outer edge", () => {
@@ -2642,40 +2529,25 @@ describe("Gongfa runtime", () => {
     expect(swift?.kind === "authored-frost-needle-chain" && swift.points.length).toBeLessThan(4);
   });
 
-  it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {
-    let runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
-    for (let i = 0; i < 3; i += 1) {
-      runtime = advanceGongfaRuntime(runtime, {
-        kind: "yujian-projectile-hit",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: []
-      }).runtime;
-    }
-    expect(runtime.yujian!.intentStacks).toBe(3);
-
-    // Sword Crown adds spectral swords by current Intent.
-    const [crowned] = planGongfaAttack(runtime, 0, { learnedMasteryIds: ["sword-crown"] });
-    const [plain] = planGongfaAttack(runtime, 0);
-    const crownedCount = crowned.kind === "homing-volley" ? crowned.count : 0;
-    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
-    expect(crownedCount).toBe(plainCount + 3);
-
-    // Intent Domain leaves a blade field (aura-burst) on hit.
-    const domainHit = advanceGongfaRuntime(runtime, {
-      kind: "yujian-projectile-hit",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: ["intent-domain"]
+  it("Heavenly Crown reduces the rack and Void-Step recalls existing swords without duplicates", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "yujian-jue" });
+    const targets = [{ targetId: 1, x: 150, y: 0, healthRatio: 1, rank: "ordinary" as const }];
+    planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["heavenly-sword-crown"], playerX: 0, playerY: 0, targets
     });
-    expect(domainHit.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+    expect(runtime.authored.maxCharges).toBe(3);
+    expect(runtime.authored.anchors.filter((anchor) => anchor.kind === "sword")).toHaveLength(1);
 
-    // Void-Step Formation looses an extra volley on Evade.
     const evaded = advanceGongfaRuntime(runtime, {
-      kind: "evade",
-      learnedMasteryIds: ["void-step-formation"]
+      kind: "evade", playerX: 10, playerY: 0,
+      learnedMasteryIds: ["void-step-recall"]
     });
-    expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+    expect(evaded.commands).toEqual([expect.objectContaining({
+      kind: "authored-myriad-swords-return",
+      targetIds: [],
+      damage: 0
+    })]);
+    expect(evaded.runtime.authored.anchors.filter((anchor) => anchor.kind === "sword")).toHaveLength(1);
   });
 
   it("builds Myriad Beast Kinship only from distinct species assisting one kill", () => {

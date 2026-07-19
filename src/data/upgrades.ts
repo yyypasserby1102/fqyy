@@ -196,8 +196,8 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   },
   {
     id: "sword-intent-sharpening",
-    name: "Sword Intent Sharpening",
-    lore: "Each Intent stack adds more force to both Yujian Skills.",
+    name: "Rack Tempering",
+    lore: "Every physical rack sword gains more force on both its outbound and return path.",
     effect: "resourcePotency",
     value: 1,
     requiredGongfaIds: ["yujian-jue"],
@@ -205,8 +205,8 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   },
   {
     id: "twin-sword-split",
-    name: "Twin Sword Split",
-    lore: "+1 flying sword per volley.",
+    name: "Balanced Scabbards",
+    lore: "Balanced fittings shorten each sword's complete physical journey.",
     effect: "skill1Count",
     value: 1,
     requiredGongfaIds: ["yujian-jue"],
@@ -214,8 +214,8 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   },
   {
     id: "refined-sword-channel",
-    name: "Refined Sword Channel",
-    lore: "Yujian attacks 12% faster.",
+    name: "Quick Unsheathing",
+    lore: "A ready rack sword is assigned and launched 12% faster.",
     effect: "skill1Cooldown",
     value: 0.88,
     requiredGongfaIds: ["yujian-jue"],
@@ -363,9 +363,9 @@ const family = (gongfaId: GongfaId, seed: FamilySeed, unlockRank = 0): UpgradeCo
 
 const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
   ["yujian-jue", [
-    ["steady-sword-heart", "Steady Sword Heart", "Intent lingers longer between successful volleys.", "surgeStability", 0.84, "Passive: Unbroken Sword Intent"],
-    ["swordborne-steps", "Swordborne Steps", "Every Evade gathers one stack of Sword Intent.", "evadeSynergy", 1, "Cultivator Evade → Passive: Unbroken Sword Intent"],
-    ["penetrating-intent", "Penetrating Intent", "Intent drives both Yujian Skills through additional targets.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"]
+    ["steady-sword-heart", "Returning Thread", "Every sword's homeward route completes more cleanly and quickly.", "surgeStability", 0.84, "Passive: Sword-Rack Rotation"],
+    ["swordborne-steps", "Sword-Catching Steps", "Evade slightly shortens every live return without creating a sword.", "evadeSynergy", 1, "Cultivator Evade → Passive: Sword-Rack Rotation"],
+    ["penetrating-intent", "Crossing Edge", "Physical sword routes and Myriad Swords Return cut more strongly at crossings.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"]
   ]],
   ["burning-ring-scripture", [
     ["ember-step", "Wheel-Turning Step", "Every Evade advances the existing broken corona by one sixth-turn without creating Heat or another attack.", "evadeSynergy", 8, "Cultivator Evade → Skill 1: Revolving Broken Corona"]

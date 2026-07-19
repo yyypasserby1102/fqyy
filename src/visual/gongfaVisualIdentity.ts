@@ -32,7 +32,7 @@ export interface GongfaVisualIdentity {
 }
 
 export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
-  "yujian-jue": { motifId: "ordered-sword-seal", label: "Ordered sword seal", geometry: "sword-seal", accent: 0xb7e3ff, secondary: 0xf4f8ff, spokes: 5, trailStyle: "straight blade script" },
+  "yujian-jue": { motifId: "returning-sword-rack", label: "Returning sword rack", geometry: "sword-seal", accent: 0xb7e3ff, secondary: 0xf4f8ff, spokes: 4, trailStyle: "persistent outbound and return paths" },
   "jinfeng-gong": { motifId: "golden-horizon", label: "Golden cutting horizon", geometry: "corridor", accent: 0xf2d273, secondary: 0xdcefff, spokes: 3, trailStyle: "parallel wind ribbons" },
   "gengjin-huti": { motifId: "forged-brace", label: "Layered forged brace", geometry: "armor", accent: 0xd4b068, secondary: 0xffe7a6, spokes: 6, trailStyle: "heavy plate seams and fracture scars" },
   "crimson-furnace-sword-art": { motifId: "living-furnace-network", label: "Living furnace topology", geometry: "furnace", accent: 0xff654f, secondary: 0xffc05c, spokes: 4, trailStyle: "node-link ignition" },

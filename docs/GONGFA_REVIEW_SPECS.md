@@ -28,7 +28,7 @@ implementation, testing, balance review, and future regression checks.
 | --- | --- | --- | --- |
 | Blazing Feather Art / 烈羽诀 | Youxia | Approved | Implemented and verified |
 | Drifting Frost Needle / 游霜针 | Youxia | Approved | Implemented and verified |
-| Yujian Jue / 御剑诀 | Youxia | Approved | Pending redesign |
+| Yujian Jue / 御剑诀 | Youxia | Approved | Implemented and verified |
 | Jinfeng Gong / 金锋功 | Youxia | Approved | Pending redesign |
 | Green Vine Art / 青藤诀 | Youxia | Approved | Pending redesign |
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Pending redesign |
@@ -198,6 +198,21 @@ single shared corridor are created.
 
 **Must not become:** generated homing ammunition, Frost's disposable ricochet,
 Blazing's magazine, or Jinfeng's player-drawn trail.
+
+### Implemented tuning contract
+
+- 基础剑匣为 `4` 柄实体剑；每轮只分配一柄已归剑，依次处理最近、最健壮、最高威胁与最远贯穿线
+  目标。飞剑去程越过目标后才返匣，完整基础往返约 `2.2s`；全部在外时普攻明确停摆。
+- 诛首剑令令所有剑放弃轮转分工、集中最强威胁并提高本体伤害；剑华分影生成至多两道一次性弱影，
+  同时降低实体剑去程伤害；回锋剑路把主要伤害移到返程，因此提前接剑会截断尚未完成的收益。
+- 静剑养锋按匣中静置时间提高下一次去程伤害，但把往返延长到约 `2.9s`；连环接剑要求玩家主动迎向
+  返程剑，接到才立即刷新下一次出鞘；四象齐出只在整匣完整时同时放出全部四剑，随后等待全归。
+- 天剑为冠保留一柄可见支援剑并把主动剑匣缩为 `3`；三垣剑域只连接修士与当前在外实体剑，接剑会
+  实际减少边数；虚步收锋让闪避召回所有现存剑路，不生成攻击或复制剑，并令闪避冷却增加 `35%`。
+- 万剑归宗至少要求 `3` 剑同时在外；每剑沿自己的记录路线逆返，路线交点另行结算，随后实体库存归匣。
+  首次满足门槛可立即发动，以后仍受绝学冷却约束；它不创建追踪弹、共享直线或霜针式临时节点。
+- 战场常驻显示肩侧已归剑、在外实体剑及它们连回修士的路径；HUD 显示 Ready、Airborne 与绝学门槛。
+  运行时主攻击与绝学均不生成 `homing-volley` 或普通 Projectile 实体。
 
 ---
 

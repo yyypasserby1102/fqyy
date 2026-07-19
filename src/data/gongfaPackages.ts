@@ -27,11 +27,11 @@ export interface GongfaPackageDefinition {
  */
 export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
   "yujian-jue": {
-    combatRole: "Precision sword volleys for mobile mid-range pack thinning.",
-    visualMotif: "Pale-blue sword seals, disciplined lines, and returning blade arcs.",
-    skill1: { id: "flying-sword-volley", name: "Flying Sword Volley", description: "Ordered flying swords seek nearby enemies, piercing priority targets in disciplined bursts.", tags: ["homing", "projectile", "metal", "sword"] },
-    passive: { name: "Unbroken Sword Intent", resource: "Intent", description: "Successful volleys build Intent, empowering Yujian damage and all projectile-tagged Skills." },
-    skill2: { id: "returning-sword-formation", name: "Returning Sword Formation", description: "A sword array crosses the densest enemy lane, then reverses through it while refreshing Intent.", tags: ["homing", "projectile", "metal", "sword"] }
+    combatRole: "Finite physical swords whose real outbound and return journeys create attack downtime.",
+    visualMotif: "Four white-gold rack swords, persistent flight paths, and converging return cuts.",
+    skill1: { id: "sword-unsheathing", name: "Sword Unsheathing", description: "One ready sword is assigned automatically, flies beyond its target, and must physically return before reuse.", tags: ["projectile", "metal", "sword"] },
+    passive: { name: "Sword-Rack Rotation", resource: "Ready Swords", description: "Four persistent swords rotate through nearest, healthiest, active-threat, and pierce-lane assignments." },
+    skill2: { id: "returning-sword-formation", name: "Myriad Swords Return", description: "With at least three swords airborne, every sword reverses its own recorded route and crossing paths cut again.", tags: ["projectile", "metal", "sword"] }
   },
   "jinfeng-gong": {
     combatRole: "Movement-aimed cutting lanes that reward assertive positioning.",

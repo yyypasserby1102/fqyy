@@ -283,6 +283,7 @@ export class GameScene extends Phaser.Scene {
   private crimsonFurnaceNetworkMarker?: Phaser.GameObjects.Graphics;
   private blazingFeatherMarker?: Phaser.GameObjects.Graphics;
   private frostNeedleMarker?: Phaser.GameObjects.Graphics;
+  private yujianSwordMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -410,6 +411,10 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "drifting-frost-needle") {
       const route = runtime.authored.anchors.filter((anchor) => anchor.kind === "weakpoint").length;
       return `Frost Needle: Focus ${Math.min(5, route)}/5 · Recorded zigzag ${route} · ${route >= 5 ? "Reverse ready" : "seeking distinct point"}`;
+    }
+    if (runtime.gongfaId === "yujian-jue") {
+      const airborne = runtime.authored.anchors.filter((anchor) => anchor.kind === "sword").length;
+      return `Yujian Rack: Ready ${runtime.authored.charges}/${runtime.authored.maxCharges} · Airborne ${airborne} · ${airborne >= 3 ? "Myriad Return ready" : "assigning routes"}`;
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
       const bird = runtime.authored.anchors.find((anchor) => anchor.kind === "companion");
@@ -692,7 +697,8 @@ export class GameScene extends Phaser.Scene {
           { x: movement.x, y: movement.y },
           this.getSpiritTreasureResonanceModifiers().evadeCooldownMultiplier *
             (this.gongfaCollection.byId["verdant-ring-scripture"]?.mastery.masteryLearnedIds.includes("calamity-step-thorn-scripture") ? 1.35 : 1) *
-            (this.gongfaCollection.byId["ice-mirror-guard"]?.mastery.masteryLearnedIds.includes("ice-heart-repair") ? 1.35 : 1)
+            (this.gongfaCollection.byId["ice-mirror-guard"]?.mastery.masteryLearnedIds.includes("ice-heart-repair") ? 1.35 : 1) *
+            (this.gongfaCollection.byId["yujian-jue"]?.mastery.masteryLearnedIds.includes("void-step-recall") ? 1.35 : 1)
         )
       ) {
         this.player.presentEvade(this.evade.state.direction);
@@ -948,7 +954,7 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "verdant-ring-scripture") {
         this.syncVerdantGlyphMarker(result.runtime);
       }
-      if (result.runtime.gongfaId === "blazing-feather-art" || result.runtime.gongfaId === "drifting-frost-needle") {
+      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue"].includes(result.runtime.gongfaId)) {
         this.syncPrecisionGongfaMarkers(result.runtime);
       }
     }
@@ -2347,7 +2353,7 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "sword-burial-formation") {
         this.syncSwordBurialMarker(result.runtime);
       }
-      if (result.runtime.gongfaId === "blazing-feather-art" || result.runtime.gongfaId === "drifting-frost-needle") {
+      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue"].includes(result.runtime.gongfaId)) {
         this.syncPrecisionGongfaMarkers(result.runtime);
       }
     }
@@ -2745,6 +2751,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-reverse-winter-thread") {
         this.fireAuthoredReverseWinterThread(command);
+        return;
+      }
+
+      if (command.kind === "authored-yujian-flight") {
+        this.fireAuthoredYujianFlight(command);
+        return;
+      }
+
+      if (command.kind === "authored-myriad-swords-return") {
+        this.fireAuthoredMyriadSwordsReturn(command);
         return;
       }
 
@@ -5095,6 +5111,33 @@ export class GameScene extends Phaser.Scene {
           node.targetId !== undefined && node.targetId < 0 ? 0.45 : 0.9);
         marker.fillCircle(node.x, node.y, 4 + index * 0.45);
       });
+      return;
+    }
+    if (runtime.gongfaId === "yujian-jue") {
+      this.blazingFeatherMarker?.clear();
+      this.frostNeedleMarker?.clear();
+      const marker = this.yujianSwordMarker ?? this.add.graphics().setDepth(21);
+      this.yujianSwordMarker = marker;
+      marker.clear();
+      const airborne = runtime.authored.anchors.filter((anchor) => anchor.kind === "sword");
+      if (runtime.mastery.masteryLearnedIds.includes("heavenly-sword-crown")) {
+        marker.fillStyle(0xffdf72, 0.95);
+        marker.fillTriangle(this.player.x + 12, this.player.y - 56,
+          this.player.x - 9, this.player.y - 61, this.player.x - 5, this.player.y - 48);
+      }
+      for (const sword of airborne) {
+        marker.lineStyle(2, 0xcdefff, 0.55);
+        marker.lineBetween(this.player.x, this.player.y, sword.x, sword.y);
+        marker.fillStyle(sword.participating ? 0xffdf72 : 0xeafaff, 0.95);
+        marker.fillTriangle(sword.x + 9, sword.y, sword.x - 6, sword.y - 4, sword.x - 4, sword.y + 5);
+      }
+      for (let index = 0; index < runtime.authored.maxCharges; index += 1) {
+        const ready = index < runtime.authored.charges;
+        marker.fillStyle(ready ? 0xf4fbff : 0x34485c, ready ? 0.95 : 0.55);
+        marker.fillTriangle(this.player.x - 28 + index * 18, this.player.y - 38,
+          this.player.x - 36 + index * 18, this.player.y - 24,
+          this.player.x - 30 + index * 18, this.player.y - 20);
+      }
     }
   }
 
@@ -5191,6 +5234,91 @@ export class GameScene extends Phaser.Scene {
         duration: 320, onComplete: () => visual.destroy() });
       this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:reverse-winter-thread`);
     });
+  }
+
+  private fireAuthoredYujianFlight(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-yujian-flight" }>
+  ): void {
+    const path = this.add.graphics().setDepth(20);
+    path.lineStyle(2, 0xbde8ff, 0.72);
+    for (let index = 1; index < command.route.length; index += 1) {
+      path.lineBetween(command.route[index - 1]!.x, command.route[index - 1]!.y,
+        command.route[index]!.x, command.route[index]!.y);
+    }
+    const blade = this.add.graphics().setDepth(23);
+    blade.fillStyle(0xf4fbff, 0.98);
+    blade.fillTriangle(14, 0, -8, -5, -4, 5);
+    blade.lineStyle(2, 0xe8c969, 0.95); blade.strokeTriangle(14, 0, -8, -5, -4, 5);
+    const start = command.route[0]!;
+    const end = command.route.at(-1)!;
+    blade.setPosition(start.x, start.y);
+    blade.setRotation(Math.atan2(end.y - start.y, end.x - start.x));
+    const target = this.getEnemyByCombatTargetId(command.targetId);
+    if (target?.active && target.receiveDamage(command.outboundDamage)) this.resolveEnemyDeath(target);
+    for (const targetId of command.shadeTargetIds) {
+      const shadeTarget = this.getEnemyByCombatTargetId(targetId);
+      if (shadeTarget?.active && shadeTarget.receiveDamage(Math.floor(command.outboundDamage * 0.45))) {
+        this.resolveEnemyDeath(shadeTarget);
+      }
+    }
+    for (const targetId of new Set(command.domainTargetIds)) {
+      const domainTarget = this.getEnemyByCombatTargetId(targetId);
+      if (domainTarget?.active && domainTarget.receiveDamage(Math.max(1, Math.floor(command.outboundDamage * 0.28)))) {
+        this.resolveEnemyDeath(domainTarget);
+      }
+    }
+    this.tweens.add({
+      targets: blade, x: end.x, y: end.y, duration: 520, ease: "Sine.easeOut",
+      onComplete: () => this.tweens.add({
+        targets: blade, x: this.player.x, y: this.player.y, duration: 560, ease: "Sine.easeIn",
+        onComplete: () => blade.destroy()
+      })
+    });
+    this.time.delayedCall(610, () => {
+      const returningTarget = this.getEnemyByCombatTargetId(command.targetId);
+      if (returningTarget?.active && returningTarget.receiveDamage(command.returnDamage)) {
+        this.resolveEnemyDeath(returningTarget);
+      }
+    });
+    this.tweens.add({ targets: path, alpha: 0, delay: 780, duration: 360, onComplete: () => path.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:physical-sword-route`);
+  }
+
+  private fireAuthoredMyriadSwordsReturn(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-myriad-swords-return" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(25);
+    visual.lineStyle(7, 0xffffff, 0.92);
+    for (const route of command.routes) {
+      for (let index = 1; index < route.points.length; index += 1) {
+        visual.lineBetween(route.points[index - 1]!.x, route.points[index - 1]!.y,
+          route.points[index]!.x, route.points[index]!.y);
+      }
+    }
+    for (const targetId of new Set(command.targetIds)) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (enemy?.active && enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    for (let i = 0; i < command.routes.length; i += 1) {
+      for (let j = i + 1; j < command.routes.length; j += 1) {
+        const a = command.routes[i]!.points;
+        const b = command.routes[j]!.points;
+        const a0 = a[0]!; const a1 = a.at(-1)!; const b0 = b[0]!; const b1 = b.at(-1)!;
+        const denominator = (a0.x - a1.x) * (b0.y - b1.y) - (a0.y - a1.y) * (b0.x - b1.x);
+        if (Math.abs(denominator) < 0.001) continue;
+        const crossA = a0.x * a1.y - a0.y * a1.x;
+        const crossB = b0.x * b1.y - b0.y * b1.x;
+        const x = (crossA * (b0.x - b1.x) - (a0.x - a1.x) * crossB) / denominator;
+        const y = (crossA * (b0.y - b1.y) - (a0.y - a1.y) * crossB) / denominator;
+        visual.fillStyle(0xffdf72, 0.9); visual.fillCircle(x, y, 9);
+        if (command.intersectionDamage > 0) {
+          this.damageEnemiesWithin(x, y, 30, command.intersectionDamage, command.sourceGongfaId);
+        }
+      }
+    }
+    this.cameras.main.shake(command.masteryCast ? 150 : 70, command.masteryCast ? 0.004 : 0.002);
+    this.tweens.add({ targets: visual, alpha: 0, duration: 420, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:${command.masteryCast ? "myriad-swords-return" : "void-step-recall"}`);
   }
 
   private fireSunsetWaveApex(

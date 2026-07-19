@@ -223,16 +223,6 @@ test("enemy hit and defeat feedback are observable without changing kill rewards
 for (const visualCase of [
   {
     linggen: "metal",
-    choiceIndex: 0,
-    gongfa: "yujian-jue",
-    projectile: "flying-sword",
-    travel: "projectile-flying-sword-travel",
-    impact: "impact-flying-sword",
-    motif: "ordered-sword-seal",
-    silhouette: { x: 1.12, y: 0.72 },
-  },
-  {
-    linggen: "metal",
     choiceIndex: 1,
     gongfa: "jinfeng-gong",
     projectile: "metal-wave",
@@ -303,11 +293,10 @@ for (const visualCase of [
   });
 }
 
-test("the four remaining projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("the three remaining projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
-    "yujian-jue", "jinfeng-gong", "crimson-furnace-sword-art",
-    "green-vine-art"
+    "jinfeng-gong", "crimson-furnace-sword-art", "green-vine-art"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
 
@@ -338,14 +327,15 @@ test("the four remaining projectile-based Gongfa render their own treatment and 
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(4);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(4);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(4);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(3);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(3);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(3);
 });
 
-test("Blazing Feather and Drifting Frost render authored fan and zigzag bodies without substitute projectiles", async ({ page }) => {
+test("Yujian, Blazing Feather, and Drifting Frost render authored bodies without substitute projectiles", async ({ page }) => {
   await startNewRun(page);
   for (const [gongfaId, motif] of [
+    ["yujian-jue", "returning-sword-rack:physical-sword-route"],
     ["blazing-feather-art", "phoenix-pinions:optimal-edge-fan"],
     ["drifting-frost-needle", "hoarfrost-stars:weakpoint-zigzag"]
   ] as const) {
