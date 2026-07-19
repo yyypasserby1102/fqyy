@@ -483,12 +483,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["undying-covenant", "Undying Covenant", "Plumage fades more slowly.", "surgeStability", 0.84, "Passive: Phoenix Covenant"]
   ]],
   ["frozen-river-formation", [
-    ["river-seal-tempering", "River-Seal Tempering", "Under-Ice seals pulse harder.", "skill1Damage", 5, "Skill 1: Under-Ice Snare Array"],
-    ["branching-river", "Branching River", "Plants another river seal.", "skill1Count", 1, "Skill 1: Under-Ice Snare Array"],
-    ["rime-conduction", "Rime Conduction", "Rime empowers both formation Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["wider-icefield", "Wider Icefield", "River seals cover more ground.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
-    ["deepening-rime", "Deepening Rime", "Caught enemies build Rime faster.", "surgeBuild", 0.18, "Passive: Winter Current"],
-    ["perennial-winter", "Perennial Winter", "Rime fades more slowly.", "surgeStability", 0.84, "Passive: Winter Current"]
+    ["river-seal-tempering", "River-Seal Tempering", "A successfully awakened one-shot river strikes harder.", "skill1Damage", 5, "Skill 1: River-Origin and Crossing Seals"],
+    ["branching-river", "More Debt Ledgers", "May maintain another independent origin-and-crossing chain.", "skill1Count", 1, "Skill 1: River-Origin and Crossing Seals"],
+    ["rime-conduction", "Debt Conduction", "Strengthens both awakened rivers and crossing-resolved prison fates.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["wider-icefield", "Wider Riverbed", "Widens awakened segments without enlarging seal trigger distance.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["deepening-rime", "Legible Pursuit", "Extends the life of unspent crossing seals; it does not grant transfer progress.", "surgeBuild", 0.18, "Passive: Cold Debt Transfer"],
+    ["perennial-winter", "Patient Creditor", "Extends a waiting Debt before it expires; the prison still needs real crossings.", "surgeStability", 0.84, "Passive: Cold Debt Transfer"]
   ]],
   ["moonfall-tide-ritual", [
     ["moonfall-tempering", "Moonfall Tempering", "Moonfall strikes with greater force.", "skill1Damage", 12, "Skill 1: Moonfall Collapse"],

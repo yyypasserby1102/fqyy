@@ -169,8 +169,8 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "朱雀涅槃", description: "凤契圆满时发动终末俯冲并化为一枚可受伤的卵，成功孵化仍是同一只朱雀。" }
   },
   "frozen-river-formation": {
-    name: "冰河伏阵", lore: "封寒流于地脉，待敌入阵。", combatRole: "以持久冰阵封锁追路，层叠寒脉反复控场伤敌。", visualMotif: "冰裂河道、霜白水结与蓝白寒潮。",
-    skill1: { name: "冰下缚阵", description: "在敌路种下冰河印，苏醒后反复迸发寒潮。" }, passive: { name: "凛冬暗流", resource: "寒霜", description: "困敌积累寒霜，扩大并延长后续伏阵。" }, skill2: { name: "冰河囚界", description: "以相连冰脉封锁广域，依序破冰迸发。" }
+    name: "冰河伏阵", lore: "债随众生行，越印方成河。", combatRole: "在自动推演的追路上留下无伤河印，以走位改变敌人追势；寒债者越过异印时才唤醒一次冰河并转债。", visualMotif: "圆形起河印、菱形渡河印、可见寒债牵线与静默闭合的蓝白囚界。",
+    skill1: { name: "起河渡印", description: "在敌人当前处与预判追路上布下无伤河印；债主越过异脉渡印，才在两印之间爆发一次冰河并将寒债一对一转交。" }, passive: { name: "寒债流转", resource: "完成转债", description: "只有成功转债才推进绝学；命中、伤害与普通冻结都不能凭空生债。" }, skill2: { name: "冰河囚界", description: "三次转债后将至少三名现存债主连成静默闭网；囚界不会自行脉冲，债主穿过他人的债线才结算所选共命法则。" }
   },
   "moonfall-tide-ritual": {
     name: "月坠潮仪", lore: "悬月不坠，引众生绕渊成朔。", combatRole: "缓慢拖动一轮滞后的悬月；敌人只有实际绕月运行才积累合朔，拖行过快会被甩脱。", visualMotif: "滞后的靛色月盘、清晰轨道、环行敌影与三种截然不同的终式。",

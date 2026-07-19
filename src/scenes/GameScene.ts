@@ -270,6 +270,7 @@ export class GameScene extends Phaser.Scene {
   private ancientTreeMarkerSignature = "";
   private asuraBodyMarker?: Phaser.GameObjects.Graphics;
   private readonly mistSoulMarkers = new Map<number, Phaser.GameObjects.Graphics>();
+  private frozenDebtMarker?: Phaser.GameObjects.Graphics;
   private moonfallMarker?: Phaser.GameObjects.Graphics;
   private readonly moonfallVelocityRecord = new Map<number, { x: number; y: number }>();
   private verdantGlyphMarker?: Phaser.GameObjects.Graphics;
@@ -440,6 +441,18 @@ export class GameScene extends Phaser.Scene {
         learned.includes("lantern-returning-underworld-attendant") ? refinedCapacity + 3 :
           learned.includes("long-banner-soul-call") ? Math.max(1, refinedCapacity - 2) : refinedCapacity;
       return `Mist Wraith: Souls ${stored}/${capacity} · Fresh corpses ${corpses} · Night Crossing ${stored >= 4 ? "ready" : `${stored}/4`}`;
+    }
+    if (runtime.gongfaId === "frozen-river-formation") {
+      const debtors = runtime.authored.anchors.filter((anchor) =>
+        anchor.kind === "seal" && anchor.sealRole === "origin" && anchor.targetId !== undefined
+      ).length;
+      const waiting = runtime.authored.anchors.filter((anchor) =>
+        anchor.kind === "seal" && anchor.sealRole === "waiting"
+      ).length;
+      if (runtime.authored.phase === 3) {
+        return `Frozen River: Prison active ${Math.ceil(runtime.authored.phaseElapsedMs / 100) / 10}s · Debtors ${debtors} · crossing lines resolves fate`;
+      }
+      return `Frozen River: Debtors ${debtors} · Waiting seals ${waiting} · Transfers ${Math.min(3, runtime.authored.cycleCount)}/3`;
     }
     if (runtime.gongfaId === "ironwood-wave-form") {
       const walls = runtime.authored.anchors.filter((anchor) => anchor.kind === "wall");
@@ -896,6 +909,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "mist-wraith-canon") {
         this.syncMistSoulMarkers(result.runtime);
+      }
+      if (result.runtime.gongfaId === "frozen-river-formation") {
+        this.syncFrozenDebtMarker(result.runtime);
       }
       if (result.runtime.gongfaId === "moonfall-tide-ritual") {
         this.syncMoonfallMarker(result.runtime);
@@ -2293,6 +2309,9 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "mist-wraith-canon") {
         this.syncMistSoulMarkers(result.runtime);
       }
+      if (result.runtime.gongfaId === "frozen-river-formation") {
+        this.syncFrozenDebtMarker(result.runtime);
+      }
     }
     this.restorePrimaryRuntimeAdapter();
   }
@@ -2553,6 +2572,11 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-frozen-river-network") {
         this.fireAuthoredFrozenRiverNetwork(command);
+        return;
+      }
+
+      if (command.kind === "authored-frozen-river-resolution") {
+        this.fireAuthoredFrozenRiverResolution(command);
         return;
       }
 
@@ -3267,9 +3291,10 @@ export class GameScene extends Phaser.Scene {
       ).setDepth(5);
       sigil.setData("coldDebtChain", seal.chainId);
       const crack = this.add.graphics().setDepth(4);
-      crack.lineStyle(seal.role === "origin" ? 2 : 1, identity.accent, 0.55);
-      for (let spoke = 0; spoke < 4; spoke += 1) {
-        const angle = spoke * Math.PI / 2 + seal.chainId * 0.31;
+      crack.lineStyle(seal.role === "origin" ? 2 : command.formation === "lone-bridge" ? 3 : 1, identity.accent, 0.55);
+      const spokes = command.formation === "three-ford" ? 3 : command.formation === "curving-river" ? 6 : 4;
+      for (let spoke = 0; spoke < spokes; spoke += 1) {
+        const angle = spoke * Math.PI * 2 / spokes + seal.chainId * 0.31;
         crack.lineBetween(
           seal.x, seal.y,
           seal.x + Math.cos(angle) * (seal.role === "origin" ? 30 : 22),
@@ -3282,6 +3307,79 @@ export class GameScene extends Phaser.Scene {
       });
     }
     this.recordGongfaMotif(`${identity.motifId}:cold-debt-seals`);
+  }
+
+  private syncFrozenDebtMarker(runtime: GongfaRuntime): void {
+    const seals = runtime.authored.anchors.filter((anchor) => anchor.kind === "seal");
+    if (seals.length === 0) {
+      this.frozenDebtMarker?.destroy();
+      this.frozenDebtMarker = undefined;
+      return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.frozenDebtMarker ?? this.add.graphics().setDepth(8);
+    this.frozenDebtMarker = marker;
+    marker.clear();
+    if (runtime.authored.phase === 3) {
+      const nodes = seals
+        .filter((seal) => seal.sealRole === "origin" && seal.targetId !== undefined)
+        .sort((a, b) => (a.chainId ?? 0) - (b.chainId ?? 0));
+      marker.lineStyle(12, identity.accent, 0.18);
+      nodes.forEach((node, index) => {
+        const next = nodes[(index + 1) % nodes.length];
+        if (next) marker.lineBetween(node.x, node.y, next.x, next.y);
+      });
+      marker.lineStyle(2, identity.secondary, 0.92);
+      nodes.forEach((node, index) => {
+        const next = nodes[(index + 1) % nodes.length];
+        if (next) marker.lineBetween(node.x, node.y, next.x, next.y);
+        marker.strokeCircle(node.x, node.y, 20);
+      });
+      return;
+    }
+    for (const seal of seals) {
+      const crossing = seal.sealRole === "crossing";
+      const waiting = seal.sealRole === "waiting";
+      const formationCode = seal.maxValue ?? 0;
+      marker.lineStyle(crossing ? 2 : 3, waiting ? 0x91a9b2 : identity.accent, crossing ? 0.64 : 0.86);
+      if (crossing) {
+        if (formationCode === 1) {
+          marker.strokeRect(seal.x - 6, seal.y - 19, 12, 38);
+          marker.lineBetween(seal.x - 12, seal.y, seal.x + 12, seal.y);
+        } else if (formationCode === 3) {
+          marker.beginPath();
+          marker.arc(seal.x, seal.y, 16, -Math.PI * 0.72, Math.PI * 0.72);
+          marker.strokePath();
+          marker.beginPath();
+          marker.arc(seal.x, seal.y, 10, -Math.PI * 0.72, Math.PI * 0.72);
+          marker.strokePath();
+        } else {
+          marker.beginPath();
+          marker.moveTo(seal.x, seal.y - 13);
+          marker.lineTo(seal.x + 13, seal.y);
+          marker.lineTo(seal.x, seal.y + 13);
+          marker.lineTo(seal.x - 13, seal.y);
+          marker.closePath();
+          marker.strokePath();
+          if (formationCode === 2) {
+            marker.lineBetween(seal.x - 16, seal.y - 8, seal.x - 8, seal.y);
+            marker.lineBetween(seal.x + 16, seal.y - 8, seal.x + 8, seal.y);
+            marker.lineBetween(seal.x, seal.y + 20, seal.x, seal.y + 13);
+          }
+        }
+      } else {
+        marker.strokeCircle(seal.x, seal.y, waiting ? 15 : 21);
+        if (seal.targetId !== undefined) {
+          const debtor = this.getEnemyByCombatTargetId(seal.targetId);
+          if (debtor?.active) {
+            marker.lineStyle(2, identity.secondary, 0.48);
+            marker.lineBetween(seal.x, seal.y, debtor.x, debtor.y);
+            marker.lineStyle(3, identity.secondary, 0.92);
+            marker.strokeCircle(debtor.x, debtor.y, 17);
+          }
+        }
+      }
+    }
   }
 
   private fireAuthoredFrozenRiver(
@@ -3320,19 +3418,10 @@ export class GameScene extends Phaser.Scene {
     const identity = getGongfaVisualIdentity(command.sourceGongfaId);
     const network = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(11);
     network.lineStyle(Math.max(6, command.width), identity.accent, 0.18);
-    const perNodeDamage = command.fate === "collective-liability"
-      ? command.damagePool / command.nodes.length
-      : command.damagePool;
     for (let index = 0; index < command.nodes.length; index += 1) {
       const from = command.nodes[index]!;
       const to = command.nodes[(index + 1) % command.nodes.length]!;
       network.lineBetween(from.x, from.y, to.x, to.y);
-      this.damageEnemiesAlongFrozenSegment(
-        from, to, command.width, perNodeDamage,
-        command.fate === "shared-cold" ? 0.05 : command.fate === "collective-liability" ? 0.72 : 0.62,
-        command.fate === "shared-cold" ? 1100 : 700,
-        command.fate === "shared-cold"
-      );
     }
     network.lineStyle(2, identity.secondary, 0.9);
     command.nodes.forEach((node, index) => {
@@ -3341,6 +3430,30 @@ export class GameScene extends Phaser.Scene {
     });
     this.tweens.add({ targets: network, alpha: 0, duration: 900, onComplete: () => network.destroy() });
     this.recordGongfaMotif(`${identity.motifId}:prison:${command.fate}`);
+  }
+
+  private fireAuthoredFrozenRiverResolution(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-frozen-river-resolution" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const flash = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(12);
+    flash.lineStyle(Math.max(8, command.width), identity.secondary, 0.72);
+    flash.lineBetween(command.edge.from.x, command.edge.from.y, command.edge.to.x, command.edge.to.y);
+    const perTargetDamage = command.fate === "collective-liability"
+      ? command.damagePool / Math.max(1, command.targetIds.length)
+      : command.damagePool;
+    for (const targetId of command.targetIds) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (!enemy?.active) continue;
+      const isBoss = enemy.role === "tribulation-boss";
+      enemy.applySlow(
+        command.hardFreezeOrdinary && !isBoss ? 0.03 : isBoss ? Math.max(0.42, command.slowMultiplier) : command.slowMultiplier,
+        isBoss ? command.slowDurationMs * 1.25 : command.slowDurationMs
+      );
+      if (enemy.receiveDamage(perTargetDamage * (isBoss ? command.bossDamageScale : 1))) this.resolveEnemyDeath(enemy);
+    }
+    this.tweens.add({ targets: flash, alpha: 0, duration: 520, onComplete: () => flash.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:crossing-resolution:${command.fate}`);
   }
 
   private damageEnemiesAlongFrozenSegment(

@@ -48,7 +48,7 @@ implementation, testing, balance review, and future regression checks.
 | Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Implemented and verified |
 | Flame-Demon Body Art / 炎魔锻体术 | Youxuan | Approved | Implemented and verified |
 | Mist Wraith Canon / 雾灵真典 | Youxuan | Approved | Implemented and verified |
-| Frozen River Formation / 冰河伏阵 | Youxuan | Approved | Pending redesign |
+| Frozen River Formation / 冰河伏阵 | Youxuan | Approved | Implemented and verified |
 | Sword-Burial Formation / 葬剑伏阵 | Youxuan | Approved | Pending redesign |
 | Myriad-Root Lifebinding Canon / 万根寄命经 | Youxuan | Approved | Pending redesign |
 
@@ -1301,7 +1301,7 @@ Debt to another enemy.
 
 ### Skill 2 — Frozen River Prison / 冰河囚界
 
-Once at least three Debt chains have completed a transfer, connects all current debtors
+Once at least three Debt chains have completed a transfer and at least three debtors remain, connects all current debtors
 into a closed river network. The network never pulses on its own; crossing another
 debtor's line resolves the chosen shared fate. Boss freeze becomes slow. At the end,
 all participating Debts and seals clear. Connections are automatic and never aimed.

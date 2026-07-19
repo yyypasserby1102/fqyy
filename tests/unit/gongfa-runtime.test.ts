@@ -568,7 +568,8 @@ describe("Gongfa runtime", () => {
         runtime.authored.cycleCount = 3;
         runtime.authored.anchors.push(
           { kind: "seal", sealRole: "origin", chainId: 1, targetId: 51, x: 20, y: 0, value: 1 },
-          { kind: "seal", sealRole: "origin", chainId: 2, targetId: 52, x: -20, y: 0, value: 1 }
+          { kind: "seal", sealRole: "origin", chainId: 2, targetId: 52, x: -20, y: 0, value: 1 },
+          { kind: "seal", sealRole: "origin", chainId: 3, targetId: 53, x: 0, y: 40, value: 1 }
         );
       }
       if (gongfaId === "thousand-root-formation") {
@@ -650,7 +651,8 @@ describe("Gongfa runtime", () => {
                 isMoving: true,
                 targets: gongfaId === "frozen-river-formation" ? [
                   { targetId: 51, x: 20, y: 0, healthRatio: 1, rank: "elite" },
-                  { targetId: 52, x: -20, y: 0, healthRatio: 0.5, rank: "ordinary" }
+                  { targetId: 52, x: -20, y: 0, healthRatio: 0.5, rank: "ordinary" },
+                  { targetId: 53, x: 0, y: 40, healthRatio: 0.8, rank: "ordinary" }
                 ] : gongfaId === "thousand-root-formation" ? [
                   { targetId: 91, x: -60, y: 0, healthRatio: 1, rank: "elite" },
                   { targetId: 92, x: -20, y: 0, healthRatio: 0.8, rank: "ordinary" },

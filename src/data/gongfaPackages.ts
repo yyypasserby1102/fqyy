@@ -158,10 +158,10 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "vermilion-host-descent", name: "Vermilion Rebirth", description: "At full Bond, the bird makes a terminal dive and becomes one damageable egg that can hatch into the same individual.", tags: ["summon", "fire", "ailment", "defensive"] }
   },
   "frozen-river-formation": {
-    combatRole: "A control trapper that freezes pursuit lanes beneath persistent, overlapping river seals.", visualMotif: "Cracked ice channels, pale river knots, and blue-white frost pulses.",
-    skill1: { id: "underice-snare-array", name: "Under-Ice Snare Array", description: "Plants icy river seals along enemy routes; each awakens in repeated freezing pulses.", tags: ["trap", "water", "ailment"] },
-    passive: { name: "Winter Current", resource: "Rime", description: "Enemies caught in the array build Rime, widening and prolonging later traps." },
-    skill2: { id: "frozen-river-prison", name: "Frozen River Prison", description: "Locks a broad region beneath interlinked ice channels that erupt in sequence.", tags: ["trap", "water", "ailment", "defensive"] }
+    combatRole: "An indirect route-shaper that assigns finite Cold Debt and awakens a river only when its debtor crosses another seal.", visualMotif: "Distinct origin rings, diamond crossing seals, visible debt tethers, and a silent blue-white prison network.",
+    skill1: { id: "underice-snare-array", name: "River-Origin and Crossing Seals", description: "Places harmless seals on predicted pursuit routes; crossing a foreign seal awakens one river and transfers Debt once.", tags: ["trap", "water", "ailment"] },
+    passive: { name: "Cold Debt Transfer", resource: "Completed Transfers", description: "Only one-for-one transfers charge the prison; hits, damage, and ordinary freezing never do." },
+    skill2: { id: "frozen-river-prison", name: "Frozen River Prison", description: "Links at least three current debtors without pulsing; a debtor must cross another debtor's line to resolve the selected fate.", tags: ["trap", "water", "ailment", "defensive"] }
   },
   "moonfall-tide-ritual": {
     combatRole: "A mobile controller that slowly drags one lagging moon while enemies earn power only by actually orbiting it.", visualMotif: "A lagging indigo moon, readable orbit tracks, captured bodies, and three radically different releases.",

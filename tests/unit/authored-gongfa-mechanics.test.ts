@@ -383,27 +383,95 @@ describe("approved Gongfa mechanic contracts", () => {
     ]);
   });
 
-  it("spends three completed Cold-Debt transfers on the selected prison fate", () => {
+  it("forms a silent prison after three transfers and resolves only when a debtor crosses another line", () => {
     const runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
     runtime.authored.cycleCount = 3;
     runtime.authored.anchors.push(
       { kind: "seal", sealRole: "origin", chainId: 1, targetId: 71, x: -40, y: 0, value: 1 },
-      { kind: "seal", sealRole: "origin", chainId: 2, targetId: 72, x: 40, y: 0, value: 1 }
+      { kind: "seal", sealRole: "origin", chainId: 2, targetId: 72, x: 0, y: -50, value: 1 },
+      { kind: "seal", sealRole: "origin", chainId: 3, targetId: 73, x: 0, y: 50, value: 1 }
     );
     const prison = advanceGongfaRuntime(runtime, {
-      kind: "skill2", skill2Id: "frozen-river-prison", nearbyEnemyCount: 2,
-      eligibleTargetCount: 2, hasMovementDirection: true,
+      kind: "skill2", skill2Id: "frozen-river-prison", nearbyEnemyCount: 3,
+      eligibleTargetCount: 3, hasMovementDirection: true,
       learnedMasteryIds: ["collective-liability"],
       targets: [
         { targetId: 71, x: -40, y: 0, healthRatio: 0.6, rank: "elite" },
-        { targetId: 72, x: 40, y: 0, healthRatio: 0.4, rank: "ordinary" }
+        { targetId: 72, x: 0, y: -50, healthRatio: 0.4, rank: "ordinary" },
+        { targetId: 73, x: 0, y: 50, healthRatio: 0.8, rank: "ordinary" }
       ]
     });
     expect(prison.commands).toEqual([
       expect.objectContaining({ kind: "authored-frozen-river-network", fate: "collective-liability" })
     ]);
-    expect(prison.runtime.authored.anchors).toHaveLength(0);
-    expect(prison.runtime.authored.cycleCount).toBe(0);
+    expect(prison.runtime.authored.phase).toBe(3);
+    expect(prison.runtime.authored.anchors).toHaveLength(3);
+    const still = advanceGongfaRuntime(prison.runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 3,
+      learnedMasteryIds: ["collective-liability"],
+      targets: [
+        { targetId: 71, x: -40, y: 0, healthRatio: 0.6, rank: "elite" },
+        { targetId: 72, x: 0, y: -50, healthRatio: 0.4, rank: "ordinary" },
+        { targetId: 73, x: 0, y: 50, healthRatio: 0.8, rank: "ordinary" }
+      ]
+    });
+    expect(still.commands).toEqual([]);
+    const crossed = advanceGongfaRuntime(still.runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 3,
+      learnedMasteryIds: ["collective-liability"],
+      targets: [
+        { targetId: 71, x: 40, y: 0, healthRatio: 0.6, rank: "elite" },
+        { targetId: 72, x: 0, y: -50, healthRatio: 0.4, rank: "ordinary" },
+        { targetId: 73, x: 0, y: 50, healthRatio: 0.8, rank: "ordinary" }
+      ]
+    });
+    expect(crossed.commands).toEqual([
+      expect.objectContaining({ kind: "authored-frozen-river-resolution", fate: "collective-liability", targetIds: [71, 72, 73] })
+    ]);
+    const expired = advanceGongfaRuntime(crossed.runtime, {
+      kind: "tick", deltaMs: 7000, nearbyEnemyCount: 3,
+      learnedMasteryIds: ["collective-liability"],
+      targets: [
+        { targetId: 71, x: 40, y: 0, healthRatio: 0.6, rank: "elite" },
+        { targetId: 72, x: 0, y: -50, healthRatio: 0.4, rank: "ordinary" },
+        { targetId: 73, x: 0, y: 50, healthRatio: 0.8, rank: "ordinary" }
+      ]
+    });
+    expect(expired.runtime.authored).toMatchObject({ phase: 0, cycleCount: 0, charges: 0, resource: 0 });
+    expect(expired.runtime.authored.anchors).toHaveLength(0);
+  });
+
+  it("gives Shared Cold and Compensating Ferry visibly different prison resolutions", () => {
+    const resolveFate = (learnedMasteryIds: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
+      runtime.authored.cycleCount = 3;
+      runtime.authored.anchors.push(
+        { kind: "seal", sealRole: "origin", chainId: 1, targetId: 74, x: -40, y: 0, value: 1 },
+        { kind: "seal", sealRole: "origin", chainId: 2, targetId: 75, x: 0, y: -50, value: 1 },
+        { kind: "seal", sealRole: "origin", chainId: 3, targetId: 76, x: 0, y: 50, value: 1 }
+      );
+      const targets = [
+        { targetId: 74, x: -40, y: 0, healthRatio: 0.6, rank: "boss" as const },
+        { targetId: 75, x: 0, y: -50, healthRatio: 0.4, rank: "ordinary" as const },
+        { targetId: 76, x: 0, y: 50, healthRatio: 0.8, rank: "ordinary" as const }
+      ];
+      const prison = advanceGongfaRuntime(runtime, {
+        kind: "skill2", skill2Id: "frozen-river-prison", nearbyEnemyCount: 3, eligibleTargetCount: 3,
+        learnedMasteryIds, targets
+      });
+      return advanceGongfaRuntime(prison.runtime, {
+        kind: "tick", deltaMs: 16, nearbyEnemyCount: 3, learnedMasteryIds,
+        targets: [{ ...targets[0]!, x: 40 }, targets[1]!, targets[2]!]
+      }).commands[0];
+    };
+    expect(resolveFate(["all-guilty-share-the-cold"])).toMatchObject({
+      kind: "authored-frozen-river-resolution", fate: "shared-cold",
+      targetIds: [74, 75, 76], hardFreezeOrdinary: true, bossDamageScale: 0.55
+    });
+    expect(resolveFate(["compensating-ferry"])).toMatchObject({
+      kind: "authored-frozen-river-resolution", fate: "compensating-ferry",
+      targetIds: [74], hardFreezeOrdinary: false, bossDamageScale: 0.35
+    });
   });
 
   it("lets Compensating Ferry hand Debt off when its debtor dies", () => {

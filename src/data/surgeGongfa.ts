@@ -191,11 +191,11 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
     crown: { id: "vermilion-crown", name: "Vermilion Crown", lore: "Plumage manifests spectral companions." }, domain: { id: "ash-nest-domain", name: "Ash-Nest Domain", lore: "Spirit hits leave burning nests." }, updraft: { id: "phoenix-step", name: "Phoenix Step", lore: "Evade hatches a Plumage-scaled bird." }
   },
   {
-    gongfaId: "frozen-river-formation", resource: "Rime",
+    gongfaId: "frozen-river-formation", resource: "Completed Transfers",
     mechanics: { focusDamageScale: 1.44, focusPierce: 0, focusSpreadScale: 0.7, spreadCount: 2, spreadDegrees: 0, spreadDamageScale: 0.8, quickenCooldownScale: 0.75, quickenDamageScale: 0.86, quickenSpeed: 0, holdFloor: 3, cascadeGain: 2, burstCount: 3, crownPerStack: 0.5, domainDamageScale: 0.38, updraftStackScale: 0.75 },
-    focus: { id: "glacier-snare", name: "Glacier Snare", lore: "Concentrate seals beneath the strongest enemy." }, spread: { id: "braided-river", name: "Braided River", lore: "Scatter more seals across a wider riverbed." }, quicken: { id: "flash-freeze-array", name: "Flash-Freeze Array", lore: "Plant lighter traps more rapidly." },
-    hold: { id: "perennial-rime", name: "Perennial Rime", lore: "Mature Rime persists between waves." }, cascade: { id: "feeding-winter", name: "Feeding Winter", lore: "Newly trapped enemies build Rime twice." }, burst: { id: "icebreak-burst", name: "Icebreak Burst", lore: "Full Rime plants extra ice seals." },
-    crown: { id: "frozen-delta", name: "Frozen Delta", lore: "Rime sprouts satellite ice channels." }, domain: { id: "permafrost-domain", name: "Permafrost Domain", lore: "Pulses leave persistent frozen ground." }, updraft: { id: "rime-step", name: "Rime Step", lore: "Evade plants a Rime-scaled snare." }
+    focus: { id: "glacier-snare", name: "Single Ledger", lore: "Keeps one stronger long crossing route on a chosen threat." }, spread: { id: "braided-river", name: "Forked Ledgers", lore: "Maintains several weaker ways for one real Debt to cross." }, quicken: { id: "flash-freeze-array", name: "Swift Inscription", lore: "Replaces spent crossing seals sooner without creating transfer credit." },
+    hold: { id: "perennial-rime", name: "Patient Creditor", lore: "A dropped Debt waits longer at its last seal." }, cascade: { id: "feeding-winter", name: "Strict Handoff", lore: "A completed river still transfers only one Debt to one new body." }, burst: { id: "icebreak-burst", name: "Three Paid Crossings", lore: "The prison becomes ready only after three actual handoffs." },
+    crown: { id: "frozen-delta", name: "Closed Debt Network", lore: "Current debtors become the visible vertices of one silent closed river." }, domain: { id: "permafrost-domain", name: "Shared Fate", lore: "Crossing another debtor's line resolves the selected fate once." }, updraft: { id: "rime-step", name: "Route Shaping", lore: "Ordinary movement redirects pursuit through existing seals; Evade creates no free trap." }
   },
   {
     gongfaId: "moonfall-tide-ritual", resource: "Syzygy",
