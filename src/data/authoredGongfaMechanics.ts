@@ -390,7 +390,7 @@ export interface AuthoredGongfaRuntimeState {
   activationCount: number;
   targetLedger: Record<number, number>;
   anchors: Array<{
-    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter" | "glyph";
+    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter" | "glyph" | "facet";
     x: number;
     y: number;
     value: number;
@@ -409,6 +409,7 @@ export interface AuthoredGongfaRuntimeState {
     beastState?: "living" | "downed";
     rebirthMs?: number;
     maxValue?: number;
+    participating?: boolean;
     glyph?: "root" | "leaf" | "thorn";
   }>;
 }

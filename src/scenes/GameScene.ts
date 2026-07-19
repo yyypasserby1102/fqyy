@@ -271,6 +271,7 @@ export class GameScene extends Phaser.Scene {
   private verdantGlyphMarker?: Phaser.GameObjects.Graphics;
   private burningCoronaMarker?: Phaser.GameObjects.Graphics;
   private readonly burningSunspotEntrants = new Set<number>();
+  private iceMirrorMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -422,6 +423,14 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "moonfall-tide-ritual") {
       const state = runtime.authored.phase === 2 ? "Moonless Eclipse" : runtime.authored.phase === 1 ? "Moon Carried" : "Awaiting Moon";
       return `Moonfall: ${state} · Syzygy ${Math.floor(runtime.authored.resource * 100)}% · Orbiters ${runtime.authored.charges} · High resolutions ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
+    if (runtime.gongfaId === "ice-mirror-guard") {
+      const state = runtime.authored.phase === 2
+        ? `Frozen Lotus ${Math.ceil((runtime.authored.targetLedger[-112] ?? 0) / 100) / 10}s`
+        : runtime.authored.charges === 0
+          ? `Emergency repair ${Math.max(0, Math.ceil((4800 - (runtime.authored.targetLedger[-113] ?? 0)) / 100) / 10)}s`
+          : "Sixfold rotation";
+      return `Ice Mirrors: ${state} · Intact ${runtime.authored.charges}/${runtime.authored.maxCharges} · Lingering ${runtime.authored.secondaryResource}`;
     }
     if (runtime.gongfaId === "verdant-ring-scripture") {
       const glyphs = runtime.authored.anchors.filter((anchor) => anchor.kind === "glyph").flatMap((anchor) => anchor.glyph ? [anchor.glyph] : []);
@@ -590,7 +599,8 @@ export class GameScene extends Phaser.Scene {
         this.evade.tryStart(
           { x: movement.x, y: movement.y },
           this.getSpiritTreasureResonanceModifiers().evadeCooldownMultiplier *
-            (this.gongfaCollection.byId["verdant-ring-scripture"]?.mastery.masteryLearnedIds.includes("calamity-step-thorn-scripture") ? 1.35 : 1)
+            (this.gongfaCollection.byId["verdant-ring-scripture"]?.mastery.masteryLearnedIds.includes("calamity-step-thorn-scripture") ? 1.35 : 1) *
+            (this.gongfaCollection.byId["ice-mirror-guard"]?.mastery.masteryLearnedIds.includes("ice-heart-repair") ? 1.35 : 1)
         )
       ) {
         this.player.presentEvade(this.evade.state.direction);
@@ -1061,7 +1071,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     enemy.contactCooldownUntil = now + 750;
-    this.applyIncomingDamage(enemy.touchDamage);
+    this.applyIncomingDamage(enemy.touchDamage, enemy.x, enemy.y);
     this.maybeReboundEdge(enemy);
 
     for (const runtime of this.learnedGongfaRuntimes) {
@@ -1534,7 +1544,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(720, () => {
       if (!telegraph.active) return;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y) <= profile.slamRadius) {
-        this.applyIncomingDamage(profile.slamDamage);
+        this.applyIncomingDamage(profile.slamDamage, x, y);
       }
       this.flashCamera(90, 215, 185, 109);
       this.activeBossHazards.delete(telegraph);
@@ -1973,7 +1983,8 @@ export class GameScene extends Phaser.Scene {
       const result = advanceGongfaRuntime(runtime, {
         kind: "evade",
         playerX: this.player.x,
-        playerY: this.player.y
+        playerY: this.player.y,
+        nearbyEnemyCount: this.getEnemiesWithinRadius(190).length
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
@@ -2415,6 +2426,16 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-mirror-facets") {
+        this.syncAuthoredMirrorFacets(command);
+        return;
+      }
+
+      if (command.kind === "authored-mirror-reflection") {
+        this.fireAuthoredMirrorReflection(command);
+        return;
+      }
+
       if (command.kind === "feather-rain-formation") {
         this.fireFeatherRainFormation(command);
         return;
@@ -2432,11 +2453,6 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "moon-tide-vault") {
         this.fireMoonTideVault(command);
-        return;
-      }
-
-      if (command.kind === "frozen-lotus-shell") {
-        this.fireFrozenLotusShell(command);
         return;
       }
 
@@ -4191,76 +4207,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private fireFrozenLotusShell(
-    command: Extract<GongfaRuntimeCommand, { kind: "frozen-lotus-shell" }>
-  ): void {
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const combat = { ...this.combatState };
-    const activationId = this.beginSkill2Activation();
-    const lotus = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
-    lotus.lineStyle(3, combat.tint, 0.9);
-    for (let petal = 0; petal < command.petalCount; petal += 1) {
-      const angle = (Math.PI * 2 * petal) / command.petalCount;
-      lotus.strokeEllipse(
-        this.player.x + Math.cos(angle) * command.radius * 0.55,
-        this.player.y + Math.sin(angle) * command.radius * 0.55,
-        22,
-        46
-      );
-    }
-    this.tweens.add({ targets: lotus, angle: 90, duration: command.shatterDelayMs });
-    const petalTargets = this.getEnemiesWithinRadius(command.radius).slice(0, command.petalCount);
-    for (const enemy of petalTargets) {
-      if (sourceGongfaId && this.registerSkill2TargetHit(activationId, enemy.combatTargetId)) {
-        this.stokeSkill2Resource(sourceGongfaId);
-      }
-      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
-    }
-    this.pushEnemiesAwayFrom(this.player.x, this.player.y, command.radius, 190);
-    let shattered = false;
-    const shatter = () => {
-      if (shattered) return;
-      shattered = true;
-      lotus.destroy();
-      const targets = this.getNearestEnemies(command.petalCount);
-      for (let petal = 0; petal < command.petalCount; petal += 1) {
-        const angle = (Math.PI * 2 * petal) / command.petalCount;
-        const x = this.player.x + Math.cos(angle) * command.radius;
-        const y = this.player.y + Math.sin(angle) * command.radius;
-        const target = targets[petal % targets.length];
-        if (target) {
-          this.spawnProjectileAtTarget(
-            x,
-            y,
-            target,
-            command.damage,
-            combat.pierce,
-            combat.projectileSpeed + 70,
-            combat.projectileLifetimeMs,
-            combat.projectileTexture,
-            combat.tint,
-            { sourceGongfaId, skill2ActivationId: activationId }
-          );
-        } else {
-          this.spawnProjectileAlongAngle(
-            x,
-            y,
-            angle,
-            command.damage,
-            combat.pierce,
-            combat.projectileSpeed + 70,
-            combat.projectileLifetimeMs,
-            combat.projectileTexture,
-            combat.tint,
-            { sourceGongfaId, skill2ActivationId: activationId }
-          );
-        }
-      }
-    };
-    if (petalTargets.length === command.petalCount) shatter();
-    else this.time.delayedCall(command.shatterDelayMs, shatter);
-  }
-
   private fireVerdantRootNetwork(
     command: Extract<GongfaRuntimeCommand, { kind: "verdant-root-network" }>
   ): void {
@@ -4514,6 +4460,83 @@ export class GameScene extends Phaser.Scene {
     );
     runtime.mastery.masterySkill2CooldownRemaining = next.masterySkill2CooldownRemaining;
     runtime.mastery.masterySkill2Casts = next.masterySkill2Casts;
+  }
+
+  private syncAuthoredMirrorFacets(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-mirror-facets" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    this.iceMirrorMarker ??= this.applyGongfaEffectVisualHierarchy(
+      this.add.graphics(), command.sourceGongfaId
+    ).setDepth(17);
+    const visual = this.iceMirrorMarker;
+    visual.clear().setPosition(this.player.x, this.player.y);
+    for (const facet of command.facets) {
+      const cx = Math.cos(facet.angle) * command.radius;
+      const cy = Math.sin(facet.angle) * command.radius;
+      const tangentX = Math.cos(facet.angle + Math.PI / 2);
+      const tangentY = Math.sin(facet.angle + Math.PI / 2);
+      const radialX = Math.cos(facet.angle);
+      const radialY = Math.sin(facet.angle);
+      const halfWidth = Math.max(10, command.radius * Math.tan(command.arcWidth / 2));
+      if (facet.durability > 0) {
+        visual.fillStyle(command.shell ? identity.secondary : identity.accent, command.shell ? 0.7 : 0.42);
+        visual.lineStyle(2 + facet.durability, identity.secondary, 0.96);
+      } else if (facet.lingering) {
+        visual.fillStyle(identity.accent, 0.08);
+        visual.lineStyle(2, identity.accent, 0.42);
+      } else {
+        visual.lineStyle(1, identity.accent, 0.18);
+      }
+      visual.beginPath();
+      visual.moveTo(cx + tangentX * halfWidth, cy + tangentY * halfWidth);
+      visual.lineTo(cx + radialX * 13, cy + radialY * 13);
+      visual.lineTo(cx - tangentX * halfWidth, cy - tangentY * halfWidth);
+      visual.lineTo(cx - radialX * 10, cy - radialY * 10);
+      visual.closePath();
+      if (facet.durability > 0 || facet.lingering) visual.fillPath();
+      visual.strokePath();
+      if (facet.durability < facet.maxDurability) {
+        visual.lineStyle(1.5, 0xffffff, 0.68);
+        visual.lineBetween(cx - 8, cy - 12, cx + 5, cy + 11);
+        visual.lineBetween(cx + 5, cy + 11, cx + 12, cy - 2);
+      }
+    }
+    this.recordGongfaMotif(`${identity.motifId}:${command.shell ? "closed-lotus" : "directional-facets"}`);
+  }
+
+  private fireAuthoredMirrorReflection(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-mirror-reflection" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    for (const angle of command.angles) {
+      for (let shard = 0; shard < command.shardsPerAngle; shard += 1) {
+        const spread = (shard - (command.shardsPerAngle - 1) / 2) * 0.11;
+        const shardAngle = angle + spread;
+        const visual = this.applyGongfaEffectVisualHierarchy(
+          this.add.graphics(), command.sourceGongfaId
+        ).setDepth(18);
+        visual.lineStyle(6, identity.secondary, 0.92);
+        visual.lineBetween(
+          this.player.x,
+          this.player.y,
+          this.player.x + Math.cos(shardAngle) * command.range,
+          this.player.y + Math.sin(shardAngle) * command.range
+        );
+        this.tweens.add({ targets: visual, alpha: 0, duration: 260, onComplete: () => visual.destroy() });
+      }
+      const forwardX = Math.cos(angle);
+      const forwardY = Math.sin(angle);
+      for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+        const dx = enemy.x - this.player.x;
+        const dy = enemy.y - this.player.y;
+        const forward = dx * forwardX + dy * forwardY;
+        const sideways = Math.abs(dx * -forwardY + dy * forwardX);
+        if (forward < 0 || forward > command.range || sideways > command.width) continue;
+        if (enemy.receiveDamage(command.damage * command.shardsPerAngle)) this.resolveEnemyDeath(enemy);
+      }
+    }
+    this.recordGongfaMotif(`${identity.motifId}:recorded-direction-reflection`);
   }
 
   private applyAuthoredBurningCorona(
@@ -5937,7 +5960,7 @@ export class GameScene extends Phaser.Scene {
     return this.activeRunSave?.seed ?? 0;
   }
 
-  private applyIncomingDamage(amount: number): void {
+  private applyIncomingDamage(amount: number, sourceX?: number, sourceY?: number): void {
     if (this.evade.state.invulnerable) {
       return;
     }
@@ -5950,10 +5973,14 @@ export class GameScene extends Phaser.Scene {
       1,
       Math.floor(amount * (guardWasActive ? resonanceModifiers.bulwarkGuardMultiplier : 1))
     );
+    const incomingAngle = sourceX !== undefined && sourceY !== undefined
+      ? Phaser.Math.Angle.Between(this.player.x, this.player.y, sourceX, sourceY)
+      : undefined;
     for (const runtime of this.learnedGongfaRuntimes) {
       const result = advanceGongfaRuntime(runtime, {
         kind: "incoming-damage",
         amount: finalDamage,
+        ...(incomingAngle !== undefined ? { incomingAngle } : {}),
         healthRatio: this.player.stats.maxHealth > 0 ? this.player.stats.health / this.player.stats.maxHealth : 0
       });
       this.adoptPrimaryRuntime(result.runtime);

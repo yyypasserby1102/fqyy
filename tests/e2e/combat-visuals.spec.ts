@@ -323,12 +323,12 @@ for (const visualCase of [
   });
 }
 
-test("all nine projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("all eight projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
     "yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art",
     "blazing-feather-art",
-    "drifting-frost-needle", "ice-mirror-guard",
+    "drifting-frost-needle",
     "green-vine-art", "ironwood-wave-form"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
@@ -360,9 +360,24 @@ test("all nine projectile-based Gongfa render their own treatment and trail", as
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(9);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(9);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(9);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(8);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(8);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(8);
+});
+
+test("Ice Mirror Guard renders persistent directional facets without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("ice-mirror-guard");
+    window.__gameTest!.forceSpawnEnemies(2);
+  });
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes("mirror-lotus:directional-facets")
+  );
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "ice-mirror-guard"
+  )).toBe(false);
 });
 
 test("all twelve archetype Gongfa execute their authored attacks and cast motifs", async ({ page }) => {

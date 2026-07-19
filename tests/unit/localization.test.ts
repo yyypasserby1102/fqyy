@@ -203,6 +203,19 @@ describe("localization", () => {
     expect(reflection.cost).toContain("消耗十八热力");
   });
 
+  it("shows Ice Mirror choices with explicit Chinese gains and costs", () => {
+    const heavy = localizeMasteryChoice("zh-CN", "three-enclosure-heavy-mirrors");
+    expect(heavy).toMatchObject({
+      name: "三垣重镜",
+      gain: "三面大镜各可完整阻挡两次，反射伤害提高 55%",
+      scope: "镜片数量、耐久、宽度、转速与反射"
+    });
+    expect(heavy.cost).toContain("缺口显著扩大");
+    const killing = localizeMasteryChoice("zh-CN", "killing-shattered-mirror");
+    expect(killing.gain).toContain("每个记录方向返回三道高伤飞霜");
+    expect(killing.cost).toContain("0.62 秒");
+  });
+
   it("localizes treasure replacement gains, losses, and resonance changes", () => {
     const payload = localizeChoicePayload("zh-CN", {
       title: "Windstep Talisman found",

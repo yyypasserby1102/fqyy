@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual", "moonfall-tide-ritual", "verdant-ring-scripture"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual", "moonfall-tide-ritual", "verdant-ring-scripture", "ice-mirror-guard"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -580,6 +580,25 @@ describe("mastery progression", () => {
         })
       ).toEqual([]);
     }
+  });
+
+  it("offers the nine authored Ice Mirror transformations at their exact milestones", () => {
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "ice-mirror-guard", rank: 3, seed: "mirror", learnedIds: []
+    })).toEqual([
+      "three-enclosure-heavy-mirrors", "thousand-facet-lotus", "flowing-light-mirrors"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "ice-mirror-guard", rank: 6, seed: "mirror", learnedIds: ["flowing-light-mirrors"]
+    })).toEqual([
+      "ice-heart-repair", "shattered-mirror-frost", "lingering-reflection"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "ice-mirror-guard", rank: 9, seed: "mirror",
+      learnedIds: ["flowing-light-mirrors", "lingering-reflection"]
+    })).toEqual([
+      "flawless-lotus", "calamity-answering-broken-lotus", "killing-shattered-mirror"
+    ]);
   });
 
   it("offers the approved transformations for the corpse and blood Gongfa", () => {

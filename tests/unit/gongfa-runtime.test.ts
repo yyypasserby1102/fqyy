@@ -493,7 +493,7 @@ describe("Gongfa runtime", () => {
       "scarlet-wave-manual": "authored-scarlet-tides",
       "drifting-frost-needle": "mirror-needle-constellation",
       "black-tide-scripture": "authored-deluge-mandate",
-      "ice-mirror-guard": "frozen-lotus-shell",
+      "ice-mirror-guard": "authored-mirror-facets",
       "green-vine-art": "verdant-root-network",
       "verdant-ring-scripture": "authored-sprout-sun",
       "ironwood-wave-form": "ironwood-surge-form",
@@ -700,6 +700,7 @@ describe("Gongfa runtime", () => {
       return advanceGongfaRuntime(runtime, {
         kind: "skill2",
         skill2Id: getRank10Skill2Id(gongfaId),
+        nearbyEnemyCount: 4,
         eligibleTargetCount: 4,
         hasMovementDirection: true,
         targets: gongfaId === "vermilion-bird-covenant" ? [
@@ -730,9 +731,12 @@ describe("Gongfa runtime", () => {
       force: 250
     });
     expect(cast("ice-mirror-guard")).toMatchObject({
-      kind: "frozen-lotus-shell",
-      radius: 162,
-      petalCount: 16
+      kind: "authored-mirror-facets",
+      radius: 70,
+      shell: true,
+      facets: expect.arrayContaining([
+        expect.objectContaining({ durability: 1, maxDurability: 1 })
+      ])
     });
     expect(cast("vermilion-bird-covenant")).toMatchObject({
       kind: "authored-vermilion-flight",
@@ -2020,6 +2024,133 @@ describe("Gongfa runtime", () => {
     expect(ended.runtime.burningRing).toMatchObject({ guardRemaining: 0, heat: 0 });
   });
 
+  it("Sixfold Ice Mirrors block only intact facet directions and leave real gaps", () => {
+    const mirror = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    const blocked = advanceGongfaRuntime(mirror, {
+      kind: "incoming-damage", amount: 40, incomingAngle: 0
+    });
+    expect(blocked.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 0 });
+    expect(blocked.commands.some((command) => command.kind === "authored-mirror-reflection")).toBe(true);
+    expect(blocked.runtime.authored.charges).toBe(5);
+
+    const throughCrack = advanceGongfaRuntime(blocked.runtime, {
+      kind: "incoming-damage", amount: 40, incomingAngle: 0
+    });
+    expect(throughCrack.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 40 });
+
+    const throughGap = advanceGongfaRuntime(mirror, {
+      kind: "incoming-damage", amount: 40, incomingAngle: Math.PI / 6
+    });
+    expect(throughGap.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 40 });
+  });
+
+  it("Cold-Mirror Repair requires a close-danger Evade and all-cracked state restores slowly", () => {
+    let mirror = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    mirror = advanceGongfaRuntime(mirror, {
+      kind: "incoming-damage", amount: 20, incomingAngle: 0
+    }).runtime;
+    const distant = advanceGongfaRuntime(mirror, { kind: "evade", nearbyEnemyCount: 0 });
+    expect(distant.runtime.authored.charges).toBe(5);
+    const repaired = advanceGongfaRuntime(distant.runtime, { kind: "evade", nearbyEnemyCount: 1 });
+    expect(repaired.runtime.authored.charges).toBe(6);
+
+    for (let index = 0; index < 6; index += 1) {
+      mirror = advanceGongfaRuntime(mirror, {
+        kind: "incoming-damage", amount: 20, incomingAngle: index * Math.PI / 3
+      }).runtime;
+    }
+    expect(mirror.authored.charges).toBe(0);
+    const early = advanceGongfaRuntime(mirror, { kind: "tick", deltaMs: 4700, nearbyEnemyCount: 0 });
+    expect(early.runtime.authored.charges).toBe(0);
+    const restored = advanceGongfaRuntime(early.runtime, { kind: "tick", deltaMs: 200, nearbyEnemyCount: 0 });
+    expect(restored.runtime.authored.charges).toBe(1);
+  });
+
+  it("Ice Mirror R3 forms change physical facet count, durability, and motion", () => {
+    const commandFor = (learnedMasteryIds: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+      runtime.mastery.masteryLearnedIds = learnedMasteryIds;
+      return advanceGongfaRuntime(runtime, { kind: "tick", deltaMs: 100, nearbyEnemyCount: 0 })
+        .commands.find((command) => command.kind === "authored-mirror-facets");
+    };
+    const heavy = commandFor(["three-enclosure-heavy-mirrors"]);
+    expect(heavy?.facets).toHaveLength(3);
+    expect(heavy?.facets[0]).toMatchObject({ durability: 2, maxDurability: 2 });
+    const lotus = commandFor(["thousand-facet-lotus"]);
+    expect(lotus?.facets).toHaveLength(8);
+    expect(lotus!.arcWidth).toBeLessThan(heavy!.arcWidth);
+
+    const flowing = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    flowing.mastery.masteryLearnedIds = ["flowing-light-mirrors"];
+    const before = advanceGongfaRuntime(flowing, { kind: "tick", deltaMs: 100, nearbyEnemyCount: 0 }).runtime;
+    const reversed = advanceGongfaRuntime(before, { kind: "evade", nearbyEnemyCount: 0 }).runtime;
+    const after = advanceGongfaRuntime(reversed, { kind: "tick", deltaMs: 100, nearbyEnemyCount: 0 }).runtime;
+    expect(after.authored.targetLedger[-110]).toBeLessThan(before.authored.targetLedger[-110]!);
+  });
+
+  it("Ice Mirror R6 repair, shatter, and lingering branches are mechanically distinct", () => {
+    const iceHeart = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    iceHeart.mastery.masteryLearnedIds = ["ice-heart-repair"];
+    let damaged = advanceGongfaRuntime(iceHeart, { kind: "incoming-damage", amount: 20, incomingAngle: 0 }).runtime;
+    damaged = advanceGongfaRuntime(damaged, { kind: "incoming-damage", amount: 20, incomingAngle: Math.PI / 3 }).runtime;
+    const repaired = advanceGongfaRuntime(damaged, { kind: "evade", nearbyEnemyCount: 2 });
+    expect(repaired.runtime.authored.charges).toBe(6);
+    expect(repaired.runtime.authored.targetLedger[-115]).toBe(1);
+
+    const shattered = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    shattered.mastery.masteryLearnedIds = ["shattered-mirror-frost"];
+    const shards = advanceGongfaRuntime(shattered, { kind: "incoming-damage", amount: 20, incomingAngle: 0 });
+    expect(shards.commands.find((command) => command.kind === "authored-mirror-reflection"))
+      .toMatchObject({ shardsPerAngle: 3 });
+
+    const lingering = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    lingering.mastery.masteryLearnedIds = ["lingering-reflection"];
+    const cracked = advanceGongfaRuntime(lingering, { kind: "incoming-damage", amount: 20, incomingAngle: 0 });
+    const half = advanceGongfaRuntime(cracked.runtime, { kind: "incoming-damage", amount: 20, incomingAngle: 0 });
+    expect(half.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 10 });
+  });
+
+  it("Frozen Lotus records directions, blocks without storing damage, then cracks participating facets", () => {
+    const mirror = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    const cast = advanceGongfaRuntime(mirror, {
+      kind: "skill2", skill2Id: "frozen-lotus-shell", nearbyEnemyCount: 1
+    });
+    expect(cast.commands[0]).toMatchObject({ kind: "authored-mirror-facets", shell: true });
+    const first = advanceGongfaRuntime(cast.runtime, {
+      kind: "incoming-damage", amount: 10, incomingAngle: 0.25
+    });
+    const second = advanceGongfaRuntime(first.runtime, {
+      kind: "incoming-damage", amount: 999, incomingAngle: -1.2
+    });
+    expect(second.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 0 });
+    const ended = advanceGongfaRuntime(second.runtime, {
+      kind: "tick", deltaMs: 1500, nearbyEnemyCount: 0
+    });
+    const reflected = ended.commands.find((command) => command.kind === "authored-mirror-reflection");
+    expect(reflected?.angles).toEqual([0.25, -1.2]);
+    expect(ended.runtime.authored.charges).toBe(0);
+  });
+
+  it("Frozen Lotus R9 branches enforce distinct readiness and payoff laws", () => {
+    const damaged = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    damaged.mastery.masteryLearnedIds = ["flawless-lotus"];
+    const cracked = advanceGongfaRuntime(damaged, { kind: "incoming-damage", amount: 10, incomingAngle: 0 }).runtime;
+    const denied = advanceGongfaRuntime(cracked, { kind: "skill2", skill2Id: "frozen-lotus-shell", nearbyEnemyCount: 1 });
+    expect(denied.commands).toEqual([]);
+
+    cracked.mastery.masteryLearnedIds = ["calamity-answering-broken-lotus"];
+    const brokenCast = advanceGongfaRuntime(cracked, { kind: "skill2", skill2Id: "frozen-lotus-shell", nearbyEnemyCount: 1 });
+    expect(brokenCast.commands[0]).toMatchObject({ shell: true });
+
+    const killing = createGongfaRuntime({ gongfaId: "ice-mirror-guard" });
+    killing.mastery.masteryLearnedIds = ["killing-shattered-mirror"];
+    const killingCast = advanceGongfaRuntime(killing, { kind: "skill2", skill2Id: "frozen-lotus-shell", nearbyEnemyCount: 1 });
+    const recorded = advanceGongfaRuntime(killingCast.runtime, { kind: "incoming-damage", amount: 50, incomingAngle: 0 });
+    const ended = advanceGongfaRuntime(recorded.runtime, { kind: "tick", deltaMs: 700, nearbyEnemyCount: 0 });
+    expect(ended.commands.find((command) => command.kind === "authored-mirror-reflection"))
+      .toMatchObject({ shardsPerAngle: 3, range: 560 });
+  });
+
   it("applies Crimson Furnace rank-3 and rank-6 structural Transformations", () => {
     const ring = createGongfaRuntime({ gongfaId: "crimson-furnace-sword-art" });
 
@@ -2429,7 +2560,7 @@ describe("Gongfa runtime", () => {
     expect(thornFinal?.power).toBeGreaterThan(1);
   });
 
-  it("remaining Surge updraft behaviours stay pattern-aware", () => {
+  it("remaining projectile Surge updraft behaviour stays pattern-aware", () => {
     const frostBase = createGongfaRuntime({ gongfaId: "drifting-frost-needle" });
     const frostSpread = applyGongfaImprovement(frostBase, "frost-flurry").runtime;
     expect(frostSpread.combat.count - frostBase.combat.count).toBe(2);
@@ -2441,11 +2572,6 @@ describe("Gongfa runtime", () => {
     );
     expect(homingEvade.commands.some((command) => command.kind === "homing-volley")).toBe(true);
 
-    const auraEvade = advanceGongfaRuntime(
-      createGongfaRuntime({ gongfaId: "ice-mirror-guard", surge: { stacks: 3 } }),
-      { kind: "evade", learnedMasteryIds: ["reflection-step"] }
-    );
-    expect(auraEvade.commands.some((command) => command.kind === "aura-burst")).toBe(true);
   });
 
   it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {

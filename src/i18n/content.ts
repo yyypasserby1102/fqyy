@@ -111,10 +111,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "洪潮敕令", description: "完成三轮潮历后锁定全局流向，使普通敌人保持相对位置一同冲向泄洪边界。" }
   },
   "ice-mirror-guard": {
-    name: "冰镜护体", lore: "寒水凝镜护身，碎裂时反射锋芒。", combatRole: "近身反射防御，绽放为精准霜晶碎片。", visualMotif: "青蓝镜瓣、琉璃切面与碎莲轮廓。",
-    skill1: { name: "冰镜寒锋", description: "旋转镜片切割近敌，并加固修士周身的反射防线。" },
-    passive: { name: "寒镜反照", resource: "镜意", description: "镜片命中积累镜意，增强并增殖碎片，直至镜光消退。" },
-    skill2: { name: "冰莲镜甲", description: "镜瓣结成护体冰莲，旋转后碎裂为精准追敌的霜晶。" }
+    name: "冰镜护体", lore: "六合镜面各守一方，受击而裂，涉险方能补全。", combatRole: "六面有限方向镜片真实拦截来袭；镜片会碎，必须在近险闪避中修复。", visualMotif: "六面青蓝琉璃、真实角向缺口、逐层裂纹与短暂闭合的冰莲。",
+    skill1: { name: "六合冰镜", description: "六面实体镜片只拦截其所在方向的攻击，完整镜片全挡一次并沿来向反射，缺口与碎镜均不能阻挡。" },
+    passive: { name: "寒镜修复", resource: "完整镜片", description: "只有近身危险中的闪避修复一面镜片；远处闪避、攻击和造成伤害均不会修复。" },
+    skill2: { name: "冰莲镜甲", description: "完整镜片足够且近险将至时闭合成全向冰莲，记录来袭方向，结束后沿原方向反射并使参与镜片全部碎裂。" }
   },
   "green-vine-art": {
     name: "青藤诀", lore: "木气化生灵藤，循敌缠击不休。", combatRole: "追踪藤鞭不断分枝，织成脉动根网。", visualMotif: "碧玉藤弧、荆棘节点与发光根脉。",
@@ -569,42 +569,6 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "潮步",
     "lore": "每次闪避都会失去潮汐鳞片的冲击力。"
   },
-  "mirror-edge": {
-    "name": "镜边",
-    "lore": "将镜子碎片磨成刺穿的边缘。"
-  },
-  "mirror-spread": {
-    "name": "镜面传播",
-    "lore": "将镜子碎片散布在宽阔的弧线上。"
-  },
-  "swift-mirror": {
-    "name": "迅捷镜子",
-    "lore": "转动镜子的速度越来越快。"
-  },
-  "lasting-reflection": {
-    "name": "持久的反思",
-    "lore": "充满活力的反射不再消失到一半以下。"
-  },
-  "reflection-cascade": {
-    "name": "反射级联",
-    "lore": "每次命中都会使反射速度提高两倍。"
-  },
-  "reflection-burst": {
-    "name": "折射爆发",
-    "lore": "在完全反射时，下一回合会爆发出额外的碎片。"
-  },
-  "reflection-crown": {
-    "name": "倒影皇冠",
-    "lore": "反射在每一个回合中都充满了光谱碎片。"
-  },
-  "reflection-domain": {
-    "name": "冰川域",
-    "lore": "命中会留下反射比例的镜面区域。"
-  },
-  "reflection-step": {
-    "name": "反思步骤",
-    "lore": "每次躲避都会释放一次反射级碎片爆发。"
-  },
   "thorned-vines": {
     "name": "荆棘藤蔓",
     "lore": "将藤蔓硬化成刺眼的睫毛。"
@@ -904,8 +868,6 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "lancing-crescent": { name: "贯日炎月" },
   "frost-cascade": { name: "凝霜连生" },
   "tide-crown": { name: "玄潮加冕" },
-  "lasting-reflection": { name: "镜意长存" },
-  "reflection-step": { name: "镜影步" },
   "growth-crown": { name: "青藤华冠" },
   "growth-domain": { name: "荆棘生域" },
   "swift-bloom": { name: "瞬息花开" },
@@ -1066,6 +1028,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "returning-abyss-moon": { name: "归墟沉月" },
   "flying-star-release": { name: "飞星离潮" },
   "grand-yin-suspension": { name: "太阴悬界" },
+  "three-enclosure-heavy-mirrors": { name: "三垣重镜", lore: "三面大镜各可承受两次攻击，反射更强，但方向缺口巨大。", gain: "三面大镜各可完整阻挡两次，反射伤害提高 55%", cost: "只覆盖三个方向且转速很慢，缺口显著扩大", scope: "镜片数量、耐久、宽度、转速与反射" },
+  "thousand-facet-lotus": { name: "千棱莲镜", lore: "八面窄镜覆盖更多方向，但每面脆弱、转速慢且修复负担沉重。", gain: "镜片增至八面，可覆盖更多不同方向", cost: "每面只能阻挡一次，反射伤害降低 45%，全碎应急修复更慢", scope: "镜片数量、宽度、转速、反射与修复" },
+  "flowing-light-mirrors": { name: "流光转镜", lore: "六镜高速轮转，闪避可逆转镜路，但反射威力下降。", gain: "六镜转速接近三倍，闪避会逆转旋转方向", cost: "所有反射伤害降低 32%", scope: "镜片转速、闪避逆转与反射" },
+  "ice-heart-repair": { name: "冰心补镜", lore: "近险闪避一次修复两面镜片，但闪避更慢，下一次反射减弱。", gain: "一次近险闪避修复两面不同的受损镜片", cost: "闪避冷却延长 35%，下一次反射伤害减半", scope: "近险闪避、修复数量、冷却与下一次反射" },
+  "shattered-mirror-frost": { name: "裂镜飞霜", lore: "镜片彻底碎裂时沿来袭方向射出三道飞霜。", gain: "镜片最后一点耐久破碎时释放三道方向飞霜", cost: "只有彻底碎裂触发，完整镜片的普通反射不增强", scope: "镜片碎裂与方向反射数量" },
+  "lingering-reflection": { name: "残光续照", lore: "刚碎的镜片可再削减一次同方向攻击，随后彻底消散。", gain: "碎镜再将一次同方向伤害降低 50%", cost: "最后反射很弱，触发后该镜片彻底失效", scope: "碎镜方向、部分格挡与最后反射" },
+  "flawless-lotus": { name: "无瑕莲华", lore: "六镜无缺方可结成持续最久的冰莲镜甲。", gain: "全镜完整时形成持续 2.2 秒的最长全向镜甲", cost: "缺少任何一面都不能发动，结束后参与镜片全部碎裂", scope: "冰莲镜甲的完整要求与持续时间" },
+  "calamity-answering-broken-lotus": { name: "残莲应劫", lore: "三面以上残镜即可应劫结莲，持续时间随参与镜片而变。", gain: "至少三面完整镜片即可结甲，持续时间随参与数量增加", cost: "镜甲较短，记录方向的反射伤害降低 45%", scope: "冰莲镜甲的门槛、持续时间与反射" },
+  "killing-shattered-mirror": { name: "破镜杀生", lore: "舍弃护持时长，将所有记录来向化作三重杀生飞霜。", gain: "每个记录方向返回三道高伤飞霜", cost: "全向保护仅持续 0.62 秒，结束后参与镜片全部碎裂", scope: "冰莲镜甲时长与记录方向杀伤" },
   "mountain-root-scripture": { name: "镇岳根书", lore: "更易以静止写出强根符，但叶符需要更长移动。", gain: "根符静止判定放宽，定域与护持增强", cost: "叶符需要更长移动距离", scope: "根/叶行为阈值与根符结算" },
   "green-wind-leaf-scripture": { name: "青风叶书", lore: "更易以移动写出疾叶符，但根符要求更彻底静止。", gain: "叶符移动判定提前，行进术式更快更强", cost: "根符静止判定收紧", scope: "叶/根行为阈值与叶符运动" },
   "calamity-step-thorn-scripture": { name: "劫步棘书", lore: "闪避后的棘符窗口与伤害扩大，但闪避恢复更慢。", gain: "棘符窗口延长，末位棘符伤害提高", cost: "闪避冷却延长 35%", scope: "闪避、棘符生成与棘符伤害" },

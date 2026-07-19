@@ -216,7 +216,7 @@ export type GongfaRuntimeEvent =
   | { kind: "blazing-feather-hit"; learnedMasteryIds?: string[] }
   | { kind: "surge-hit"; learnedMasteryIds?: string[] }
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds?: string[] }
-  | { kind: "evade"; playerX?: number; playerY?: number; learnedMasteryIds?: string[] }
+  | { kind: "evade"; playerX?: number; playerY?: number; nearbyEnemyCount?: number; learnedMasteryIds?: string[] }
   | {
       kind: "authored-beast-assist";
       targetId: number;
@@ -257,7 +257,7 @@ export type GongfaRuntimeEvent =
       targets?: AuthoredTargetFact[];
       learnedMasteryIds?: string[];
     }
-  | { kind: "incoming-damage"; amount: number; healthRatio?: number; skill2Id?: string; learnedMasteryIds?: string[] }
+  | { kind: "incoming-damage"; amount: number; incomingAngle?: number; healthRatio?: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean }
   | {
       kind: "enemy-death";
@@ -355,6 +355,24 @@ export type GongfaRuntimeCommand =
       masteryCast?: MasterySkill2Cast;
     }
   | {
+      kind: "authored-mirror-facets";
+      facets: Array<{ angle: number; durability: number; maxDurability: number; lingering: boolean }>;
+      radius: number;
+      arcWidth: number;
+      shell: boolean;
+      sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-mirror-reflection";
+      angles: number[];
+      damage: number;
+      shardsPerAngle: number;
+      range: number;
+      width: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
       kind: "blade-shell-rebound";
       damageScale: number;
       bonusBlades: number;
@@ -434,14 +452,6 @@ export type GongfaRuntimeCommand =
       damage: number;
       controlStrength: number;
       returnDelayMs: number;
-      masteryCast: MasterySkill2Cast;
-    }
-  | {
-      kind: "frozen-lotus-shell";
-      petalCount: number;
-      damage: number;
-      radius: number;
-      shatterDelayMs: number;
       masteryCast: MasterySkill2Cast;
     }
   | {
@@ -1394,8 +1404,6 @@ function buildExplicitTimedSkill2Command(
       return { kind: skill2.intent, needleCount: Math.max(5, combat.count + 3 + resource + coverage * 2), staggerMs: delay(75), damage: damage(combat.damage * 1.05), pierce: combat.pierce + Math.floor(resource / 3), masteryCast };
     case "moon-tide-vault":
       return { kind: skill2.intent, radius: 180 + resource * 12 + coverage * 24, damage: damage(combat.damage * 1.2), controlStrength: 180 + resource * 15 + coverage * 20, returnDelayMs: delay(320), masteryCast };
-    case "frozen-lotus-shell":
-      return { kind: skill2.intent, petalCount: Math.max(6, combat.count + 4 + resource + coverage * 2), damage: damage(combat.damage * (1.15 + resource * 0.08)), radius: 90 + resource * 12 + coverage * 16, shatterDelayMs: delay(520), masteryCast };
     case "verdant-root-network":
       return { kind: skill2.intent, linkCount: Math.max(3, combat.count + resource + coverage), pulseCount: 3 + coverage, pulseDelayMs: delay(180), damage: damage(combat.damage * (0.7 + resource * 0.08)), reach: 220 + resource * 20 + coverage * 30, masteryCast };
     case "sprout-sun-circle":
@@ -1892,7 +1900,8 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
       input.gongfaId === "blazing-feather-art"
         ? { ...blazingFeatherDefaults, ...input.blazingFeather }
         : undefined,
-    surge: surgeGongfaIdSet.has(input.gongfaId) && input.gongfaId !== "verdant-ring-scripture"
+    surge: surgeGongfaIdSet.has(input.gongfaId) &&
+      !["verdant-ring-scripture", "ice-mirror-guard"].includes(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -2238,6 +2247,10 @@ export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number
     return 160;
   }
 
+  if (runtime.gongfaId === "ice-mirror-guard") {
+    return 190;
+  }
+
   if (runtime.gongfaId === "ancient-tree-body-art") {
     return 640;
   }
@@ -2247,6 +2260,75 @@ export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number
   }
 
   return 0;
+}
+
+type IceMirrorFacet = GongfaRuntime["authored"]["anchors"][number];
+
+function iceMirrorForm(learnedIds: string[]): {
+  count: number; durability: number; arcWidth: number; rotationSpeed: number; reflectionScale: number;
+} {
+  if (learnedIds.includes("three-enclosure-heavy-mirrors")) {
+    return { count: 3, durability: 2, arcWidth: Math.PI * 0.29, rotationSpeed: 0.42, reflectionScale: 1.55 };
+  }
+  if (learnedIds.includes("thousand-facet-lotus")) {
+    return { count: 8, durability: 1, arcWidth: Math.PI * 0.12, rotationSpeed: 0.28, reflectionScale: 0.55 };
+  }
+  if (learnedIds.includes("flowing-light-mirrors")) {
+    return { count: 6, durability: 1, arcWidth: Math.PI * 0.19, rotationSpeed: 2.35, reflectionScale: 0.68 };
+  }
+  return { count: 6, durability: 1, arcWidth: Math.PI * 0.18, rotationSpeed: 0.82, reflectionScale: 1 };
+}
+
+function ensureIceMirrorFacets(runtime: GongfaRuntime, learnedIds: string[]): IceMirrorFacet[] {
+  const form = iceMirrorForm(learnedIds);
+  let facets = runtime.authored.anchors.filter((anchor) => anchor.kind === "facet");
+  if (facets.length !== form.count || facets.some((facet) => facet.maxValue !== form.durability)) {
+    runtime.authored.anchors = runtime.authored.anchors.filter((anchor) => anchor.kind !== "facet");
+    facets = Array.from({ length: form.count }, (_, index) => ({
+      kind: "facet" as const,
+      x: 0,
+      y: 0,
+      angle: index * Math.PI * 2 / form.count,
+      value: form.durability,
+      maxValue: form.durability,
+      chainId: index,
+      sealed: false
+    }));
+    runtime.authored.anchors.push(...facets);
+  }
+  runtime.authored.maxCharges = form.count;
+  runtime.authored.charges = facets.filter((facet) => facet.value > 0).length;
+  runtime.authored.resource = runtime.authored.charges / Math.max(1, form.count);
+  runtime.authored.secondaryResource = facets.filter((facet) => facet.sealed).length;
+  return facets;
+}
+
+function mirrorFacetCommand(
+  runtime: GongfaRuntime,
+  learnedIds: string[],
+  masteryCast?: MasterySkill2Cast
+): Extract<GongfaRuntimeCommand, { kind: "authored-mirror-facets" }> {
+  const form = iceMirrorForm(learnedIds);
+  const rotation = runtime.authored.targetLedger[-110] ?? 0;
+  const facets = ensureIceMirrorFacets(runtime, learnedIds);
+  return {
+    kind: "authored-mirror-facets",
+    facets: facets.map((facet) => ({
+      angle: (facet.angle ?? 0) + rotation,
+      durability: facet.value,
+      maxDurability: facet.maxValue ?? 1,
+      lingering: facet.sealed === true
+    })),
+    radius: runtime.authored.phase === 2 ? 70 : 92,
+    arcWidth: runtime.authored.phase === 2 ? Math.PI * 2 / form.count * 0.96 : form.arcWidth,
+    shell: runtime.authored.phase === 2,
+    sourceGongfaId: runtime.gongfaId,
+    ...(masteryCast ? { masteryCast } : {})
+  };
+}
+
+function angularDistance(a: number, b: number): number {
+  return Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
 }
 
 function distanceSquared(ax: number, ay: number, bx: number, by: number): number {
@@ -3389,6 +3471,7 @@ export function advanceGongfaRuntime(
     !runtime.blazingFeather &&
     !runtime.surge &&
     runtime.gongfaId !== "verdant-ring-scripture" &&
+    runtime.gongfaId !== "ice-mirror-guard" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -3496,6 +3579,34 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "frozen-lotus-shell" && next.gongfaId === "ice-mirror-guard") {
+      const learnedIds = event.learnedMasteryIds ?? [];
+      const facets = ensureIceMirrorFacets(next, learnedIds);
+      const intact = facets.filter((facet) => facet.value > 0);
+      const flawless = learnedIds.includes("flawless-lotus");
+      const broken = learnedIds.includes("calamity-answering-broken-lotus");
+      const killing = learnedIds.includes("killing-shattered-mirror");
+      const minimum = flawless ? facets.length : broken ? 3 : 4;
+      const danger = (event.nearbyEnemyCount ?? 0) > 0;
+      if (danger && intact.length >= minimum && next.authored.phase !== 2) {
+        const durationMs = flawless ? 2200 : broken
+          ? Math.max(700, intact.length * 260)
+          : killing ? 620 : 1400;
+        next.authored.phase = 2;
+        next.authored.phaseElapsedMs = 0;
+        next.authored.targetLedger[-112] = durationMs;
+        next.authored.cycleCount = 0;
+        for (const key of Object.keys(next.authored.targetLedger).map(Number).filter((key) => key <= -200)) {
+          delete next.authored.targetLedger[key];
+        }
+        for (const facet of intact) facet.participating = true;
+        commands.push(mirrorFacetCommand(next, learnedIds, {
+          skill2Id: "frozen-lotus-shell",
+          cooldownMs: Math.floor(authoredSkill2Plans["frozen-lotus-shell"].cooldownMs * skill2Stats.cadenceScale)
+        }));
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "solar-flare-cycle" && next.burningRing) {
       const closeDanger = (event.nearbyEnemyCount ?? 0) > 0;
       if (next.burningRing.heat >= 99.5 && closeDanger && next.burningRing.guardRemaining <= 0) {
@@ -4138,6 +4249,29 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "evade") {
+    if (next.gongfaId === "ice-mirror-guard") {
+      const learnedIds = event.learnedMasteryIds ?? [];
+      const facets = ensureIceMirrorFacets(next, learnedIds);
+      if (learnedIds.includes("flowing-light-mirrors")) {
+        next.authored.targetLedger[-114] = (next.authored.targetLedger[-114] ?? 1) * -1;
+      }
+      if ((event.nearbyEnemyCount ?? 0) > 0 && next.authored.phase !== 2) {
+        const repairs = learnedIds.includes("ice-heart-repair") ? 2 : 1;
+        const damaged = facets
+          .filter((facet) => facet.value < (facet.maxValue ?? 1))
+          .sort((a, b) => a.value - b.value || (a.chainId ?? 0) - (b.chainId ?? 0));
+        for (const facet of damaged.slice(0, repairs)) {
+          facet.value = Math.min(facet.maxValue ?? 1, facet.value + 1);
+          facet.sealed = false;
+          delete facet.originPlayerX;
+        }
+        if (learnedIds.includes("ice-heart-repair") && damaged.length > 0) {
+          next.authored.targetLedger[-115] = 1;
+        }
+        ensureIceMirrorFacets(next, learnedIds);
+        commands.push(mirrorFacetCommand(next, learnedIds));
+      }
+    }
     if (next.yujian && event.learnedMasteryIds.includes("swordborne-steps")) {
       next.yujian.intentStacks = Math.min(5, next.yujian.intentStacks + 1);
       next.yujian.intentDurationRemaining = INTENT_DURATION_MS;
@@ -4231,6 +4365,74 @@ export function advanceGongfaRuntime(
     if (next.yujian && !(event.learnedMasteryIds ?? []).includes("still-sword-heart")) {
       next.yujian.intentStacks = Math.max(0, next.yujian.intentStacks - 2);
       syncYujianCombat(next);
+    }
+
+    if (next.gongfaId === "ice-mirror-guard") {
+      const learnedIds = event.learnedMasteryIds ?? [];
+      const facets = ensureIceMirrorFacets(next, learnedIds);
+      if (next.authored.phase === 2) {
+        if (event.incomingAngle !== undefined) {
+          const recordIndex = Math.min(11, next.authored.cycleCount);
+          next.authored.targetLedger[-200 - recordIndex] = event.incomingAngle;
+          next.authored.cycleCount = Math.min(12, next.authored.cycleCount + 1);
+        }
+        commands.push({ kind: "incoming-damage", finalDamage: 0 });
+        return { runtime: next, commands };
+      }
+      if (event.incomingAngle === undefined) {
+        commands.push({ kind: "incoming-damage", finalDamage: Math.max(1, Math.floor(event.amount)) });
+        return { runtime: next, commands };
+      }
+      const incomingAngle = event.incomingAngle;
+      const form = iceMirrorForm(learnedIds);
+      const rotation = next.authored.targetLedger[-110] ?? 0;
+      const facet = facets.find((candidate) => candidate.value > 0 &&
+        angularDistance(incomingAngle, (candidate.angle ?? 0) + rotation) <= form.arcWidth / 2
+      );
+      if (facet?.value && facet.value > 0) {
+        facet.value -= 1;
+        let shardsPerAngle = 1;
+        if (facet.value === 0) {
+          facet.sealed = learnedIds.includes("lingering-reflection");
+          if (facet.sealed) facet.originPlayerX = incomingAngle;
+          if (learnedIds.includes("shattered-mirror-frost")) shardsPerAngle = 3;
+        }
+        const weakNext = (next.authored.targetLedger[-115] ?? 0) > 0;
+        next.authored.targetLedger[-115] = 0;
+        const damageScale = form.reflectionScale * (weakNext ? 0.5 : 1);
+        ensureIceMirrorFacets(next, learnedIds);
+        commands.push({
+          kind: "authored-mirror-reflection",
+          angles: [incomingAngle],
+          damage: Math.max(1, Math.floor(next.combat.damage * damageScale)),
+          shardsPerAngle,
+          range: 420,
+          width: 34,
+          sourceGongfaId: next.gongfaId
+        });
+        commands.push({ kind: "incoming-damage", finalDamage: 0 });
+        return { runtime: next, commands };
+      }
+      const lingeringFacet = facets.find((candidate) => candidate.sealed &&
+        angularDistance(incomingAngle, candidate.originPlayerX ?? Number.POSITIVE_INFINITY) <= form.arcWidth / 2
+      );
+      if (lingeringFacet && learnedIds.includes("lingering-reflection")) {
+        lingeringFacet.sealed = false;
+        delete lingeringFacet.originPlayerX;
+        commands.push({
+          kind: "authored-mirror-reflection",
+          angles: [incomingAngle],
+          damage: Math.max(1, Math.floor(next.combat.damage * 0.35)),
+          shardsPerAngle: 1,
+          range: 320,
+          width: 28,
+          sourceGongfaId: next.gongfaId
+        });
+        commands.push({ kind: "incoming-damage", finalDamage: Math.max(1, Math.floor(event.amount * 0.5)) });
+        return { runtime: next, commands };
+      }
+      commands.push({ kind: "incoming-damage", finalDamage: Math.max(1, Math.floor(event.amount)) });
+      return { runtime: next, commands };
     }
 
     if (
@@ -4334,6 +4536,67 @@ export function advanceGongfaRuntime(
   }
 
   const deltaSeconds = Math.max(0, event.deltaMs) / 1000;
+
+  if (next.gongfaId === "ice-mirror-guard") {
+    const learnedIds = event.learnedMasteryIds ?? [];
+    const facets = ensureIceMirrorFacets(next, learnedIds);
+    const form = iceMirrorForm(learnedIds);
+    const direction = next.authored.targetLedger[-114] ?? 1;
+    next.authored.targetLedger[-110] =
+      (next.authored.targetLedger[-110] ?? 0) + direction * form.rotationSpeed * deltaSeconds;
+
+    if (next.authored.phase === 2) {
+      next.authored.targetLedger[-112] = Math.max(
+        0,
+        (next.authored.targetLedger[-112] ?? 0) - event.deltaMs
+      );
+      if (next.authored.targetLedger[-112] === 0) {
+        const participating = facets.filter((facet) => facet.participating);
+        for (const facet of participating) {
+          facet.value = 0;
+          facet.sealed = false;
+          delete facet.participating;
+        }
+        const angles = Array.from({ length: next.authored.cycleCount }, (_, index) =>
+          next.authored.targetLedger[-200 - index]
+        ).filter((angle): angle is number => angle !== undefined);
+        if (angles.length > 0) {
+          const killing = learnedIds.includes("killing-shattered-mirror");
+          const broken = learnedIds.includes("calamity-answering-broken-lotus");
+          commands.push({
+            kind: "authored-mirror-reflection",
+            angles,
+            damage: Math.max(1, Math.floor(next.combat.damage * (killing ? 2.2 : broken ? 0.55 : 1.05))),
+            shardsPerAngle: killing ? 3 : 1,
+            range: killing ? 560 : 440,
+            width: killing ? 42 : 34,
+            sourceGongfaId: next.gongfaId
+          });
+        }
+        next.authored.phase = 0;
+        next.authored.cycleCount = 0;
+      }
+    }
+
+    const intact = facets.filter((facet) => facet.value > 0);
+    if (intact.length === 0 && next.authored.phase !== 2) {
+      next.authored.targetLedger[-113] = (next.authored.targetLedger[-113] ?? 0) + event.deltaMs;
+      const emergencyMs = learnedIds.includes("thousand-facet-lotus") ? 6500 : 4800;
+      if (next.authored.targetLedger[-113] >= emergencyMs) {
+        const first = facets.sort((a, b) => (a.chainId ?? 0) - (b.chainId ?? 0))[0];
+        if (first) {
+          first.value = 1;
+          first.sealed = false;
+        }
+        next.authored.targetLedger[-113] = 0;
+      }
+    } else {
+      next.authored.targetLedger[-113] = 0;
+    }
+    ensureIceMirrorFacets(next, learnedIds);
+    commands.push(mirrorFacetCommand(next, learnedIds));
+    return { runtime: next, commands };
+  }
 
   if (next.yujian && next.yujian.intentStacks > 0) {
     // Unbroken Sword Intent fades a stack at a time once its duration lapses.
@@ -4725,6 +4988,7 @@ export function planGongfaAttack(
     targets?: AuthoredTargetFact[];
   } = {}
 ): GongfaRuntimeCommand[] {
+  if (runtime.gongfaId === "ice-mirror-guard") return [];
   options = {
     ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds

@@ -35,9 +35,9 @@ implementation, testing, balance review, and future regression checks.
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Pending redesign |
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
 | Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
-| Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Pending redesign |
-| Burning Ring Scripture / 焚轮经 | Hudao | Approved | Pending redesign |
-| Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Pending redesign |
+| Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Implemented and verified |
+| Burning Ring Scripture / 焚轮经 | Hudao | Approved | Implemented and verified |
+| Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Implemented and verified |
 | Gengjin Huti / 庚金护体 | Hudao | Approved | Pending redesign |
 | Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Pending redesign |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Pending redesign |

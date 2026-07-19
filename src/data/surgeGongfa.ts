@@ -93,20 +93,6 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
     updraft: { id: "tide-step", name: "Tide Step", lore: "Each Evade looses a Tide-scaled surge." }
   },
   {
-    gongfaId: "ice-mirror-guard",
-    resource: "Reflection",
-    mechanics: { focusDamageScale: 1.3, focusPierce: 3, focusSpreadScale: 0.72, spreadCount: 3, spreadDegrees: 28, spreadDamageScale: 0.76, quickenCooldownScale: 0.7, quickenDamageScale: 0.8, quickenSpeed: 80, holdFloor: 4, cascadeGain: 2, burstCount: 3, crownPerStack: 1, domainDamageScale: 0.3, updraftStackScale: 1.25 },
-    focus: { id: "mirror-edge", name: "Mirror Edge", lore: "Hone the mirror shards into piercing edges." },
-    spread: { id: "mirror-spread", name: "Mirror Spread", lore: "Scatter the mirror shards across a broad arc." },
-    quicken: { id: "swift-mirror", name: "Swift Mirror", lore: "Turn the mirror faster and swifter." },
-    hold: { id: "lasting-reflection", name: "Lasting Reflection", lore: "Well-stoked Reflection no longer fades below half." },
-    cascade: { id: "reflection-cascade", name: "Reflection Cascade", lore: "Each hit stokes Reflection twice as fast." },
-    burst: { id: "reflection-burst", name: "Refraction Burst", lore: "At full Reflection, the next turn erupts with extra shards." },
-    crown: { id: "reflection-crown", name: "Reflection Crown", lore: "Reflection crowns every turn with spectral shards." },
-    domain: { id: "reflection-domain", name: "Glacier Domain", lore: "Hits leave a Reflection-scaled mirror field." },
-    updraft: { id: "reflection-step", name: "Reflection Step", lore: "Each Evade looses a Reflection-scaled shard burst." }
-  },
-  {
     gongfaId: "green-vine-art",
     resource: "Vinegrowth",
     mechanics: { focusDamageScale: 1.4, focusPierce: 2, focusSpreadScale: 0.6, spreadCount: 2, spreadDegrees: 32, spreadDamageScale: 0.8, quickenCooldownScale: 0.75, quickenDamageScale: 0.85, quickenSpeed: 55, holdFloor: 3, cascadeGain: 3, burstCount: 3, crownPerStack: 1.25, domainDamageScale: 0.36, updraftStackScale: 1 },

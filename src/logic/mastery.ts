@@ -209,13 +209,31 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "nine-sun-calamity-seal",
   "scarlet-wave-manual",
   "moonfall-tide-ritual",
-  "verdant-ring-scripture"
+  "verdant-ring-scripture",
+  "ice-mirror-guard"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
   GongfaId,
   Record<3 | 6 | 9, readonly ApprovedTransformationSeed[]>
 >> = {
+  "ice-mirror-guard": {
+    3: [
+      ["three-enclosure-heavy-mirrors", "Three-Enclosure Heavy Mirrors", "Three large mirrors each block two attacks and reflect with 55% more force.", "Only three directions are covered and rotation is slow, leaving much larger gaps.", "Facet count, durability, arc width, rotation, and reflection"],
+      ["thousand-facet-lotus", "Thousand-Facet Lotus", "Eight narrow facets cover more distinct directions.", "Each facet blocks only once, reflects 45% less damage, rotates slowly, and takes longer to emergency-repair.", "Facet count, width, rotation, reflection, and repair burden"],
+      ["flowing-light-mirrors", "Flowing-Light Mirrors", "Six facets rotate almost three times faster and Evade reverses their direction.", "Every reflection deals 32% less damage.", "Facet rotation, Evade reversal, and reflection"],
+    ],
+    6: [
+      ["ice-heart-repair", "Ice-Heart Repair", "One close-danger Evade repairs two distinct damaged facets.", "Evade cooldown is 35% longer and the next reflection deals half damage.", "Close-danger Evade, repair count, cooldown, and next reflection"],
+      ["shattered-mirror-frost", "Shattered-Mirror Frost", "A facet that cracks completely releases three offensive frost shards along the attack direction.", "Only the final durability loss releases shards; intact reflections gain nothing.", "Facet destruction and directional reflection shards"],
+      ["lingering-reflection", "Lingering Reflection", "A newly cracked facet halves one more attack from the same direction.", "Its final reflection is weak and the facet then disappears completely.", "Cracked facet direction, partial block, and final reflection"],
+    ],
+    9: [
+      ["flawless-lotus", "Flawless Lotus", "All intact facets form the longest 2.2-second Frozen Lotus Shell.", "The shell cannot form unless every facet is intact; all participating facets crack afterward.", "Frozen Lotus intact requirement and duration"],
+      ["calamity-answering-broken-lotus", "Calamity-Answering Broken Lotus", "Frozen Lotus may form with any three intact facets and scales its duration with participants.", "Its recorded-direction reflections deal 45% less damage and the shell is shorter.", "Frozen Lotus threshold, duration, and reflection"],
+      ["killing-shattered-mirror", "Killing Shattered Mirror", "The shell returns three high-damage shards along every recorded incoming direction.", "Protection lasts only 0.62 seconds and every participating facet cracks.", "Frozen Lotus duration and recorded-direction killing return"],
+    ]
+  },
   "mist-wraith-canon": {
     3: [
       ["life-seeking-fierce-wraith", "Life-Seeking Fierce Wraith", "Oldest soul immediately makes a powerful strongest-target crossing.", "Procession capacity is limited to five and souls are spent rapidly.", "Mist-wraith behavior and procession capacity"],

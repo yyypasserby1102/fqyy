@@ -90,11 +90,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "moon-tide-vault", name: "Deluge Mandate", description: "After three full cycles, locks one global velocity and carries all ordinary enemies together toward the destination boundary.", tags: ["wave", "water", "defensive"] }
   },
   "ice-mirror-guard": {
-    combatRole: "Reflective close defense that blooms into aimed frost shrapnel.",
-    visualMotif: "Cyan mirror petals, glass facets, and a shattering lotus silhouette.",
-    skill1: { id: "ice-mirror-shards", name: "Ice Mirror Shards", description: "Rotating mirror shards cut nearby enemies and harden the Cultivator's reflective perimeter.", tags: ["aura", "water", "defensive"] },
-    passive: { name: "Cold Reflection", resource: "Reflection", description: "Mirror hits build Reflection, strengthening and multiplying the shards before their clarity fades." },
-    skill2: { id: "frozen-lotus-shell", name: "Frozen Lotus Shell", description: "A defensive lotus of mirror petals rotates around the Cultivator, then shatters into aimed frost shards.", tags: ["aura", "water", "defensive"] }
+    combatRole: "Six finite directional facets physically block attacks, crack, and demand close-danger Evades to repair.",
+    visualMotif: "Six cyan glass facets with real angular gaps, visible cracks, and a briefly closed ice-lotus shell.",
+    skill1: { id: "ice-mirror-shards", name: "Sixfold Ice Mirrors", description: "Six rotating physical facets fully block only attacks arriving through their occupied angles, then crack and reflect frost back along that direction.", tags: ["aura", "water", "defensive"] },
+    passive: { name: "Cold-Mirror Repair", resource: "Intact Facets", description: "Only an Evade performed near danger repairs one cracked facet; distant Evades, hits, and damage dealt repair nothing." },
+    skill2: { id: "frozen-lotus-shell", name: "Frozen Lotus Shell", description: "With enough intact facets and nearby danger, facets close into a temporary shell, record incoming directions, then reflect along them and all crack.", tags: ["aura", "water", "defensive"] }
   },
   "green-vine-art": {
     combatRole: "Seeking vine lashes that branch into a pulsing rooted network.",
