@@ -668,6 +668,7 @@ export type GongfaRuntimeCommand =
       hosts: Array<{ targetId: number; x: number; y: number; rank: AuthoredTargetFact["rank"] }>;
       routeTargets: Array<{ targetId: number; x: number; y: number; rank: AuthoredTargetFact["rank"] }>;
       mergeTarget: { x: number; y: number };
+      focusTargetId?: number;
       damage: number;
       radius: number;
       fate: "many-mouths" | "one-heart" | "wither-seed";
@@ -2099,7 +2100,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
         ? { ...blazingFeatherDefaults, ...input.blazingFeather }
         : undefined,
     surge: surgeGongfaIdSet.has(input.gongfaId) &&
-      !["verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation"].includes(input.gongfaId)
+      !["verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -3186,7 +3187,9 @@ function advanceAuthoredWorldFacts(
             .sort((a, b) => distanceSquared(event.x, event.y, a.x, a.y) - distanceSquared(event.x, event.y, b.x, b.y))[0];
           lineage.value *= 0.5;
         } else if (learnedIds.includes("strong-seed-chooses-its-host")) {
-          successor = [...eligible].sort((a, b) =>
+          successor = [...eligible].filter((target) =>
+            target.rank === "elite" || target.rank === "boss" || target.healthRatio >= 0.75
+          ).sort((a, b) =>
             (b.rank === "elite" || b.rank === "boss" ? 2 : 0) + b.healthRatio -
             ((a.rank === "elite" || a.rank === "boss" ? 2 : 0) + a.healthRatio)
           )[0];
@@ -3207,7 +3210,8 @@ function advanceAuthoredWorldFacts(
         lineage.infectionStage = lineage.value >= 7000 ? 2 : lineage.value >= 3000 ? 1 : 0;
         lineage.remainingMs = successor
           ? undefined
-          : learnedIds.includes("strong-seed-chooses-its-host") ? 4000 : 1600;
+          : (learnedIds.includes("strong-seed-chooses-its-host") ? 4000 : 1600) *
+            Math.pow(1.16, masteryEffectTiers(learnedIds, "surgeStability"));
         if (successor) {
           occupied.add(successor.targetId);
           commands.push({
@@ -4440,7 +4444,11 @@ function advanceAuthoredWorldFacts(
     const occupied = new Set(infections.map((anchor) => anchor.targetId));
     for (const infection of infections) {
       if (infection.targetId === undefined) {
-        const candidates = targets.filter((target) => !occupied.has(target.targetId));
+        const candidates = targets.filter((target) =>
+          !occupied.has(target.targetId) &&
+          (!learnedIds.includes("strong-seed-chooses-its-host") ||
+            target.rank === "elite" || target.rank === "boss" || target.healthRatio >= 0.75)
+        );
         const successor = [...candidates].sort((a, b) => {
           if (learnedIds.includes("strong-seed-chooses-its-host")) {
             return (b.rank === "elite" || b.rank === "boss" ? 2 : 0) + b.healthRatio -
@@ -4468,7 +4476,7 @@ function advanceAuthoredWorldFacts(
       infection.x = host.x;
       infection.y = host.y;
       const previousStage = infection.infectionStage ?? 0;
-      infection.value += event.deltaMs;
+      infection.value += event.deltaMs * Math.pow(1.18, masteryEffectTiers(learnedIds, "surgeBuild"));
       const nextStage = infection.value >= 7000 ? 2 : infection.value >= 3000 ? 1 : 0;
       for (let stage = previousStage + 1; stage <= nextStage; stage += 1) {
         if (stage !== 1 && stage !== 2) continue;
@@ -4485,8 +4493,8 @@ function advanceAuthoredWorldFacts(
             (heartRoot ? stage === 2 ? 1.65 : 1.15 :
               branchRoot ? stage === 2 ? 0.55 : 0.18 :
                 coilingRoot ? 0.12 : stage === 2 ? 0.9 : 0.55))),
-          radius: branchRoot && stage === 2 ? 115 : coilingRoot ? 34 : 48,
-          maxSplashTargets: branchRoot && stage === 2 ? 3 : 0,
+          radius: branchRoot && stage === 2 ? Math.max(115, runtime.combat.auraRadius + 25) : coilingRoot ? 34 : 48,
+          maxSplashTargets: branchRoot && stage === 2 ? 3 + (runtime.skill1Refinements?.countBonus ?? 0) : 0,
           ...(coilingRoot ? {
             slowMultiplier: stage === 2 ? 0.16 : 0.52,
             slowDurationMs: stage === 2 ? 2200 : 1400,
@@ -4532,6 +4540,7 @@ export function advanceGongfaRuntime(
     runtime.gongfaId !== "mist-wraith-canon" &&
     runtime.gongfaId !== "frozen-river-formation" &&
     runtime.gongfaId !== "sword-burial-formation" &&
+    runtime.gongfaId !== "thousand-root-formation" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -5072,9 +5081,10 @@ export function advanceGongfaRuntime(
           hosts,
           routeTargets,
           mergeTarget,
+          ...(fate === "one-heart" ? { focusTargetId: strongestHost.targetId } : {}),
           damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
             (fate === "one-heart" ? 1.65 : fate === "wither-seed" ? 0.48 : 0.9))),
-          radius: 82 + skill2Stats.coverage * 8,
+          radius: Math.max(82 + skill2Stats.coverage * 8, skill2Base.auraRadius),
           fate,
           sourceGongfaId: next.gongfaId,
           masteryCast: {

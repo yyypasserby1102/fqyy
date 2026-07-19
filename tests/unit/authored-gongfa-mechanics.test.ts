@@ -585,6 +585,32 @@ describe("approved Gongfa mechanic contracts", () => {
     expect(grown.runtime.authored.anchors[0]).toMatchObject({ value: 7000, infectionStage: 2, x: 88, y: 3 });
   });
 
+  it("makes killing, branching, and coiling roots resolve different mature transitions", () => {
+    const mature = (law: string) => {
+      const runtime = createGongfaRuntime({ gongfaId: "thousand-root-formation" });
+      runtime.authored.anchors.push({
+        kind: "infection", targetId: 109, x: 0, y: 0, value: 6990, infectionStage: 1
+      });
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 20, nearbyEnemyCount: 4, learnedMasteryIds: [law],
+        targets: [{ targetId: 109, x: 0, y: 0, healthRatio: 1, rank: "ordinary" }]
+      }).commands[0];
+    };
+    const killing = mature("heart-piercing-killing-root");
+    const branching = mature("body-borrowing-branch-root");
+    const coiling = mature("bone-locking-coiling-root");
+    expect(killing).toMatchObject({ kind: "authored-root-stage", stage: 2, maxSplashTargets: 0 });
+    expect(branching).toMatchObject({ kind: "authored-root-stage", stage: 2, maxSplashTargets: 3 });
+    expect(coiling).toMatchObject({
+      kind: "authored-root-stage", stage: 2, maxSplashTargets: 0,
+      slowMultiplier: 0.16, immobilizeOrdinary: true
+    });
+    if (killing?.kind === "authored-root-stage" && branching?.kind === "authored-root-stage" && coiling?.kind === "authored-root-stage") {
+      expect(killing.damage).toBeGreaterThan(branching.damage);
+      expect(branching.damage).toBeGreaterThan(coiling.damage);
+    }
+  });
+
   it("transfers exactly one Root lineage with the selected R6 inheritance law", () => {
     const runtime = createGongfaRuntime({ gongfaId: "thousand-root-formation" });
     runtime.mastery.masteryLearnedIds = ["old-root-seizes-a-body"];
@@ -602,6 +628,69 @@ describe("approved Gongfa mechanic contracts", () => {
     expect(successor.runtime.authored.anchors).toEqual([
       expect.objectContaining({ targetId: 112, value: 3500, infectionStage: 1 })
     ]);
+  });
+
+  it("makes a Strong Seed wait for a genuinely strong host while retaining its age", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "thousand-root-formation" });
+    runtime.mastery.masteryLearnedIds = ["strong-seed-chooses-its-host"];
+    runtime.authored.anchors.push({
+      kind: "infection", targetId: 113, x: 0, y: 0, value: 7000, infectionStage: 2
+    });
+    const waiting = advanceGongfaRuntime(runtime, {
+      kind: "enemy-death", targetId: 113, x: 0, y: 0, rank: "elite",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0,
+      targets: [{ targetId: 114, x: 40, y: 0, healthRatio: 0.3, rank: "ordinary" }]
+    });
+    expect(waiting.runtime.authored.anchors).toEqual([
+      expect.objectContaining({ targetId: undefined, value: 7000, infectionStage: 2, remainingMs: 4000 })
+    ]);
+    const attached = advanceGongfaRuntime(waiting.runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 2,
+      learnedMasteryIds: ["strong-seed-chooses-its-host"],
+      targets: [
+        { targetId: 114, x: 40, y: 0, healthRatio: 0.3, rank: "ordinary" },
+        { targetId: 115, x: 120, y: 0, healthRatio: 0.9, rank: "elite" }
+      ]
+    });
+    expect(attached.commands).toEqual([
+      expect.objectContaining({ kind: "authored-root-infection", hosts: [expect.objectContaining({ targetId: 115 })] })
+    ]);
+    expect(attached.runtime.authored.anchors[0]).toMatchObject({ targetId: 115, value: 7000, infectionStage: 2 });
+  });
+
+  it("keeps the three Root-Mother laws structurally exclusive", () => {
+    const cast = (law: string) => {
+      const runtime = createGongfaRuntime({ gongfaId: "thousand-root-formation" });
+      runtime.authored.anchors.push(
+        { kind: "infection", targetId: 116, x: -90, y: 0, value: 7000, infectionStage: 2 },
+        { kind: "infection", targetId: 117, x: -30, y: 0, value: 7000, infectionStage: 2 },
+        { kind: "infection", targetId: 118, x: 30, y: 0, value: 3000, infectionStage: 1 },
+        { kind: "infection", targetId: 119, x: 90, y: 0, value: 0, infectionStage: 0 }
+      );
+      const targets = [
+        { targetId: 116, x: -90, y: 0, healthRatio: 0.7, rank: "boss" as const },
+        { targetId: 117, x: -30, y: 0, healthRatio: 0.6, rank: "ordinary" as const },
+        { targetId: 118, x: 30, y: 0, healthRatio: 0.5, rank: "ordinary" as const },
+        { targetId: 119, x: 90, y: 0, healthRatio: 0.4, rank: "ordinary" as const },
+        { targetId: 120, x: 0, y: 80, healthRatio: 0.3, rank: "ordinary" as const }
+      ];
+      return advanceGongfaRuntime(runtime, {
+        kind: "skill2", skill2Id: "myriad-root-killing-field", nearbyEnemyCount: 5,
+        eligibleTargetCount: 5, learnedMasteryIds: [law], targets
+      }).commands[0];
+    };
+    const many = cast("many-mouths-devour-life");
+    const one = cast("one-heart-strangles-life");
+    const wither = cast("wither-and-flourish-leave-a-seed");
+    expect(many).toMatchObject({ kind: "authored-root-ancestor", fate: "many-mouths" });
+    expect(one).toMatchObject({ kind: "authored-root-ancestor", fate: "one-heart", focusTargetId: 116 });
+    expect(wither).toMatchObject({ kind: "authored-root-ancestor", fate: "wither-seed", routeTargets: [] });
+    if (many?.kind === "authored-root-ancestor" && one?.kind === "authored-root-ancestor" && wither?.kind === "authored-root-ancestor") {
+      expect("focusTargetId" in many).toBe(false);
+      expect(new Set(many.routeTargets.map((target) => target.targetId)).size).toBe(many.routeTargets.length);
+      expect(one.routeTargets).toHaveLength(1);
+      expect(wither.damage).toBeLessThan(one.damage);
+    }
   });
 
   it("merges four living lineages once and preserves only the approved Wither seed", () => {

@@ -460,6 +460,13 @@ export class GameScene extends Phaser.Scene {
       const sealed = graves.filter((grave) => grave.sealed).length;
       return `Sword Burial: Graves ${graves.length}/${runtime.authored.maxCharges} · Sealed ${sealed}/6 · Sword Tomb ${graves.length >= runtime.authored.maxCharges ? "ready" : "gathering"}`;
     }
+    if (runtime.gongfaId === "thousand-root-formation") {
+      const infections = runtime.authored.anchors.filter((anchor) => anchor.kind === "infection");
+      const living = infections.filter((infection) => infection.targetId !== undefined).length;
+      const mature = infections.filter((infection) => infection.infectionStage === 2).length;
+      const waiting = infections.length - living;
+      return `Myriad Root: Living lineages ${living}/${runtime.authored.maxCharges} · Mature ${mature} · Waiting seeds ${waiting} · Root Mother ${living >= 4 && mature >= 2 ? "ready" : "growing"}`;
+    }
     if (runtime.gongfaId === "ironwood-wave-form") {
       const walls = runtime.authored.anchors.filter((anchor) => anchor.kind === "wall");
       const rampartState = runtime.authored.phase === 2 ? "Citadel holding" :
@@ -2335,18 +2342,28 @@ export class GameScene extends Phaser.Scene {
   private syncRootInfectionMarkers(runtime: GongfaRuntime): void {
     const identity = getGongfaVisualIdentity(runtime.gongfaId);
     const activeIds = new Set<number>();
-    for (const infection of runtime.authored.anchors.filter((anchor) =>
-      anchor.kind === "infection" && anchor.targetId !== undefined
-    )) {
-      const targetId = infection.targetId!;
-      activeIds.add(targetId);
-      let marker = this.rootInfectionMarkers.get(targetId);
+    const infections = runtime.authored.anchors.filter((anchor) => anchor.kind === "infection");
+    infections.forEach((infection, index) => {
+      const markerId = infection.targetId ?? -100_000 - index;
+      activeIds.add(markerId);
+      let marker = this.rootInfectionMarkers.get(markerId);
       if (!marker) {
         marker = this.add.graphics().setDepth(15);
-        this.rootInfectionMarkers.set(targetId, marker);
+        this.rootInfectionMarkers.set(markerId, marker);
       }
       const stage = infection.infectionStage ?? 0;
       marker.clear();
+      if (infection.targetId === undefined) {
+        marker.lineStyle(2, identity.secondary, 0.88);
+        marker.strokeCircle(0, 0, 12);
+        marker.beginPath();
+        marker.arc(0, 0, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, (infection.remainingMs ?? 0) / 4000));
+        marker.strokePath();
+        marker.fillStyle(identity.accent, 0.9);
+        marker.fillEllipse(0, -2, 7, 12);
+        marker.setPosition(infection.x, infection.y).setAlpha(0.9);
+        return;
+      }
       marker.fillStyle(stage === 2 ? identity.secondary : identity.accent, 0.88);
       marker.fillEllipse(0, -18, 5 + stage * 3, 9 + stage * 4);
       marker.lineStyle(1.5 + stage, identity.accent, 0.78);
@@ -2356,10 +2373,15 @@ export class GameScene extends Phaser.Scene {
         const tier = Math.floor(branch / 2) + 1;
         marker.lineBetween(0, -16, side * (6 + tier * 4), -20 - tier * 5);
       }
+      marker.lineStyle(2, identity.secondary, 0.9);
+      marker.beginPath();
+      marker.arc(0, 0, 17 + stage * 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, infection.value / 7000));
+      marker.strokePath();
+      const targetId = infection.targetId;
       const host = this.getEnemyByCombatTargetId(targetId);
       marker.setPosition(host?.active ? host.x : infection.x, host?.active ? host.y : infection.y);
       marker.setAlpha(0.62 + stage * 0.16);
-    }
+    });
     for (const [targetId, marker] of this.rootInfectionMarkers) {
       if (activeIds.has(targetId)) continue;
       marker.destroy();
@@ -3640,13 +3662,19 @@ export class GameScene extends Phaser.Scene {
       roots.lineTo(waypoint.x, waypoint.y);
       if (route) roots.lineTo(command.mergeTarget.x, command.mergeTarget.y);
       roots.strokePath();
-      this.damageEnemiesAlongRootSegment(host, waypoint, 24, command.damage, damaged,
-        command.fate === "many-mouths" ? 0.55 : 1);
-      if (route) {
+      if (command.fate !== "one-heart") {
+        this.damageEnemiesAlongRootSegment(host, waypoint, 24, command.damage, damaged,
+          command.fate === "many-mouths" ? 0.55 : 1);
+      }
+      if (route && command.fate !== "one-heart") {
         this.damageEnemiesAlongRootSegment(route, command.mergeTarget, 24, command.damage, damaged,
           command.fate === "many-mouths" ? 0.55 : 1);
       }
     });
+    if (command.fate === "one-heart" && command.focusTargetId !== undefined) {
+      const focus = this.getEnemyByCombatTargetId(command.focusTargetId);
+      if (focus?.active && focus.receiveDamage(command.damage)) this.resolveEnemyDeath(focus);
+    }
     const mother = createGongfaSigil(
       this, command.mergeTarget.x, command.mergeTarget.y,
       command.sourceGongfaId, command.radius, 0.9

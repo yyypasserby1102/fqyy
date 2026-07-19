@@ -459,12 +459,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["tempered-anger", "Tempered Anger", "Reprisal fades more slowly outside danger.", "surgeStability", 0.84, "Passive: Returning Heaven"]
   ]],
   ["thousand-root-formation", [
-    ["root-seal-tempering", "Root-Seal Tempering", "Root-Seal Array pulses with greater force.", "skill1Damage", 5, "Skill 1: Root-Seal Array"],
-    ["branching-array", "Branching Array", "Each casting plants another persistent root seal.", "skill1Count", 1, "Skill 1: Root-Seal Array"],
-    ["growth-conduction", "Growth Conduction", "Growth empowers both formation Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["wider-rootweb", "Wider Rootweb", "Every seal controls a broader patch of ground.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
-    ["fertile-ground", "Fertile Ground", "Caught enemies feed Growth more quickly.", "surgeBuild", 0.18, "Passive: Patient Germination"],
-    ["deep-burial", "Deep Burial", "Growth recedes more slowly between formations.", "surgeStability", 0.84, "Passive: Patient Germination"]
+    ["root-seal-tempering", "Lineage Tempering", "One-shot Sprout and Mature transitions strike harder.", "skill1Damage", 5, "Skill 1: Life-Hosted Root Seed"],
+    ["branching-array", "Many-Limbed Maturity", "A Body-Borrowing mature root reaches one additional distinct body without creating another lineage.", "skill1Count", 1, "Rank 3: Body-Borrowing Branch Root"],
+    ["growth-conduction", "Ancestor Conduction", "Strengthens both host-stage transitions and the single Root-Mother merge.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["wider-rootweb", "Longer Living Roots", "Extends mature branch reach and Root-Mother crawl routes; nothing is planted on the floor.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
+    ["fertile-ground", "Quickened Lifeblood", "Host survival time matures each existing lineage 18% faster; hits add no age.", "surgeBuild", 0.18, "Passive: One-for-One Succession"],
+    ["deep-burial", "Tenacious Seed", "A hostless seed struggles 16% longer at its corpse before withering.", "surgeStability", 0.84, "Passive: One-for-One Succession"]
   ]],
   ["flame-demon-body-art", [
     ["demon-fist-tempering", "Demon-Fist Tempering", "Furnace-Blood blows strike harder.", "skill1Damage", 7, "Skill 1: Furnace-Blood Combination"],

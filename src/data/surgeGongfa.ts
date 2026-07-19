@@ -164,17 +164,17 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
   },
   {
     gongfaId: "thousand-root-formation",
-    resource: "Growth",
+    resource: "Living Lineages",
     mechanics: { focusDamageScale: 1.42, focusPierce: 0, focusSpreadScale: 0.7, spreadCount: 2, spreadDegrees: 0, spreadDamageScale: 0.8, quickenCooldownScale: 0.75, quickenDamageScale: 0.86, quickenSpeed: 0, holdFloor: 3, cascadeGain: 2, burstCount: 3, crownPerStack: 0.5, domainDamageScale: 0.38, updraftStackScale: 0.75 },
-    focus: { id: "execution-root", name: "Execution Root", lore: "Concentrate fewer seals beneath the strongest nearby enemy." },
-    spread: { id: "wildwood-array", name: "Wildwood Array", lore: "Scatter more root seals across a much wider hunting ground." },
-    quicken: { id: "springing-snare", name: "Springing Snare", lore: "Plant and awaken lighter root traps more rapidly." },
-    hold: { id: "evergreen-growth", name: "Evergreen Growth", lore: "A mature formation retains half its Growth between waves." },
-    cascade: { id: "feeding-roots", name: "Feeding Roots", lore: "Each newly trapped enemy feeds Growth twice." },
-    burst: { id: "overgrowth-array", name: "Overgrowth Array", lore: "At full Growth, the next cast plants additional root seals." },
-    crown: { id: "forest-without-end", name: "Forest Without End", lore: "Growth sprouts satellite roots around every planted seal." },
-    domain: { id: "ancient-grove-domain", name: "Ancient Grove Domain", lore: "Root pulses leave behind smaller persistent thorn fields." },
-    updraft: { id: "rooted-step", name: "Rooted Step", lore: "Evade plants a Growth-scaled snare at the departure point." }
+    focus: { id: "execution-root", name: "Heart-Piercing Root", lore: "Host survival unlocks two dangerous high-damage internal transitions." },
+    spread: { id: "wildwood-array", name: "Body-Borrowing Branch", lore: "A mature host branches once through several distinct nearby bodies." },
+    quicken: { id: "springing-snare", name: "Bone-Locking Root", lore: "Growth transitions trade damage for escalating host control." },
+    hold: { id: "evergreen-growth", name: "New Sprout Pursues Crowds", lore: "One released seed jumps far toward density and restarts from Seed." },
+    cascade: { id: "feeding-roots", name: "Old Root Seizes a Body", lore: "One nearby successor inherits half age or the lineage dies." },
+    burst: { id: "overgrowth-array", name: "Strong Seed Chooses Host", lore: "A corpse seed retains age while waiting only for a strong living host." },
+    crown: { id: "forest-without-end", name: "Many Mouths", lore: "Distinct root bodies crawl through different ordinary targets before merging." },
+    domain: { id: "ancient-grove-domain", name: "One Heart", lore: "Every lineage converges on one strongest infected host with no crowd clear." },
+    updraft: { id: "rooted-step", name: "Wither and Flourish", lore: "The weak merge preserves exactly one mature lineage in the healthiest survivor." }
   },
   {
     gongfaId: "flame-demon-body-art", resource: "Wrath",
