@@ -93,10 +93,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "日耀轮回", description: "两重完整日轮成形，释放受热力强化的波动，同时维持旋焰。" }
   },
   "scarlet-wave-manual": {
-    name: "赤浪真诀", lore: "火气化为灼热月牙，层层席卷前方。", combatRole: "宽阔炎月封锁战线，连续横扫可叠加压制。", visualMotif: "赤红月牙墙、熔融交叠线与余烬尾迹。",
-    skill1: { name: "赤焰月牙", description: "宽扇形火浪向前翻涌，在敌阵中不断累积灼压。" },
-    passive: { name: "叠浪灼痕", resource: "灼痕", description: "锋浪命中积累灼痕，使后续赤焰月牙更强更多。" },
-    skill2: { name: "落日浪极", description: "两面月牙火墙在最密集的敌线上交错，于熔痕处造成二次打击。" }
+    name: "赤浪真诀", lore: "左潮留痕，右潮映月；两面真交，方生熔缝。", combatRole: "先保留一面左月潮，再施镜像右月潮；只有两片真实波面相交才生成第三条移动熔缝。", visualMotif: "左右可分辨的赤月波面、只在交点生成的亮金熔缝与对岸巨潮。",
+    skill1: { name: "赤月双潮", description: "先施并保留左潮，再施镜像右潮；波面分离或首潮过期都会令合流失败。" },
+    passive: { name: "阴阳合流", resource: "配对状态", description: "只显示待左潮、待右潮、合流成功三态；普通命中与重复目标均不增长。" },
+    skill2: { name: "落日分潮", description: "三次合流后，两面巨潮从战场对岸压向最近熔缝，并一次引爆整条会合线。" }
   },
   "drifting-frost-needle": {
     name: "游霜针", lore: "水气凝寒成针，循隙追击弱处。", combatRole: "寒针精准追索，并逐渐扩展覆盖与贯穿压力。", visualMotif: "青蓝针星、冰晶闪光与霜白轨迹。",
@@ -1044,7 +1044,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "unsetting-high-noon": { name: "极昼不落" },
   "center-forged-solar-soul": { name: "正中炼阳" },
   "myriad-beings-calamity": { name: "众生为劫" },
-  "returning-afterglow": { name: "残照归天" }
+  "returning-afterglow": { name: "残照归天" },
+  "scarlet-lance-tide": { name: "赤练穿潮" },
+  "river-crossing-flame-moon": { name: "横江炎月" },
+  "rolling-twin-tides": { name: "连潮催浪" },
+  "after-tide-awaits-moon": { name: "余潮候月" },
+  "misbanked-flying-arc": { name: "错岸飞虹" },
+  "ruptured-burning-current": { name: "焚流决口" },
+  "long-sunset-trace": { name: "落霞长痕" },
+  "horizon-opposing-tides": { name: "天际对潮" },
+  "reverse-scarlet-tide": { name: "赤浪倒卷" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

@@ -206,7 +206,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "ancient-tree-body-art",
   "heavenfall-body-art",
   "heaven-sundering-edict",
-  "nine-sun-calamity-seal"
+  "nine-sun-calamity-seal",
+  "scarlet-wave-manual"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -415,6 +416,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["center-forged-solar-soul", "Center-Forged Solar Soul", "Center hits grant two omens.", "Outer hits grant none.", "Omen source by impact band"],
       ["myriad-beings-calamity", "Myriad-Beings Calamity", "Many distinct victims grant several omens.", "Boss-only preparation is slow.", "Omen source by distinct targets"],
       ["returning-afterglow", "Returning Afterglow", "A miss still grants one dim omen.", "Dim omens weaken Nine Suns in One.", "Miss recovery and capstone power"]
+    ]
+  },
+  "scarlet-wave-manual": {
+    3: [
+      ["scarlet-lance-tide", "Scarlet Lance Tide", "Crescents become narrow, fast, and piercing.", "Overlap allowance is tiny.", "Wave width, speed, and overlap"],
+      ["river-crossing-flame-moon", "River-Crossing Flame Moon", "Broad slow crescents cover more space.", "Direct damage is weak.", "Wave breadth and damage"],
+      ["rolling-twin-tides", "Rolling Twin Tides", "Pairs arrive quickly.", "Waves are shorter-lived and weaker.", "Pair cadence and trail lifetime"]
+    ],
+    6: [
+      ["after-tide-awaits-moon", "After-Tide Awaits Moon", "The first trail waits much longer for its pair.", "The preserved tide is weaker.", "First-trail lifetime and power"],
+      ["misbanked-flying-arc", "Misbanked Flying Arc", "Separated waves can bridge with a diagonal seam.", "The bridge seam is narrow and weak.", "Separated-pair recovery"],
+      ["ruptured-burning-current", "Ruptured Burning Current", "Confluence detonates its whole line immediately.", "No persistent moving seam remains.", "Seam duration and burst"]
+    ],
+    9: [
+      ["long-sunset-trace", "Long Sunset Trace", "The molten seam is long and persistent.", "Crescent damage is reduced.", "Seam length, lifetime, and wave power"],
+      ["horizon-opposing-tides", "Horizon Opposing Tides", "Large distant waves create a powerful arena divide.", "Their meeting is riskier and slower.", "Wave origins and divide scale"],
+      ["reverse-scarlet-tide", "Reversing Scarlet Tide", "Weakened crescents return outward after Confluence.", "Seam damage is lower.", "Post-Confluence reverse pass"]
     ]
   }
 };

@@ -36,7 +36,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "crimson-furnace-sword-art": { motifId: "crucible-rune", label: "Crimson crucible rune", geometry: "furnace", accent: 0xff654f, secondary: 0xffc05c, spokes: 4, trailStyle: "black-core ember sparks" },
   "blazing-feather-art": { motifId: "phoenix-pinions", label: "Phoenix feather pinions", geometry: "wings", accent: 0xff9b61, secondary: 0xffdc79, spokes: 7, trailStyle: "falling ember barbs" },
   "burning-ring-scripture": { motifId: "revolving-corona", label: "Revolving solar corona", geometry: "solar", accent: 0xff8b4f, secondary: 0xffef9a, spokes: 10, trailStyle: "segmented solar orbit" },
-  "scarlet-wave-manual": { motifId: "sunset-crossing", label: "Crossing sunset crescents", geometry: "crescent", accent: 0xff5f42, secondary: 0xffbb69, spokes: 2, trailStyle: "molten crescent wake" },
+  "scarlet-wave-manual": { motifId: "intersecting-scarlet-surfaces", label: "Left and right crescents creating one seam", geometry: "crescent", accent: 0xff5f42, secondary: 0xffbb69, spokes: 3, trailStyle: "two wave surfaces and their real molten intersection" },
   "drifting-frost-needle": { motifId: "hoarfrost-stars", label: "Hoarfrost needle stars", geometry: "constellation", accent: 0x8fe3ff, secondary: 0xe8fbff, spokes: 6, trailStyle: "crystal point glints" },
   "black-tide-scripture": { motifId: "world-cardinal-tide", label: "World-scale cardinal tide", geometry: "tide", accent: 0x286da8, secondary: 0xa8e7ff, spokes: 4, trailStyle: "arena-wide parallel black-water bands" },
   "ice-mirror-guard": { motifId: "mirror-lotus", label: "Faceted mirror lotus", geometry: "lotus", accent: 0x90eaff, secondary: 0xf0ffff, spokes: 8, trailStyle: "shattered glass petals" },

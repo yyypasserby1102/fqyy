@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual"].includes(spec.gongfaId)) {
         continue;
       }
       expect(

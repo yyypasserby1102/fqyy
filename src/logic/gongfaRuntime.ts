@@ -674,6 +674,13 @@ export type GongfaRuntimeCommand =
       seals: Array<{ x: number; y: number; delayMs: number }>;
       radius: number; centerRadius: number; damage: number; zenith: number;
       supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-scarlet-tides";
+      waves: Array<{ x: number; y: number; angle: number; length: number; width: number }>;
+      seam?: { from: { x: number; y: number }; to: { x: number; y: number }; width: number };
+      damage: number; seamDamage: number; immediateSeam: boolean; reverse: boolean;
+      durationMs: number; supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2890,6 +2897,16 @@ function advanceAuthoredWorldFacts(
     const rate = learnedIds.includes("swift-eclipse-calamity") ? 0.000085 : 0.000055;
     state.resource = Math.min(cap, state.resource + event.deltaMs * rate);
   }
+  if (runtime.gongfaId === "scarlet-wave-manual") {
+    const trails = state.anchors.filter((anchor) => anchor.kind === "trail");
+    if (state.phase === 1 && trails.length === 0) state.phase = 0;
+    if (state.phase === 2) {
+      state.targetLedger[-80] = Math.max(0, (state.targetLedger[-80] ?? 600) - event.deltaMs);
+      if (state.targetLedger[-80] === 0) state.phase = 0;
+    }
+    state.resource = state.phase / 2;
+    state.charges = Math.min(3, state.cycleCount);
+  }
 
   state.anchors = state.anchors.filter((anchor) => {
     if (anchor.remainingMs === undefined) return true;
@@ -3263,6 +3280,32 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "sunset-wave-apex" && next.gongfaId === "scarlet-wave-manual") {
+      const record = next.authored.anchors.find((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
+      if (next.authored.cycleCount >= 3 && record) {
+        const angle = record.angle!;
+        const seamLength = 1100;
+        commands.push({
+          kind: "authored-scarlet-tides",
+          waves: [
+            { x: record.x - Math.cos(angle + Math.PI / 2) * 520, y: record.y - Math.sin(angle + Math.PI / 2) * 520, angle, length: 1100, width: 86 },
+            { x: record.x + Math.cos(angle + Math.PI / 2) * 520, y: record.y + Math.sin(angle + Math.PI / 2) * 520, angle, length: 1100, width: 86 }
+          ],
+          seam: {
+            from: { x: record.x - Math.cos(angle) * seamLength / 2, y: record.y - Math.sin(angle) * seamLength / 2 },
+            to: { x: record.x + Math.cos(angle) * seamLength / 2, y: record.y + Math.sin(angle) * seamLength / 2 }, width: 48
+          },
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.55)),
+          seamDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 2.1)),
+          immediateSeam: true, reverse: false, durationMs: 1100, supreme: true,
+          sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "sunset-wave-apex", cooldownMs: Math.floor(authoredSkill2Plans["sunset-wave-apex"].cooldownMs * skill2Stats.cadenceScale) }
+        });
+        next.authored.cycleCount = 0; next.authored.charges = 0; next.authored.phase = 0;
+        next.authored.resource = 0; next.authored.anchors = [];
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "heavenly-sun-descent" && next.gongfaId === "nine-sun-calamity-seal") {
       const targets = event.targets ?? [];
       const target = [...targets].sort((a, b) => {
@@ -4453,6 +4496,81 @@ export function planGongfaAttack(
       centerRadius: dark ? 22 : solitary ? 28 : 42,
       damage: Math.max(1, Math.floor(runtime.combat.damage * (solitary ? 2.4 : twin ? 0.8 : swift ? 0.88 : 1.35) * (1 + zenith * (unsetting ? 2.2 : dark ? 1.8 : 1.35)))),
       zenith, supreme: false, sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "scarlet-wave-manual") {
+    const targets = options.targets ?? [];
+    if (targets.length === 0 || runtime.authored.phase === 2) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const target = [...targets].sort((a, b) => b.healthRatio - a.healthRatio)[0]!;
+    const baseAngle = Math.atan2(target.y - playerY, target.x - playerX);
+    const lance = learnedIds.includes("scarlet-lance-tide");
+    const broad = learnedIds.includes("river-crossing-flame-moon");
+    const rolling = learnedIds.includes("rolling-twin-tides");
+    const horizon = learnedIds.includes("horizon-opposing-tides");
+    const length = (lance ? 520 : broad ? 390 : 440) + (horizon ? 180 : 0);
+    const width = lance ? 16 : broad ? 72 : 42;
+    const durationMs = learnedIds.includes("after-tide-awaits-moon") ? 3600 : rolling ? 1100 : 2200;
+    const angle = baseAngle + (runtime.authored.phase === 0 ? 0.5 : -0.5);
+    const horizonSide = runtime.authored.phase === 0 ? -1 : 1;
+    const wave = {
+      x: playerX + (horizon ? Math.cos(angle + Math.PI / 2) * 210 * horizonSide : 0),
+      y: playerY + (horizon ? Math.sin(angle + Math.PI / 2) * 210 * horizonSide : 0),
+      angle, length, width: width + (horizon ? 20 : 0)
+    };
+    if (runtime.authored.phase === 0) {
+      runtime.authored.phase = 1;
+      runtime.authored.anchors = [{ kind: "trail", x: wave.x, y: wave.y, angle, value: wave.width, maxValue: length, remainingMs: durationMs }];
+      return [{
+        kind: "authored-scarlet-tides", waves: [wave], damage: Math.max(1, Math.floor(runtime.combat.damage * (lance ? 1.25 : broad ? 0.62 : 0.9) *
+          (learnedIds.includes("after-tide-awaits-moon") ? 0.68 : 1) * (learnedIds.includes("long-sunset-trace") ? 0.72 : 1) * (horizon ? 1.18 : 1))),
+        seamDamage: 0, immediateSeam: false, reverse: false, durationMs,
+        supreme: false, sourceGongfaId: runtime.gongfaId
+      }];
+    }
+    const first = runtime.authored.anchors.find((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
+    if (!first) { runtime.authored.phase = 0; return []; }
+    const firstLength = first.maxValue ?? length;
+    const a1x = first.x - Math.cos(first.angle!) * firstLength / 2;
+    const a1y = first.y - Math.sin(first.angle!) * firstLength / 2;
+    const a2x = first.x + Math.cos(first.angle!) * firstLength / 2;
+    const a2y = first.y + Math.sin(first.angle!) * firstLength / 2;
+    const b1x = wave.x - Math.cos(wave.angle) * wave.length / 2;
+    const b1y = wave.y - Math.sin(wave.angle) * wave.length / 2;
+    const b2x = wave.x + Math.cos(wave.angle) * wave.length / 2;
+    const b2y = wave.y + Math.sin(wave.angle) * wave.length / 2;
+    const denominator = (a1x - a2x) * (b1y - b2y) - (a1y - a2y) * (b1x - b2x);
+    const t = denominator === 0 ? -1 : ((a1x - b1x) * (b1y - b2y) - (a1y - b1y) * (b1x - b2x)) / denominator;
+    const u = denominator === 0 ? -1 : -((a1x - a2x) * (a1y - b1y) - (a1y - a2y) * (a1x - b1x)) / denominator;
+    let intersects = t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    const misbanked = learnedIds.includes("misbanked-flying-arc");
+    if (!intersects && misbanked) intersects = Math.hypot(first.x - wave.x, first.y - wave.y) <= 420;
+    const ix = intersects && t >= 0 ? a1x + t * (a2x - a1x) : (first.x + wave.x) / 2;
+    const iy = intersects && t >= 0 ? a1y + t * (a2y - a1y) : (first.y + wave.y) / 2;
+    const seamLength = learnedIds.includes("long-sunset-trace") ? 520 : 340;
+    const seamAngle = (first.angle! + wave.angle) / 2;
+    const seam = intersects ? {
+      from: { x: ix - Math.cos(seamAngle) * seamLength / 2, y: iy - Math.sin(seamAngle) * seamLength / 2 },
+      to: { x: ix + Math.cos(seamAngle) * seamLength / 2, y: iy + Math.sin(seamAngle) * seamLength / 2 },
+      width: misbanked && t < 0 ? 18 : 30
+    } : undefined;
+    runtime.authored.anchors = seam ? [{
+      kind: "trail", x: ix, y: iy, angle: seamAngle, value: seam.width,
+      maxValue: seamLength
+    }] : [];
+    runtime.authored.phase = intersects ? 2 : 0;
+    runtime.authored.targetLedger[-80] = 600;
+    if (intersects) runtime.authored.cycleCount = Math.min(3, runtime.authored.cycleCount + 1);
+    return [{
+      kind: "authored-scarlet-tides", waves: [wave], seam,
+      damage: Math.max(1, Math.floor(runtime.combat.damage * (lance ? 1.25 : broad ? 0.62 : rolling ? 0.72 : 0.9) *
+        (learnedIds.includes("long-sunset-trace") ? 0.72 : 1) * (horizon ? 1.18 : 1))),
+      seamDamage: Math.max(1, Math.floor(runtime.combat.damage * (learnedIds.includes("ruptured-burning-current") ? 2.1 : learnedIds.includes("reverse-scarlet-tide") ? 0.72 : 1.25))),
+      immediateSeam: learnedIds.includes("ruptured-burning-current"), reverse: learnedIds.includes("reverse-scarlet-tide"),
+      durationMs: learnedIds.includes("long-sunset-trace") ? 3200 : 1600,
+      supreme: false, sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "flame-demon-body-art") {

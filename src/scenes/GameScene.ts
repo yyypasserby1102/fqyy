@@ -410,6 +410,10 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "nine-sun-calamity-seal") {
       return `Nine Sun: ${runtime.authored.phase === 1 ? "Seal Falling" : "Zenith Rising"} · Zenith ${Math.floor(runtime.authored.resource * 100)}% · Omens ${runtime.authored.charges}/9`;
     }
+    if (runtime.gongfaId === "scarlet-wave-manual") {
+      const state = runtime.authored.phase === 0 ? "Awaiting Left" : runtime.authored.phase === 1 ? "Awaiting Right" : "Confluence";
+      return `Scarlet Tides: ${state} · Successful pairs ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
     return undefined;
   }
 
@@ -2579,6 +2583,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-scarlet-tides") {
+        this.fireAuthoredScarletTides(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3769,6 +3778,48 @@ export class GameScene extends Phaser.Scene {
       });
     }
     this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "nine-in-one" : "fixed-prediction"}`);
+  }
+
+  private fireAuthoredScarletTides(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-scarlet-tides" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const visual = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(14);
+    const hitLine = (fromX: number, fromY: number, toX: number, toY: number, width: number, damage: number, push = 0): void => {
+      const dx = toX - fromX; const dy = toY - fromY; const lengthSq = Math.max(1, dx * dx + dy * dy);
+      for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+        const t = Math.max(0, Math.min(1, ((enemy.x - fromX) * dx + (enemy.y - fromY) * dy) / lengthSq));
+        const cx = fromX + dx * t; const cy = fromY + dy * t;
+        if (Phaser.Math.Distance.Between(enemy.x, enemy.y, cx, cy) > width + 12) continue;
+        if (push > 0 && enemy.role !== "tribulation-boss") enemy.applyForcedVelocity(Math.atan2(dy, dx), push, 320);
+        if (enemy.receiveDamage(damage)) this.resolveEnemyDeath(enemy);
+      }
+    };
+    for (const wave of command.waves) {
+      const hx = Math.cos(wave.angle) * wave.length / 2;
+      const hy = Math.sin(wave.angle) * wave.length / 2;
+      visual.lineStyle(wave.width, identity.accent, command.supreme ? 0.52 : 0.68);
+      visual.lineBetween(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy);
+      hitLine(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy, wave.width / 2, command.damage, command.supreme ? 170 : 0);
+    }
+    if (command.seam) {
+      visual.lineStyle(command.immediateSeam ? command.seam.width + 10 : command.seam.width, identity.secondary, 0.95);
+      visual.lineBetween(command.seam.from.x, command.seam.from.y, command.seam.to.x, command.seam.to.y);
+      hitLine(command.seam.from.x, command.seam.from.y, command.seam.to.x, command.seam.to.y, command.seam.width / 2, command.seamDamage);
+      if (command.reverse) {
+        this.time.delayedCall(320, () => hitLine(
+          command.seam!.to.x, command.seam!.to.y, command.seam!.from.x, command.seam!.from.y,
+          command.seam!.width / 2, command.seamDamage * 0.55
+        ));
+      }
+    }
+    this.tweens.add({
+      targets: visual,
+      x: command.seam && !command.immediateSeam ? (command.seam.to.x - command.seam.from.x) * 0.18 : 0,
+      y: command.seam && !command.immediateSeam ? (command.seam.to.y - command.seam.from.y) * 0.18 : 0,
+      alpha: 0, duration: command.durationMs, onComplete: () => visual.destroy()
+    });
+    this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "sunset-divide" : command.seam ? "confluence" : "waiting-tide"}`);
   }
 
   private fireFeatherRainFormation(

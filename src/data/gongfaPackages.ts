@@ -69,11 +69,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "solar-flare-cycle", name: "Solar Flare Cycle", description: "Two complete solar rings form and release Heat-scaled waves while the flame ring keeps turning.", tags: ["aura", "fire", "explosive"] }
   },
   "scarlet-wave-manual": {
-    combatRole: "Broad fire crescents that control lanes and reward repeated sweeps.",
-    visualMotif: "Scarlet crescent walls, molten overlap seams, and cinder wakes.",
-    skill1: { id: "scarlet-crescents", name: "Scarlet Crescents", description: "Scorching fire waves roll forward in a broad fan, building pressure across an enemy lane.", tags: ["wave", "fire"] },
-    passive: { name: "Rolling Scorch", resource: "Scorch", description: "Wave hits build Scorch, strengthening and multiplying later scarlet crescents before it fades." },
-    skill2: { id: "sunset-wave-apex", name: "Sunset Wave Apex", description: "Opposing crescent walls cross at the densest enemy line and strike twice along their molten seam.", tags: ["wave", "fire"] }
+    combatRole: "Alternates one preserved left crescent and one mirrored right crescent; only real spatial overlap creates a third moving seam.",
+    visualMotif: "Distinct left/right scarlet wave surfaces and a brighter diagonal molten seam that exists only at their intersection.",
+    skill1: { id: "scarlet-crescents", name: "Scarlet Twin Tides", description: "Casts and preserves a left crescent, then a mirrored right crescent; separated or expired surfaces fail to Confluence.", tags: ["wave", "fire"] },
+    passive: { name: "Yin-Yang Confluence", resource: "Pair State", description: "Shows awaiting-left, awaiting-right, or successful Confluence. Hits and repeated targets add nothing." },
+    skill2: { id: "sunset-wave-apex", name: "Sunset Divide", description: "After three Confluences, opposing arena walls meet at the last seam and detonate that entire line once.", tags: ["wave", "fire", "explosive"] }
   },
   "drifting-frost-needle": {
     combatRole: "Cold precision volleys that gain coverage and piercing pressure.",

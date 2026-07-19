@@ -490,7 +490,7 @@ describe("Gongfa runtime", () => {
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
     const expectedEffectKinds: Partial<Record<GongfaId, string>> = {
       "blazing-feather-art": "feather-rain-formation",
-      "scarlet-wave-manual": "sunset-wave-apex",
+      "scarlet-wave-manual": "authored-scarlet-tides",
       "drifting-frost-needle": "mirror-needle-constellation",
       "black-tide-scripture": "authored-deluge-mandate",
       "ice-mirror-guard": "frozen-lotus-shell",
@@ -509,6 +509,10 @@ describe("Gongfa runtime", () => {
       if (gongfaId === "vermilion-bird-covenant") {
         runtime.authored.targetLedger[-20] = 1;
         runtime.authored.resource = 1;
+      }
+      if (gongfaId === "scarlet-wave-manual") {
+        runtime.authored.cycleCount = 3;
+        runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 30, maxValue: 340 });
       }
       if (gongfaId === "myriad-beast-grove") runtime.authored.resource = 1;
       if (gongfaId === "ancient-tree-body-art") {
@@ -662,6 +666,10 @@ describe("Gongfa runtime", () => {
         runtime.authored.targetLedger[-20] = 1;
         runtime.authored.resource = 1;
       }
+      if (gongfaId === "scarlet-wave-manual") {
+        runtime.authored.cycleCount = 3;
+        runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 30, maxValue: 340 });
+      }
       if (runtime.blazingFeather) runtime.blazingFeather.emberStacks = 6;
       if (runtime.surge) runtime.surge.stacks = 6;
       return advanceGongfaRuntime(runtime, {
@@ -682,9 +690,9 @@ describe("Gongfa runtime", () => {
       damage: 22
     });
     expect(cast("scarlet-wave-manual")).toMatchObject({
-      kind: "sunset-wave-apex",
-      wallCount: 2,
-      width: 130
+      kind: "authored-scarlet-tides",
+      supreme: true,
+      immediateSeam: true
     });
     expect(cast("drifting-frost-needle")).toMatchObject({
       kind: "mirror-needle-constellation",
@@ -2347,84 +2355,24 @@ describe("Gongfa runtime", () => {
     expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
   });
 
-  it("Surge passive builds on hits, boosts damage and volley, and fades", () => {
-    const hit = (rt: ReturnType<typeof createGongfaRuntime>, ids: string[]) =>
-      advanceGongfaRuntimeForProjectileHit(rt, {
-        sourceGongfaId: "scarlet-wave-manual",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: ids,
-        baseDamageKilledTarget: false,
-        embedStacks: 0,
-        embedPower: 0
-      }).runtime;
-
-    let runtime = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
-    const baseDamage = runtime.combat.damage;
-    const [basePlan] = planGongfaAttack(createGongfaRuntime({ gongfaId: "scarlet-wave-manual" }), 0);
-    const baseCount = basePlan.kind === "wave-volley" ? basePlan.count : 0;
-
-    for (let i = 0; i < 4; i += 1) {
-      runtime = hit(runtime, []);
-    }
-    expect(runtime.surge!.stacks).toBe(4);
-    expect(runtime.combat.damage).toBeGreaterThan(baseDamage);
-    const [charged] = planGongfaAttack(runtime, 0);
-    expect((charged.kind === "wave-volley" ? charged.count : 0)).toBeGreaterThan(baseCount);
-
-    const faded = advanceGongfaRuntime(runtime, {
-      kind: "tick",
-      deltaMs: 4000,
-      nearbyEnemyCount: 0,
-      isMoving: false
-    }).runtime;
-    expect(faded.surge!.stacks).toBeLessThan(4);
-
-    // Cascade stokes twice as fast.
-    const cascade = hit(createGongfaRuntime({ gongfaId: "scarlet-wave-manual" }), ["spreading-scorch"]);
-    expect(cascade.surge!.stacks).toBe(2);
+  it("Scarlet Twin Tides uses pair state rather than hit-built Surge", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
+    const targets = [{ targetId: 1, x: 120, y: 0, healthRatio: 1, rank: "ordinary" as const }];
+    const [left] = planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets });
+    expect(left.kind).toBe("authored-scarlet-tides");
+    expect(runtime.authored.phase).toBe(1);
+    expect(runtime.authored.cycleCount).toBe(0);
+    const [right] = planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets });
+    expect(right.kind === "authored-scarlet-tides" && right.seam).toBeDefined();
+    expect(runtime.authored.phase).toBe(2);
+    expect(runtime.authored.cycleCount).toBe(1);
   });
 
-  it("Surge structural/crown/domain/updraft behaviours, pattern-aware", () => {
-    const base = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
-    const focus = applyGongfaImprovement(base, "lancing-crescent").runtime;
-    expect(focus.combat.pierce).toBe(base.combat.pierce + 2);
-    expect(focus.combat.damage).toBeGreaterThan(base.combat.damage);
-
-    const spread = applyGongfaImprovement(base, "wide-crescent").runtime;
-    expect(spread.combat.count).toBe(base.combat.count + 3);
-    expect(spread.combat.damage).toBeLessThan(base.combat.damage);
-
-    const quicken = applyGongfaImprovement(base, "rolling-heat").runtime;
-    expect(quicken.combat.cooldownMs).toBeLessThan(base.combat.cooldownMs);
-    expect(quicken.combat.damage).toBeLessThan(base.combat.damage);
-
+  it("remaining Surge updraft behaviours stay pattern-aware", () => {
     const frostBase = createGongfaRuntime({ gongfaId: "drifting-frost-needle" });
     const frostSpread = applyGongfaImprovement(frostBase, "frost-flurry").runtime;
     expect(frostSpread.combat.count - frostBase.combat.count).toBe(2);
-    expect(frostSpread.combat.spreadDeg).not.toBe(spread.combat.spreadDeg);
-
-    const stoked = createGongfaRuntime({ gongfaId: "scarlet-wave-manual", surge: { stacks: 4 } });
-    const [crowned] = planGongfaAttack(stoked, 0, { learnedMasteryIds: ["sunfire-crescents"] });
-    const [plain] = planGongfaAttack(stoked, 0);
-    expect((crowned.kind === "wave-volley" ? crowned.count : 0)).toBeGreaterThan(
-      plain.kind === "wave-volley" ? plain.count : 0
-    );
-
-    const domainHit = advanceGongfaRuntimeForProjectileHit(stoked, {
-      sourceGongfaId: "scarlet-wave-manual",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: ["cinder-trail"],
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    });
-    expect(domainHit.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-
-    // Updraft emits a volley matching each gongfa's pattern.
-    const waveEvade = advanceGongfaRuntime(stoked, { kind: "evade", learnedMasteryIds: ["heatwave-step"] });
-    expect(waveEvade.commands.some((command) => command.kind === "wave-volley")).toBe(true);
+    expect(frostSpread.combat.spreadDeg).toBeGreaterThan(frostBase.combat.spreadDeg);
 
     const homingEvade = advanceGongfaRuntime(
       createGongfaRuntime({ gongfaId: "drifting-frost-needle", surge: { stacks: 3 } }),
