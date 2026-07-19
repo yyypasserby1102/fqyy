@@ -1698,7 +1698,7 @@ test("first breakthrough saves a resumable Lianqi run after Gongfa selection", a
   expect(afterReload.progression.lingcaoCollected).toBe(true);
 });
 
-test("death removes the active run save so Continue disappears after reload", async ({ page }) => {
+test("death presents defeat, clears the save, and automatically returns to title", async ({ page }) => {
   await startNewRun(page);
 
   await page.evaluate(() => {
@@ -1712,8 +1712,7 @@ test("death removes the active run save so Continue disappears after reload", as
   expect(afterDeath.player.visual.animationKey).toBe("cultivator-defeat");
   expect(afterDeath.audio.recentCues).toContain("death");
 
-  await page.reload();
-  await page.waitForFunction(() => document.querySelector("button"));
+  await expect(page.getByRole("button", { name: "Start New Run" })).toBeVisible({ timeout: 5_000 });
   const continueButton = await page.getByRole("button", { name: "Continue" });
   await expect(continueButton).toHaveCount(0);
 });

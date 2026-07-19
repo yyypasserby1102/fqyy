@@ -3799,6 +3799,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private handlePlayerDeath(message: string): void {
+    if (this.runState.gameOver) {
+      return;
+    }
+
     this.shakeCamera(280, 0.013);
     this.sfx.death();
     const result = advanceRunJourney(this.runState, { kind: "player-died" });
@@ -3806,10 +3810,10 @@ export class GameScene extends Phaser.Scene {
     this.player.presentDefeat();
     this.physics.world.isPaused = true;
     this.player.move(new Phaser.Math.Vector2(0, 0));
-    this.time.delayedCall(520, () => this.setPausedState(true));
     this.lastMessage = message;
     this.clearActiveRunSave();
     this.publishHud(message);
+    this.time.delayedCall(1_200, () => this.returnToTitle(false));
   }
 
   private publishHud(message?: string): void {
