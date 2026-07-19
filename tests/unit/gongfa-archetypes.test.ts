@@ -11,7 +11,7 @@ import { authoredGongfaMechanics } from "../../src/data/authoredGongfaMechanics"
 const archetypes = [
   ["nine-sun-calamity-seal", "ritual-impact", "heavenly-sun-descent", "heavenly-sun-descent"],
   ["mist-wraith-canon", "authored-line-strike", "hundred-ghost-procession", "authored-line-strike"],
-  ["heavenfall-body-art", "melee-combination", "star-breaking-descent", "star-breaking-descent"],
+  ["heavenfall-body-art", "authored-heavenfall-body", "star-breaking-descent", "authored-star-descent"],
   ["thousand-root-formation", "authored-root-infection", "myriad-root-killing-field", "authored-root-ancestor"],
   ["flame-demon-body-art", "authored-blood-combination", "asura-conflagration", "star-breaking-descent"],
   ["vermilion-bird-covenant", "authored-vermilion-flight", "vermilion-host-descent", "authored-vermilion-flight"],
@@ -63,11 +63,18 @@ describe("expanded Gongfa archetypes", () => {
           { kind: "seal", sealRole: "origin", chainId: 2, targetId: 42, x: -20, y: 0, value: 1 }
         );
       }
-      const command = planGongfaAttack(runtime, 0, {
-        playerX: 0,
-        playerY: 0,
-        targets: [{ targetId: 91, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }]
-      })[0];
+      if (gongfaId === "heavenfall-body-art") runtime.authored.phase = 1;
+      const command = gongfaId === "heavenfall-body-art"
+        ? advanceGongfaRuntime(runtime, {
+            kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+            movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0,
+            targets: [{ targetId: 91, x: 20, y: 0, healthRatio: 1, rank: "ordinary" }]
+          }).commands[0]
+        : planGongfaAttack(runtime, 0, {
+            playerX: 0,
+            playerY: 0,
+            targets: [{ targetId: 91, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }]
+          })[0];
       expect(command?.kind).toBe(expectedKind);
       return command?.kind;
     });
@@ -107,6 +114,11 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.phase = 1;
         runtime.authored.charges = runtime.authored.maxCharges;
         runtime.authored.resource = 1;
+      }
+      if (gongfaId === "heavenfall-body-art") {
+        runtime.authored.phase = 1;
+        runtime.authored.resource = 1;
+        runtime.authored.phaseElapsedMs = 6000;
       }
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
@@ -148,8 +160,9 @@ describe("expanded Gongfa archetypes", () => {
       const runtime = createGongfaRuntime({ gongfaId });
       runtime.combat = { ...runtime.combat, ...gongfaConfigs[gongfaId].stages.yuanying! };
       if (gongfaId === "ancient-tree-body-art") runtime.authored.phase = 1;
-      const targets = [{ targetId: 77, x: 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];
-      const command = gongfaId === "vermilion-bird-covenant" || gongfaId === "myriad-beast-grove" || gongfaId === "ancient-tree-body-art"
+      if (gongfaId === "heavenfall-body-art") runtime.authored.phase = 1;
+      const targets = [{ targetId: 77, x: gongfaId === "heavenfall-body-art" ? 20 : 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];
+      const command = ["vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art"].includes(gongfaId)
         ? advanceGongfaRuntime(runtime, {
             kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: gongfaId !== "ancient-tree-body-art",
             movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0, targets
@@ -185,6 +198,7 @@ describe("expanded Gongfa archetypes", () => {
         return [];
       }
       if (command.kind === "authored-ancient-tree-cycle") return [];
+      if (command.kind === "authored-heavenfall-body") return [];
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];
       }

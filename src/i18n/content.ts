@@ -147,10 +147,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "百鬼夜潮", description: "召来强化雾灵列阵巡游，以追踪寒弹覆盖整片战场。" }
   },
   "heavenfall-body-art": {
-    name: "天坠锻体术", lore: "铸身如星，入阵碎敌，以彼之力还彼之身。", combatRole: "贴身强攻的斗战体修，以连击撕开敌群并反震近身伤害。", visualMotif: "金白震弧、锻体棱面与坠星冲击环。",
-    skill1: { name: "坠星连式", description: "在近距离连续猛击，最终以沉重环形震击收式，无法触及远敌。" },
-    passive: { name: "返天劲", resource: "反势", description: "遭受接触伤害时以金身反震，并积累反势强化近战终击。" },
-    skill2: { name: "碎星天坠", description: "以巨力砸落身周，并在短时内将来势化作猛烈震波返还。" }
+    name: "天坠锻体术", lore: "行身如星，直进聚质，循势坠天。", combatRole: "持续移动自动化为坠星身，以不中断的行进方向积累陨星质量，并沿当前航向自动落地。", visualMotif: "随质量扩张的金属星体、压缩行迹、落点预示线与星槊、天坑、返星三种终击。",
+    skill1: { name: "坠星身", description: "临敌持续移动会暂化坠星身；身体穿过普通敌人时按目标独立冷却造成碰撞伤害。" },
+    passive: { name: "陨星质量", resource: "质量", description: "不间断直行增长质量；停步、急转与硬碰撞会损失质量，命中本身不增长。" },
+    skill2: { name: "碎星天坠", description: "质量圆满或形态到期时，沿当前普通移动方向坠落，消耗全部质量并结束形态。" }
   },
   "thousand-root-formation": {
     name: "万根寄命经", lore: "寄一根于一命，以宿主存亡养成根脉传承。", combatRole: "寄生控场，维持有限活体根脉成熟，并借宿主死亡完成一脉一传。", visualMotif: "宿主体内翠种、破体根枝与爬行汇合的根母。",
@@ -1017,7 +1017,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "hollow-trunk-tribulation": { name: "空心渡劫" },
   "myriad-roots-cover-the-realm": { name: "万根覆界" },
   "one-tree-upholds-heaven": { name: "一木擎天" },
-  "world-sheltering-canopy": { name: "庇世华盖" }
+  "world-sheltering-canopy": { name: "庇世华盖" },
+  "star-piercing-iron-body": { name: "贯星铁躯" },
+  "heavenfall-giant-body": { name: "天陨巨身" },
+  "wandering-star-light-body": { name: "游星轻身" },
+  "no-return-advance": { name: "一往无回" },
+  "iron-body-opens-the-road": { name: "铁躯开道" },
+  "heaven-turning-pivot": { name: "回天转斗" },
+  "mountain-piercing-star-lance": { name: "穿岳星槊" },
+  "heavenfall-crater": { name: "天坑陨界" },
+  "reverse-star-return": { name: "逆星回天" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

@@ -265,6 +265,7 @@ export class GameScene extends Phaser.Scene {
   private vermilionBirdMarker?: Phaser.GameObjects.Graphics;
   private readonly myriadBeastMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private readonly myriadBeastAssistMarkers = new Map<number, Phaser.GameObjects.Graphics>();
+  private heavenfallBodyMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -399,6 +400,9 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "ancient-tree-body-art") {
       const state = runtime.authored.phase === 0 ? "Mobile" : runtime.authored.phase === 1 ? "Rooted" : runtime.authored.phase === 2 ? "Uprooting" : "World-Tree";
       return `Ancient Tree: ${state} · Rings ${runtime.authored.charges}/${runtime.authored.maxCharges}${runtime.authored.phase === 2 ? ` · ${Math.ceil(runtime.authored.phaseElapsedMs / 100) / 10}s` : ""}`;
+    }
+    if (runtime.gongfaId === "heavenfall-body-art") {
+      return `Falling Star: ${runtime.authored.phase === 1 ? "Transformed" : "Ready"} · Mass ${Math.floor(runtime.authored.resource * 100)}% · ${Math.max(0, Math.ceil((6000 - runtime.authored.phaseElapsedMs) / 100) / 10)}s`;
     }
     return undefined;
   }
@@ -570,11 +574,22 @@ export class GameScene extends Phaser.Scene {
     const evadeState = this.evade.state;
     const treeRuntime = this.gongfaCollection.byId["ancient-tree-body-art"];
     const treeMovementLocked = treeRuntime && [1, 2, 3].includes(treeRuntime.authored.phase);
-    const presentedMovement = treeMovementLocked
+    let presentedMovement = treeMovementLocked
       ? new Phaser.Math.Vector2(0, 0)
       : evadeState.active
       ? new Phaser.Math.Vector2(evadeState.direction.x, evadeState.direction.y)
       : movement;
+    const heavenfall = this.gongfaCollection.byId["heavenfall-body-art"];
+    if (!treeMovementLocked && heavenfall?.authored.phase === 1 && movement.lengthSq() > 0) {
+      const learned = heavenfall.mastery.masteryLearnedIds;
+      const response = learned.includes("star-piercing-iron-body") ? 0.24 :
+        learned.includes("wandering-star-light-body") ? 1 : learned.includes("heavenfall-giant-body") ? 0.5 : 0.68;
+      const prior = new Phaser.Math.Vector2(
+        Math.cos(heavenfall.authored.lastMovementAngle ?? movement.angle()),
+        Math.sin(heavenfall.authored.lastMovementAngle ?? movement.angle())
+      );
+      presentedMovement = prior.scale(1 - response).add(movement.clone().normalize().scale(response)).normalize();
+    }
     this.player.move(
       presentedMovement,
       evadeState.active
@@ -764,6 +779,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "myriad-beast-grove") {
         this.syncMyriadBeastMarkers(result.runtime);
+      }
+      if (result.runtime.gongfaId === "heavenfall-body-art") {
+        this.syncHeavenfallBodyMarker(result.runtime);
       }
     }
     this.restorePrimaryRuntimeAdapter();
@@ -2236,6 +2254,9 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "myriad-beast-grove") {
         this.syncMyriadBeastMarkers(result.runtime);
       }
+      if (result.runtime.gongfaId === "heavenfall-body-art") {
+        this.syncHeavenfallBodyMarker(result.runtime);
+      }
     }
     this.restorePrimaryRuntimeAdapter();
   }
@@ -2529,6 +2550,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-ancient-tree-cycle") {
         this.fireAuthoredAncientTreeCycle(command);
+        return;
+      }
+
+      if (command.kind === "authored-heavenfall-body") {
+        this.fireAuthoredHeavenfallBody(command);
+        return;
+      }
+
+      if (command.kind === "authored-star-descent") {
+        this.fireAuthoredStarDescent(command);
         return;
       }
 
@@ -3410,6 +3441,27 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private syncHeavenfallBodyMarker(runtime: GongfaRuntime): void {
+    if (runtime.authored.phase !== 1) {
+      this.heavenfallBodyMarker?.destroy();
+      this.heavenfallBodyMarker = undefined;
+      return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.heavenfallBodyMarker ?? this.add.graphics().setDepth(13);
+    this.heavenfallBodyMarker = marker;
+    marker.clear();
+    const radius = 34 + runtime.authored.resource * 28;
+    marker.fillStyle(identity.accent, 0.18);
+    marker.fillCircle(0, 0, radius);
+    marker.lineStyle(5 + runtime.authored.resource * 4, identity.secondary, 0.82);
+    marker.strokeCircle(0, 0, radius);
+    const angle = runtime.authored.lastMovementAngle ?? 0;
+    marker.lineStyle(4, identity.accent, 0.7);
+    marker.lineBetween(-Math.cos(angle) * radius * 1.8, -Math.sin(angle) * radius * 1.8, Math.cos(angle) * radius, Math.sin(angle) * radius);
+    marker.setPosition(this.player.x, this.player.y);
+  }
+
   private markMyriadBeastAssist(targetId: number, species: "boar" | "fox" | "deer"): void {
     const runtime = this.gongfaCollection.byId["myriad-beast-grove"];
     if (!runtime) return;
@@ -3537,6 +3589,55 @@ export class GameScene extends Phaser.Scene {
     if (command.heal > 0) this.player.heal(command.heal);
     this.tweens.add({ targets: tree, alpha: 0, scale: 1.04, duration: 780, onComplete: () => tree.destroy() });
     this.recordGongfaMotif(`${identity.motifId}:${command.worldTree ? "world-tree" : command.law}`);
+  }
+
+  private fireAuthoredHeavenfallBody(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-heavenfall-body" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const body = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(14);
+    body.fillStyle(identity.accent, 0.2);
+    body.fillCircle(command.x, command.y, command.radius);
+    body.lineStyle(5, identity.secondary, 0.84);
+    body.strokeCircle(command.x, command.y, command.radius);
+    for (const targetId of command.eligibleTargetIds) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (!enemy?.active) continue;
+      const angle = Phaser.Math.Angle.Between(command.x, command.y, enemy.x, enemy.y);
+      enemy.applyForcedVelocity(angle, command.force, 260);
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.tweens.add({ targets: body, alpha: 0, scale: 1.3, duration: 260, onComplete: () => body.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:body-contact`);
+  }
+
+  private fireAuthoredStarDescent(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-star-descent" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const x = this.player.x + Math.cos(command.angle) * (110 + command.mass * 170);
+    const y = this.player.y + Math.sin(command.angle) * (110 + command.mass * 170);
+    const impact = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(16);
+    impact.lineStyle(command.fate === "star-lance" ? 12 : 6, identity.secondary, 0.92);
+    impact.lineBetween(this.player.x, this.player.y, x, y);
+    impact.fillStyle(identity.accent, 0.32);
+    if (command.fate === "crater") impact.fillCircle(x, y, command.radius);
+    else impact.fillTriangle(x, y - command.radius, x + command.radius * 2, y, x, y + command.radius);
+    const hitPass = (fromX: number, fromY: number, toX: number, toY: number, scale: number): void => {
+      const dx = toX - fromX; const dy = toY - fromY; const lengthSq = Math.max(1, dx * dx + dy * dy);
+      for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+        const projection = Math.max(0, Math.min(1, ((enemy.x - fromX) * dx + (enemy.y - fromY) * dy) / lengthSq));
+        const cx = fromX + dx * projection; const cy = fromY + dy * projection;
+        const inCrater = command.fate === "crater" && Phaser.Math.Distance.Between(enemy.x, enemy.y, x, y) <= command.radius;
+        if (!inCrater && Phaser.Math.Distance.Between(enemy.x, enemy.y, cx, cy) > command.radius + 12) continue;
+        if (command.fate === "crater") enemy.applySlow(0.2, 1400);
+        if (enemy.receiveDamage(command.damage * scale)) this.resolveEnemyDeath(enemy);
+      }
+    };
+    hitPass(this.player.x, this.player.y, x, y, command.fate === "reverse-return" ? 0.68 : 1);
+    if (command.fate === "reverse-return") hitPass(x, y, this.player.x, this.player.y, 0.52);
+    this.tweens.add({ targets: impact, alpha: 0, scale: 1.12, duration: command.fate === "crater" ? 1050 : 620, onComplete: () => impact.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:${command.fate}`);
   }
 
   private fireFeatherRainFormation(

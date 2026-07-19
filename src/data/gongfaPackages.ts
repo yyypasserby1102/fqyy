@@ -132,11 +132,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "hundred-ghost-procession", name: "Hundred-Ghost Procession", description: "Calls a procession of empowered wraiths that circle the Cultivator and saturate the arena with seeking frost bolts.", tags: ["summon", "water", "projectile", "ailment"] }
   },
   "heavenfall-body-art": {
-    combatRole: "Committed melee bruiser that cleaves nearby packs and reflects contact damage back into attackers.",
-    visualMotif: "Gold-white impact arcs, forged-body facets, and falling-star shock rings.",
-    skill1: { id: "falling-star-combination", name: "Falling-Star Combination", description: "Performs a rapid close-range combination ending in a heavy radial finisher; it cannot reach distant enemies.", tags: ["melee", "metal"] },
-    passive: { name: "Returning Heaven", resource: "Reprisal", description: "Contact damage is answered by metal-body reflection, building Reprisal for stronger melee finishers." },
-    skill2: { id: "star-breaking-descent", name: "Star-Breaking Descent", description: "Crashes down in a massive close-range strike and briefly returns incoming force as a violent shockwave.", tags: ["melee", "metal", "defensive", "reflect"] }
+    combatRole: "A temporary mobile meteor body whose uninterrupted heading builds Mass for an automatic movement-steered landing.",
+    visualMotif: "A growing metal-star body, compressed travel wake, projected landing line, and distinct lance/crater/return impacts.",
+    skill1: { id: "falling-star-combination", name: "Falling-Star Body", description: "Continuous movement near danger transforms the body; passing through ordinary enemies deals contact damage on individual cooldowns.", tags: ["melee", "metal", "defensive"] },
+    passive: { name: "Meteor Mass", resource: "Mass", description: "Straight uninterrupted travel builds Mass; stopping, sharp turns, and hard impacts shed it. Hits build none." },
+    skill2: { id: "star-breaking-descent", name: "Star-Breaking Descent", description: "At full Mass or the form's limit, crash along the current movement heading and spend all Mass.", tags: ["melee", "metal", "explosive"] }
   },
   "thousand-root-formation": {
     combatRole: "A living-host controller that preserves finite parasitic lineages long enough to mature and erupt.",

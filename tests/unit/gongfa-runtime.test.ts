@@ -516,6 +516,11 @@ describe("Gongfa runtime", () => {
         runtime.authored.charges = runtime.authored.maxCharges;
         runtime.authored.resource = 1;
       }
+      if (gongfaId === "heavenfall-body-art") {
+        runtime.authored.phase = 1;
+        runtime.authored.resource = 1;
+        runtime.authored.phaseElapsedMs = 6000;
+      }
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -2565,5 +2570,38 @@ describe("Gongfa runtime", () => {
     expect(result.runtime.authored.phase).toBe(3);
     expect(cycle?.worldTree).toBe(true);
     expect(cycle?.law).toBe("sheltering");
+  });
+
+  it("builds Heavenfall Mass from straight travel and sheds it on a sharp turn", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
+    runtime.authored.phase = 1;
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: 0, movementDistance: 200, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.resource).toBeCloseTo(0.2);
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: Math.PI, movementDistance: 3, playerX: 0, playerY: 0,
+      learnedMasteryIds: ["no-return-advance"]
+    }).runtime;
+    expect(runtime.authored.resource).toBe(0);
+  });
+
+  it("spends committed Heavenfall Mass on a movement-steered R9 descent", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
+    runtime.authored.phase = 1;
+    runtime.authored.resource = 1;
+    runtime.authored.phaseElapsedMs = 6000;
+    runtime.authored.lastMovementAngle = Math.PI / 2;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "star-breaking-descent",
+      learnedMasteryIds: ["reverse-star-return"]
+    });
+    const descent = result.commands.find((command) => command.kind === "authored-star-descent");
+    expect(descent?.angle).toBe(Math.PI / 2);
+    expect(descent?.fate).toBe("reverse-return");
+    expect(result.runtime.authored.resource).toBe(0);
+    expect(result.runtime.authored.phase).toBe(0);
   });
 });

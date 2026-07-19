@@ -639,6 +639,18 @@ export type GongfaRuntimeCommand =
       canopyRadius: number; damage: number; law: "many-roots" | "one-tree" | "sheltering";
       heal: number; worldTree: boolean; canopyFocus: boolean; sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-heavenfall-body";
+      x: number; y: number; radius: number; damage: number; force: number;
+      eligibleTargetIds: number[];
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-star-descent";
+      x: number; y: number; angle: number; mass: number; damage: number; radius: number;
+      fate: "star-lance" | "crater" | "reverse-return"; sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2427,7 +2439,7 @@ function advanceAuthoredWorldFacts(
       state.resource = Math.min(1, state.phaseElapsedMs / phaseDuration);
       state.charges = Math.min(3, state.cycleCount);
     }
-  } else if (runtime.gongfaId !== "ancient-tree-body-art") {
+  } else if (!["ancient-tree-body-art", "heavenfall-body-art"].includes(runtime.gongfaId)) {
     state.phaseElapsedMs += event.deltaMs;
   }
 
@@ -2750,6 +2762,63 @@ function advanceAuthoredWorldFacts(
       attackTimer = state.phase === 3 ? 520 : 920;
     }
     state.targetLedger[-60] = attackTimer;
+  }
+
+  if (runtime.gongfaId === "heavenfall-body-art") {
+    const moving = event.isMoving === true;
+    const targets = event.targets ?? [];
+    const playerX = event.playerX ?? 0;
+    const playerY = event.playerY ?? 0;
+    for (const key of Object.keys(state.targetLedger).map(Number).filter((key) => key > 0)) {
+      state.targetLedger[key] = Math.max(0, state.targetLedger[key]! - event.deltaMs);
+    }
+    if (state.phase === 0) {
+      state.phaseElapsedMs = moving && targets.length > 0 ? state.phaseElapsedMs + event.deltaMs : 0;
+      if (state.phaseElapsedMs >= 420) {
+        state.phase = 1; state.phaseElapsedMs = 0; state.resource = 0; state.secondaryResource = 0;
+        state.lastMovementAngle = event.movementAngle;
+        state.targetLedger[-70] = event.movementAngle ?? 0;
+      }
+    } else if (state.phase === 1) {
+      state.phaseElapsedMs += event.deltaMs;
+      const angle = event.movementAngle ?? state.lastMovementAngle ?? 0;
+      const previousHeading = state.targetLedger[-70];
+      const turn = previousHeading === undefined ? 0 : Math.abs(Math.atan2(
+        Math.sin(angle - previousHeading), Math.cos(angle - previousHeading)
+      ));
+      const light = learnedIds.includes("wandering-star-light-body");
+      const giant = learnedIds.includes("heavenfall-giant-body");
+      const noReturn = learnedIds.includes("no-return-advance");
+      const pivot = learnedIds.includes("heaven-turning-pivot");
+      const cap = light ? 0.68 : pivot ? 0.78 : 1;
+      if (!moving) state.resource = Math.max(0, state.resource - event.deltaMs * 0.0011);
+      else if (turn > 1.05) {
+        if (pivot && state.secondaryResource < 1) { state.resource *= 0.5; state.secondaryResource = 1; }
+        else state.resource = noReturn ? 0 : Math.max(0, state.resource - 0.36);
+      } else {
+        const gain = giant ? 0.00011 : noReturn && turn < 0.18 ? 0.00034 : 0.0002;
+        state.resource = Math.min(cap, state.resource + event.deltaMs * gain);
+      }
+      state.lastMovementAngle = angle;
+      state.targetLedger[-70] = angle;
+      const radius = (learnedIds.includes("star-piercing-iron-body") ? 24 : giant ? 58 : 38) + state.resource * 24;
+      const eligible = targets.filter((target) => target.rank === "ordinary" &&
+        distanceSquared(target.x, target.y, playerX, playerY) <= radius ** 2 &&
+        (state.targetLedger[target.targetId] ?? 0) <= 0
+      );
+      if (eligible.length > 0) {
+        for (const target of eligible) state.targetLedger[target.targetId] = 720;
+        commands.push({
+          kind: "authored-heavenfall-body", x: playerX, y: playerY, radius,
+          damage: Math.max(1, Math.floor(runtime.combat.damage * (0.5 + state.resource * 0.65))),
+          force: 90 + state.resource * 190, eligibleTargetIds: eligible.map((target) => target.targetId),
+          sourceGongfaId: runtime.gongfaId
+        });
+      }
+      if (state.phaseElapsedMs >= 6200 && !runtime.mastery.masterySkill2Id) {
+        state.phase = 0; state.phaseElapsedMs = 0; state.resource = 0;
+      }
+    }
   }
 
   state.anchors = state.anchors.filter((anchor) => {
@@ -3124,6 +3193,25 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "star-breaking-descent" && next.gongfaId === "heavenfall-body-art") {
+      const cap = event.learnedMasteryIds.includes("wandering-star-light-body") ? 0.68 :
+        event.learnedMasteryIds.includes("heaven-turning-pivot") ? 0.78 : 1;
+      if (next.authored.phase === 1 && (next.authored.resource >= cap - 0.01 || next.authored.phaseElapsedMs >= 6000)) {
+        const fate = event.learnedMasteryIds.includes("mountain-piercing-star-lance") ? "star-lance" as const :
+          event.learnedMasteryIds.includes("reverse-star-return") ? "reverse-return" as const : "crater" as const;
+        const mass = next.authored.resource;
+        commands.push({
+          kind: "authored-star-descent", x: 0, y: 0, angle: next.authored.lastMovementAngle ?? 0,
+          mass, damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * (0.75 + mass * 1.8))),
+          radius: fate === "star-lance" ? 34 : fate === "reverse-return" ? 26 : 90 + mass * 150,
+          fate, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "star-breaking-descent", cooldownMs: Math.floor(authoredSkill2Plans["star-breaking-descent"].cooldownMs * skill2Stats.cadenceScale) }
+        });
+        next.authored.phase = 0; next.authored.phaseElapsedMs = 0; next.authored.resource = 0;
+        next.authored.secondaryResource = 0;
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "world-tree-incarnation" && next.gongfaId === "ancient-tree-body-art") {
       if (next.authored.phase === 1 && next.authored.charges >= next.authored.maxCharges) {
         const law = event.learnedMasteryIds.includes("one-tree-upholds-heaven") ? "one-tree" as const :
@@ -4305,6 +4393,7 @@ export function planGongfaAttack(
     return [];
   }
   if (runtime.gongfaId === "ancient-tree-body-art") return [];
+  if (runtime.gongfaId === "heavenfall-body-art") return [];
   if (runtime.gongfaId === "frozen-river-formation") {
     const targets = (options.targets ?? []).filter((target) =>
       !runtime.authored.anchors.some((anchor) =>

@@ -203,7 +203,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "black-tide-scripture",
   "vermilion-bird-covenant",
   "myriad-beast-grove",
-  "ancient-tree-body-art"
+  "ancient-tree-body-art",
+  "heavenfall-body-art"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -361,6 +362,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["myriad-roots-cover-the-realm", "Myriad Roots Cover the Realm", "A hunting root reaches every ordinary enemy.", "Boss damage is weak.", "World-tree ordinary-enemy routing"],
       ["one-tree-upholds-heaven", "One Tree Upholds Heaven", "All main roots concentrate on the strongest enemy.", "Other enemies are ignored.", "World-tree focus routing"],
       ["world-sheltering-canopy", "World-Sheltering Canopy", "The canopy protects and heals allies.", "World-tree damage is low.", "World-tree protection and healing"]
+    ]
+  },
+  "heavenfall-body-art": {
+    3: [
+      ["star-piercing-iron-body", "Star-Piercing Iron Body", "The falling-star body is narrow, fast, and forceful.", "It turns very poorly.", "Body width, speed, and turning"],
+      ["heavenfall-giant-body", "Heavenfall Giant Body", "The body becomes broad and powerful.", "Mass builds slowly.", "Body radius, power, and Mass rate"],
+      ["wandering-star-light-body", "Wandering-Star Light Body", "The body turns easily.", "Mass and descent caps are low.", "Turning response and Mass ceiling"]
+    ],
+    6: [
+      ["no-return-advance", "No-Return Advance", "Straight travel builds Mass rapidly.", "A large turn clears all Mass.", "Straight-line Mass gain and turn loss"],
+      ["iron-body-opens-the-road", "Iron Body Opens the Road", "Ordinary enemy passages preserve Mass.", "Each passage briefly slows movement.", "Collision Mass retention and movement"],
+      ["heaven-turning-pivot", "Heaven-Turning Pivot", "One sharp turn preserves half Mass.", "Mass cap and descent area are lower.", "One-turn allowance and cap" ]
+    ],
+    9: [
+      ["mountain-piercing-star-lance", "Mountain-Piercing Star Lance", "The finish pierces the strongest threat in a narrow line.", "It creates almost no crater.", "Descent shape and priority"],
+      ["heavenfall-crater", "Heavenfall Crater", "The finish makes a huge controlling crater.", "Recovery is long.", "Descent radius and recovery"],
+      ["reverse-star-return", "Reverse-Star Return", "The body rebounds along its approach route for a second pass.", "Both passes are weaker and create no crater.", "Descent return route"]
     ]
   }
 };
