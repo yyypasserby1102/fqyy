@@ -258,6 +258,7 @@ export class GameScene extends Phaser.Scene {
   private activeRunSave: ActiveRunSave | null = null;
   private nextCombatTargetId = 1;
   private nextSkill2ActivationId = 1;
+  private bloodCombinationSerial = 0;
   private readonly skill2HitTargets = new Map<number, Set<number>>();
   private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private recentGongfaMotifs: string[] = [];
@@ -1825,6 +1826,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyEvadeRuntimeEffects(): void {
+    this.bloodCombinationSerial += 1;
     for (const runtime of this.learnedGongfaRuntimes) {
       const result = advanceGongfaRuntime(runtime, {
         kind: "evade",
@@ -2565,19 +2567,45 @@ export class GameScene extends Phaser.Scene {
     command: Extract<GongfaRuntimeCommand, { kind: "authored-blood-combination" }>
   ): void {
     const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    if (command.asuraActive && command.asuraChoice) {
+      this.player.lockRecoveryCeiling(
+        command.asuraChoice === "undying-asura" ? 0.3 :
+          command.asuraChoice === "world-burning-asura" ? 0.15 : 0.25
+      );
+    }
+    let totalHealthBurned = 0;
+    let combinationStayedValid = true;
+    const combinationSerial = ++this.bloodCombinationSerial;
     for (let strike = 0; strike < command.strikeCount; strike += 1) {
       this.time.delayedCall(strike * command.staggerMs, () => {
-        if (!this.player.active) return;
+        if (combinationSerial !== this.bloodCombinationSerial) return;
+        if (!this.player.active) {
+          combinationStayedValid = false;
+          return;
+        }
+        const finisher = strike === command.strikeCount - 1;
+        const strikeDamage = command.damage * (finisher ? 1.45 : 0.62);
+        const radius = command.radius * (finisher ? 1.18 : 0.86);
+        const activeEnemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+        const eligibleRange = command.shape === "focused"
+          ? radius * 2.5
+          : command.shape === "pursuit"
+            ? radius + 42
+            : radius;
+        const hadEligibleTarget = activeEnemies.some((enemy) =>
+          Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) <= eligibleRange + 12
+        );
+        if (!hadEligibleTarget) {
+          combinationStayedValid = false;
+          return;
+        }
         const costFraction = command.healthCostFractions[strike] ?? 0;
         if (costFraction > 0) {
           const healthCost = this.player.stats.health * costFraction;
           this.player.stats.health = Math.max(1, this.player.stats.health - healthCost);
+          totalHealthBurned += healthCost;
           this.spawnDamageNumber(this.player.x, this.player.y - 26, healthCost);
         }
-
-        const finisher = strike === command.strikeCount - 1;
-        const strikeDamage = command.damage * (finisher ? 1.45 : 0.62);
-        const radius = command.radius * (finisher ? 1.18 : 0.86);
         if (command.shape === "focused") {
           this.fireAuthoredLineStrike({
             kind: "authored-line-strike",
@@ -2617,6 +2645,22 @@ export class GameScene extends Phaser.Scene {
           }
           this.tweens.add({ targets: arcs, alpha: 0, scale: 1.08, duration: 200, onComplete: () => arcs.destroy() });
           this.damageEnemiesWithin(this.player.x, this.player.y, radius, strikeDamage, command.sourceGongfaId);
+        }
+        if (finisher && combinationStayedValid) {
+          if (command.refundFraction > 0) this.player.heal(totalHealthBurned * command.refundFraction);
+          if (command.asuraChoice && !command.asuraActive && this.player.stats.health / this.player.stats.maxHealth < 0.2) {
+            const runtime = this.learnedGongfaRuntimes.find((candidate) => candidate.gongfaId === command.sourceGongfaId);
+            if (runtime) {
+              runtime.authored.phase = 1;
+              runtime.authored.activationCount += 1;
+            }
+            const ceiling = command.asuraChoice === "undying-asura"
+              ? 0.3
+              : command.asuraChoice === "world-burning-asura"
+                ? 0.15
+                : 0.25;
+            this.player.lockRecoveryCeiling(ceiling);
+          }
         }
         this.recordGongfaMotif(`${identity.motifId}:blood-combination:${command.shape}`);
         this.publishHud(this.lastMessage);

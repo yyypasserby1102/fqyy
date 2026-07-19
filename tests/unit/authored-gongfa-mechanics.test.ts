@@ -191,6 +191,23 @@ describe("approved Gongfa mechanic contracts", () => {
       learnedMasteryIds: ["hungry-ghost-soul-pursuit"]
     })[0];
     expect(pursuit).toMatchObject({ kind: "authored-blood-combination", shape: "pursuit" });
+
+    runtime.authored.phase = 1;
+    const worldBurning = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["six-armed-yaksha", "world-burning-asura"]
+    })[0];
+    expect(worldBurning).toMatchObject({
+      kind: "authored-blood-combination",
+      shape: "radial",
+      asuraChoice: "world-burning-asura",
+      asuraActive: true,
+      refundFraction: 0
+    });
+    if (worldBurning?.kind === "authored-blood-combination" &&
+        pursuit?.kind === "authored-blood-combination") {
+      expect(worldBurning.radius).toBeGreaterThan(pursuit.radius);
+      expect(worldBurning.damage).toBeGreaterThan(pursuit.damage);
+    }
   });
 
   it("persists authored inventories while resetting transient movement continuity", () => {

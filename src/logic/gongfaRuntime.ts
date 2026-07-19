@@ -501,6 +501,9 @@ export type GongfaRuntimeCommand =
       staggerMs: number;
       healthCostFractions: number[];
       shape: "focused" | "radial" | "pursuit";
+      refundFraction: number;
+      asuraChoice?: "undying-asura" | "world-burning-asura" | "life-hunting-asura";
+      asuraActive: boolean;
       sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     };
@@ -3158,14 +3161,37 @@ export function planGongfaAttack(
     const missingHealthScale = 1 + (1 - healthRatio) *
       (learnedIds.includes("meridian-locking-heart-guard") ? 0.25 : 0.5) *
       (learnedIds.includes("life-flame-without-return") ? 1.5 : 1);
+    const asuraChoice = (["undying-asura", "world-burning-asura", "life-hunting-asura"] as const)
+      .find((id) => learnedIds.includes(id));
+    const asuraActive = runtime.authored.phase === 1;
+    const asuraDamageScale = !asuraActive
+      ? 1
+      : asuraChoice === "undying-asura"
+        ? 0.84
+        : asuraChoice === "world-burning-asura"
+          ? 1.35
+          : 1.08;
+    const asuraRadiusScale = asuraActive && asuraChoice === "world-burning-asura" ? 1.5 : 1;
+    const refundFraction = learnedIds.includes("blood-debt-repaid-at-the-end")
+      ? 0.7
+      : asuraActive && asuraChoice === "undying-asura"
+        ? 0.85
+        : healthRatio < 0.4 && !learnedIds.includes("life-flame-without-return") &&
+            !(asuraActive && asuraChoice === "world-burning-asura")
+          ? 0.5
+          : 0;
     return [{
       kind: "authored-blood-combination",
       strikeCount,
-      damage: Math.max(1, Math.floor(runtime.combat.damage * missingHealthScale)),
-      radius: runtime.combat.auraRadius * (shape === "focused" ? 0.62 : shape === "radial" ? 1.08 : 0.82),
+      damage: Math.max(1, Math.floor(runtime.combat.damage * missingHealthScale * asuraDamageScale)),
+      radius: runtime.combat.auraRadius *
+        (shape === "focused" ? 0.62 : shape === "radial" ? 1.08 : 0.82) * asuraRadiusScale,
       staggerMs: Math.max(100, runtime.combat.projectileLifetimeMs),
       healthCostFractions: [0, 0.06 * costScale, 0.08 * costScale, 0.1 * costScale],
       shape,
+      refundFraction,
+      ...(asuraChoice ? { asuraChoice } : {}),
+      asuraActive,
       sourceGongfaId: runtime.gongfaId
     }];
   }

@@ -39,6 +39,7 @@ export interface PlayerVisualSnapshot {
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
+  private recoveryCeilingRatio = 1;
   stats: PlayerStats = {
     moveSpeed: 220,
     maxHealth: 120,
@@ -180,7 +181,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   heal(amount: number): void {
-    this.stats.health = Math.min(this.stats.maxHealth, this.stats.health + amount);
+    this.stats.health = Math.min(
+      this.stats.maxHealth * this.recoveryCeilingRatio,
+      this.stats.health + amount
+    );
+  }
+
+  lockRecoveryCeiling(ratio: number): void {
+    this.recoveryCeilingRatio = Math.min(this.recoveryCeilingRatio, Phaser.Math.Clamp(ratio, 0.01, 1));
+    this.stats.health = Math.min(this.stats.health, this.stats.maxHealth * this.recoveryCeilingRatio);
   }
 
   preUpdate(time: number, delta: number): void {
