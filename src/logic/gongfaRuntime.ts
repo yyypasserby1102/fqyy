@@ -5945,7 +5945,10 @@ export function planGongfaAttack(
         : learnedIds.includes("great-flood-presses-the-realm")
           ? "flood"
           : undefined;
-    const phaseTradeScale = selectedPhase ? selectedPhase === phase ? 1.58 : 0.68 : 1;
+    const phaseEmpowered = selectedPhase === phase;
+    const phaseSacrificed = selectedPhase !== undefined && !phaseEmpowered;
+    const phaseTradeScale = phaseEmpowered ? 1.58 : phaseSacrificed ? 0.68 : 1;
+    const controlTradeScale = phaseEmpowered ? 1.55 : phaseSacrificed ? 0.72 : 1;
     const baseDamageScale = phase === "ebb" ? 0.28 : phase === "still" ? 0.52 : 1.35;
     const r9DamageScale = learnedIds.includes("all-beings-share-the-flow")
       ? 0.62
@@ -5967,11 +5970,12 @@ export function planGongfaAttack(
       phase,
       direction: Math.max(0, Math.min(3, Math.floor(runtime.authored.secondaryResource))) as 0 | 1 | 2 | 3,
       damage: Math.max(1, Math.floor(runtime.combat.damage * baseDamageScale * phaseTradeScale * r9DamageScale)),
-      bandCount: phase === "ebb" ? 3 : 2,
-      bandWidth: phase === "ebb" ? 112 : phase === "still" ? 84 : 68,
-      force: baseForce * r9ForceScale,
+      bandCount: (phase === "ebb" ? 3 : 2) + (phaseEmpowered ? 1 : 0),
+      bandWidth: (phase === "ebb" ? 112 : phase === "still" ? 84 : 68) *
+        (phaseEmpowered ? 1.22 : phaseSacrificed ? 0.82 : 1),
+      force: baseForce * r9ForceScale * controlTradeScale,
       slowMultiplier: phase === "still"
-        ? learnedIds.includes("mystic-water-anchors-the-realm") ? 0.24 : 0.5
+        ? learnedIds.includes("mystic-water-anchors-the-realm") ? 0.24 : phaseEmpowered ? 0.32 : phaseSacrificed ? 0.68 : 0.5
         : 0.82,
       sourceGongfaId: runtime.gongfaId
     }];

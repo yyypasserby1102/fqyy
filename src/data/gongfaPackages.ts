@@ -85,7 +85,7 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
   "black-tide-scripture": {
     combatRole: "A world-current controller whose Ebb, Still, and Flood calendar is accelerated or delayed by movement.",
     visualMotif: "Arena-wide cardinal black-water bands, one compass flow, and a boundary-draining deluge.",
-    skill1: { id: "black-tide", name: "World Tide Calendar", description: "Automatically applies Ebb pull, Still slow, or Flood walls across the arena according to one visible cardinal phase.", tags: ["wave", "water"] },
+    skill1: { id: "black-tide", name: "World Tide Calendar", description: "A visible cardinal calendar sends Ebb toward its source boundary, fixes Still bands, then drives Flood walls across the arena from that boundary.", tags: ["wave", "water"] },
     passive: { name: "Moon-Guided Tide Order", resource: "Tide Phase", description: "Moving with the current advances world time; moving against it delays time; each full cycle reverses the current." },
     skill2: { id: "moon-tide-vault", name: "Deluge Mandate", description: "After three full cycles, locks one global velocity and carries all ordinary enemies together toward the destination boundary.", tags: ["wave", "water", "defensive"] }
   },

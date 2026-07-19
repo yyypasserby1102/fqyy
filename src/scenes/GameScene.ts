@@ -260,6 +260,8 @@ export class GameScene extends Phaser.Scene {
   private readonly skill2HitTargets = new Map<number, Set<number>>();
   private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private readonly rootInfectionMarkers = new Map<number, Phaser.GameObjects.Graphics>();
+  private blackTideCompassMarker?: Phaser.GameObjects.Graphics;
+  private blackTideCompassSignature = "";
   private vermilionBirdMarker?: Phaser.GameObjects.Graphics;
   private readonly myriadBeastMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private readonly myriadBeastAssistMarkers = new Map<number, Phaser.GameObjects.Graphics>();
@@ -384,6 +386,10 @@ export class GameScene extends Phaser.Scene {
       const phase = phases[runtime.authored.phase] ?? "Ebb";
       const next = phases[(runtime.authored.phase + 1) % 3] ?? "Still";
       const direction = directions[Math.floor(runtime.authored.secondaryResource)] ?? "East";
+      const lockRemaining = runtime.authored.targetLedger[-99] ?? 0;
+      if (lockRemaining > 0) {
+        return `Tide: Deluge locked · ${direction} · Drain ${Math.ceil(lockRemaining / 100) / 10}s`;
+      }
       return `Tide: ${phase} → ${next} · ${direction} · ${Math.floor(runtime.authored.resource * 100)}% · Cycles ${Math.min(3, runtime.authored.cycleCount)}/3`;
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
@@ -845,6 +851,9 @@ export class GameScene extends Phaser.Scene {
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
+      if (result.runtime.gongfaId === "black-tide-scripture") {
+        this.syncBlackTideCompass(result.runtime);
+      }
       if (result.runtime.gongfaId === "thousand-root-formation") {
         this.syncRootInfectionMarkers(result.runtime);
       }
@@ -1974,6 +1983,9 @@ export class GameScene extends Phaser.Scene {
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
+      if (result.runtime.gongfaId === "black-tide-scripture") {
+        this.syncBlackTideCompass(result.runtime);
+      }
       if (result.runtime.gongfaId === "thousand-root-formation") {
         this.syncRootInfectionMarkers(result.runtime);
       }
@@ -2226,6 +2238,9 @@ export class GameScene extends Phaser.Scene {
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
+      if (result.runtime.gongfaId === "black-tide-scripture") {
+        this.syncBlackTideCompass(result.runtime);
+      }
       if (result.runtime.gongfaId === "thousand-root-formation") {
         this.syncRootInfectionMarkers(result.runtime);
       }
@@ -3184,31 +3199,45 @@ export class GameScene extends Phaser.Scene {
     const identity = getGongfaVisualIdentity(command.sourceGongfaId);
     const bounds = this.physics.world.bounds;
     const tide = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(7);
-    const horizontal = command.direction === 0 || command.direction === 2;
+    const flowHorizontal = command.direction === 0 || command.direction === 2;
     const phaseAlpha = command.phase === "ebb" ? 0.16 : command.phase === "still" ? 0.24 : 0.34;
     for (let band = 0; band < command.bandCount; band += 1) {
-      const ratio = (band + 0.5) / command.bandCount;
+      const ratio = command.phase === "flood"
+        ? (band + 0.35) / Math.max(6, command.bandCount * 3)
+        : (band + 0.5) / command.bandCount;
       tide.fillStyle(band % 2 === 0 ? identity.accent : identity.secondary, phaseAlpha);
-      if (horizontal) {
-        tide.fillRect(bounds.x, bounds.y + bounds.height * ratio - command.bandWidth / 2, bounds.width, command.bandWidth);
+      if (flowHorizontal) {
+        const sourceRatio = command.direction === 0 ? ratio : 1 - ratio;
+        tide.fillRect(bounds.x + bounds.width * sourceRatio - command.bandWidth / 2, bounds.y, command.bandWidth, bounds.height);
       } else {
-        tide.fillRect(bounds.x + bounds.width * ratio - command.bandWidth / 2, bounds.y, command.bandWidth, bounds.height);
+        const sourceRatio = command.direction === 1 ? ratio : 1 - ratio;
+        tide.fillRect(bounds.x, bounds.y + bounds.height * sourceRatio - command.bandWidth / 2, bounds.width, command.bandWidth);
       }
     }
     tide.lineStyle(command.phase === "flood" ? 4 : 2, identity.secondary, 0.7);
     const waveLines = command.phase === "ebb" ? 7 : command.phase === "still" ? 4 : 10;
     for (let line = 0; line < waveLines; line += 1) {
-      if (horizontal) {
-        const y = bounds.y + (line + 1) * bounds.height / (waveLines + 1);
-        tide.lineBetween(bounds.x, y, bounds.right, y);
-      } else {
+      if (flowHorizontal) {
         const x = bounds.x + (line + 1) * bounds.width / (waveLines + 1);
         tide.lineBetween(x, bounds.y, x, bounds.bottom);
+      } else {
+        const y = bounds.y + (line + 1) * bounds.height / (waveLines + 1);
+        tide.lineBetween(bounds.x, y, bounds.right, y);
       }
     }
     const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][command.direction] ?? 0;
+    const visualDirection = command.phase === "ebb" ? flowAngle + Math.PI : flowAngle;
+    const arrowCount = command.phase === "still" ? 0 : command.phase === "flood" ? 12 : 7;
+    tide.lineStyle(command.phase === "flood" ? 6 : 3, identity.secondary, 0.82);
+    for (let arrow = 0; arrow < arrowCount; arrow += 1) {
+      const x = bounds.x + (arrow + 1) * bounds.width / (arrowCount + 1);
+      const y = bounds.y + ((arrow * 3) % Math.max(1, arrowCount) + 1) * bounds.height / (arrowCount + 1);
+      tide.lineBetween(x, y, x - Math.cos(visualDirection - 0.65) * 18, y - Math.sin(visualDirection - 0.65) * 18);
+      tide.lineBetween(x, y, x - Math.cos(visualDirection + 0.65) * 18, y - Math.sin(visualDirection + 0.65) * 18);
+    }
     const forceAngle = command.force < 0 ? flowAngle + Math.PI : flowAngle;
-    for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+    const applyFront = (enemy: Enemy): void => {
+      if (!enemy.active) return;
       if (command.phase === "still") enemy.applySlow(command.slowMultiplier, 850);
       if (enemy.role === "tribulation-boss") {
         if (command.force !== 0) enemy.applySlow(0.72, 620);
@@ -3216,17 +3245,86 @@ export class GameScene extends Phaser.Scene {
         enemy.applyForcedVelocity(forceAngle, Math.abs(command.force), 420);
       }
       if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    };
+    for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+      if (command.phase !== "flood") {
+        applyFront(enemy);
+        continue;
+      }
+      const sourceProgress = command.direction === 0
+        ? (enemy.x - bounds.x) / bounds.width
+        : command.direction === 2
+          ? (bounds.right - enemy.x) / bounds.width
+          : command.direction === 1
+            ? (enemy.y - bounds.y) / bounds.height
+            : (bounds.bottom - enemy.y) / bounds.height;
+      this.time.delayedCall(90 + Math.max(0, Math.min(1, sourceProgress)) * 760, () => applyFront(enemy));
     }
-    const travel = command.phase === "flood" ? 65 : command.phase === "ebb" ? -35 : 0;
+    const travel = command.phase === "flood"
+      ? (flowHorizontal ? bounds.width : bounds.height) * 0.72
+      : command.phase === "ebb" ? -82 : 0;
     this.tweens.add({
       targets: tide,
       x: Math.cos(flowAngle) * travel,
       y: Math.sin(flowAngle) * travel,
       alpha: 0,
-      duration: command.phase === "still" ? 720 : 520,
+      duration: command.phase === "still" ? 900 : command.phase === "flood" ? 1050 : 680,
       onComplete: () => tide.destroy()
     });
     this.recordGongfaMotif(`${identity.motifId}:world-${command.phase}-${command.direction}`);
+  }
+
+  private syncBlackTideCompass(runtime: GongfaRuntime): void {
+    if (this.gongfaCollection.primaryGongfaId !== runtime.gongfaId) {
+      this.blackTideCompassMarker?.destroy();
+      this.blackTideCompassMarker = undefined;
+      this.blackTideCompassSignature = "";
+      return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.blackTideCompassMarker ?? this.add.graphics().setDepth(24).setScrollFactor(0);
+    this.blackTideCompassMarker = marker;
+    marker.clear();
+    const direction = Math.max(0, Math.min(3, Math.floor(runtime.authored.secondaryResource)));
+    const angle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][direction] ?? 0;
+    const phase = Math.max(0, Math.min(2, runtime.authored.phase));
+    marker.fillStyle(0x07131d, 0.82);
+    marker.fillCircle(0, 0, 48);
+    marker.lineStyle(3, identity.secondary, 0.82);
+    marker.strokeCircle(0, 0, 43);
+    for (let tick = 0; tick < 4; tick += 1) {
+      const tickAngle = tick * Math.PI / 2;
+      marker.lineBetween(Math.cos(tickAngle) * 34, Math.sin(tickAngle) * 34, Math.cos(tickAngle) * 43, Math.sin(tickAngle) * 43);
+    }
+    marker.lineStyle(7, identity.accent, 0.96);
+    marker.lineBetween(-Math.cos(angle) * 22, -Math.sin(angle) * 22, Math.cos(angle) * 25, Math.sin(angle) * 25);
+    marker.fillStyle(identity.secondary, 0.96);
+    marker.fillTriangle(
+      Math.cos(angle) * 34, Math.sin(angle) * 34,
+      Math.cos(angle + 2.45) * 17, Math.sin(angle + 2.45) * 17,
+      Math.cos(angle - 2.45) * 17, Math.sin(angle - 2.45) * 17
+    );
+    for (let index = 0; index < 3; index += 1) {
+      const x = (index - 1) * 25;
+      marker.fillStyle(index === phase ? identity.accent : 0x203746, index === phase ? 0.95 : 0.72);
+      if (index === 0) marker.fillTriangle(x - 8, 63, x, 52, x + 8, 63);
+      if (index === 1) marker.fillRect(x - 8, 53, 16, 10);
+      if (index === 2) marker.fillTriangle(x - 8, 53, x, 64, x + 8, 53);
+    }
+    marker.lineStyle(4, identity.secondary, 0.92);
+    marker.beginPath();
+    marker.arc(0, 0, 52, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * runtime.authored.resource);
+    marker.strokePath();
+    if ((runtime.authored.targetLedger[-99] ?? 0) > 0) {
+      marker.lineStyle(5, identity.accent, 0.95);
+      marker.strokeRect(-58, -58, 116, 126);
+    }
+    marker.setPosition(1180, 620);
+    const signature = `${identity.motifId}:cardinal-compass-${phase}-${direction}`;
+    if (signature !== this.blackTideCompassSignature) {
+      this.blackTideCompassSignature = signature;
+      this.recordGongfaMotif(signature);
+    }
   }
 
   private fireAuthoredDelugeMandate(
@@ -3249,6 +3347,43 @@ export class GameScene extends Phaser.Scene {
       }
     }
     const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][command.direction] ?? 0;
+    if (command.fate === "shared-flow") {
+      flood.lineStyle(4, identity.accent, 0.92);
+      for (let arrow = 0; arrow < 10; arrow += 1) {
+        const x = bounds.x + (arrow + 1) * bounds.width / 11;
+        const y = bounds.y + ((arrow * 4) % 9 + 1) * bounds.height / 10;
+        flood.lineBetween(x, y, x - Math.cos(flowAngle - 0.65) * 24, y - Math.sin(flowAngle - 0.65) * 24);
+        flood.lineBetween(x, y, x - Math.cos(flowAngle + 0.65) * 24, y - Math.sin(flowAngle + 0.65) * 24);
+      }
+    } else if (command.fate === "anchored-water") {
+      flood.lineStyle(5, identity.secondary, 0.88);
+      for (let anchor = 0; anchor < 9; anchor += 1) {
+        const x = bounds.x + ((anchor % 3) + 1) * bounds.width / 4;
+        const y = bounds.y + (Math.floor(anchor / 3) + 1) * bounds.height / 4;
+        flood.strokeCircle(x, y, 24);
+        flood.lineBetween(x - 19, y, x + 19, y);
+        flood.lineBetween(x, y - 19, x, y + 19);
+      }
+    } else {
+      const destinationX = command.direction === 0 ? bounds.right : command.direction === 2 ? bounds.x : undefined;
+      const destinationY = command.direction === 1 ? bounds.bottom : command.direction === 3 ? bounds.y : undefined;
+      flood.lineStyle(14, identity.secondary, 0.96);
+      if (destinationX !== undefined) flood.lineBetween(destinationX, bounds.y, destinationX, bounds.bottom);
+      if (destinationY !== undefined) flood.lineBetween(bounds.x, destinationY, bounds.right, destinationY);
+      flood.lineStyle(6, identity.accent, 0.88);
+      for (let crack = 0; crack < 8; crack += 1) {
+        const across = (crack + 0.5) / 8;
+        if (destinationX !== undefined) {
+          const y = bounds.y + bounds.height * across;
+          flood.lineBetween(destinationX - Math.cos(flowAngle) * 90, y - 24, destinationX, y);
+          flood.lineBetween(destinationX - Math.cos(flowAngle) * 90, y + 24, destinationX, y);
+        } else if (destinationY !== undefined) {
+          const x = bounds.x + bounds.width * across;
+          flood.lineBetween(x - 24, destinationY - Math.sin(flowAngle) * 90, x, destinationY);
+          flood.lineBetween(x + 24, destinationY - Math.sin(flowAngle) * 90, x, destinationY);
+        }
+      }
+    }
     for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
       if (enemy.role === "tribulation-boss") {
         enemy.applySlow(command.bossSlowMultiplier, command.durationMs);
@@ -3261,8 +3396,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.tweens.add({
       targets: flood,
-      x: Math.cos(flowAngle) * (command.force > 0 ? 140 : 20),
-      y: Math.sin(flowAngle) * (command.force > 0 ? 140 : 20),
+      x: Math.cos(flowAngle) * (command.fate === "anchored-water" ? 0 : command.fate === "dry-sea" ? 220 : 140),
+      y: Math.sin(flowAngle) * (command.fate === "anchored-water" ? 0 : command.fate === "dry-sea" ? 220 : 140),
       alpha: 0,
       duration: command.durationMs,
       onComplete: () => flood.destroy()

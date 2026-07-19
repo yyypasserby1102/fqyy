@@ -42,7 +42,7 @@ implementation, testing, balance review, and future regression checks.
 | Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Implemented and verified |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Implemented and verified |
 | Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Implemented and verified |
-| Black Tide Scripture / 玄潮经 | Yuling | Approved | Pending redesign |
+| Black Tide Scripture / 玄潮经 | Yuling | Approved | Implemented and verified |
 | Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Implemented and verified |
 | Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Implemented and verified |
 | Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Pending redesign |
@@ -995,6 +995,39 @@ boundary, deposits survivors, and clears. It is never a point-centered pull.
 
 **Must not become:** Scarlet alternating waves, Moonfall's point gravity, generic
 periodic knockback, a hit resource, or a player-aimed current.
+
+### Implemented tuning contract
+
+- The world calendar owns exactly three `6.2s` phases and one cardinal direction.
+  Ebb, Still, and Flood advance only from elapsed world time. Hits, kills, damage, and
+  enemy count never alter phase progress. Completing Flood increments one cycle and
+  reverses the cardinal direction by `180°`.
+- Base movement with the flow advances the calendar at `1.45×`; opposing movement uses
+  `0.68×`, while lateral movement and standing use `1×`. Ride the Tide changes those
+  extremes to `2.2×/0.9×`; Hold the Moon uses `1.15×/0.34×` and slows the player;
+  Heaven-Timed Tide fixes every input at `0.78×`.
+- Ebb uses three broad world-spanning fronts, low `0.28×` damage, and `95` force toward
+  the source boundary. Still uses medium stationary bands, `0.52×` damage, no force,
+  and `0.5×` movement slow. Flood visibly enters from the source boundary, crosses the
+  arena, deals `1.35×` damage, and pushes with `150` force along the current; each
+  enemy's hit timing follows the front's actual travel distance from that boundary.
+- A Rank-3 doctrine multiplies its chosen phase damage by `1.58`, control/force by
+  `1.55`, adds one front, and widens it by `22%`. Both unchosen phases fall to `0.68`
+  damage, `0.72` control, and `82%` width, so the doctrine changes silhouette and not
+  just damage text.
+- Shared Flow reduces ordinary phase damage to `62%` but maximizes displacement.
+  Anchored Water reduces damage and force, strengthens Still to `0.24×` speed, and
+  renders fixed anchor knots. Dry Sea shortens Flood to `3s`, raises its damage to
+  `155%`, reduces displacement, and renders a compressed destination-boundary drain.
+- After three complete cycles, Deluge Mandate locks phase progression and ordinary
+  attacks for its duration. Shared Flow applies one identical `250` velocity to every
+  movable ordinary enemy for `1.5s`; Anchored Water applies no displacement and holds
+  for `1.8s`; Dry Sea uses a short `0.9s`, `75`-force damaging drain. Bosses are slowed
+  rather than translated.
+- A persistent bottom-right compass shows the exact cardinal arrow, current phase,
+  phase progress, reversal, and Deluge lock. Ebb retreats, Still remains fixed, Flood
+  crosses from its source boundary, and the three Deluge laws use arrow, anchor, and
+  drain-boundary geometry respectively.
 
 ---
 

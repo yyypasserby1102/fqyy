@@ -443,6 +443,21 @@ test("Ice Mirror Guard renders persistent directional facets without substitute 
   )).toBe(false);
 });
 
+test("Black Tide renders a persistent cardinal calendar and world-phase fronts", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("black-tide-scripture");
+    window.__gameTest!.forceSpawnEnemies(3);
+  });
+  await page.waitForFunction(() => {
+    const motifs = window.__gameTest!.getSnapshot().visuals.gongfaMotifs;
+    return motifs.some((motif) => motif.startsWith("world-cardinal-tide:cardinal-compass-")) &&
+      motifs.some((motif) => motif.startsWith("world-cardinal-tide:world-ebb-"));
+  });
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) => projectile.sourceGongfaId === "black-tide-scripture")).toBe(false);
+});
+
 test("all twelve archetype Gongfa execute their authored attacks and cast motifs", async ({ page }) => {
   await startNewRun(page);
   const cases = [

@@ -396,11 +396,14 @@ describe("approved Gongfa mechanic contracts", () => {
       learnedMasteryIds: ["great-flood-presses-the-realm"]
     })[0];
     expect(empoweredEbb).toMatchObject({
-      kind: "authored-world-tide-band", phase: "ebb", direction: 0, force: -95
+      kind: "authored-world-tide-band", phase: "ebb", direction: 0
     });
     if (empoweredEbb?.kind === "authored-world-tide-band" &&
         sacrificedEbb?.kind === "authored-world-tide-band") {
       expect(empoweredEbb.damage).toBeGreaterThan(sacrificedEbb.damage);
+      expect(Math.abs(empoweredEbb.force)).toBeGreaterThan(Math.abs(sacrificedEbb.force));
+      expect(empoweredEbb.bandCount).toBeGreaterThan(sacrificedEbb.bandCount);
+      expect(empoweredEbb.bandWidth).toBeGreaterThan(sacrificedEbb.bandWidth);
     }
     runtime.authored.phase = 2;
     const flood = planGongfaAttack(runtime, 0, {
@@ -408,6 +411,40 @@ describe("approved Gongfa mechanic contracts", () => {
     })[0];
     expect(flood).toMatchObject({ kind: "authored-world-tide-band", phase: "flood" });
     if (flood?.kind === "authored-world-tide-band") expect(flood.force).toBe(72);
+  });
+
+  it("makes the three Black-Tide calendar laws change time in opposite ways", () => {
+    const advance = (learnedMasteryIds: string[], movementAngle: number) => advanceGongfaRuntime(
+      createGongfaRuntime({ gongfaId: "black-tide-scripture" }),
+      {
+        kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1,
+        isMoving: true, movementAngle, learnedMasteryIds
+      }
+    ).runtime.authored.phaseElapsedMs;
+    expect(advance(["ride-the-tide"], 0)).toBe(2200);
+    expect(advance(["ride-the-tide"], Math.PI)).toBe(900);
+    expect(advance(["hold-the-moon-against-the-tide"], Math.PI)).toBe(340);
+    expect(advance(["heaven-timed-tide"], 0)).toBe(780);
+    expect(advance(["heaven-timed-tide"], Math.PI)).toBe(780);
+  });
+
+  it("keeps the three Black-Tide R9 laws distinct in damage, displacement, and control", () => {
+    const tide = (masteryId: string, phase: 0 | 1 | 2) => {
+      const runtime = createGongfaRuntime({ gongfaId: "black-tide-scripture" });
+      runtime.authored.phase = phase;
+      return planGongfaAttack(runtime, 0, { learnedMasteryIds: [masteryId] })[0];
+    };
+    const shared = tide("all-beings-share-the-flow", 0);
+    const anchoredEbb = tide("mystic-water-anchors-the-realm", 0);
+    const anchoredStill = tide("mystic-water-anchors-the-realm", 1);
+    const dry = tide("dry-sea-splits-the-shore", 2);
+    expect(anchoredStill).toMatchObject({ kind: "authored-world-tide-band", phase: "still", slowMultiplier: 0.24 });
+    if (shared?.kind === "authored-world-tide-band" && anchoredEbb?.kind === "authored-world-tide-band" &&
+        dry?.kind === "authored-world-tide-band" && anchoredStill?.kind === "authored-world-tide-band") {
+      expect(Math.abs(shared.force)).toBeGreaterThan(Math.abs(anchoredEbb.force));
+      expect(dry.damage).toBeGreaterThan(anchoredStill.damage);
+      expect(dry.force).toBeGreaterThan(0);
+    }
   });
 
   it("spends three complete Black-Tide cycles on one locked Deluge law", () => {
@@ -427,6 +464,25 @@ describe("approved Gongfa mechanic contracts", () => {
     expect(deluge.runtime.authored.cycleCount).toBe(0);
     expect(deluge.runtime.authored.targetLedger[-99]).toBe(900);
     expect(planGongfaAttack(deluge.runtime, 0)).toEqual([]);
+  });
+
+  it("authors three mechanically and visually separate Deluge Mandates", () => {
+    const mandate = (learnedMasteryIds: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "black-tide-scripture" });
+      runtime.authored.cycleCount = 3;
+      return advanceGongfaRuntime(runtime, {
+        kind: "skill2", skill2Id: "moon-tide-vault",
+        learnedMasteryIds
+      }).commands.find((command) => command.kind === "authored-deluge-mandate");
+    };
+    const shared = mandate(["all-beings-share-the-flow"]);
+    const anchored = mandate(["mystic-water-anchors-the-realm"]);
+    const dry = mandate(["dry-sea-splits-the-shore"]);
+    expect(shared).toMatchObject({ fate: "shared-flow", force: 250, durationMs: 1500 });
+    expect(anchored).toMatchObject({ fate: "anchored-water", force: 0, durationMs: 1800 });
+    expect(dry).toMatchObject({ fate: "dry-sea", force: 75, durationMs: 900 });
+    expect(dry?.damage).toBeGreaterThan(shared?.damage ?? 0);
+    expect(shared?.damage).toBeGreaterThan(anchored?.damage ?? 0);
   });
 
   it("keeps exactly one Vermilion companion and builds Bond only after a safe return", () => {

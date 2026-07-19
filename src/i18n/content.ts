@@ -106,7 +106,7 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
   },
   "black-tide-scripture": {
     name: "玄潮经", lore: "观一界月潮，以顺逆行止改写退、静、涨三相潮历。", combatRole: "全场潮历控场，玩家移动只改变世界潮相的快慢，不瞄准任何局部中心。", visualMotif: "贯穿战场的四向玄水带、潮向罗盘与边界泄洪。",
-    skill1: { name: "天地潮历", description: "依全局潮相自动施展退潮牵引、静水迟滞或涨潮水墙。" },
+    skill1: { name: "天地潮历", description: "可见四向潮历依次令退潮退向源岸、静水定驻、涨潮水墙自源岸横渡全场。" },
     passive: { name: "月引潮序", resource: "潮相", description: "顺流加快潮历，逆流拖慢潮历；每完成一轮，天地潮向反转。" },
     skill2: { name: "洪潮敕令", description: "完成三轮潮历后锁定全局流向，使普通敌人保持相对位置一同冲向泄洪边界。" }
   },
