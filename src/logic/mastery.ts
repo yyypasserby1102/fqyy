@@ -208,7 +208,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "heaven-sundering-edict",
   "nine-sun-calamity-seal",
   "scarlet-wave-manual",
-  "moonfall-tide-ritual"
+  "moonfall-tide-ritual",
+  "verdant-ring-scripture"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -451,6 +452,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["returning-abyss-moon", "Returning-Abyss Moon", "Resolution crushes every orbiter inward for a powerful center hit.", "Angular progress grows more slowly.", "Inward resolution and orbit gain"],
       ["flying-star-release", "Flying-Star Release", "Resolution launches orbiters tangentially for collision damage.", "There is no center impact.", "Tangential release and collision payoff"],
       ["grand-yin-suspension", "Grand-Yin Suspension", "Resolution freezes enemies visibly along their orbit.", "Damage is low and there is no displacement.", "Orbital suspension and displacement"]
+    ]
+  },
+  "verdant-ring-scripture": {
+    3: [
+      ["mountain-root-scripture", "Mountain-Root Scripture", "Root is easier to write and strengthens fixed control.", "Leaf requires more travel to write.", "Root and Leaf behavior thresholds"],
+      ["green-wind-leaf-scripture", "Green-Wind Leaf Scripture", "Leaf writes sooner and its traveling motion is faster.", "Root requires deeper stillness.", "Leaf and Root behavior thresholds"],
+      ["calamity-step-thorn-scripture", "Calamity-Step Thorn Scripture", "The post-Evade Thorn window and Thorn damage are greater.", "Evade cooldown is longer.", "Thorn timing, damage, and Evade cadence"]
+    ],
+    6: [
+      ["single-line-specialization", "Single-Line Specialization", "Three identical glyphs invoke with great power.", "Mixed sequences are weaker.", "Identical versus mixed sequences"],
+      ["three-talents-concord", "Three-Talents Concord", "Three different glyphs invoke with great power.", "Repeated glyphs are weaker.", "Distinct versus repeated sequences"],
+      ["first-last-generation", "First-Last Generation", "A-B-A patterns repeat weakly once.", "Every other arrangement is smaller.", "First-last symmetry and repeat count"]
+    ],
+    9: [
+      ["earth-scripture-myriad-roots", "Earth Scripture: Myriad Roots", "Root control and guard are greatly strengthened.", "Thorn damage is reduced.", "Root payoff and Thorn damage"],
+      ["heaven-scripture-thousand-leaves", "Heaven Scripture: Thousand Leaves", "Leaf motions repeat weakly and clear hostile projectiles.", "Root guard is reduced.", "Leaf repeats, projectile clearing, and Root guard"],
+      ["thorn-scripture-hundred-calamities", "Thorn Scripture: Hundred Calamities", "A final Thorn payoff deals much greater damage.", "Root control and Leaf repeats are sacrificed.", "Final Thorn payoff versus utility"]
     ]
   }
 };

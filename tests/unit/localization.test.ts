@@ -177,6 +177,19 @@ describe("localization", () => {
     expect(visibleChinese.filter((value) => /[A-Za-z]/.test(value))).toEqual([]);
   });
 
+  it("shows Verdant Ring transformation gains and costs as distinct authored rules", () => {
+    const mountain = localizeMasteryChoice("zh-CN", "mountain-root-scripture");
+    expect(mountain).toMatchObject({
+      name: "镇岳根书",
+      gain: "根符静止判定放宽，定域与护持增强",
+      scope: "根/叶行为阈值与根符结算"
+    });
+    expect(mountain.cost).toContain("叶符需要更长移动距离");
+    const thorns = localizeMasteryChoice("zh-CN", "thorn-scripture-hundred-calamities");
+    expect(thorns.gain).toContain("末位棘符伤害提高 65%");
+    expect(thorns.cost).toContain("根符控制削弱，叶符不再重演");
+  });
+
   it("localizes treasure replacement gains, losses, and resonance changes", () => {
     const payload = localizeChoicePayload("zh-CN", {
       title: "Windstep Talisman found",

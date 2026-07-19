@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual", "moonfall-tide-ritual"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual", "moonfall-tide-ritual", "verdant-ring-scripture"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -642,6 +642,15 @@ describe("mastery progression", () => {
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "moonfall-tide-ritual", rank: 9, seed: "s", learnedIds: []
     })).toEqual(["returning-abyss-moon", "flying-star-release", "grand-yin-suspension"]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "verdant-ring-scripture", rank: 3, seed: "s", learnedIds: []
+    })).toEqual(["mountain-root-scripture", "green-wind-leaf-scripture", "calamity-step-thorn-scripture"]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "verdant-ring-scripture", rank: 6, seed: "s", learnedIds: []
+    })).toEqual(["single-line-specialization", "three-talents-concord", "first-last-generation"]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "verdant-ring-scripture", rank: 9, seed: "s", learnedIds: []
+    })).toEqual(["earth-scripture-myriad-roots", "heaven-scripture-thousand-leaves", "thorn-scripture-hundred-calamities"]);
   });
 
   it("keeps post-rank-10 Refinements Gongfa-specific after Skill 2 unlocks automatically", () => {

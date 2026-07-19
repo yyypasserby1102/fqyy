@@ -495,7 +495,7 @@ describe("Gongfa runtime", () => {
       "black-tide-scripture": "authored-deluge-mandate",
       "ice-mirror-guard": "frozen-lotus-shell",
       "green-vine-art": "verdant-root-network",
-      "verdant-ring-scripture": "sprout-sun-circle",
+      "verdant-ring-scripture": "authored-sprout-sun",
       "ironwood-wave-form": "ironwood-surge-form",
       "vermilion-bird-covenant": "authored-vermilion-flight"
     };
@@ -531,6 +531,14 @@ describe("Gongfa runtime", () => {
       }
       if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
       if (gongfaId === "moonfall-tide-ritual") runtime.authored.cycleCount = 3;
+      if (gongfaId === "verdant-ring-scripture") {
+        runtime.authored.phase = 2;
+        runtime.authored.anchors.push(
+          { kind: "glyph", glyph: "root", x: 0, y: 0, value: 1 },
+          { kind: "glyph", glyph: "leaf", x: 0, y: 0, value: 1 },
+          { kind: "glyph", glyph: "thorn", x: 0, y: 0, value: 1 }
+        );
+      }
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -673,6 +681,14 @@ describe("Gongfa runtime", () => {
         runtime.authored.cycleCount = 3;
         runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 30, maxValue: 340 });
       }
+      if (gongfaId === "verdant-ring-scripture") {
+        runtime.authored.phase = 2;
+        runtime.authored.anchors.push(
+          { kind: "glyph", glyph: "root", x: 0, y: 0, value: 1 },
+          { kind: "glyph", glyph: "leaf", x: 0, y: 0, value: 1 },
+          { kind: "glyph", glyph: "thorn", x: 0, y: 0, value: 1 }
+        );
+      }
       if (runtime.blazingFeather) runtime.blazingFeather.emberStacks = 6;
       if (runtime.surge) runtime.surge.stacks = 6;
       return advanceGongfaRuntime(runtime, {
@@ -722,9 +738,9 @@ describe("Gongfa runtime", () => {
       linkCount: 7
     });
     expect(cast("verdant-ring-scripture")).toMatchObject({
-      kind: "sprout-sun-circle",
-      radius: 172,
-      spokeCount: 17
+      kind: "authored-sprout-sun",
+      radius: 225,
+      phaseDelayMs: 620
     });
     expect(cast("ironwood-wave-form")).toMatchObject({
       kind: "ironwood-surge-form",
@@ -2407,6 +2423,63 @@ describe("Gongfa runtime", () => {
     const resolution = result.commands.find((command) => command.kind === "authored-moon-resolution");
     expect(resolution?.fate).toBe("release");
     expect(result.commands.some((command) => command.kind === "ritual-impact")).toBe(false);
+  });
+
+  it("Verdant Ring compiles all 27 ordered behavior glyphs into predictable shape, motion, and payoff", () => {
+    const glyphs = ["root", "leaf", "thorn"] as const;
+    const expectedShape = { root: "root-circle", leaf: "leaf-route", thorn: "thorn-triangle" } as const;
+    const expectedMotion = { root: "fixed", leaf: "traveling", thorn: "contracting" } as const;
+    const expectedPayoff = { root: "bind", leaf: "repeat", thorn: "damage" } as const;
+    let combinations = 0;
+    for (const first of glyphs) for (const second of glyphs) for (const third of glyphs) {
+      let runtime = createGongfaRuntime({ gongfaId: "verdant-ring-scripture" });
+      runtime.authored.anchors = [
+        { kind: "glyph", glyph: first, x: 0, y: 0, value: 1 },
+        { kind: "glyph", glyph: second, x: 0, y: 0, value: 1 }
+      ];
+      runtime.authored.phaseElapsedMs = 899;
+      if (third === "thorn") runtime = advanceGongfaRuntime(runtime, { kind: "evade" }).runtime;
+      const result = advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 1, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+        movementDistance: third === "leaf" ? 30 : 0,
+        targets: [{ targetId: 3, x: 90, y: 0, healthRatio: 1, rank: "elite" }]
+      });
+      const invocation = result.commands.find((command) => command.kind === "authored-glyph-invocation");
+      expect(invocation).toMatchObject({
+        glyphs: [first, second, third], shape: expectedShape[first],
+        motion: expectedMotion[second], payoff: expectedPayoff[third]
+      });
+      combinations += 1;
+    }
+    expect(combinations).toBe(27);
+    const authored = createGongfaRuntime({ gongfaId: "verdant-ring-scripture" });
+    expect(authored.surge).toBeUndefined();
+    expect(planGongfaAttack(authored, 0)).toEqual([]);
+  });
+
+  it("Verdant Ring transformations alter sequence rules rather than generic hit stacks", () => {
+    const invoke = (sequence: ["root" | "leaf" | "thorn", "root" | "leaf" | "thorn", "root" | "leaf" | "thorn"], learnedMasteryIds: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "verdant-ring-scripture" });
+      runtime.authored.anchors = sequence.map((glyph) => ({ kind: "glyph" as const, glyph, x: 0, y: 0, value: 1 }));
+      runtime.authored.phaseElapsedMs = 899;
+      runtime.authored.anchors.pop();
+      if (sequence[2] === "thorn") runtime.authored.targetLedger[-90] = 100;
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 1, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+        movementDistance: sequence[2] === "leaf" ? 30 : 0, learnedMasteryIds,
+        targets: [{ targetId: 4, x: 80, y: 0, healthRatio: 1, rank: "ordinary" }]
+      }).commands.find((command) => command.kind === "authored-glyph-invocation");
+    };
+    const plainSame = invoke(["root", "root", "root"], []);
+    const specializedSame = invoke(["root", "root", "root"], ["single-line-specialization"]);
+    expect(specializedSame?.power).toBeGreaterThan(plainSame?.power ?? 0);
+    const concord = invoke(["root", "leaf", "thorn"], ["three-talents-concord"]);
+    expect(concord?.power).toBeGreaterThan(1);
+    const aba = invoke(["leaf", "thorn", "leaf"], ["first-last-generation"]);
+    expect(aba?.repeatCount).toBeGreaterThan(2);
+    const thornFinal = invoke(["leaf", "leaf", "thorn"], ["thorn-scripture-hundred-calamities"]);
+    expect(thornFinal?.payoff).toBe("damage");
+    expect(thornFinal?.power).toBeGreaterThan(1);
   });
 
   it("remaining Surge updraft behaviours stay pattern-aware", () => {

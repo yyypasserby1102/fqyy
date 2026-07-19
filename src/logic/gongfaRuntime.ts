@@ -695,6 +695,22 @@ export type GongfaRuntimeCommand =
       fate: "collapse" | "release" | "suspend" | "eclipse";
       damage: number; force: number; syzygy: number; supreme: boolean;
       sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-glyph-invocation";
+      glyphs: Array<"root" | "leaf" | "thorn">;
+      shape: "root-circle" | "leaf-route" | "thorn-triangle";
+      motion: "fixed" | "traveling" | "contracting";
+      payoff: "bind" | "repeat" | "damage";
+      x: number; y: number; target?: { x: number; y: number; targetId: number };
+      radius: number; damage: number; power: number; repeatCount: number;
+      clearProjectiles: boolean; sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-sprout-sun";
+      x: number; y: number; radius: number; rootDamage: number; leafDamage: number;
+      thornDamage: number; phaseDelayMs: number; sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -1867,7 +1883,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
       input.gongfaId === "blazing-feather-art"
         ? { ...blazingFeatherDefaults, ...input.blazingFeather }
         : undefined,
-    surge: surgeGongfaIdSet.has(input.gongfaId)
+    surge: surgeGongfaIdSet.has(input.gongfaId) && input.gongfaId !== "verdant-ring-scripture"
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -2213,6 +2229,10 @@ export function getGongfaRuntimeTickThreatRadius(runtime: GongfaRuntime): number
     return 160;
   }
 
+  if (runtime.gongfaId === "ancient-tree-body-art") {
+    return 640;
+  }
+
   if (runtime.mastery.masterySkill2Id) {
     return 640;
   }
@@ -2476,6 +2496,11 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "evade" && runtime.gongfaId === "verdant-ring-scripture") {
+    state.targetLedger[-90] = learnedIds.includes("calamity-step-thorn-scripture") ? 1400 : 720;
+    return;
+  }
+
   if (event.kind !== "tick") return;
 
   if (runtime.gongfaId === "flame-demon-body-art") {
@@ -2490,6 +2515,76 @@ function advanceAuthoredWorldFacts(
     state.continuousMovementMs = 0;
     state.continuousDistance = 0;
     state.lastMovementAngle = undefined;
+  }
+
+  if (runtime.gongfaId === "verdant-ring-scripture") {
+    state.targetLedger[-90] = Math.max(0, (state.targetLedger[-90] ?? 0) - event.deltaMs);
+    state.phaseElapsedMs += event.deltaMs;
+    state.secondaryResource += Math.max(0, event.movementDistance ?? 0);
+    if (state.phase !== 2 && state.phaseElapsedMs >= 900) {
+      const mountain = learnedIds.includes("mountain-root-scripture");
+      const leafScripture = learnedIds.includes("green-wind-leaf-scripture");
+      const thornScripture = learnedIds.includes("calamity-step-thorn-scripture");
+      const rootThreshold = mountain ? 34 : leafScripture ? 8 : 20;
+      const glyph = (state.targetLedger[-90] ?? 0) > 0 ? "thorn" as const :
+        state.secondaryResource <= rootThreshold ? "root" as const : "leaf" as const;
+      state.anchors.push({ kind: "glyph", glyph, x: event.playerX ?? 0, y: event.playerY ?? 0, value: 1 });
+      state.anchors = state.anchors.filter((anchor) => anchor.kind === "glyph").slice(-3);
+      state.phaseElapsedMs = 0;
+      state.secondaryResource = 0;
+      state.charges = state.anchors.length;
+      state.resource = state.charges / 3;
+      const queue = state.anchors.flatMap((anchor) => anchor.glyph ? [anchor.glyph] : []);
+      if (queue.length === 3) {
+        const exactSproutSun = queue[0] === "root" && queue[1] === "leaf" && queue[2] === "thorn";
+        if (exactSproutSun && runtime.mastery.masterySkill2Id === "sprout-sun-circle") {
+          state.phase = 2;
+        } else {
+          const first = queue[0]!; const second = queue[1]!; const third = queue[2]!;
+          const allSame = first === second && second === third;
+          const allDifferent = new Set(queue).size === 3;
+          const firstLast = first === third && first !== second;
+          let power = 1;
+          let repeatCount = third === "leaf" ? 2 : 1;
+          let radiusScale = 1;
+          if (learnedIds.includes("single-line-specialization")) power *= allSame ? 1.55 : 0.72;
+          if (learnedIds.includes("three-talents-concord")) power *= allDifferent ? 1.45 : 0.72;
+          if (learnedIds.includes("first-last-generation")) {
+            if (firstLast) repeatCount += 1;
+            else { power *= 0.78; radiusScale *= 0.76; }
+          }
+          if (queue.includes("root") && mountain) power *= 1.12;
+          if (queue.includes("leaf") && leafScripture) power *= 1.1;
+          if (third === "thorn" && thornScripture) power *= 1.28;
+          const earth = learnedIds.includes("earth-scripture-myriad-roots");
+          const heaven = learnedIds.includes("heaven-scripture-thousand-leaves");
+          const thorns = learnedIds.includes("thorn-scripture-hundred-calamities");
+          if (third === "root" && earth) power *= 1.35;
+          if (third === "thorn" && earth) power *= 0.68;
+          if (second === "leaf" && heaven) repeatCount += 1;
+          if (third === "root" && heaven) power *= 0.65;
+          if (third === "thorn" && thorns) power *= 1.65;
+          if (third === "root" && thorns) power *= 0.58;
+          if (thorns && (second === "leaf" || third === "leaf")) repeatCount = 1;
+          const targets = event.targets ?? [];
+          const rank = (target: AuthoredTargetFact): number => target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 1;
+          const target = [...targets].sort((a, b) => rank(b) + b.healthRatio - rank(a) - a.healthRatio)[0];
+          commands.push({
+            kind: "authored-glyph-invocation", glyphs: queue,
+            shape: first === "root" ? "root-circle" : first === "leaf" ? "leaf-route" : "thorn-triangle",
+            motion: second === "root" ? "fixed" : second === "leaf" ? "traveling" : "contracting",
+            payoff: third === "root" ? "bind" : third === "leaf" ? "repeat" : "damage",
+            x: event.playerX ?? 0, y: event.playerY ?? 0,
+            ...(target ? { target: { x: target.x, y: target.y, targetId: target.targetId } } : {}),
+            radius: (first === "root" ? 118 : first === "leaf" ? 155 : 96) * radiusScale,
+            damage: Math.max(1, Math.floor(runtime.combat.damage * power * (third === "root" ? 0.48 : third === "leaf" ? 0.62 : 1.35))),
+            power, repeatCount, clearProjectiles: heaven && second === "leaf",
+            sourceGongfaId: runtime.gongfaId
+          });
+          state.anchors = []; state.charges = 0; state.resource = 0; state.phase = 0;
+        }
+      }
+    }
   }
 
   if (runtime.gongfaId === "black-tide-scripture") {
@@ -3284,6 +3379,7 @@ export function advanceGongfaRuntime(
     !runtime.crimsonFurnace &&
     !runtime.blazingFeather &&
     !runtime.surge &&
+    runtime.gongfaId !== "verdant-ring-scripture" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -3439,6 +3535,24 @@ export function advanceGongfaRuntime(
           tangentForce: 0, inwardForce: 0, suspend: true, sourceGongfaId: next.gongfaId,
           masteryCast: { skill2Id: "moonfall-cataclysm", cooldownMs }
         });
+      }
+      return { runtime: next, commands };
+    }
+    if (event.skill2Id === "sprout-sun-circle" && next.gongfaId === "verdant-ring-scripture") {
+      const queue = next.authored.anchors.flatMap((anchor) => anchor.kind === "glyph" && anchor.glyph ? [anchor.glyph] : []);
+      if (next.authored.phase === 2 && queue.join(",") === "root,leaf,thorn") {
+        const cooldownMs = Math.floor(authoredSkill2Plans["sprout-sun-circle"].cooldownMs * skill2Stats.cadenceScale);
+        const origin = next.authored.anchors[2] ?? { x: 0, y: 0 };
+        commands.push({
+          kind: "authored-sprout-sun", x: origin.x, y: origin.y,
+          radius: 225 + skill2Stats.coverage * 18,
+          rootDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.42)),
+          leafDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.68)),
+          thornDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 2.1)),
+          phaseDelayMs: 620, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "sprout-sun-circle", cooldownMs }
+        });
+        next.authored.phase = 0; next.authored.anchors = []; next.authored.charges = 0; next.authored.resource = 0;
       }
       return { runtime: next, commands };
     }
@@ -4540,6 +4654,7 @@ export function planGongfaAttack(
     ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
+  if (runtime.gongfaId === "verdant-ring-scripture") return [];
   if (runtime.gongfaId === "mist-wraith-canon") {
     const learnedIds = options.learnedMasteryIds ?? [];
     const soulIndex = runtime.authored.anchors.findIndex((anchor) => anchor.kind === "stored-soul");

@@ -268,6 +268,7 @@ export class GameScene extends Phaser.Scene {
   private heavenfallBodyMarker?: Phaser.GameObjects.Graphics;
   private moonfallMarker?: Phaser.GameObjects.Graphics;
   private readonly moonfallVelocityRecord = new Map<number, { x: number; y: number }>();
+  private verdantGlyphMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -419,6 +420,15 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "moonfall-tide-ritual") {
       const state = runtime.authored.phase === 2 ? "Moonless Eclipse" : runtime.authored.phase === 1 ? "Moon Carried" : "Awaiting Moon";
       return `Moonfall: ${state} · Syzygy ${Math.floor(runtime.authored.resource * 100)}% · Orbiters ${runtime.authored.charges} · High resolutions ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
+    if (runtime.gongfaId === "verdant-ring-scripture") {
+      const glyphs = runtime.authored.anchors.filter((anchor) => anchor.kind === "glyph").flatMap((anchor) => anchor.glyph ? [anchor.glyph] : []);
+      const label = (glyph: "root" | "leaf" | "thorn"): string => glyph === "root" ? "Root" : glyph === "leaf" ? "Leaf" : "Thorn";
+      const queue = [0, 1, 2].map((index) => glyphs[index] ? label(glyphs[index]!) : "—").join(" → ");
+      const preview = glyphs.length === 0 ? "Shape pending" : glyphs.length === 1 ?
+        `${glyphs[0] === "root" ? "Root circle" : glyphs[0] === "leaf" ? "Leaf route" : "Threat triangle"} · motion pending` :
+        `${glyphs[0] === "root" ? "Root circle" : glyphs[0] === "leaf" ? "Leaf route" : "Threat triangle"} · ${glyphs[1] === "root" ? "fixed" : glyphs[1] === "leaf" ? "traveling" : "contracting"} · ${glyphs[2] ? glyphs[2] === "root" ? "bind/guard" : glyphs[2] === "leaf" ? "repeat" : "high damage" : "payoff pending"}`;
+      return `Glyphs: ${queue} · ${preview} · Next: recent Evade > stillness > movement`;
     }
     return undefined;
   }
@@ -577,7 +587,8 @@ export class GameScene extends Phaser.Scene {
       if (
         this.evade.tryStart(
           { x: movement.x, y: movement.y },
-          this.getSpiritTreasureResonanceModifiers().evadeCooldownMultiplier
+          this.getSpiritTreasureResonanceModifiers().evadeCooldownMultiplier *
+            (this.gongfaCollection.byId["verdant-ring-scripture"]?.mastery.masteryLearnedIds.includes("calamity-step-thorn-scripture") ? 1.35 : 1)
         )
       ) {
         this.player.presentEvade(this.evade.state.direction);
@@ -801,6 +812,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "moonfall-tide-ritual") {
         this.syncMoonfallMarker(result.runtime);
+      }
+      if (result.runtime.gongfaId === "verdant-ring-scripture") {
+        this.syncVerdantGlyphMarker(result.runtime);
       }
     }
     this.restorePrimaryRuntimeAdapter();
@@ -2607,6 +2621,16 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-glyph-invocation") {
+        this.fireAuthoredGlyphInvocation(command);
+        return;
+      }
+
+      if (command.kind === "authored-sprout-sun") {
+        this.fireAuthoredSproutSun(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3944,6 +3968,146 @@ export class GameScene extends Phaser.Scene {
       marker.fillStyle(identity.secondary, 0.72);
       marker.fillCircle(target.x, target.y, 4);
     }
+  }
+
+  private fireAuthoredGlyphInvocation(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-glyph-invocation" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const pulses = Math.max(1, command.payoff === "repeat" ? command.repeatCount : 1);
+    const targetX = command.target?.x ?? command.x + command.radius;
+    const targetY = command.target?.y ?? command.y;
+    const pointToSegment = (px: number, py: number, ax: number, ay: number, bx: number, by: number): number => {
+      const dx = bx - ax; const dy = by - ay; const lengthSq = Math.max(1, dx * dx + dy * dy);
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lengthSq));
+      return Phaser.Math.Distance.Between(px, py, ax + dx * t, ay + dy * t);
+    };
+    for (let pulse = 0; pulse < pulses; pulse += 1) {
+      this.time.delayedCall(pulse * 330, () => {
+        const progress = pulses <= 1 ? 0 : pulse / (pulses - 1);
+        const travel = command.motion === "traveling" ? progress : 0;
+        const cx = Phaser.Math.Linear(command.x, targetX, travel * 0.72);
+        const cy = Phaser.Math.Linear(command.y, targetY, travel * 0.72);
+        const radius = command.radius * (command.motion === "contracting" ? 1 - progress * 0.48 : 1);
+        const visual = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(15);
+        if (command.shape === "root-circle") {
+          visual.lineStyle(8, identity.accent, 0.84);
+          visual.strokeCircle(cx, cy, radius);
+          visual.lineStyle(3, identity.secondary, 0.7);
+          for (let root = 0; root < 6; root += 1) {
+            const angle = root * Math.PI / 3;
+            visual.lineBetween(cx, cy, cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
+          }
+        } else if (command.shape === "leaf-route") {
+          visual.lineStyle(13, identity.accent, 0.72);
+          visual.lineBetween(cx, cy, targetX, targetY);
+          const angle = Math.atan2(targetY - cy, targetX - cx);
+          for (let leaf = 1; leaf <= 4; leaf += 1) {
+            const t = leaf / 5; const lx = Phaser.Math.Linear(cx, targetX, t); const ly = Phaser.Math.Linear(cy, targetY, t);
+            visual.fillStyle(identity.secondary, 0.82);
+            visual.fillEllipse(lx + Math.cos(angle + Math.PI / 2) * (leaf % 2 ? 10 : -10), ly + Math.sin(angle + Math.PI / 2) * (leaf % 2 ? 10 : -10), 20, 9);
+          }
+        } else {
+          const tx = command.target?.x ?? cx; const ty = command.target?.y ?? cy;
+          visual.lineStyle(8, identity.secondary, 0.9);
+          visual.beginPath();
+          for (let corner = 0; corner <= 3; corner += 1) {
+            const angle = -Math.PI / 2 + (corner % 3) * Math.PI * 2 / 3;
+            const x = tx + Math.cos(angle) * radius; const y = ty + Math.sin(angle) * radius;
+            if (corner === 0) visual.moveTo(x, y); else visual.lineTo(x, y);
+          }
+          visual.strokePath();
+        }
+        let hitCount = 0;
+        for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+          const hit = command.shape === "root-circle" ? Phaser.Math.Distance.Between(enemy.x, enemy.y, cx, cy) <= radius :
+            command.shape === "leaf-route" ? pointToSegment(enemy.x, enemy.y, cx, cy, targetX, targetY) <= 32 :
+              Phaser.Math.Distance.Between(enemy.x, enemy.y, command.target?.x ?? cx, command.target?.y ?? cy) <= radius;
+          if (!hit) continue;
+          hitCount += 1;
+          if (command.payoff === "bind") enemy.applySlow(0.12, 900 + command.power * 320);
+          if (enemy.receiveDamage(command.damage * (pulse > 0 ? 0.62 : 1))) this.resolveEnemyDeath(enemy);
+        }
+        if (command.payoff === "bind" && hitCount > 0) this.player.heal(Math.max(1, command.power * 1.5));
+        if (command.clearProjectiles) {
+          for (const hazard of [...this.activeBossHazards]) {
+            if (Phaser.Math.Distance.Between(hazard.x, hazard.y, cx, cy) > radius) continue;
+            hazard.destroy(); this.activeBossHazards.delete(hazard);
+          }
+        }
+        this.tweens.add({ targets: visual, alpha: 0, scale: command.motion === "contracting" ? 0.55 : 1.12, duration: 430, onComplete: () => visual.destroy() });
+      });
+    }
+    this.recordGongfaMotif(`${identity.motifId}:${command.shape}:${command.motion}:${command.payoff}`);
+  }
+
+  private fireAuthoredSproutSun(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-sprout-sun" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const root = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(16);
+    root.lineStyle(10, identity.accent, 0.9);
+    root.strokeCircle(command.x, command.y, command.radius);
+    for (let spoke = 0; spoke < 8; spoke += 1) {
+      const angle = spoke * Math.PI / 4;
+      root.lineBetween(command.x, command.y, command.x + Math.cos(angle) * command.radius, command.y + Math.sin(angle) * command.radius);
+    }
+    for (const enemy of this.getEnemiesWithinRadiusFrom(command.x, command.y, command.radius)) {
+      enemy.applySlow(0.1, command.phaseDelayMs * 2);
+      if (enemy.receiveDamage(command.rootDamage)) this.resolveEnemyDeath(enemy);
+    }
+    this.time.delayedCall(command.phaseDelayMs, () => {
+      const leaves = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(17);
+      leaves.lineStyle(18, identity.secondary, 0.58);
+      for (let route = 0; route < 6; route += 1) {
+        const angle = route * Math.PI / 3 + Math.PI / 6;
+        leaves.lineBetween(command.x - Math.cos(angle) * command.radius, command.y - Math.sin(angle) * command.radius,
+          command.x + Math.cos(angle) * command.radius, command.y + Math.sin(angle) * command.radius);
+      }
+      for (const enemy of this.getEnemiesWithinRadiusFrom(command.x, command.y, command.radius)) {
+        if (enemy.receiveDamage(command.leafDamage)) this.resolveEnemyDeath(enemy);
+      }
+      this.tweens.add({ targets: leaves, alpha: 0, duration: command.phaseDelayMs, onComplete: () => leaves.destroy() });
+    });
+    this.time.delayedCall(command.phaseDelayMs * 2, () => {
+      const sun = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(18);
+      sun.fillStyle(identity.secondary, 0.3); sun.fillCircle(command.x, command.y, command.radius * 0.32);
+      sun.lineStyle(12, identity.accent, 0.96);
+      for (let thorn = 0; thorn < 12; thorn += 1) {
+        const angle = thorn * Math.PI / 6;
+        sun.lineBetween(command.x + Math.cos(angle) * command.radius * 0.24, command.y + Math.sin(angle) * command.radius * 0.24,
+          command.x + Math.cos(angle) * command.radius, command.y + Math.sin(angle) * command.radius);
+      }
+      for (const enemy of this.getEnemiesWithinRadiusFrom(command.x, command.y, command.radius)) {
+        if (enemy.receiveDamage(command.thornDamage)) this.resolveEnemyDeath(enemy);
+      }
+      root.destroy();
+      this.tweens.add({ targets: sun, alpha: 0, scale: 1.18, duration: 520, onComplete: () => sun.destroy() });
+    });
+    this.recordGongfaMotif(`${identity.motifId}:root-leaf-thorn-sprout-sun`);
+  }
+
+  private syncVerdantGlyphMarker(runtime: GongfaRuntime): void {
+    const glyphs = runtime.authored.anchors.filter((anchor) => anchor.kind === "glyph").flatMap((anchor) => anchor.glyph ? [anchor.glyph] : []);
+    if (glyphs.length === 0) {
+      this.verdantGlyphMarker?.destroy(); this.verdantGlyphMarker = undefined; return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.verdantGlyphMarker ?? this.add.graphics().setDepth(19);
+    this.verdantGlyphMarker = marker; marker.clear();
+    glyphs.forEach((glyph, index) => {
+      const x = (index - 1) * 30; const y = -54;
+      if (glyph === "root") {
+        marker.lineStyle(4, identity.accent, 0.95); marker.strokeRect(x - 9, y - 9, 18, 18);
+        marker.lineBetween(x, y - 9, x, y + 9); marker.lineBetween(x - 9, y, x + 9, y);
+      } else if (glyph === "leaf") {
+        marker.fillStyle(identity.accent, 0.9); marker.fillEllipse(x, y, 22, 12);
+        marker.lineStyle(2, identity.secondary, 0.9); marker.lineBetween(x - 8, y + 5, x + 8, y - 5);
+      } else {
+        marker.lineStyle(4, identity.secondary, 0.95); marker.strokeTriangle(x, y - 11, x - 11, y + 9, x + 11, y + 9);
+      }
+    });
+    marker.setPosition(this.player.x, this.player.y);
   }
 
   private fireFeatherRainFormation(

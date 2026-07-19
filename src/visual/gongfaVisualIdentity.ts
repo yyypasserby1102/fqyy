@@ -42,7 +42,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "black-tide-scripture": { motifId: "world-cardinal-tide", label: "World-scale cardinal tide", geometry: "tide", accent: 0x286da8, secondary: 0xa8e7ff, spokes: 4, trailStyle: "arena-wide parallel black-water bands" },
   "ice-mirror-guard": { motifId: "mirror-lotus", label: "Faceted mirror lotus", geometry: "lotus", accent: 0x90eaff, secondary: 0xf0ffff, spokes: 8, trailStyle: "shattered glass petals" },
   "green-vine-art": { motifId: "verdant-knot", label: "Branching verdant knot", geometry: "roots", accent: 0x72cf75, secondary: 0xcaf59d, spokes: 5, trailStyle: "seeking tendril curls" },
-  "verdant-ring-scripture": { motifId: "sprout-sun", label: "Sprouting sun bloom", geometry: "bloom", accent: 0x9bdd70, secondary: 0xf0e99a, spokes: 9, trailStyle: "opening leaf-petal halo" },
+  "verdant-ring-scripture": { motifId: "three-life-glyph-order", label: "Root square, leaf route, and thorn triangle", geometry: "formation", accent: 0x78c96b, secondary: 0xe9e38a, spokes: 3, trailStyle: "ordered glyph inscription and compiled geometry" },
   "ironwood-wave-form": { motifId: "heartwood-rampart", label: "Heartwood growth rampart", geometry: "rings", accent: 0x548f56, secondary: 0xc3b477, spokes: 4, trailStyle: "squared timber splinters" },
   "nine-sun-calamity-seal": { motifId: "fixed-nine-layer-sun", label: "Fixed future-ground solar prediction", geometry: "calamity", accent: 0xffc247, secondary: 0xff6847, spokes: 9, trailStyle: "nine omen rings collapsing into one sun" },
   "mist-wraith-canon": { motifId: "mist-wraith-retinue", label: "Orbiting mist retinue", geometry: "wraiths", accent: 0x75d9ed, secondary: 0xe5fbff, spokes: 6, trailStyle: "curling spirit tails" },

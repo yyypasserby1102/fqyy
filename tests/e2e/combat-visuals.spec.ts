@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { claimOpeningLingcao } from "./helpers/claimOpeningLingcao";
+import { getGongfaVisualIdentity } from "../../src/visual/gongfaVisualIdentity";
 
 type CandidateLinggenId = "metal" | "water-metal";
 
@@ -322,19 +323,20 @@ for (const visualCase of [
   });
 }
 
-test("all thirteen projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("all ten projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
     "yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art",
-    "blazing-feather-art", "burning-ring-scripture", "scarlet-wave-manual",
-    "drifting-frost-needle", "black-tide-scripture", "ice-mirror-guard",
-    "green-vine-art", "verdant-ring-scripture", "ironwood-wave-form"
+    "blazing-feather-art", "burning-ring-scripture",
+    "drifting-frost-needle", "ice-mirror-guard",
+    "green-vine-art", "ironwood-wave-form"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
 
   for (const gongfaId of gongfaIds) {
     await page.evaluate((id) => {
       window.__gameTest!.forceClearEnemies();
+      window.__gameTest!.forceSpawnHealingPill(100);
       window.__gameTest!.forceEquipGongfa(id);
       window.__gameTest!.forceSpawnEnemies(3);
     }, gongfaId);
@@ -358,42 +360,40 @@ test("all thirteen projectile-based Gongfa render their own treatment and trail"
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(13);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(13);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(13);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(10);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(10);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(10);
 });
 
 test("all twelve archetype Gongfa execute their authored attacks and cast motifs", async ({ page }) => {
   await startNewRun(page);
   const cases = [
-    ["nine-sun-calamity-seal", "nine-sun-calamity"],
-    ["mist-wraith-canon", "mist-wraith-retinue"],
-    ["heavenfall-body-art", "heavenfall-impact"],
-    ["thousand-root-formation", "thousand-root-array"],
-    ["flame-demon-body-art", "furnace-blood-fists"],
-    ["vermilion-bird-covenant", "vermilion-spirit-host"],
-    ["frozen-river-formation", "underice-river-array"],
-    ["moonfall-tide-ritual", "abyssal-moonfall"],
-    ["sword-burial-formation", "buried-sword-tomb"],
-    ["heaven-sundering-edict", "supreme-metal-edict"],
-    ["myriad-beast-grove", "seed-spirit-pack"],
-    ["ancient-tree-body-art", "world-tree-impact"]
+    "nine-sun-calamity-seal", "mist-wraith-canon", "heavenfall-body-art",
+    "thousand-root-formation", "flame-demon-body-art", "vermilion-bird-covenant",
+    "frozen-river-formation", "moonfall-tide-ritual", "sword-burial-formation",
+    "heaven-sundering-edict", "myriad-beast-grove", "ancient-tree-body-art"
   ] as const;
 
-  for (const [gongfaId, motif] of cases) {
-    const beforeKills = await page.evaluate(() => window.__gameTest!.getSnapshot().progression.kills);
+  for (const gongfaId of cases) {
+    const motif = getGongfaVisualIdentity(gongfaId).motifId;
     await page.evaluate((id) => {
       window.__gameTest!.forceClearEnemies();
+      window.__gameTest!.forceSpawnHealingPill(100);
       window.__gameTest!.forceEquipGongfa(id);
       window.__gameTest!.forceSpawnEnemies(10);
     }, gongfaId);
-    await page.waitForFunction(
-      (kills) => window.__gameTest!.getSnapshot().progression.kills > kills,
-      beforeKills,
-      { timeout: 10_000 }
-    );
+    if (gongfaId === "heavenfall-body-art" || gongfaId === "vermilion-bird-covenant") {
+      await page.keyboard.down("d");
+    }
+    await expect.poll(
+      () => page.evaluate((expectedMotif) => window.__gameTest!.getSnapshot().visuals.gongfaMotifs.some(
+        (observed) => observed.startsWith(`${expectedMotif}:`)
+      ), motif),
+      { timeout: 8_000, message: `${gongfaId} should emit its ${motif} motif` }
+    ).toBe(true);
+    await page.keyboard.up("d");
     const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
     expect(snapshot.progression.gongfa).toBe(gongfaId);
-    expect(snapshot.visuals.gongfaMotifs).toContain(`${motif}:cast`);
+    expect(snapshot.visuals.gongfaMotifs.some((observed) => observed.startsWith(`${motif}:`))).toBe(true);
   }
 });

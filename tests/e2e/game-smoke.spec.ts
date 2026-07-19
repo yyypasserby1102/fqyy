@@ -713,8 +713,7 @@ test("pure Wood reveals all three Wood Gongfa packages", async ({ page }) => {
 
 for (const gongfaId of [
   "green-vine-art",
-  "ironwood-wave-form",
-  "verdant-ring-scripture"
+  "ironwood-wave-form"
 ] as const) {
   test(`${gongfaId} attacks and builds its Wood passive in observable combat`, async ({ page }) => {
     await startNewRun(page, "wood");
@@ -748,10 +747,25 @@ for (const gongfaId of [
   });
 }
 
+test("verdant-ring-scripture writes behavior glyphs and invokes without a hit-built passive", async ({ page }) => {
+  await startNewRun(page, "wood");
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("verdant-ring-scripture");
+    window.__gameTest!.forceSpawnEnemies(3);
+  });
+  await expect.poll(() => page.evaluate(() => {
+    const snapshot = window.__gameTest!.getSnapshot();
+    const combat = snapshot.progression.gongfaCombats.find((item) => item.gongfaId === "verdant-ring-scripture");
+    return {
+      hasCompiledGlyph: snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("three-life-glyph-order:")),
+      passiveStacks: combat?.passiveStacks ?? -1
+    };
+  }), { timeout: 8_000 }).toEqual({ hasCompiledGlyph: true, passiveStacks: 0 });
+});
+
 for (const [gongfaId, cascadeId, skill2Id] of [
   ["green-vine-art", "growth-cascade", "verdant-root-network"],
-  ["ironwood-wave-form", "heartwood-cascade", "ironwood-surge-form"],
-  ["verdant-ring-scripture", "bloom-cascade", "sprout-sun-circle"]
+  ["ironwood-wave-form", "heartwood-cascade", "ironwood-surge-form"]
 ] as const) {
   test(`${gongfaId} exposes transformed passive and live Skill 2 snapshots`, async ({ page }) => {
     await startNewRun(page, "wood");

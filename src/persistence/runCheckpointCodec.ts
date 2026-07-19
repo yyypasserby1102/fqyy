@@ -97,7 +97,7 @@ const subtypeNumberFields = {
 
 type RuntimeSubtype = keyof typeof subtypeNumberFields;
 
-const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype> = {
+const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype | undefined> = {
   "yujian-jue": "yujian",
   "jinfeng-gong": "jinfeng",
   "gengjin-huti": "gengjin",
@@ -109,7 +109,7 @@ const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype> = {
   "black-tide-scripture": "surge",
   "ice-mirror-guard": "surge",
   "green-vine-art": "surge",
-  "verdant-ring-scripture": "surge",
+  "verdant-ring-scripture": undefined,
   "ironwood-wave-form": "surge",
   "nine-sun-calamity-seal": "surge",
   "mist-wraith-canon": "surge",
@@ -133,6 +133,7 @@ function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: Gongf
   const expectedSubtype = runtimeSubtypeByGongfa[gongfaId];
   const presentSubtypes = (Object.keys(subtypeNumberFields) as RuntimeSubtype[])
     .filter((subtype) => runtime[subtype] !== undefined);
+  if (expectedSubtype === undefined) return presentSubtypes.length === 0;
   if (presentSubtypes.length !== 1 || presentSubtypes[0] !== expectedSubtype) return false;
   const state = runtime[expectedSubtype];
   if (!hasNonNegativeFields(state, subtypeNumberFields[expectedSubtype])) return false;

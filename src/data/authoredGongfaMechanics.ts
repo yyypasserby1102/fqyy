@@ -328,10 +328,10 @@ export const authoredGongfaMechanics: Record<GongfaId, AuthoredGongfaMechanic> =
   }),
   "verdant-ring-scripture": mechanic({
     gongfaId: "verdant-ring-scripture", mechanicId: "ordered-three-glyph-invocation",
-    targetingRule: "three automatic glyphs are chosen by enemy distance bands",
+    targetingRule: "timed Root Leaf or Thorn glyphs are written automatically from player behavior",
     resourceSource: "last-three-glyph-order", spatialShape: "three-concentric-ordered-runes",
-    playerLever: "change-automatic-glyph-order-by-position", failureCondition: "repetition or wrong order invokes a weaker result",
-    capstoneRule: "one rare three-glyph order blooms into the unique Sprout-Sun",
+    playerLever: "change-automatic-glyph-order-by-position", failureCondition: "a valid but tactically wrong behavior sequence invokes the wrong geometry",
+    capstoneRule: "the exact Root Leaf Thorn order creates one fixed three-phase Sprout-Sun world bloom",
     visual: { geometry: "root leaf and bloom runes", motion: "ordered inscription then invocation", silhouette: "jade three-ring mandala" },
     initialCharges: 0, maxCharges: 3, balance: { damage: 1.02, survival: 0.82, control: 0.92, payoffSeconds: 8, objectBudget: 8 }
   }),
@@ -390,7 +390,7 @@ export interface AuthoredGongfaRuntimeState {
   activationCount: number;
   targetLedger: Record<number, number>;
   anchors: Array<{
-    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter";
+    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter" | "glyph";
     x: number;
     y: number;
     value: number;
@@ -409,6 +409,7 @@ export interface AuthoredGongfaRuntimeState {
     beastState?: "living" | "downed";
     rebirthMs?: number;
     maxValue?: number;
+    glyph?: "root" | "leaf" | "thorn";
   }>;
 }
 

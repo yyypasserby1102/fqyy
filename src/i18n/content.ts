@@ -123,10 +123,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "碧根灵网", description: "扎根目标牵出分枝藤脉，脉动攻击近敌并寻找新的宿主。" }
   },
   "verdant-ring-scripture": {
-    name: "碧环经", lore: "木气环身，绽放为荆棘生域。", combatRole: "原地生长的近战领域，将周身化作荆棘花阵。", visualMotif: "翠叶花环、萌生轮辐与明亮日华。",
-    skill1: { name: "碧叶花环", description: "叶刃绕身旋转切割近敌，并随花势增长而繁盛。" },
-    passive: { name: "回春", resource: "花势", description: "花瓣命中积累花势，扩大并增殖生灵环域。" },
-    skill2: { name: "萌阳法阵", description: "种下法阵，反复生出荆棘轮辐，最终绽成完整杀阵。" }
+    name: "碧环经", lore: "根定其形，叶行其势，棘断其果。", combatRole: "按玩家静止、移动与闪避自动书写根、叶、棘；最近三符依次决定形状、运动和结算。", visualMotif: "方根印、叶脉路线、三角棘纹与组合成形的翠玉三环。",
+    skill1: { name: "三生符环", description: "定时采样行为：近乎静止写根，持续移动写叶，刚刚闪避优先写棘；三符齐备后自动施术。" },
+    passive: { name: "三环道序", resource: "符序", description: "首符定形，次符定势，末符定果；界面公开队列、下一符规则与施术预览。" },
+    skill2: { name: "萌阳开界", description: "精确写成根→叶→棘时，在当前位置依次展开定域之根、扫径之叶与一次棘阳爆发，随后全数消失。" }
   },
   "ironwood-wave-form": {
     name: "铁木浪形", lore: "木气层层展开，化作坚密壁浪。", combatRole: "厚重木垒推动战线，回返时迸裂为斜向木浪。", visualMotif: "墨绿年轮、方整木墙与斜飞裂片。",
@@ -396,13 +396,13 @@ function localizeZhMasteryChoice(id: string): MasteryChoiceDefinition {
   };
   const name = override?.name ?? draft?.name ?? `${gongfaName}·${source.milestoneRank ?? 0}重蜕变${option}`;
   const lore = override?.lore ?? draft?.lore ?? `重塑「${gongfaName}」的战斗形态；选定后将永久生效。`;
-  const usesAuthoredSpecialRules = source.gain === source.lore;
+  const usesAuthoredSpecialRules = source.gain === source.lore || override?.gain !== undefined;
   const specialImpact = usesAuthoredSpecialRules
     ? {
         playstyle: name,
-        gain: lore,
-        cost: opportunityCost,
-        scope: source.milestoneRank === 3
+        gain: override?.gain ?? lore,
+        cost: override?.cost ? `${override.cost}；${opportunityCost}` : opportunityCost,
+        scope: override?.scope ?? (source.milestoneRank === 3
           ? /Evade/.test(source.lore)
             ? `闪避与「${packageInfo?.skill1.name ?? "初式"}」`
             : `「${packageInfo?.skill1.name ?? "初式"}」形态与命中方式`
@@ -410,7 +410,7 @@ function localizeZhMasteryChoice(id: string): MasteryChoiceDefinition {
             ? `心法「${packageInfo?.passive.name ?? "心法"}」（${packageInfo?.passive.resource ?? "资源"}）循环`
             : /Evade/.test(source.lore)
               ? `闪避与${packageInfo?.passive.resource ?? "心法资源"}终式`
-              : `「${packageInfo?.skill1.name ?? "初式"}」与${packageInfo?.passive.resource ?? "心法资源"}终式`,
+              : `「${packageInfo?.skill1.name ?? "初式"}」与${packageInfo?.passive.resource ?? "心法资源"}终式`),
         treasureInteraction: "法宝共鸣在此蜕变结算后独立生效"
       }
     : undefined;
@@ -895,7 +895,7 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
   }
 };
 
-const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
+const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: string; cost?: string; scope?: string }> = {
   "searing-feathers": { name: "炽羽凝锋" },
   "swift-molt": { name: "疾羽蜕生" },
   "banked-embers": { name: "蕴火余烬" },
@@ -1062,7 +1062,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "mountain-weight-eclipse": { name: "重岳蚀心" },
   "returning-abyss-moon": { name: "归墟沉月" },
   "flying-star-release": { name: "飞星离潮" },
-  "grand-yin-suspension": { name: "太阴悬界" }
+  "grand-yin-suspension": { name: "太阴悬界" },
+  "mountain-root-scripture": { name: "镇岳根书", lore: "更易以静止写出强根符，但叶符需要更长移动。", gain: "根符静止判定放宽，定域与护持增强", cost: "叶符需要更长移动距离", scope: "根/叶行为阈值与根符结算" },
+  "green-wind-leaf-scripture": { name: "青风叶书", lore: "更易以移动写出疾叶符，但根符要求更彻底静止。", gain: "叶符移动判定提前，行进术式更快更强", cost: "根符静止判定收紧", scope: "叶/根行为阈值与叶符运动" },
+  "calamity-step-thorn-scripture": { name: "劫步棘书", lore: "闪避后的棘符窗口与伤害扩大，但闪避恢复更慢。", gain: "棘符窗口延长，末位棘符伤害提高", cost: "闪避冷却延长 35%", scope: "闪避、棘符生成与棘符伤害" },
+  "single-line-specialization": { name: "一脉专精", lore: "三枚同符时威力大增，混合符序则减弱。", gain: "三枚相同符的术式威力提高 55%", cost: "混合符序威力降低 28%", scope: "三符同类与混合序列" },
+  "three-talents-concord": { name: "三才合契", lore: "根叶棘各一时威力大增，出现重复则减弱。", gain: "三枚各异符的术式威力提高 45%", cost: "含重复符的序列威力降低 28%", scope: "三符异类与重复序列" },
+  "first-last-generation": { name: "首尾相生", lore: "首尾同符的甲乙甲序列弱重演一次，其他序列缩小。", gain: "甲→乙→甲序列额外弱重演一次", cost: "其他排列的威力与范围降低", scope: "首尾对称、重演次数与术式范围" },
+  "earth-scripture-myriad-roots": { name: "地书·万根", lore: "强化末位根符的定域护持，代价是削弱棘符杀伤。", gain: "根符定域与护持显著增强", cost: "末位棘符伤害降低 32%", scope: "根符控制、护持与棘符伤害" },
+  "heaven-scripture-thousand-leaves": { name: "天书·千叶", lore: "叶势增加弱重演并扫除敌术，代价是根符护持下降。", gain: "叶符运动额外弱重演，并清除路径内敌对术式", cost: "末位根符护持降低 35%", scope: "叶符重演、敌术清除与根符护持" },
+  "thorn-scripture-hundred-calamities": { name: "荆书·百劫", lore: "末位棘符换取极高杀伤，同时舍弃根控与叶重演。", gain: "末位棘符伤害提高 65%", cost: "根符控制削弱，叶符不再重演", scope: "末位棘符杀伤与根叶功能" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

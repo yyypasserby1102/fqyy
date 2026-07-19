@@ -104,11 +104,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "verdant-root-network", name: "Verdant Root Network", description: "A rooted enemy anchors branching vine links that pulse through nearby targets and seek replacements.", tags: ["homing", "projectile", "wood"] }
   },
   "verdant-ring-scripture": {
-    combatRole: "Stationary growth zones that turn close space into a thorn bloom.",
-    visualMotif: "Leaf-green petal rings, sprouting spokes, and a bright sunburst bloom.",
-    skill1: { id: "verdant-petal-ring", name: "Verdant Petal Ring", description: "A rotating halo of leaf blades cuts nearby enemies and flourishes as Bloom rises.", tags: ["aura", "wood"] },
-    passive: { name: "Returning Spring", resource: "Bloom", description: "Petal hits build Bloom, expanding and multiplying the living ring before the season turns." },
-    skill2: { id: "sprout-sun-circle", name: "Sprout-Sun Circle", description: "A planted circle raises repeated thorn spokes before opening into one full damaging bloom.", tags: ["aura", "wood"] }
+    combatRole: "A behavior scribe whose last three automatic glyphs compile shape, motion, and payoff into one predictable invocation.",
+    visualMotif: "Distinct square-root, leaf-route, and triangular-thorn sigils assembling into a jade three-ring mandala.",
+    skill1: { id: "verdant-petal-ring", name: "Three-Life Ring Glyphs", description: "Timed samples write Root while still, Leaf while traveling, or Thorn after Evade; the ordered trio invokes automatically.", tags: ["ritual", "wood", "defensive"] },
+    passive: { name: "Three-Ring Order", resource: "Glyph Queue", description: "Glyph one selects shape, glyph two selects motion, and glyph three selects bind, repeat, or damage payoff." },
+    skill2: { id: "sprout-sun-circle", name: "Sprout-Sun Invocation", description: "The exact Root→Leaf→Thorn order creates fixed roots, sweeping leaves, then one disappearing thorn sun at the player position.", tags: ["ritual", "wood", "defensive"] }
   },
   "ironwood-wave-form": {
     combatRole: "Dense timber ramparts that shove a lane and splinter on return.",
