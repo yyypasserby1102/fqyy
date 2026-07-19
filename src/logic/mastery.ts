@@ -197,7 +197,8 @@ type ApprovedTransformationSeed = readonly [
 const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "mist-wraith-canon",
   "sword-burial-formation",
-  "flame-demon-body-art"
+  "flame-demon-body-art",
+  "frozen-river-formation"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -253,6 +254,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["undying-asura", "Undying Asura", "Asura Heart gains the strongest refunds and sustain.", "Recoverable health locks at 30% and damage is lower.", "Asura Heart permanent form"],
       ["world-burning-asura", "World-Burning Asura", "Asura attacks gain maximum area and damage.", "Recoverable health locks at 15% and all leech is removed.", "Asura Heart permanent form"],
       ["life-hunting-asura", "Life-Hunting Asura", "A killing finisher may continue through up to three ordinary enemies.", "Recoverable health locks at 25%; boss damage is lower and every continuation burns health.", "Asura Heart permanent form and kill chain"]
+    ]
+  },
+  "frozen-river-formation": {
+    3: [
+      ["lone-bridge-final-crossing", "Lone-Bridge Final Crossing", "Creates one long narrow river with greatly increased force.", "Its distant single crossing seal is difficult to route a debtor through.", "River length, width, and force"],
+      ["three-ford-branching-flow", "Three-Ford Branching Flow", "Projects three nearby approaches that are easy to cross.", "Each short river carries sharply reduced damage.", "Crossing-seal count and river force"],
+      ["curving-nether-river", "Curving Nether River", "Forms three broad defensive approaches around the Cultivator.", "Range and boss damage are weak.", "Defensive river geometry around the player"]
+    ],
+    6: [
+      ["cold-debt-pursues-the-strong", "Cold Debt Pursues the Strong", "Transfers Debt to the highest-health enemy caught in the river.", "A slow boss may strand the chain away from another seal.", "Cold-Debt recipient priority"],
+      ["cold-debt-pursues-the-weak", "Cold Debt Pursues the Weak", "Transfers rapidly to the weakest enemy caught in the river.", "Early recipient death frequently drops the Debt at a seal.", "Cold-Debt recipient priority"],
+      ["cold-debt-migrates-afar", "Cold Debt Migrates Afar", "Transfers to the caught enemy farthest from the player.", "The chain can migrate outside the useful battlefield.", "Cold-Debt recipient priority"]
+    ],
+    9: [
+      ["all-guilty-share-the-cold", "All Guilty Share the Cold", "The prison hard-freezes ordinary enemies and strongly slows bosses.", "Prison damage is very low.", "Frozen River Prison shared fate"],
+      ["collective-liability", "Collective Liability", "Divides one large fixed damage pool across every debtor.", "Freeze is weak and adding debtors lowers damage per target.", "Frozen River Prison shared fate"],
+      ["compensating-ferry", "Compensating Ferry", "Debtor death can keep transferring Debt and extending the prison.", "There is no group freeze and single-boss value is weak.", "Frozen River Prison transfer continuity"]
     ]
   }
 };

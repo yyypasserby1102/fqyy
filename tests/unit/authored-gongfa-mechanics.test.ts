@@ -210,6 +210,85 @@ describe("approved Gongfa mechanic contracts", () => {
     }
   });
 
+  it("places harmless Cold-Debt seals and transfers one debt across a foreign seal", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
+    const [placement] = planGongfaAttack(runtime, 0, {
+      playerX: 0,
+      playerY: 0,
+      targets: [{ targetId: 61, x: 180, y: 0, healthRatio: 1, rank: "elite" }],
+      learnedMasteryIds: ["three-ford-branching-flow"]
+    });
+    expect(placement).toMatchObject({ kind: "authored-cold-debt-placement" });
+    if (placement?.kind === "authored-cold-debt-placement") {
+      expect(placement.seals.filter((seal) => seal.role === "crossing")).toHaveLength(3);
+    }
+
+    runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
+    runtime.authored.anchors.push(
+      { kind: "seal", sealRole: "origin", chainId: 1, targetId: 61, x: 0, y: 0, value: 1 },
+      { kind: "seal", sealRole: "crossing", chainId: 2, x: 100, y: 0, value: 1 }
+    );
+    const crossed = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 2, playerX: 0, playerY: 0,
+      learnedMasteryIds: ["cold-debt-pursues-the-weak"],
+      targets: [
+        { targetId: 61, x: 100, y: 0, healthRatio: 0.8, rank: "elite" },
+        { targetId: 62, x: 52, y: 0, healthRatio: 0.2, rank: "ordinary" }
+      ]
+    });
+    expect(crossed.commands).toEqual([
+      expect.objectContaining({ kind: "authored-frozen-river", from: { x: 0, y: 0 }, to: { x: 100, y: 0 } })
+    ]);
+    expect(crossed.runtime.authored.cycleCount).toBe(1);
+    expect(crossed.runtime.authored.anchors).toEqual([
+      expect.objectContaining({ sealRole: "origin", targetId: 62, x: 100, y: 0 })
+    ]);
+  });
+
+  it("spends three completed Cold-Debt transfers on the selected prison fate", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
+    runtime.authored.cycleCount = 3;
+    runtime.authored.anchors.push(
+      { kind: "seal", sealRole: "origin", chainId: 1, targetId: 71, x: -40, y: 0, value: 1 },
+      { kind: "seal", sealRole: "origin", chainId: 2, targetId: 72, x: 40, y: 0, value: 1 }
+    );
+    const prison = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "frozen-river-prison", nearbyEnemyCount: 2,
+      eligibleTargetCount: 2, hasMovementDirection: true,
+      learnedMasteryIds: ["collective-liability"],
+      targets: [
+        { targetId: 71, x: -40, y: 0, healthRatio: 0.6, rank: "elite" },
+        { targetId: 72, x: 40, y: 0, healthRatio: 0.4, rank: "ordinary" }
+      ]
+    });
+    expect(prison.commands).toEqual([
+      expect.objectContaining({ kind: "authored-frozen-river-network", fate: "collective-liability" })
+    ]);
+    expect(prison.runtime.authored.anchors).toHaveLength(0);
+    expect(prison.runtime.authored.cycleCount).toBe(0);
+  });
+
+  it("lets Compensating Ferry hand Debt off when its debtor dies", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "frozen-river-formation" });
+    runtime.mastery.masteryLearnedIds = ["compensating-ferry", "cold-debt-pursues-the-strong"];
+    runtime.authored.anchors.push({
+      kind: "seal", sealRole: "origin", chainId: 8, targetId: 81,
+      x: 20, y: 30, value: 1, remainingMs: 1000
+    });
+    const handedOff = advanceGongfaRuntime(runtime, {
+      kind: "enemy-death", targetId: 81, x: 40, y: 30, rank: "ordinary",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0,
+      targets: [
+        { targetId: 82, x: 90, y: 0, healthRatio: 0.4, rank: "ordinary" },
+        { targetId: 83, x: 70, y: 0, healthRatio: 0.9, rank: "elite" }
+      ]
+    });
+    expect(handedOff.runtime.authored.anchors[0]).toMatchObject({
+      targetId: 83, sealRole: "origin", remainingMs: 6500
+    });
+    expect(handedOff.runtime.authored.cycleCount).toBe(1);
+  });
+
   it("persists authored inventories while resetting transient movement continuity", () => {
     let collection = learnGongfa(createGongfaCollectionRuntime(), "sword-burial-formation", true);
     const runtime = collection.byId["sword-burial-formation"]!;

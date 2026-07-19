@@ -15,7 +15,7 @@ const archetypes = [
   ["thousand-root-formation", "root-trap-array", "myriad-root-killing-field", "myriad-root-killing-field"],
   ["flame-demon-body-art", "authored-blood-combination", "asura-conflagration", "star-breaking-descent"],
   ["vermilion-bird-covenant", "summon-wraiths", "vermilion-host-descent", "hundred-ghost-procession"],
-  ["frozen-river-formation", "root-trap-array", "frozen-river-prison", "myriad-root-killing-field"],
+  ["frozen-river-formation", "authored-cold-debt-placement", "frozen-river-prison", "authored-frozen-river-network"],
   ["moonfall-tide-ritual", "ritual-impact", "moonfall-cataclysm", "heavenly-sun-descent"],
   ["sword-burial-formation", "authored-line-strike", "ten-thousand-sword-tomb", "authored-line-strike"],
   ["heaven-sundering-edict", "ritual-impact", "supreme-sundering-decree", "heavenly-sun-descent"],
@@ -56,6 +56,13 @@ describe("expanded Gongfa archetypes", () => {
       if (gongfaId === "sword-burial-formation") {
         runtime.authored.anchors.push({ kind: "grave-sword", x: 0, y: 0, value: 1, angle: 0 });
       }
+      if (gongfaId === "frozen-river-formation") {
+        runtime.authored.cycleCount = 3;
+        runtime.authored.anchors.push(
+          { kind: "seal", sealRole: "origin", chainId: 1, targetId: 41, x: 20, y: 0, value: 1 },
+          { kind: "seal", sealRole: "origin", chainId: 2, targetId: 42, x: -20, y: 0, value: 1 }
+        );
+      }
       const command = planGongfaAttack(runtime, 0)[0];
       expect(command?.kind).toBe(expectedKind);
       return command?.kind;
@@ -72,13 +79,24 @@ describe("expanded Gongfa archetypes", () => {
       if (gongfaId === "sword-burial-formation") {
         runtime.authored.anchors.push({ kind: "grave-sword", x: 0, y: 0, value: 1, angle: 0 });
       }
+      if (gongfaId === "frozen-river-formation") {
+        runtime.authored.cycleCount = 3;
+        runtime.authored.anchors.push(
+          { kind: "seal", sealRole: "origin", chainId: 1, targetId: 41, x: 20, y: 0, value: 1 },
+          { kind: "seal", sealRole: "origin", chainId: 2, targetId: 42, x: -20, y: 0, value: 1 }
+        );
+      }
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
         skill2Id: expectedSkill2,
         eligibleTargetCount: 8,
         nearbyEnemyCount: 8,
-        hasMovementDirection: true
+        hasMovementDirection: true,
+        targets: gongfaId === "frozen-river-formation" ? [
+          { targetId: 41, x: 20, y: 0, healthRatio: 1, rank: "elite" },
+          { targetId: 42, x: -20, y: 0, healthRatio: 0.5, rank: "ordinary" }
+        ] : undefined
       });
       expect(result.commands[0]?.kind).toBe(expectedCommand);
       expect("masteryCast" in result.commands[0]!).toBe(true);
@@ -98,7 +116,11 @@ describe("expanded Gongfa archetypes", () => {
     const outputs = archetypes.flatMap(([gongfaId]) => {
       const runtime = createGongfaRuntime({ gongfaId });
       runtime.combat = { ...runtime.combat, ...gongfaConfigs[gongfaId].stages.yuanying! };
-      const command = planGongfaAttack(runtime, 0)[0]!;
+      const command = planGongfaAttack(runtime, 0, {
+        playerX: 0,
+        playerY: 0,
+        targets: [{ targetId: 77, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }]
+      })[0]!;
       const cadence = runtime.combat.cooldownMs / 1000;
       if (command.kind === "ritual-impact") {
         return command.damage * command.count * (1 + command.burnPulses * 0.14) / cadence;
@@ -111,6 +133,10 @@ describe("expanded Gongfa archetypes", () => {
       }
       if (command.kind === "authored-blood-combination") {
         return command.damage * command.strikeCount / cadence;
+      }
+      if (command.kind === "authored-cold-debt-placement") {
+        expect(command.seals.length).toBeGreaterThanOrEqual(2);
+        return [];
       }
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];

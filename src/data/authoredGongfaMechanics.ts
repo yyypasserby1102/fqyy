@@ -400,6 +400,8 @@ export interface AuthoredGongfaRuntimeState {
     originPlayerX?: number;
     originPlayerY?: number;
     sealed?: boolean;
+    sealRole?: "origin" | "crossing" | "waiting";
+    chainId?: number;
   }>;
 }
 

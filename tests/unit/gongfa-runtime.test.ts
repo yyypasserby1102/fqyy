@@ -510,6 +510,13 @@ describe("Gongfa runtime", () => {
       if (gongfaId === "sword-burial-formation") {
         runtime.authored.anchors.push({ kind: "grave-sword", x: 0, y: 0, value: 1, angle: 0 });
       }
+      if (gongfaId === "frozen-river-formation") {
+        runtime.authored.cycleCount = 3;
+        runtime.authored.anchors.push(
+          { kind: "seal", sealRole: "origin", chainId: 1, targetId: 51, x: 20, y: 0, value: 1 },
+          { kind: "seal", sealRole: "origin", chainId: 2, targetId: 52, x: -20, y: 0, value: 1 }
+        );
+      }
       const result =
         plan?.trigger === "cycle"
           ? advanceGongfaRuntime(runtime, {
@@ -530,7 +537,11 @@ describe("Gongfa runtime", () => {
                 nearbyEnemyCount: 3,
                 eligibleTargetCount: 3,
                 hasMovementDirection: true,
-                isMoving: true
+                isMoving: true,
+                targets: gongfaId === "frozen-river-formation" ? [
+                  { targetId: 51, x: 20, y: 0, healthRatio: 1, rank: "elite" },
+                  { targetId: 52, x: -20, y: 0, healthRatio: 0.5, rank: "ordinary" }
+                ] : undefined
               });
 
       const castCommands = result.commands.filter((command) => "masteryCast" in command);

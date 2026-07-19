@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -597,6 +597,11 @@ describe("mastery progression", () => {
       gongfaId: "flame-demon-body-art", rank: 9, seed: "s", learnedIds: []
     })).toEqual([
       "undying-asura", "world-burning-asura", "life-hunting-asura"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "frozen-river-formation", rank: 3, seed: "s", learnedIds: []
+    })).toEqual([
+      "lone-bridge-final-crossing", "three-ford-branching-flow", "curving-nether-river"
     ]);
   });
 

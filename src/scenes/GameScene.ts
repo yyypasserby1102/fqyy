@@ -676,6 +676,19 @@ export class GameScene extends Phaser.Scene {
       : enemy.maxHealth >= 150
         ? "elite" as const
         : "ordinary" as const;
+    const survivingTargetFacts = (this.enemies.getChildren() as Enemy[])
+      .filter((candidate) => candidate.active && candidate !== enemy)
+      .map((candidate) => ({
+        targetId: candidate.combatTargetId,
+        x: candidate.x,
+        y: candidate.y,
+        healthRatio: candidate.maxHealth > 0 ? candidate.health / candidate.maxHealth : 0,
+        rank: candidate.role === "tribulation-boss"
+          ? "boss" as const
+          : candidate.maxHealth >= 150
+            ? "elite" as const
+            : "ordinary" as const
+      }));
     if (!enemy.presentDefeat()) {
       return;
     }
@@ -689,7 +702,8 @@ export class GameScene extends Phaser.Scene {
         velocityX,
         velocityY,
         playerX: this.player.x,
-        playerY: this.player.y
+        playerY: this.player.y,
+        targets: survivingTargetFacts
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
@@ -1525,7 +1539,24 @@ export class GameScene extends Phaser.Scene {
       }
 
       this.adoptPrimaryRuntime(runtime);
-      const commands = planGongfaAttack(runtime, this.runState.elapsedMs);
+      const authoredTargets = (this.enemies.getChildren() as Enemy[])
+        .filter((enemy) => enemy.active)
+        .map((enemy) => ({
+          targetId: enemy.combatTargetId,
+          x: enemy.x,
+          y: enemy.y,
+          healthRatio: enemy.maxHealth > 0 ? enemy.health / enemy.maxHealth : 0,
+          rank: enemy.role === "tribulation-boss"
+            ? "boss" as const
+            : enemy.maxHealth >= 150
+              ? "elite" as const
+              : "ordinary" as const
+        }));
+      const commands = planGongfaAttack(runtime, this.runState.elapsedMs, {
+        playerX: this.player.x,
+        playerY: this.player.y,
+        targets: authoredTargets
+      });
       if (commands.length > 0) {
         const aimAngle = this.getAimAngle();
         this.player.presentAttack({ x: Math.cos(aimAngle), y: Math.sin(aimAngle) });
@@ -2321,6 +2352,21 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-cold-debt-placement") {
+        this.presentColdDebtSeals(command);
+        return;
+      }
+
+      if (command.kind === "authored-frozen-river") {
+        this.fireAuthoredFrozenRiver(command);
+        return;
+      }
+
+      if (command.kind === "authored-frozen-river-network") {
+        this.fireAuthoredFrozenRiverNetwork(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -2665,6 +2711,121 @@ export class GameScene extends Phaser.Scene {
         this.recordGongfaMotif(`${identity.motifId}:blood-combination:${command.shape}`);
         this.publishHud(this.lastMessage);
       });
+    }
+  }
+
+  private presentColdDebtSeals(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-cold-debt-placement" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    for (const seal of command.seals) {
+      const sigil = createGongfaSigil(
+        this, seal.x, seal.y, command.sourceGongfaId,
+        seal.role === "origin" ? 24 : 18,
+        seal.role === "origin" ? 0.78 : 0.5
+      ).setDepth(5);
+      sigil.setData("coldDebtChain", seal.chainId);
+      const crack = this.add.graphics().setDepth(4);
+      crack.lineStyle(seal.role === "origin" ? 2 : 1, identity.accent, 0.55);
+      for (let spoke = 0; spoke < 4; spoke += 1) {
+        const angle = spoke * Math.PI / 2 + seal.chainId * 0.31;
+        crack.lineBetween(
+          seal.x, seal.y,
+          seal.x + Math.cos(angle) * (seal.role === "origin" ? 30 : 22),
+          seal.y + Math.sin(angle) * (seal.role === "origin" ? 30 : 22)
+        );
+      }
+      this.time.delayedCall(command.lifetimeMs, () => {
+        if (sigil.active) this.tweens.add({ targets: sigil, alpha: 0, duration: 180, onComplete: () => sigil.destroy() });
+        if (crack.active) this.tweens.add({ targets: crack, alpha: 0, duration: 180, onComplete: () => crack.destroy() });
+      });
+    }
+    this.recordGongfaMotif(`${identity.motifId}:cold-debt-seals`);
+  }
+
+  private fireAuthoredFrozenRiver(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-frozen-river" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const river = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(10);
+    river.lineStyle(Math.max(5, command.width), identity.accent, 0.22);
+    river.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    river.lineStyle(2, identity.secondary, 0.92);
+    const steps = 9;
+    river.beginPath();
+    river.moveTo(command.from.x, command.from.y);
+    for (let step = 1; step <= steps; step += 1) {
+      const ratio = step / steps;
+      const jitter = step === steps ? 0 : (step % 2 === 0 ? 7 : -7);
+      const dx = command.to.x - command.from.x;
+      const dy = command.to.y - command.from.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      river.lineTo(
+        command.from.x + dx * ratio - dy / length * jitter,
+        command.from.y + dy * ratio + dx / length * jitter
+      );
+    }
+    river.strokePath();
+    this.damageEnemiesAlongFrozenSegment(command.from, command.to, command.width, command.damage,
+      command.slowMultiplier, command.slowDurationMs, false, command.bossDamageScale);
+    this.tweens.add({ targets: river, alpha: 0, duration: 520, onComplete: () => river.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:one-shot-river`);
+  }
+
+  private fireAuthoredFrozenRiverNetwork(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-frozen-river-network" }>
+  ): void {
+    if (command.nodes.length < 2) return;
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const network = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(11);
+    network.lineStyle(Math.max(6, command.width), identity.accent, 0.18);
+    const perNodeDamage = command.fate === "collective-liability"
+      ? command.damagePool / command.nodes.length
+      : command.damagePool;
+    for (let index = 0; index < command.nodes.length; index += 1) {
+      const from = command.nodes[index]!;
+      const to = command.nodes[(index + 1) % command.nodes.length]!;
+      network.lineBetween(from.x, from.y, to.x, to.y);
+      this.damageEnemiesAlongFrozenSegment(
+        from, to, command.width, perNodeDamage,
+        command.fate === "shared-cold" ? 0.05 : command.fate === "collective-liability" ? 0.72 : 0.62,
+        command.fate === "shared-cold" ? 1100 : 700,
+        command.fate === "shared-cold"
+      );
+    }
+    network.lineStyle(2, identity.secondary, 0.9);
+    command.nodes.forEach((node, index) => {
+      const next = command.nodes[(index + 1) % command.nodes.length]!;
+      network.lineBetween(node.x, node.y, next.x, next.y);
+    });
+    this.tweens.add({ targets: network, alpha: 0, duration: 900, onComplete: () => network.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:prison:${command.fate}`);
+  }
+
+  private damageEnemiesAlongFrozenSegment(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    width: number,
+    damage: number,
+    slowMultiplier: number,
+    slowDurationMs: number,
+    hardFreezeOrdinary = false,
+    bossDamageScale = 1
+  ): void {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const lengthSq = Math.max(1, dx * dx + dy * dy);
+    for (const enemy of (this.enemies.getChildren() as Enemy[]).filter((candidate) => candidate.active)) {
+      const projection = Math.max(0, Math.min(1,
+        ((enemy.x - from.x) * dx + (enemy.y - from.y) * dy) / lengthSq
+      ));
+      const closestX = from.x + dx * projection;
+      const closestY = from.y + dy * projection;
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, closestX, closestY) > width / 2 + 12) continue;
+      const isBoss = enemy.role === "tribulation-boss";
+      enemy.applySlow(hardFreezeOrdinary && !isBoss ? 0.03 : isBoss ? Math.max(0.42, slowMultiplier) : slowMultiplier,
+        isBoss ? slowDurationMs * 1.25 : slowDurationMs);
+      if (enemy.receiveDamage(damage * (isBoss ? bossDamageScale : 1))) this.resolveEnemyDeath(enemy);
     }
   }
 

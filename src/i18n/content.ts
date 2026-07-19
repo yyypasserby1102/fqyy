@@ -935,6 +935,42 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "sustained-crucible": { name: "恒压熔炉" },
   "resonant-crucible": { name: "共鸣熔炉" },
   "crucible-nova": { name: "熔炉新星" }
+  ,"life-seeking-fierce-wraith": { name: "索命厉魂" }
+  ,"wandering-mist-host": { name: "游雾群鬼" }
+  ,"lantern-returning-underworld-attendant": { name: "归灯冥侍" }
+  ,"long-banner-soul-call": { name: "长幡招魂" }
+  ,"tread-corpse-guide-soul": { name: "踏尸引魄" }
+  ,"halt-lantern-keep-vigil": { name: "停灯守夜" }
+  ,"hundred-ghosts-cross-river": { name: "百鬼横江" }
+  ,"myriad-souls-ask-for-life": { name: "万魂问命" }
+  ,"nether-river-funeral": { name: "冥河送葬" }
+  ,"lone-grave-great-que": { name: "孤冢巨阙" }
+  ,"collective-burial-sword-mound": { name: "合葬剑丘" }
+  ,"field-path-sword-forest": { name: "阡陌剑林" }
+  ,"rise-at-living-presence": { name: "见生即起" }
+  ,"recognize-calamity-leave-sheath": { name: "识煞出鞘" }
+  ,"seal-grave-treading-stars": { name: "踏罡封冢" }
+  ,"gravefield-cuts-across": { name: "墓野横绝" }
+  ,"myriad-edges-ask-the-leader": { name: "万锋问首" }
+  ,"old-roads-return-the-soul": { name: "故道返魂" }
+  ,"one-horn-army-breaker": { name: "独角破军" }
+  ,"six-armed-yaksha": { name: "六臂夜叉" }
+  ,"hungry-ghost-soul-pursuit": { name: "饿鬼逐魂" }
+  ,"meridian-locking-heart-guard": { name: "锁脉护心" }
+  ,"blood-debt-repaid-at-the-end": { name: "血债终偿" }
+  ,"life-flame-without-return": { name: "命火无归" }
+  ,"undying-asura": { name: "不灭修罗" }
+  ,"world-burning-asura": { name: "焚世修罗" }
+  ,"life-hunting-asura": { name: "猎命修罗" }
+  ,"lone-bridge-final-crossing": { name: "独桥绝渡" }
+  ,"three-ford-branching-flow": { name: "三津分流" }
+  ,"curving-nether-river": { name: "回湾冥河" }
+  ,"cold-debt-pursues-the-strong": { name: "寒债逐强" }
+  ,"cold-debt-pursues-the-weak": { name: "寒债逐弱" }
+  ,"cold-debt-migrates-afar": { name: "寒债远徙" }
+  ,"all-guilty-share-the-cold": { name: "众罪同寒" }
+  ,"collective-liability": { name: "连坐同伤" }
+  ,"compensating-ferry": { name: "代偿轮渡" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

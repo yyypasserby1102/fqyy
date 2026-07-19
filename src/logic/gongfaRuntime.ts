@@ -5,6 +5,7 @@ import {
   type GongfaStageState
 } from "../data/gongfa";
 import {
+  authoredGongfaMechanics,
   createAuthoredGongfaRuntimeState,
   type AuthoredGongfaRuntimeState
 } from "../data/authoredGongfaMechanics";
@@ -232,6 +233,8 @@ export type GongfaRuntimeEvent =
       eligibleTargetCount?: number;
       hasMovementDirection?: boolean;
       isMoving?: boolean;
+      targets?: AuthoredTargetFact[];
+      learnedMasteryIds?: string[];
     }
   | { kind: "incoming-damage"; amount: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean }
@@ -245,6 +248,7 @@ export type GongfaRuntimeEvent =
       velocityY: number;
       playerX: number;
       playerY: number;
+      targets?: AuthoredTargetFact[];
     };
 
 export type GongfaRuntimeCommand =
@@ -506,6 +510,33 @@ export type GongfaRuntimeCommand =
       asuraActive: boolean;
       sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-cold-debt-placement";
+      seals: Array<{ x: number; y: number; role: "origin" | "crossing"; chainId: number }>;
+      lifetimeMs: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-frozen-river";
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      damage: number;
+      width: number;
+      slowMultiplier: number;
+      slowDurationMs: number;
+      bossDamageScale: number;
+      sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-frozen-river-network";
+      nodes: Array<{ x: number; y: number; targetId: number; rank: AuthoredTargetFact["rank"] }>;
+      damagePool: number;
+      width: number;
+      fate: "shared-cold" | "collective-liability" | "compensating-ferry";
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2090,6 +2121,30 @@ function advanceAuthoredWorldFacts(
       state.anchors = state.anchors.filter((anchor) => anchor.kind === "grave-sword").slice(-state.maxCharges);
       state.charges = state.anchors.length;
     }
+
+    if (runtime.gongfaId === "frozen-river-formation") {
+      for (const origin of state.anchors.filter((anchor) =>
+        anchor.kind === "seal" && anchor.sealRole !== "crossing" && anchor.targetId === event.targetId
+      )) {
+        const candidates = event.targets ?? [];
+        const compensates = learnedIds.includes("compensating-ferry");
+        const recipient = compensates
+          ? [...candidates].sort((a, b) => {
+              if (learnedIds.includes("cold-debt-pursues-the-weak")) return a.healthRatio - b.healthRatio;
+              if (learnedIds.includes("cold-debt-migrates-afar")) {
+                return distanceSquared(b.x, b.y, event.playerX, event.playerY) -
+                  distanceSquared(a.x, a.y, event.playerX, event.playerY);
+              }
+              return b.healthRatio - a.healthRatio;
+            })[0]
+          : undefined;
+        origin.targetId = recipient?.targetId;
+        origin.sealRole = recipient ? "origin" : "waiting";
+        origin.remainingMs = compensates ? Math.max(origin.remainingMs ?? 0, 6500) : Math.min(origin.remainingMs ?? 3000, 3000);
+        if (recipient) state.cycleCount += 1;
+      }
+      state.resource = Math.min(1, state.cycleCount / 3);
+    }
     return;
   }
 
@@ -2223,6 +2278,87 @@ function advanceAuthoredWorldFacts(
     state.charges = retained.filter((anchor) => anchor.kind === "grave-sword").length;
     state.resource = state.charges / Math.max(1, state.maxCharges);
   }
+
+  if (runtime.gongfaId === "frozen-river-formation") {
+    const targets = event.targets ?? [];
+    const origins = state.anchors.filter((anchor) => anchor.kind === "seal" && anchor.sealRole !== "crossing");
+    const crossings = state.anchors.filter((anchor) => anchor.kind === "seal" && anchor.sealRole === "crossing");
+    for (const origin of origins) {
+      if (origin.targetId === undefined) {
+        const waitingCandidates = targets.filter((target) =>
+          distanceSquared(origin.x, origin.y, target.x, target.y) <= 58 ** 2
+        );
+        const waitingRecipient = waitingCandidates.sort((a, b) => {
+          if (learnedIds.includes("cold-debt-pursues-the-weak")) return a.healthRatio - b.healthRatio;
+          if (learnedIds.includes("cold-debt-migrates-afar")) {
+            const px = event.playerX ?? 0;
+            const py = event.playerY ?? 0;
+            return distanceSquared(b.x, b.y, px, py) - distanceSquared(a.x, a.y, px, py);
+          }
+          return b.healthRatio - a.healthRatio;
+        })[0];
+        if (waitingRecipient) {
+          origin.targetId = waitingRecipient.targetId;
+          origin.sealRole = "origin";
+        }
+        continue;
+      }
+      const debtor = targets.find((target) => target.targetId === origin.targetId);
+      if (!debtor) {
+        origin.targetId = undefined;
+        origin.sealRole = "waiting";
+        continue;
+      }
+      const crossed = crossings.find((seal) =>
+        seal.chainId !== origin.chainId && distanceSquared(seal.x, seal.y, debtor.x, debtor.y) <= 42 ** 2
+      );
+      if (!crossed) continue;
+
+      const segmentX = crossed.x - origin.x;
+      const segmentY = crossed.y - origin.y;
+      const segmentLengthSq = Math.max(1, segmentX * segmentX + segmentY * segmentY);
+      const caught = targets.filter((target) => {
+        if (target.targetId === debtor.targetId) return false;
+        const projection = Math.max(0, Math.min(1,
+          ((target.x - origin.x) * segmentX + (target.y - origin.y) * segmentY) / segmentLengthSq
+        ));
+        const closestX = origin.x + segmentX * projection;
+        const closestY = origin.y + segmentY * projection;
+        return distanceSquared(target.x, target.y, closestX, closestY) <= 36 ** 2;
+      });
+      const recipient = caught.sort((a, b) => {
+        if (learnedIds.includes("cold-debt-pursues-the-weak")) return a.healthRatio - b.healthRatio;
+        if (learnedIds.includes("cold-debt-migrates-afar")) {
+          const px = event.playerX ?? 0;
+          const py = event.playerY ?? 0;
+          return distanceSquared(b.x, b.y, px, py) - distanceSquared(a.x, a.y, px, py);
+        }
+        return b.healthRatio - a.healthRatio;
+      })[0];
+      commands.push({
+        kind: "authored-frozen-river",
+        from: { x: origin.x, y: origin.y },
+        to: { x: crossed.x, y: crossed.y },
+        damage: Math.max(1, Math.floor(runtime.combat.damage * origin.value)),
+        width: learnedIds.includes("lone-bridge-final-crossing") ? 24 :
+          learnedIds.includes("three-ford-branching-flow") ? 54 :
+            learnedIds.includes("curving-nether-river") ? 68 : 42,
+        slowMultiplier: learnedIds.includes("curving-nether-river") ? 0.38 : 0.48,
+        slowDurationMs: 1300,
+        bossDamageScale: learnedIds.includes("curving-nether-river") ? 0.55 : 1,
+        sourceGongfaId: runtime.gongfaId
+      });
+      origin.x = crossed.x;
+      origin.y = crossed.y;
+      origin.targetId = recipient?.targetId;
+      origin.sealRole = recipient ? "origin" : "waiting";
+      origin.remainingMs = runtime.combat.projectileLifetimeMs * 1.4;
+      state.anchors = state.anchors.filter((anchor) => anchor !== crossed);
+      state.cycleCount += 1;
+    }
+    state.charges = origins.filter((origin) => origin.targetId !== undefined).length;
+    state.resource = Math.min(1, state.cycleCount / 3);
+  }
 }
 
 export function advanceGongfaRuntime(
@@ -2275,7 +2411,9 @@ export function advanceGongfaRuntime(
         nearbyEnemyCount: event.nearbyEnemyCount,
         eligibleTargetCount: event.eligibleTargetCount,
         hasMovementDirection: event.hasMovementDirection,
-        isMoving: event.isMoving
+        isMoving: event.isMoving,
+        targets: event.targets,
+        learnedMasteryIds: event.learnedMasteryIds
       });
       next = skillResult.runtime;
       commands.push(...skillResult.commands);
@@ -2351,6 +2489,41 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "frozen-river-prison" && next.gongfaId === "frozen-river-formation") {
+      const activeTargets = event.targets ?? [];
+      const nodes = next.authored.anchors
+        .filter((anchor) => anchor.kind === "seal" && anchor.sealRole !== "crossing" && anchor.targetId !== undefined)
+        .flatMap((anchor) => {
+          const target = activeTargets.find((candidate) => candidate.targetId === anchor.targetId);
+          return target ? [target] : [];
+        });
+      if (next.authored.cycleCount >= 3 && nodes.length >= 2) {
+        const learnedIds = event.learnedMasteryIds;
+        const fate = learnedIds.includes("collective-liability")
+          ? "collective-liability" as const
+          : learnedIds.includes("compensating-ferry")
+            ? "compensating-ferry" as const
+            : "shared-cold" as const;
+        commands.push({
+          kind: "authored-frozen-river-network",
+          nodes,
+          damagePool: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
+            (fate === "shared-cold" ? 0.48 : fate === "compensating-ferry" ? 0.62 : 1.25))),
+          width: 44 + skill2Stats.coverage * 4,
+          fate,
+          sourceGongfaId: next.gongfaId,
+          masteryCast: {
+            skill2Id: "frozen-river-prison",
+            cooldownMs: Math.floor(authoredSkill2Plans["frozen-river-prison"].cooldownMs * skill2Stats.cadenceScale)
+          }
+        });
+        next.authored.anchors = next.authored.anchors.filter((anchor) => anchor.kind !== "seal");
+        next.authored.cycleCount = 0;
+        next.authored.charges = 0;
+        next.authored.resource = 0;
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "hundred-ghost-procession" && next.gongfaId === "mist-wraith-canon") {
       const storedSouls = next.authored.anchors.filter((anchor) => anchor.kind === "stored-soul");
       if (storedSouls.length > 0) {
@@ -3106,9 +3279,15 @@ export function ironWakeWall(
 export function planGongfaAttack(
   runtime: GongfaRuntime,
   elapsedMs: number,
-  options: { learnedMasteryIds?: string[] } = {}
+  options: {
+    learnedMasteryIds?: string[];
+    playerX?: number;
+    playerY?: number;
+    targets?: AuthoredTargetFact[];
+  } = {}
 ): GongfaRuntimeCommand[] {
   options = {
+    ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
   if (runtime.gongfaId === "mist-wraith-canon") {
@@ -3204,6 +3383,62 @@ export function planGongfaAttack(
       damage: Math.max(1, Math.floor(runtime.combat.damage * 0.3)),
       width: 7,
       length: Math.max(220, runtime.combat.range * 0.82),
+      sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "frozen-river-formation") {
+    const targets = (options.targets ?? []).filter((target) =>
+      !runtime.authored.anchors.some((anchor) =>
+        anchor.kind === "seal" && anchor.sealRole === "origin" && anchor.targetId === target.targetId
+      )
+    );
+    if (targets.length === 0) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const threeFord = learnedIds.includes("three-ford-branching-flow");
+    const curving = learnedIds.includes("curving-nether-river");
+    const loneBridge = learnedIds.includes("lone-bridge-final-crossing");
+    const chosen = targets
+      .sort((a, b) => b.healthRatio - a.healthRatio)
+      .slice(0, threeFord || curving ? 1 : Math.min(2, runtime.combat.count));
+    const placed: Array<{ x: number; y: number; role: "origin" | "crossing"; chainId: number }> = [];
+    for (const target of chosen) {
+      const chainId = ++runtime.authored.activationCount;
+      const angleToPlayer = Math.atan2(playerY - target.y, playerX - target.x);
+      const crossingCount = threeFord || curving ? 3 : 1;
+      const strength = loneBridge ? 1.5 : threeFord ? 0.58 : curving ? 0.66 : 1;
+      runtime.authored.anchors.push({
+        kind: "seal", sealRole: "origin", chainId, targetId: target.targetId,
+        x: target.x, y: target.y, value: strength, remainingMs: runtime.combat.projectileLifetimeMs * 2.2
+      });
+      placed.push({ x: target.x, y: target.y, role: "origin", chainId });
+      for (let index = 0; index < crossingCount; index += 1) {
+        const spread = curving
+          ? (index - 1) * 0.72
+          : threeFord
+            ? (index - 1) * 0.42
+            : 0;
+        const distance = loneBridge ? 175 : threeFord ? 68 + index * 30 : curving ? 92 : 108;
+        const baseX = curving ? playerX : target.x;
+        const baseY = curving ? playerY : target.y;
+        const x = baseX + Math.cos(angleToPlayer + spread) * distance;
+        const y = baseY + Math.sin(angleToPlayer + spread) * distance;
+        runtime.authored.anchors.push({
+          kind: "seal", sealRole: "crossing", chainId, x, y, value: strength,
+          remainingMs: runtime.combat.projectileLifetimeMs * 2.2
+        });
+        placed.push({ x, y, role: "crossing", chainId });
+      }
+    }
+    runtime.authored.anchors = runtime.authored.anchors
+      .filter((anchor) => anchor.kind === "seal")
+      .slice(-authoredGongfaMechanics["frozen-river-formation"].balance.objectBudget);
+    runtime.authored.charges = runtime.authored.anchors.filter((anchor) => anchor.sealRole === "origin").length;
+    return [{
+      kind: "authored-cold-debt-placement",
+      seals: placed,
+      lifetimeMs: runtime.combat.projectileLifetimeMs * 2.2,
       sourceGongfaId: runtime.gongfaId
     }];
   }
