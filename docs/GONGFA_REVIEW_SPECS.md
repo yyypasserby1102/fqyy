@@ -36,6 +36,11 @@ implementation, testing, balance review, and future regression checks.
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
 | Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
 | Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Pending redesign |
+| Burning Ring Scripture / 焚轮经 | Hudao | Approved | Pending redesign |
+| Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Pending redesign |
+| Gengjin Huti / 庚金护体 | Hudao | Approved | Pending redesign |
+| Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Pending redesign |
+| Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Pending redesign |
 
 ---
 
@@ -439,3 +444,204 @@ No infection, permanent field, manual selection, or following aura.
 
 **Must not become:** Burning Ring proximity orbit, Green Vine tethers, Thousand Root
 infection, generic aura damage, or a manually selected rune menu.
+
+---
+
+## Burning Ring Scripture / 焚轮经
+
+**Identity:** a segmented close orbit with readable gaps, Heat from maintaining
+distinct nearby enemies, and a brief complete defensive corona.
+
+### Core
+
+- **Revolving Broken Corona / 旋焰缺轮:** persistent physical fire segments rotate
+  around the moving player. Only segment contact damages; visible gaps do not. It
+  launches no waves and leaves no burning ground.
+- **Kindled Heat / 燃脉热力:** each distinct enemy maintained in the danger band
+  contributes once; repeated hits add nothing. Leaving close danger cools rapidly.
+- **Failure:** retreating for safety loses Heat and the complete-corona setup.
+
+### Milestones
+
+- **R3:** Counter-Rotating Twin Rings / 双轮逆转 creates weaker inner/outer rings with
+  strong intersections; Furnace-Heart Lone Ring / 熔心孤轮 creates two slow heavy
+  segments and huge gaps; Wandering Luminary Rings / 游曜错环 alternates inner/outer
+  radii with transition downtime.
+- **R6:** Banked Sun / 藏阳守轮 holds a half floor but lowers maximum output; Myriad
+  Enemies as Furnace / 众敌为炉 weights distinct mobs and is weak on bosses; Lone True
+  Sun / 独镇真阳 weights elite/boss contact and is weak on mobs.
+- **R9:** Perfect-Sun Consumption / 完阳蚀火 closes gaps above high Heat while draining
+  it; Sunspot Lure / 黑子纳敌 widens gaps, slows entrants, then rewards the catching
+  segment; Reverse-Wheel Reflection / 逆轮回照 makes Evade reverse rotation at a Heat
+  cost without spawning attacks.
+
+### Skill 2 — Sunlit Guard Ring / 日耀护轮
+
+At full Heat and nearby danger, all gaps close around the moving player for a short
+no-damage state. The corona burns ordinary projectiles and pushes close mobs, then
+returns to segments and consumes all Heat. It emits no full-screen wave.
+
+**Must not become:** Verdant rune rings, generic aura DPS, Gengjin stored damage, or
+Flame Demon's health sacrifice.
+
+---
+
+## Ice Mirror Guard / 冰镜护体
+
+**Identity:** finite directional mirror facets that physically intercept attacks,
+crack, and require dangerous close Evades to repair.
+
+### Core
+
+- **Sixfold Ice Mirrors / 六合冰镜:** six visible rotating facets with real gaps.
+  Projectiles/contact attacks colliding with an intact facet are fully blocked; that
+  facet cracks and reflects frost along the incoming direction. Cracked facets cannot
+  block. All-cracked state slowly emergency-restores one facet.
+- **Cold-Mirror Repair / 寒镜修复:** one close-danger Evade repairs one facet. Distant
+  Evades, attacks, and damage dealt repair nothing.
+- **Failure:** sequential attacks exhaust facets faster than the player risks repairs.
+
+### Milestones
+
+- **R3:** Three-Enclosure Heavy Mirrors / 三垣重镜 = three two-hit large mirrors with
+  stronger reflection and larger gaps; Thousand-Facet Lotus / 千棱莲镜 = eight weak
+  slow one-hit facets and long repair burden; Flowing-Light Mirrors / 流光转镜 = fast
+  six-facet rotation reversed by Evade, weaker reflection.
+- **R6:** Ice-Heart Repair / 冰心补镜 repairs two but lengthens Evade cooldown and
+  weakens the next reflection; Shattered-Mirror Frost / 裂镜飞霜 destroys a facet into
+  three offensive shards; Lingering Reflection / 残光续照 lets a cracked facet reduce
+  one more same-direction hit before disappearing, with weak reflection.
+- **R9:** Flawless Lotus / 无瑕莲华 requires all facets and gives the longest shell;
+  Calamity-Answering Broken Lotus / 残莲应劫 can use three-plus facets with scaled weak
+  duration; Killing Shattered Mirror / 破镜杀生 sharply shortens protection and returns
+  high-damage shards along recorded attack directions.
+
+### Skill 2 — Frozen Lotus Shell / 冰莲镜甲
+
+When cooldown, enough intact facets, and imminent danger coincide, facets close into
+an all-direction shell. It records incoming directions but not damage values, then
+reflects along those directions and leaves every participating facet cracked.
+
+**Must not become:** Gengjin proportional mitigation/storage, Frost ricochet, Verdant
+orbit, or unconditional periodic invulnerability.
+
+---
+
+## Gengjin Huti / 庚金护体
+
+**Identity:** proportional mitigation of actual close hits, exact prevented-damage
+storage with a hard fracture cap, then conservation-based release.
+
+### Core
+
+- **Gengjin Brace / 庚金架:** close-source damage is partially reduced; the player
+  takes the remainder and the exact prevented amount enters Guard. Distant attacks
+  receive no default mitigation/storage.
+- **Tempered Guard / 百炼护势:** a visible capacity with escalating fractures. Overflow
+  before release breaks the armor, disables mitigation briefly, and loses force.
+- **Failure:** greedily absorbing too much before Skill 2 is ready causes overload.
+
+### Milestones
+
+- **R3:** Rebounding Edge Armor / 回弹锋甲 immediately reflects part of each prevented
+  hit and stores less; Hundred-Forged Heavy Armor / 百炼重甲 raises mitigation/cap but
+  slows movement and fracture recovery; Flowing-Gold Vent / 流金卸甲 safely spills
+  overflow with no damage and a lower cap.
+- **R6:** Immovable Mountain / 不动如山 grants stationary capacity/mitigation that
+  safely drains on movement; Flowing-Gold Turn / 流金转身 vents Guard into a brief
+  post-Evade layer, weakening the final release; Armor Remembers Enemy / 刻甲识敌
+  adapts to one repeated source, resets on source change, and stores less bonus force.
+- **R9:** Eight-Wastes Rebound / 八荒震甲 divides the conserved total among nearby
+  enemies; One Edge Breaks Mountain / 一锋破岳 sends the full total into one close
+  priority target; Unbroken Golden City / 金城不坏 converts it to a temporary shield and
+  deals no damage.
+
+### Skill 2 — Blade-Shell Rebound / 刃甲反震
+
+At high Guard with nearby danger, locks and releases the recorded prevented-damage
+total according to the R9 law, clears Guard, and repairs fractures. Enemy count never
+multiplies the conserved force.
+
+**Must not become:** Ice Mirror's discrete negation, Burning Ring's Heat defense,
+generic nearby-enemy Guard generation, or an unconserved radial burst.
+
+---
+
+## Ironwood Wave Form / 铁木浪形
+
+**Identity:** stop to construct a directional physical rampart and build Stability;
+move to uproot and drive that completed wall forward.
+
+### Core
+
+- **Ironwood Rampart / 铁木壁垒:** after standing still, automatically raises a wall
+  toward the densest threat. It physically blocks ordinary enemies/projectiles, has
+  durability, and leaves sides/back exposed. Movement ends growth and, with enough
+  Stability, sends the wall along its original direction; low Stability merely withers.
+- **Growth-Ring Stability / 年轮稳定:** grows only while stationary behind a live
+  rampart and is fully spent by its drive. Hits and other Wood skills add nothing.
+- **Failure:** moving too early, side/rear pressure, wall destruction, or bad placement.
+
+### Milestones
+
+- **R3:** Lone Great Rampart / 独木巨垒 = narrow durable strong drive and exposed sides;
+  Linked Timber Palisade / 连城木栅 = broad fragile slow control; Living-Root Curved
+  Wall / 活根曲墙 = slow-built frontal semicircle that splits outward instead of driving.
+- **R6:** Deep-Age Root / 岁木深根 = slow root/unroot, high time-based Stability and
+  durability; Enemy-Pressed Forest / 众敌压林 gains Stability only from distinct enemies
+  pressing the wall; Living-Root Relocation / 活根移垒 permits slow repositioning while
+  Stability decays and keeps a lower cap.
+- **R9:** Unbroken Iron City / 不破铁城 emphasizes durable long walls and weak drives;
+  Mountain-Collapse Timber Array / 崩山木阵 emphasizes fast explosive drives and weak
+  stationary walls; Walking City / 行城移岳 lets walls follow briefly but lowers push.
+
+### Skill 2 — Ironwood Citadel / 铁木城寨
+
+After three high-Stability drives, raises four physical walls at the current location.
+Corners remain passable, walls can be destroyed, and the player may leave. Remaining
+walls later drive outward and splinter, then all construction records clear.
+
+**Must not become:** Ancient Tree body transformation, Gengjin damage storage, Scarlet
+waves, Ice Lotus's sealed shell, or a generic Wood projectile.
+
+---
+
+## Crimson Furnace Sword Art / 赤炉剑法
+
+**Identity:** forged needles embedded across living targets create a visible shared
+furnace topology; ignition consumes the network and reforges its needles once.
+
+### Core
+
+- **Furnace Needles / 炉心飞针:** automatically prefers unembedded threats and targets
+  that form valid connections, then adds an ignition needle after a network exists.
+  Ordinary enemies are one node; elite/boss bodies support multiple visible nodes.
+- **Crucible Pressure / 熔炉压势:** recalculated from simultaneous nodes, links,
+  branches, and loops. Death/distance removes it immediately. It changes propagation
+  topology, not global explosion radius, and explosions do not leave stored Pressure.
+- **Ignition:** fire begins at the core and travels along visible links, consuming all
+  participating embeds.
+- **Failure:** nodes die, separate, over-concentrate, or lose the core before ignition.
+
+### Milestones
+
+- **R3:** Piercing Furnace Needle / 贯炉重针 concentrates strong body nodes and weakens
+  wide links; Scattered Furnace Needles / 散炉布针 expands distribution/link range with
+  weak nodes and higher ignition requirement; Volatile Furnace Core / 易爆炉芯 ignites
+  small networks early with weak explosions/few branches.
+- **R6:** Sealed Leftover Needle / 封炉余针 preserves dead nodes as weak temporary
+  ground nodes; Star-Furnace Resonance / 星炉共鸣 connects two nearest neighbors for
+  branches/loops but splits damage; Compressed Furnace / 压炉密铸 makes short compact
+  links powerful and dispersed nodes invalid.
+- **R9:** Furnace-Heart Reforge / 炉心回铸 sends weak fragments to unembedded survivors;
+  Myriad Edges Return / 万锋归炉 concentrates fragments on the strongest target;
+  Falling-Star Forge / 星火落炉 plants one-use ground nodes near old explosions.
+
+### Skill 2 — Furnace Cascade / 炉火连铸
+
+At enough live nodes and Pressure, ignites all connected networks from their highest-
+pressure cores. Every consumed needle becomes one fragment following the R9 law. The
+new fragments may produce exactly one follow-up chain, preventing infinite recursion.
+
+**Must not become:** Sword Burial corpse inventory, Yujian returning ammo, Green Vine
+tethers, ordinary explosive projectiles, or generic hit-built Pressure.
