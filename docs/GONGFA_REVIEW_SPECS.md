@@ -46,6 +46,11 @@ implementation, testing, balance review, and future regression checks.
 | Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Pending redesign |
 | Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Pending redesign |
 | Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Pending redesign |
+| Flame-Demon Body Art / 炎魔锻体术 | Youxuan | Approved | Pending redesign |
+| Mist Wraith Canon / 雾灵真典 | Youxuan | Approved | Pending redesign |
+| Frozen River Formation / 冰河伏阵 | Youxuan | Approved | Pending redesign |
+| Sword-Burial Formation / 葬剑伏阵 | Youxuan | Approved | Pending redesign |
+| Myriad-Root Lifebinding Canon / 万根寄命经 | Youxuan | Approved | Pending redesign |
 
 ---
 
@@ -244,7 +249,7 @@ Retained until at least three Knots exist. It connects them into a closed polygo
 whose visible edges contract, cutting crossed enemies and gathering those inside.
 Full contraction breaks the net and consumes all Knots.
 
-**Must not become:** Thousand Root infection, Frozen River crossing curses, generic
+**Must not become:** Myriad-Root Lifebinding infection, Frozen River crossing curses, generic
 seeking vines, or a stationary pulsing field.
 
 ---
@@ -447,7 +452,7 @@ three-phase world bloom at the player position: roots spread and temporarily fix
 region, leaves sweep along them, then all paths erupt as one thorn sun and disappear.
 No infection, permanent field, manual selection, or following aura.
 
-**Must not become:** Burning Ring proximity orbit, Green Vine tethers, Thousand Root
+**Must not become:** Burning Ring proximity orbit, Green Vine tethers, Myriad-Root
 infection, generic aura damage, or a manually selected rune menu.
 
 ---
@@ -873,5 +878,258 @@ trunk according to the R9 law; it creates no separate walls or summons. The play
 cannot uproot during the duration, then forcibly returns to mobile form with zero
 Rings. There is no directional or manual aiming step.
 
-**Must not become:** Ironwood's constructed directional walls, Thousand Root's target
+**Must not become:** Ironwood's constructed directional walls, Myriad-Root's target
 infection, Verdant glyph ordering, Gengjin stored damage, or a generic radial aura.
+
+---
+
+## Flame-Demon Body Art / 炎魔锻体术
+
+**Identity:** extend an automatic point-blank combination by visibly burning current
+health; missing-health bands replace a generic meter and can culminate in an
+irreversible low-health demon state.
+
+### Core
+
+- **Furnace-Blood Combination / 炉血连式:** the opening blow is free; its three
+  extensions burn 6%, 8%, then 10% of current health before striking. Leaving melee
+  range or Evading cancels the remainder and stops further cost, but refunds nothing.
+  Self-burn cannot directly kill the player.
+- **Missing-health forms:** above 70% health attacks are short and narrow with no
+  leech; 40–70% adds a side-cleaving claw; 20–40% adds the long Furnace-Heart finish
+  and limited leech; below 20% reveals the full body and enables the capstone. Only a
+  completed final direct strike can leech, capped to half that combination's self-cost.
+- **Failure:** overcommitting lowers real survivability; disengaging protects the
+  player but forfeits spent health and the finisher. Hits build no resource.
+
+### Milestones
+
+- **R3:** One-Horn Army Breaker / 独角破军 focuses the strongest close target with
+  narrow weak clear; Six-Armed Yaksha / 六臂夜叉 splits attacks across several directions
+  with weak single-target damage; Hungry-Ghost Soul Pursuit / 饿鬼逐魂 automatically
+  advances between low-health targets but can carry the player into danger and cannot
+  hold boss focus.
+- **R6:** Meridian-Locking Heart Guard / 锁脉护心 halves cost and missing-health
+  bonuses; Blood Debt Repaid at the End / 血债终偿 refunds up to 70% only when the full
+  finish lands; Life-Flame Without Return / 命火无归 raises costs and missing-health
+  power by 50% while disabling all Gongfa leech.
+- **R9:** Undying Asura / 不灭修罗 locks recoverable health at 30% with strong refunds
+  and lower damage; World-Burning Asura / 焚世修罗 locks it at 15%, removes leech, and
+  maximizes area/damage; Life-Hunting Asura / 猎命修罗 locks it at 25% and can continue
+  the combination through up to three ordinary kills, with weak boss damage and fresh
+  health costs on each continuation.
+
+### Skill 2 — Asura Heart / 阿修罗心
+
+Below 20% health, completing the full combination while the capstone is ready triggers
+a persistent irreversible warning and then transformation. The player can still avoid
+commitment by disengaging before completion. Once active, recoverable health is locked
+by the R9 law and the lowest-health full combination remains for the rest of the run,
+until victory or death. Healing never restores human form.
+
+**Must not become:** Heavenfall's temporary movement form, Burning Ring's proximity
+Heat, Gengjin damage storage, Furnace Sword embeds, or a generic low-health damage buff.
+
+---
+
+## Mist Wraith Canon / 雾灵真典
+
+**Identity:** recent deaths leave finite rank-bearing souls at their corpse positions;
+the player must route through them before they fade, and every raised wraith is
+eventually consumed rather than becoming a permanent pet.
+
+### Core
+
+- **Water Souls / 水魂:** ordinary, elite, and boss deaths leave souls for 6, 12, and
+  20 seconds respectively. Passing near the death site collects one visible soul into
+  the trailing procession. Rank changes size, lifetime, and force; attacks never create
+  or duplicate souls.
+- **Soul-Guiding Lantern / 引魂灯:** one weak non-summon mist attack helps finish a first
+  wounded enemy but cannot generate inventory itself. With no corpses there is no
+  wraith army or capstone.
+- **Finite Wraiths / 有限雾灵:** each collected soul becomes one physical spectral
+  crossing rather than firing homing bolts, then is consumed. Capacity, source rank,
+  and expiry remain visible per slot.
+- **Failure:** failing to route through corpse sites loses souls; spending the
+  procession leaves a real no-corpse downtime.
+
+### Milestones
+
+- **R3:** Life-Seeking Fierce Wraith / 索命厉魂 rapidly spends the oldest of five souls
+  on high single-target damage; Wandering-Mist Host / 游雾群鬼 curves each weak soul
+  through up to three distinct ordinary enemies with one boss hit; Lantern-Returning
+  Underworld Attendant / 归灯冥侍 stores a larger, longer-lived procession but deals
+  almost no independent summon damage before the capstone.
+- **R6:** Long-Banner Soul Call / 长幡招魂 collects a wide area at minus two slots and
+  20% wraith damage; Tread the Corpse, Guide the Soul / 踏尸引魄 requires close pickup
+  and rewards it with longer, stronger souls; Halt the Lantern, Keep the Vigil /
+  停灯守夜 upgrades one nearby ordinary soul without duplication, but requires standing
+  still and loses the attempt if interrupted.
+- **R9:** Hundred Ghosts Cross the River / 百鬼横江 uses parallel crowd-clear lanes with
+  repeat-hit limits; Myriad Souls Ask for Life / 万魂问命 converges once on the strongest
+  enemy and never retargets; Nether River Funeral / 冥河送葬 leaves slowing mist roads
+  with sharply reduced immediate damage.
+
+### Skill 2 — Hundred-Ghost Night Crossing / 百鬼夜渡
+
+With enough stored souls, automatically projects the orientation covering the most
+valid enemies. Every stored soul appears at one arena boundary, crosses exactly once
+according to the R9 law, and is permanently consumed. Elite and boss souls are wider
+and stronger but still receive only one crossing. There is no manual aiming.
+
+**Must not become:** Vermilion Bird's persistent companion, Myriad Beast's living pack,
+Sword Burial's lasting corpse sites, generic timed summons, homing frost bolts, or a
+hit-built summon meter.
+
+---
+
+## Frozen River Formation / 冰河伏阵
+
+**Identity:** place harmless seals on automatically predicted pursuit routes; only a
+debtor crossing a different seal awakens a one-shot river and transfers its finite Cold
+Debt to another enemy.
+
+### Core
+
+- **River-Origin and Crossing Seals / 起河印与渡河印:** the method selects threats on
+  distinct approaches, leaves an origin at the target's position, projects a crossing
+  seal on its pursuit route, and assigns visible Cold Debt without dealing damage.
+- **Crossing transfer:** when a debtor crosses another active seal, one river erupts
+  between the previous and new seals, damages/slows enemies on that segment once, and
+  transfers the Debt one-for-one to a different enemy caught in it. With no recipient,
+  the Debt waits in the new seal; debtor death drops it at the last seal to expire.
+- **Indirect control:** automatic seals follow predicted pursuit routes. Player
+  movement reshapes those routes and brings debtors across other seals. Damage, hits,
+  and ordinary freeze never create Debt.
+- **Failure:** parallel pursuit, a missed second seal, an empty river segment, or debtor
+  death interrupts the chain.
+
+### Milestones
+
+- **R3:** Lone-Bridge Final Crossing / 独桥绝渡 creates a long narrow powerful river
+  that is hard to trigger; Three-Ford Branching Flow / 三津分流 creates three easy weak
+  short approaches; Curving Nether River / 回湾冥河 forms defensive arcs near the player
+  with weak range and boss damage.
+- **R6:** Cold Debt Pursues the Strong / 寒债逐强 prefers the highest-health recipient
+  but may stall on slow bosses; Cold Debt Pursues the Weak / 寒债逐弱 rapidly reaches
+  weakened prey but often drops on early death; Cold Debt Migrates Afar / 寒债远徙
+  prefers the farthest downstream recipient but risks leaving the useful battlefield.
+- **R9:** All Guilty Share the Cold / 众罪同寒 shares hard ordinary freeze and boss slow
+  with little damage; Collective Liability / 连坐同伤 divides one fixed damage pool
+  across all debtors with weak freeze; Compensating Ferry / 代偿轮渡 transfers Debt on
+  debtor death and extends the prison, with no group freeze and weak single-boss value.
+
+### Skill 2 — Frozen River Prison / 冰河囚界
+
+Once at least three Debt chains have completed a transfer, connects all current debtors
+into a closed river network. The network never pulses on its own; crossing another
+debtor's line resolves the chosen shared fate. Boss freeze becomes slow. At the end,
+all participating Debts and seals clear. Connections are automatic and never aimed.
+
+**Must not become:** Black Tide's global calendar, Myriad-Root's death infection,
+Sword Burial corpse inventory, Green Vine's player-stretched tether, or an ordinary
+pulsing floor trap.
+
+---
+
+## Sword-Burial Formation / 葬剑伏阵
+
+**Identity:** every enemy death buries exactly one finite one-use sword at that exact
+corpse position; later trespassers or the capstone raise it once and leave the
+gravefield empty.
+
+### Core
+
+- **Corpse-Bound Grave Swords / 尸位墓剑:** any enemy death creates one sword with a
+  visible burial direction recorded from its final movement, or from player to corpse
+  if stationary. Swords remain fixed, do not expire normally, and cap at twelve; excess
+  deaths harmlessly crumble the oldest.
+- **One emergence:** a later enemy entering the grave raises the sword through the
+  trespasser and sends it once along the recorded direction, then destroys it. Hits,
+  eruptions, and sword damage never create extra inventory.
+- **Funeral Sword / 送葬剑:** one weak automatic strike helps finish the first wounded
+  enemy but never pre-places a trap. With no deaths there is no gravefield.
+- **Failure:** poor death positions, bad recorded directions, weak enemies wasting
+  graves, and inventory overflow destroy finite value.
+
+### Milestones
+
+- **R3:** Lone-Grave Great Que / 孤冢巨阙 grows isolated graves into powerful great
+  swords but rejects clustering; Collective-Burial Sword Mound / 合葬剑丘 triggers a
+  nearby cluster together at lower per-sword damage and risks total waste; Field-Path
+  Sword Forest / 阡陌剑林 connects burial order into a weak sequential chain that may
+  run the wrong way.
+- **R6:** Rise at Living Presence / 见生即起 has wide universal triggering and wastes
+  easily on weak mobs; Recognize Calamity, Leave the Sheath / 识煞出鞘 triggers only on
+  elite/boss threats with no ordinary clear; Seal the Grave by Treading the Stars /
+  踏罡封冢 lets an Evade crossing reserve up to six stronger capstone-only swords while
+  weakening unsealed regular eruptions.
+- **R9:** Gravefield Cuts Across / 横绝剑陵 launches every original burial direction
+  simultaneously for broad but inaccurate clear; Myriad Edges Ask the Leader /
+  万锋问首 rotates once toward the current strongest enemy with no retarget or crowd
+  clear; Old Roads Return the Soul / 旧路还魂 uses the recorded corpse-to-historical-
+  player path, rewarding distributed kiting and punishing clustered deaths.
+
+### Skill 2 — Ten-Thousand Sword Tomb / 万剑陵
+
+At full grave inventory, every sword rises from its own corpse site and performs
+exactly one R9 flight before being consumed, hit or miss. The full inventory then
+clears. Routes are previewed but never manually changed; with no corpse swords the
+capstone cannot activate.
+
+**Must not become:** Mist Wraith's collected expiring souls, Yujian's reusable returning
+weapon rack, Frozen River's crossings, Myriad-Root's propagation, Furnace Sword's
+living-target network, or pre-placed repeating traps.
+
+---
+
+## Myriad-Root Lifebinding Canon / 万根寄命经
+
+**Identity:** implant one-for-one parasitic root lineages inside living hosts; survival
+time grows each infection, host death transfers exactly one seed, and the capstone
+temporarily merges every infection into one organism.
+
+### Core
+
+- **Life-Hosted Root Seed / 寄命根种:** automatically infects a nearby eligible living
+  enemy, up to five independent lineages. Seed, Sprout, and Mature stages advance only
+  with host survival time and each stage transition resolves once. Hits never add age,
+  seeds, or duplicates; nothing is planted on the floor.
+- **One-for-one succession:** host death releases exactly one seed toward an uninfected
+  living target. With no target, it briefly struggles at the corpse and withers. The
+  default successor restarts at Seed, so rapid killing preserves lineage count but
+  sacrifices maturity.
+- **Indirect selection:** proximity determines the automatic eligible host. The player
+  positions mature hosts within useful crowds rather than manually selecting them.
+- **Failure:** premature host death repeatedly resets age; isolated deaths lose seeds;
+  killing every host without successors can erase all lineages.
+
+### Milestones
+
+- **R3:** Heart-Piercing Killing Root / 穿心杀根 heavily damages its host at each stage
+  and therefore often resets early; Body-Borrowing Branch Root / 借躯蔓枝 deals low host
+  damage and strikes three nearby distinct enemies once at maturity; Bone-Locking
+  Coiling Root / 锁骨盘根 sacrifices damage for escalating slow and mature ordinary
+  immobilization, with boss slow only.
+- **R6:** New Sprout Pursues the Crowd / 新芽逐众 jumps far toward the densest group but
+  fully resets age; Old Root Seizes a Body / 老根夺舍 inherits half its age within a
+  short range and dies with no nearby host; Strong Seed Chooses Its Host / 强种择主
+  retains full age while waiting at the corpse for a high-health or elite host, but
+  withers after four seconds.
+- **R9:** Many Mouths Devour Life / 众口噬生 sends each root mass through a different
+  ordinary target before merging, with slow weak boss convergence; One Heart Strangles
+  Life / 独心绞命 converges through the strongest infected host and ignores crowd clear;
+  Wither and Flourish Leave a Seed / 枯荣留种 sharply lowers the merge payoff but
+  replants one mature seed in the highest-health survivor.
+
+### Skill 2 — Myriad Roots Share One Ancestor / 万根同祖
+
+With at least four infections and two mature roots, all parasites erupt from their
+hosts once, clearing those independent infections. Root bodies crawl across the ground
+and damage each enemy only on first contact, then merge into one Root Mother and
+resolve the R9 law once. The organism then withers, except for the single preserved
+seed option. Host distribution determines every route; there is no manual aiming.
+
+**Must not become:** Green Vine's player-stretched tethers, Frozen River's crossing
+Debt, Sword Burial's corpse inventory, Furnace Sword's living-node topology, Ancient
+Tree's player transformation, or a generic ground trap/infection stack.
