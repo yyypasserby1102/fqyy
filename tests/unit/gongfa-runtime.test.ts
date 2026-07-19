@@ -530,6 +530,7 @@ describe("Gongfa runtime", () => {
         runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
       }
       if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
+      if (gongfaId === "moonfall-tide-ritual") runtime.authored.cycleCount = 3;
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -586,6 +587,8 @@ describe("Gongfa runtime", () => {
                   { targetId: 97, x: 120, y: 0, healthRatio: 1, rank: "elite" }
                 ] : gongfaId === "nine-sun-calamity-seal" ? [
                   { targetId: 98, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+                ] : gongfaId === "moonfall-tide-ritual" ? [
+                  { targetId: 99, x: 80, y: 0, healthRatio: 1, rank: "elite" }
                 ] : undefined
               });
 
@@ -2366,6 +2369,44 @@ describe("Gongfa runtime", () => {
     expect(right.kind === "authored-scarlet-tides" && right.seam).toBeDefined();
     expect(runtime.authored.phase).toBe(2);
     expect(runtime.authored.cycleCount).toBe(1);
+  });
+
+  it("Moonfall builds Syzygy only from a retained enemy's real angular travel", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
+    const initial = [{ targetId: 7, x: 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];
+    expect(planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets: initial })[0]?.kind).toBe("authored-moon-orbit");
+    let result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, playerX: 0, playerY: 0, targets: initial
+    });
+    expect(result.runtime.authored.resource).toBe(0);
+    result = advanceGongfaRuntime(result.runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [{ ...initial[0]!, x: 98, y: 100 }]
+    });
+    expect(result.runtime.authored.resource).toBeGreaterThan(0);
+    const escaped = advanceGongfaRuntime(result.runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [{ ...initial[0]!, x: 900, y: 900 }]
+    });
+    expect(escaped.runtime.authored.resource).toBe(0);
+  });
+
+  it("Moonfall R9 resolves with a branch-specific fate instead of a generic blast", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
+    runtime.authored.phase = 1;
+    runtime.authored.phaseElapsedMs = 6150;
+    runtime.authored.anchors = [
+      { kind: "moon", x: 0, y: 0, value: 1, chainId: 0 },
+      { kind: "orbiter", x: 100, y: 0, value: 2.4, targetId: 8, angle: 0, chainId: 0 }
+    ];
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [{ targetId: 8, x: 0, y: 100, healthRatio: 1, rank: "elite" }],
+      learnedMasteryIds: ["flying-star-release"]
+    });
+    const resolution = result.commands.find((command) => command.kind === "authored-moon-resolution");
+    expect(resolution?.fate).toBe("release");
+    expect(result.commands.some((command) => command.kind === "ritual-impact")).toBe(false);
   });
 
   it("remaining Surge updraft behaviours stay pattern-aware", () => {

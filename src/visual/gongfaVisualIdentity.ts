@@ -17,6 +17,7 @@ export type GongfaSigilGeometry =
   | "calamity"
   | "wraiths"
   | "impact"
+  | "orbit"
   | "formation";
 
 export interface GongfaVisualIdentity {
@@ -50,7 +51,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "flame-demon-body-art": { motifId: "furnace-blood-fists", label: "Furnace-blood combination", geometry: "impact", accent: 0xe94b35, secondary: 0xffb14f, spokes: 6, trailStyle: "horned flame impact arcs" },
   "vermilion-bird-covenant": { motifId: "single-vermilion-companion", label: "One living Vermilion bird", geometry: "wings", accent: 0xff4f36, secondary: 0xffd168, spokes: 2, trailStyle: "one outbound-and-return feather route" },
   "frozen-river-formation": { motifId: "underice-river-array", label: "Under-ice river array", geometry: "formation", accent: 0x69cfe8, secondary: 0xe1fbff, spokes: 6, trailStyle: "cracked frost channels" },
-  "moonfall-tide-ritual": { motifId: "abyssal-moonfall", label: "Abyssal moonfall", geometry: "calamity", accent: 0x5688d8, secondary: 0xbfeaff, spokes: 8, trailStyle: "converging dark tides" },
+  "moonfall-tide-ritual": { motifId: "lagging-orbit-moon", label: "A carried moon with captive orbital tracks", geometry: "orbit", accent: 0x5969d8, secondary: 0xc3efff, spokes: 5, trailStyle: "offset moon disc, angular arcs, and tangential release" },
   "sword-burial-formation": { motifId: "buried-sword-tomb", label: "Buried sword tomb", geometry: "formation", accent: 0xd9c887, secondary: 0xf5f1dd, spokes: 10, trailStyle: "rising grave blades" },
   "heaven-sundering-edict": { motifId: "fixed-double-judgment-line", label: "Physical line and exact delayed spell echo", geometry: "sword-seal", accent: 0xf0df9e, secondary: 0xffffff, spokes: 2, trailStyle: "one fixed world-space line written twice" },
   "myriad-beast-grove": { motifId: "three-beast-kinship", label: "Boar Fox Deer hunting formation", geometry: "formation", accent: 0x6fbd61, secondary: 0xd7eda0, spokes: 3, trailStyle: "three species-specific hunting routes" },

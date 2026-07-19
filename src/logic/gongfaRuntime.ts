@@ -681,6 +681,20 @@ export type GongfaRuntimeCommand =
       seam?: { from: { x: number; y: number }; to: { x: number; y: number }; width: number };
       damage: number; seamDamage: number; immediateSeam: boolean; reverse: boolean;
       durationMs: number; supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-moon-orbit";
+      moons: Array<{ x: number; y: number; radius: number }>;
+      orbiters: Array<{ targetId: number; moonIndex: number }>;
+      tangentForce: number; inwardForce: number; suspend: boolean; sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-moon-resolution";
+      x: number; y: number; targetIds: number[];
+      fate: "collapse" | "release" | "suspend" | "eclipse";
+      damage: number; force: number; syzygy: number; supreme: boolean;
+      sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2908,6 +2922,103 @@ function advanceAuthoredWorldFacts(
     state.charges = Math.min(3, state.cycleCount);
   }
 
+  if (runtime.gongfaId === "moonfall-tide-ritual" && (state.phase === 1 || state.phase === 2)) {
+    const playerX = event.playerX ?? 0;
+    const playerY = event.playerY ?? 0;
+    const targets = event.targets ?? [];
+    const heavy = learnedIds.includes("sea-suppressing-heavy-moon");
+    const twin = learnedIds.includes("twin-moon-crossing");
+    const swift = learnedIds.includes("swift-moon-vessel");
+    const stillSea = learnedIds.includes("still-sea-syzygy");
+    const myriad = learnedIds.includes("myriad-currents-to-moon");
+    const mountain = learnedIds.includes("mountain-weight-eclipse");
+    const returning = learnedIds.includes("returning-abyss-moon");
+    const moonAnchors = state.anchors.filter((anchor) => anchor.kind === "moon");
+    const orbiters = state.anchors.filter((anchor) => anchor.kind === "orbiter");
+    state.phaseElapsedMs += event.deltaMs;
+    const followRate = state.phase === 2 ? 0.00007 : heavy ? 0.000018 : swift ? 0.00028 : 0.000105;
+    for (const moon of moonAnchors) {
+      const blend = Math.min(1, event.deltaMs * followRate);
+      moon.x += (playerX - moon.x) * blend;
+      moon.y += (playerY - moon.y) * blend;
+    }
+    const radius = state.phase === 2 ? 245 : heavy ? 92 : swift ? 205 : twin ? 132 : 152;
+    const maxOrbiters = state.phase === 2 ? 18 : twin ? 12 : 8;
+    const targetById = new Map(targets.map((target) => [target.targetId, target]));
+    const retained: typeof state.anchors = state.anchors.filter((anchor) => anchor.kind !== "orbiter");
+    let escapedContribution = 0;
+    for (const orbiter of orbiters) {
+      const target = orbiter.targetId === undefined ? undefined : targetById.get(orbiter.targetId);
+      if (!target || moonAnchors.length === 0) continue;
+      const assigned = Math.min(moonAnchors.length - 1, Math.max(0, orbiter.chainId ?? 0));
+      let moonIndex = assigned;
+      if (twin) {
+        moonIndex = moonAnchors.reduce((best, moon, index) =>
+          distanceSquared(target.x, target.y, moon.x, moon.y) < distanceSquared(target.x, target.y, moonAnchors[best]!.x, moonAnchors[best]!.y) ? index : best, assigned);
+      }
+      const moon = moonAnchors[moonIndex]!;
+      const distance = Math.sqrt(distanceSquared(target.x, target.y, moon.x, moon.y));
+      const draggedTooFar = event.isMoving === true && distanceSquared(playerX, playerY, moon.x, moon.y) > (swift ? 350 : heavy ? 165 : 270) ** 2;
+      if (distance > radius * 1.38 || draggedTooFar) {
+        if (stillSea) escapedContribution += orbiter.value * 0.5;
+        continue;
+      }
+      const angle = Math.atan2(target.y - moon.y, target.x - moon.x);
+      const delta = orbiter.angle === undefined ? 0 : Math.abs(Math.atan2(Math.sin(angle - orbiter.angle), Math.cos(angle - orbiter.angle)));
+      const rankWeight = mountain ? target.rank === "boss" ? 2.4 : target.rank === "elite" ? 1.6 : 0.28 : 1;
+      const distinctWeight = myriad ? Math.min(1.35, 0.42 + orbiters.length * 0.12) : 1;
+      orbiter.value += delta / (Math.PI * 2) * rankWeight * distinctWeight * (returning ? 0.62 : 1);
+      orbiter.angle = angle;
+      orbiter.chainId = moonIndex;
+      retained.push(orbiter);
+    }
+    const existingIds = new Set(retained.filter((anchor) => anchor.kind === "orbiter").map((anchor) => anchor.targetId));
+    if (state.phase !== 2) {
+      const candidates = targets.map((target) => {
+        const moonIndex = moonAnchors.reduce((best, moon, index) =>
+          distanceSquared(target.x, target.y, moon.x, moon.y) < distanceSquared(target.x, target.y, moonAnchors[best]!.x, moonAnchors[best]!.y) ? index : best, 0);
+        return { target, moonIndex, distance: moonAnchors[moonIndex] ? Math.sqrt(distanceSquared(target.x, target.y, moonAnchors[moonIndex]!.x, moonAnchors[moonIndex]!.y)) : Infinity };
+      }).filter(({ target, distance }) => !existingIds.has(target.targetId) && distance <= radius)
+        .sort((a, b) => a.distance - b.distance).slice(0, Math.max(0, maxOrbiters - existingIds.size));
+      for (const { target, moonIndex } of candidates) retained.push({
+        kind: "orbiter", x: target.x, y: target.y, value: 0, targetId: target.targetId,
+        angle: Math.atan2(target.y - moonAnchors[moonIndex]!.y, target.x - moonAnchors[moonIndex]!.x), chainId: moonIndex
+      });
+    }
+    state.anchors = retained;
+    state.secondaryResource += escapedContribution;
+    const liveOrbiters = state.anchors.filter((anchor) => anchor.kind === "orbiter");
+    const rawSyzygy = liveOrbiters.reduce((sum, orbiter) => sum + orbiter.value, 0) + state.secondaryResource;
+    const cap = stillSea ? 0.76 : 1;
+    state.resource = Math.min(cap, rawSyzygy / (myriad ? 3.2 : mountain ? 2.8 : 2.4));
+    state.charges = liveOrbiters.length;
+    commands.push({
+      kind: "authored-moon-orbit",
+      moons: moonAnchors.map((moon) => ({ x: moon.x, y: moon.y, radius })),
+      orbiters: liveOrbiters.filter((orbiter) => orbiter.targetId !== undefined).map((orbiter) => ({ targetId: orbiter.targetId!, moonIndex: orbiter.chainId ?? 0 })),
+      tangentForce: state.phase === 2 ? 0 : heavy ? 105 : swift ? 145 : 125,
+      inwardForce: state.phase === 2 ? 0 : heavy ? 105 : swift ? 24 : 54,
+      suspend: state.phase === 2, sourceGongfaId: runtime.gongfaId
+    });
+    const duration = state.phase === 2 ? 1800 : 6200;
+    if (state.phaseElapsedMs >= duration) {
+      const primaryMoon = moonAnchors[0] ?? { x: playerX, y: playerY };
+      const fate = state.phase === 2 ? "eclipse" as const : learnedIds.includes("flying-star-release") ? "release" as const :
+        learnedIds.includes("grand-yin-suspension") ? "suspend" as const : "collapse" as const;
+      const highSyzygy = state.resource >= cap * 0.72;
+      if (state.phase === 1 && highSyzygy) state.cycleCount = Math.min(3, state.cycleCount + 1);
+      commands.push({
+        kind: "authored-moon-resolution", x: primaryMoon.x, y: primaryMoon.y,
+        targetIds: liveOrbiters.flatMap((orbiter) => orbiter.targetId === undefined ? [] : [orbiter.targetId]), fate,
+        damage: Math.max(1, Math.floor(runtime.combat.damage * (state.phase === 2 ? 2.2 : heavy ? 1.8 : swift ? 0.68 : twin ? 0.72 : 1.2) * (0.45 + state.resource))),
+        force: state.phase === 2 ? 380 : heavy ? 440 : swift ? 150 : 290,
+        syzygy: state.resource, supreme: state.phase === 2, sourceGongfaId: runtime.gongfaId
+      });
+      state.phase = 0; state.phaseElapsedMs = 0; state.resource = 0; state.secondaryResource = 0;
+      state.charges = 0; state.anchors = [];
+    }
+  }
+
   state.anchors = state.anchors.filter((anchor) => {
     if (anchor.remainingMs === undefined) return true;
     anchor.remainingMs -= event.deltaMs;
@@ -3303,6 +3414,31 @@ export function advanceGongfaRuntime(
         });
         next.authored.cycleCount = 0; next.authored.charges = 0; next.authored.phase = 0;
         next.authored.resource = 0; next.authored.anchors = [];
+      }
+      return { runtime: next, commands };
+    }
+    if (event.skill2Id === "moonfall-cataclysm" && next.gongfaId === "moonfall-tide-ritual") {
+      const targets = event.targets ?? [];
+      if (next.authored.phase === 0 && next.authored.cycleCount >= 3 && targets.length > 0) {
+        const center = targets.reduce((sum, target) => ({ x: sum.x + target.x, y: sum.y + target.y }), { x: 0, y: 0 });
+        center.x /= targets.length; center.y /= targets.length;
+        next.authored.phase = 2; next.authored.phaseElapsedMs = 0;
+        next.authored.resource = 1; next.authored.secondaryResource = 0; next.authored.cycleCount = 0;
+        next.authored.anchors = [
+          { kind: "moon", x: center.x, y: center.y, value: 2, chainId: 0 },
+          ...targets.slice(0, 18).map((target) => ({
+            kind: "orbiter" as const, x: target.x, y: target.y, value: 1,
+            targetId: target.targetId, angle: Math.atan2(target.y - center.y, target.x - center.x), chainId: 0
+          }))
+        ];
+        const cooldownMs = Math.floor(authoredSkill2Plans["moonfall-cataclysm"].cooldownMs * skill2Stats.cadenceScale);
+        next.mastery.masterySkill2CooldownRemaining = cooldownMs;
+        commands.push({
+          kind: "authored-moon-orbit", moons: [{ x: center.x, y: center.y, radius: 245 }],
+          orbiters: targets.slice(0, 18).map((target) => ({ targetId: target.targetId, moonIndex: 0 })),
+          tangentForce: 0, inwardForce: 0, suspend: true, sourceGongfaId: next.gongfaId,
+          masteryCast: { skill2Id: "moonfall-cataclysm", cooldownMs }
+        });
       }
       return { runtime: next, commands };
     }
@@ -4496,6 +4632,32 @@ export function planGongfaAttack(
       centerRadius: dark ? 22 : solitary ? 28 : 42,
       damage: Math.max(1, Math.floor(runtime.combat.damage * (solitary ? 2.4 : twin ? 0.8 : swift ? 0.88 : 1.35) * (1 + zenith * (unsetting ? 2.2 : dark ? 1.8 : 1.35)))),
       zenith, supreme: false, sourceGongfaId: runtime.gongfaId
+    }];
+  }
+  if (runtime.gongfaId === "moonfall-tide-ritual") {
+    if (runtime.authored.phase !== 0) return [];
+    const targets = options.targets ?? [];
+    if (targets.length === 0) return [];
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const density = (target: AuthoredTargetFact): number => targets.reduce((score, other) =>
+      score + (distanceSquared(target.x, target.y, other.x, other.y) <= 165 ** 2 ? (other.rank === "boss" ? 3 : other.rank === "elite" ? 2 : 1) : 0), 0);
+    const center = [...targets].sort((a, b) => density(b) - density(a))[0]!;
+    const twin = learnedIds.includes("twin-moon-crossing");
+    runtime.authored.phase = 1;
+    runtime.authored.phaseElapsedMs = 0;
+    runtime.authored.resource = 0;
+    runtime.authored.secondaryResource = 0;
+    runtime.authored.charges = 0;
+    runtime.authored.anchors = twin ? [
+      { kind: "moon", x: center.x - 68, y: center.y, value: 1, chainId: 0 },
+      { kind: "moon", x: center.x + 68, y: center.y, value: 1, chainId: 1 }
+    ] : [{ kind: "moon", x: center.x, y: center.y, value: 1, chainId: 0 }];
+    const radius = learnedIds.includes("sea-suppressing-heavy-moon") ? 92 :
+      learnedIds.includes("swift-moon-vessel") ? 205 : twin ? 132 : 152;
+    return [{
+      kind: "authored-moon-orbit",
+      moons: runtime.authored.anchors.filter((anchor) => anchor.kind === "moon").map((moon) => ({ x: moon.x, y: moon.y, radius })),
+      orbiters: [], tangentForce: 0, inwardForce: 0, suspend: false, sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "scarlet-wave-manual") {

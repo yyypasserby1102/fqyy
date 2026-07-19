@@ -266,6 +266,8 @@ export class GameScene extends Phaser.Scene {
   private readonly myriadBeastMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private readonly myriadBeastAssistMarkers = new Map<number, Phaser.GameObjects.Graphics>();
   private heavenfallBodyMarker?: Phaser.GameObjects.Graphics;
+  private moonfallMarker?: Phaser.GameObjects.Graphics;
+  private readonly moonfallVelocityRecord = new Map<number, { x: number; y: number }>();
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -413,6 +415,10 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "scarlet-wave-manual") {
       const state = runtime.authored.phase === 0 ? "Awaiting Left" : runtime.authored.phase === 1 ? "Awaiting Right" : "Confluence";
       return `Scarlet Tides: ${state} · Successful pairs ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
+    if (runtime.gongfaId === "moonfall-tide-ritual") {
+      const state = runtime.authored.phase === 2 ? "Moonless Eclipse" : runtime.authored.phase === 1 ? "Moon Carried" : "Awaiting Moon";
+      return `Moonfall: ${state} · Syzygy ${Math.floor(runtime.authored.resource * 100)}% · Orbiters ${runtime.authored.charges} · High resolutions ${Math.min(3, runtime.authored.cycleCount)}/3`;
     }
     return undefined;
   }
@@ -792,6 +798,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "heavenfall-body-art") {
         this.syncHeavenfallBodyMarker(result.runtime);
+      }
+      if (result.runtime.gongfaId === "moonfall-tide-ritual") {
+        this.syncMoonfallMarker(result.runtime);
       }
     }
     this.restorePrimaryRuntimeAdapter();
@@ -2588,6 +2597,16 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-moon-orbit") {
+        this.applyAuthoredMoonOrbit(command);
+        return;
+      }
+
+      if (command.kind === "authored-moon-resolution") {
+        this.fireAuthoredMoonResolution(command);
+        return;
+      }
+
       if (command.kind === "heavenly-sun-descent") {
         this.fireRitualImpact({
           kind: "ritual-impact", count: command.impactCount, damage: command.damage,
@@ -3820,6 +3839,111 @@ export class GameScene extends Phaser.Scene {
       alpha: 0, duration: command.durationMs, onComplete: () => visual.destroy()
     });
     this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "sunset-divide" : command.seam ? "confluence" : "waiting-tide"}`);
+  }
+
+  private applyAuthoredMoonOrbit(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-moon-orbit" }>
+  ): void {
+    for (const orbiter of command.orbiters) {
+      const enemy = this.getEnemyByCombatTargetId(orbiter.targetId);
+      const moon = command.moons[orbiter.moonIndex];
+      if (!enemy?.active || !moon) continue;
+      const body = enemy.body as Phaser.Physics.Arcade.Body;
+      if (command.suspend) {
+        if (!this.moonfallVelocityRecord.has(orbiter.targetId)) {
+          this.moonfallVelocityRecord.set(orbiter.targetId, { x: body.velocity.x, y: body.velocity.y });
+        }
+        enemy.applyForcedVelocity(0, 0, 150);
+        continue;
+      }
+      const inwardAngle = Math.atan2(moon.y - enemy.y, moon.x - enemy.x);
+      const tangentAngle = inwardAngle + Math.PI / 2;
+      const vx = Math.cos(tangentAngle) * command.tangentForce + Math.cos(inwardAngle) * command.inwardForce;
+      const vy = Math.sin(tangentAngle) * command.tangentForce + Math.sin(inwardAngle) * command.inwardForce;
+      enemy.applyForcedVelocity(Math.atan2(vy, vx), Math.hypot(vx, vy), 150);
+    }
+  }
+
+  private fireAuthoredMoonResolution(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-moon-resolution" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const visual = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(18);
+    visual.fillStyle(0x10142e, command.supreme ? 0.9 : 0.72);
+    visual.fillCircle(command.x, command.y, command.supreme ? 92 : 48);
+    visual.lineStyle(command.supreme ? 14 : 7, identity.secondary, 0.94);
+    visual.strokeCircle(command.x, command.y, command.supreme ? 150 : 84 + command.syzygy * 42);
+    for (const targetId of command.targetIds) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (!enemy?.active) continue;
+      const inwardAngle = Math.atan2(command.y - enemy.y, command.x - enemy.x);
+      if (command.fate === "collapse") {
+        enemy.applyForcedVelocity(inwardAngle, command.force, 420);
+      } else if (command.fate === "release") {
+        enemy.applyForcedVelocity(inwardAngle + Math.PI / 2, command.force, 520);
+        this.time.delayedCall(320, () => {
+          if (!enemy.active) return;
+          const collided = (this.enemies.getChildren() as Enemy[]).find((candidate) =>
+            candidate.active && candidate !== enemy && Phaser.Math.Distance.Between(candidate.x, candidate.y, enemy.x, enemy.y) <= 48
+          );
+          if (!collided) return;
+          if (enemy.receiveDamage(command.damage * 0.72)) this.resolveEnemyDeath(enemy);
+          if (collided.active && collided.receiveDamage(command.damage * 0.48)) this.resolveEnemyDeath(collided);
+        });
+      } else if (command.fate === "suspend") {
+        enemy.applySlow(0.08, 1700);
+        enemy.applyForcedVelocity(0, 0, 1700);
+      } else {
+        const stored = this.moonfallVelocityRecord.get(targetId) ?? { x: 0, y: 0 };
+        const storedSpeed = Math.hypot(stored.x, stored.y);
+        const bentX = stored.x * 0.45 + Math.cos(inwardAngle) * (command.force + storedSpeed * 0.9);
+        const bentY = stored.y * 0.45 + Math.sin(inwardAngle) * (command.force + storedSpeed * 0.9);
+        enemy.applyForcedVelocity(Math.atan2(bentY, bentX), Math.hypot(bentX, bentY), 650);
+      }
+      const damageScale = command.fate === "suspend" ? 0.35 : command.fate === "release" ? 0.72 :
+        command.fate === "eclipse" ? 1 + Math.min(0.75, Math.hypot(
+          this.moonfallVelocityRecord.get(targetId)?.x ?? 0,
+          this.moonfallVelocityRecord.get(targetId)?.y ?? 0
+        ) / 360) : 1;
+      if (command.fate !== "release" && enemy.receiveDamage(command.damage * damageScale)) this.resolveEnemyDeath(enemy);
+    }
+    if (command.fate === "eclipse") this.moonfallVelocityRecord.clear();
+    this.tweens.add({ targets: visual, alpha: 0, scale: command.fate === "collapse" ? 0.35 : 1.55, duration: 720, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:${command.fate}`);
+  }
+
+  private syncMoonfallMarker(runtime: GongfaRuntime): void {
+    const moons = runtime.authored.anchors.filter((anchor) => anchor.kind === "moon");
+    if (moons.length === 0) {
+      this.moonfallMarker?.destroy();
+      this.moonfallMarker = undefined;
+      if (runtime.authored.phase !== 2) this.moonfallVelocityRecord.clear();
+      return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.moonfallMarker ?? this.add.graphics().setDepth(14);
+    this.moonfallMarker = marker;
+    marker.clear();
+    for (const [index, moon] of moons.entries()) {
+      const radius = runtime.authored.phase === 2 ? 72 : moons.length > 1 ? 34 : 46;
+      marker.fillStyle(0x0d1230, 0.82);
+      marker.fillCircle(moon.x, moon.y, radius);
+      marker.lineStyle(runtime.authored.phase === 2 ? 8 : 4, index % 2 ? identity.secondary : identity.accent, 0.9);
+      marker.strokeCircle(moon.x, moon.y, radius);
+      marker.lineStyle(2, identity.secondary, 0.42);
+      marker.beginPath();
+      marker.arc(moon.x, moon.y, radius + 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * runtime.authored.resource);
+      marker.strokePath();
+    }
+    for (const orbiter of runtime.authored.anchors.filter((anchor) => anchor.kind === "orbiter" && anchor.targetId !== undefined)) {
+      const target = this.getEnemyByCombatTargetId(orbiter.targetId!);
+      const moon = moons[orbiter.chainId ?? 0];
+      if (!target?.active || !moon) continue;
+      marker.lineStyle(2, identity.secondary, 0.28);
+      marker.lineBetween(moon.x, moon.y, target.x, target.y);
+      marker.fillStyle(identity.secondary, 0.72);
+      marker.fillCircle(target.x, target.y, 4);
+    }
   }
 
   private fireFeatherRainFormation(

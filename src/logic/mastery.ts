@@ -207,7 +207,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "heavenfall-body-art",
   "heaven-sundering-edict",
   "nine-sun-calamity-seal",
-  "scarlet-wave-manual"
+  "scarlet-wave-manual",
+  "moonfall-tide-ritual"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -433,6 +434,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["long-sunset-trace", "Long Sunset Trace", "The molten seam is long and persistent.", "Crescent damage is reduced.", "Seam length, lifetime, and wave power"],
       ["horizon-opposing-tides", "Horizon Opposing Tides", "Large distant waves create a powerful arena divide.", "Their meeting is riskier and slower.", "Wave origins and divide scale"],
       ["reverse-scarlet-tide", "Reversing Scarlet Tide", "Weakened crescents return outward after Confluence.", "Seam damage is lower.", "Post-Confluence reverse pass"]
+    ]
+  },
+  "moonfall-tide-ritual": {
+    3: [
+      ["sea-suppressing-heavy-moon", "Sea-Suppressing Heavy Moon", "A nearly fixed small moon pulls and collapses with great force.", "It gathers only a tight area and barely follows the player.", "Moon lag, orbit radius, and collapse force"],
+      ["twin-moon-crossing", "Twin-Moon Crossing", "Two weaker moons transfer orbiters between their overlapping paths.", "Each moon pulls and resolves for less damage.", "Moon count and transferable orbits"],
+      ["swift-moon-vessel", "Swift-Moon Vessel", "A fast broad moon gathers enemies while traveling.", "Its pull and final collapse are weak.", "Moon follow speed, collection width, and force"]
+    ],
+    6: [
+      ["still-sea-syzygy", "Still-Sea Syzygy", "Escaping orbiters retain half their completed angular motion.", "Maximum Syzygy is lower.", "Escaped-motion retention and Syzygy cap"],
+      ["myriad-currents-to-moon", "Myriad Currents to Moon", "Many distinct orbiters build Syzygy rapidly.", "A lone boss builds it poorly.", "Distinct-orbiter weighting"],
+      ["mountain-weight-eclipse", "Mountain-Weight Eclipse", "Elite and boss mass builds heavy Syzygy.", "Ordinary enemies contribute little.", "Target-rank angular weighting"]
+    ],
+    9: [
+      ["returning-abyss-moon", "Returning-Abyss Moon", "Resolution crushes every orbiter inward for a powerful center hit.", "Angular progress grows more slowly.", "Inward resolution and orbit gain"],
+      ["flying-star-release", "Flying-Star Release", "Resolution launches orbiters tangentially for collision damage.", "There is no center impact.", "Tangential release and collision payoff"],
+      ["grand-yin-suspension", "Grand-Yin Suspension", "Resolution freezes enemies visibly along their orbit.", "Damage is low and there is no displacement.", "Orbital suspension and displacement"]
     ]
   }
 };

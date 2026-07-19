@@ -164,10 +164,10 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "frozen-river-prison", name: "Frozen River Prison", description: "Locks a broad region beneath interlinked ice channels that erupt in sequence.", tags: ["trap", "water", "ailment", "defensive"] }
   },
   "moonfall-tide-ritual": {
-    combatRole: "A patient caster that trades frequency for immense tidal impacts and lingering undertow.", visualMotif: "Dark moon discs, converging blue tides, and abyssal impact halos.",
-    skill1: { id: "moonfall-collapse", name: "Moonfall Collapse", description: "Marks a crowded region before a moon-heavy tide collapses for one enormous strike and echoing pulses.", tags: ["ritual", "water", "explosive", "ailment"] },
-    passive: { name: "Abyssal Syzygy", resource: "Syzygy", description: "Tidal damage aligns Syzygy, greatly strengthening the next deliberate ritual." },
-    skill2: { id: "moonfall-cataclysm", name: "Moonfall Cataclysm", description: "Draws down an abyssal moon that crushes a vast region and leaves a consuming undertow.", tags: ["ritual", "water", "explosive", "ailment"] }
+    combatRole: "A mobile controller that slowly drags one lagging moon while enemies earn power only by actually orbiting it.", visualMotif: "A lagging indigo moon, readable orbit tracks, captured bodies, and three radically different releases.",
+    skill1: { id: "moonfall-collapse", name: "Suspended Moon Tide", description: "A moon forms at the densest group, lags behind movement, and carries nearby enemies in real orbits until its fixed resolution.", tags: ["ritual", "water", "ailment"] },
+    passive: { name: "Abyssal Syzygy", resource: "Syzygy", description: "Only actual angular travel completed by enemies that remain in orbit builds Syzygy; escaped unfinished motion is lost." },
+    skill2: { id: "moonfall-cataclysm", name: "Moonless Eclipse", description: "After three high-Syzygy resolutions, a giant mobile moon suspends enemies, records their motion, then bends that motion inward once.", tags: ["ritual", "water", "ailment", "defensive"] }
   },
   "sword-burial-formation": {
     combatRole: "A metal trapper that seeds lanes with buried blades and punishes enemies who cross the gravefield.", visualMotif: "Half-buried gold swords, grave seals, and rising blade circles.",

@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove", "ancient-tree-body-art", "heavenfall-body-art", "heaven-sundering-edict", "nine-sun-calamity-seal", "scarlet-wave-manual", "moonfall-tide-ritual"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -633,6 +633,15 @@ describe("mastery progression", () => {
     })).toEqual([
       "ancestors-run-the-wild", "ancestral-encirclement", "ancestors-return-to-the-grove"
     ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "moonfall-tide-ritual", rank: 3, seed: "s", learnedIds: []
+    })).toEqual(["sea-suppressing-heavy-moon", "twin-moon-crossing", "swift-moon-vessel"]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "moonfall-tide-ritual", rank: 6, seed: "s", learnedIds: []
+    })).toEqual(["still-sea-syzygy", "myriad-currents-to-moon", "mountain-weight-eclipse"]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "moonfall-tide-ritual", rank: 9, seed: "s", learnedIds: []
+    })).toEqual(["returning-abyss-moon", "flying-star-release", "grand-yin-suspension"]);
   });
 
   it("keeps post-rank-10 Refinements Gongfa-specific after Skill 2 unlocks automatically", () => {

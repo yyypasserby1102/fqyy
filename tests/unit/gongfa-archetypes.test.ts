@@ -16,7 +16,7 @@ const archetypes = [
   ["flame-demon-body-art", "authored-blood-combination", "asura-conflagration", "star-breaking-descent"],
   ["vermilion-bird-covenant", "authored-vermilion-flight", "vermilion-host-descent", "authored-vermilion-flight"],
   ["frozen-river-formation", "authored-cold-debt-placement", "frozen-river-prison", "authored-frozen-river-network"],
-  ["moonfall-tide-ritual", "ritual-impact", "moonfall-cataclysm", "heavenly-sun-descent"],
+  ["moonfall-tide-ritual", "authored-moon-orbit", "moonfall-cataclysm", "authored-moon-orbit"],
   ["sword-burial-formation", "authored-line-strike", "ten-thousand-sword-tomb", "authored-line-strike"],
   ["heaven-sundering-edict", "authored-sundering-edict", "supreme-sundering-decree", "authored-sundering-edict"],
   ["myriad-beast-grove", "authored-beast-action", "myriad-beast-stampede", "authored-beast-ancestors"],
@@ -125,6 +125,7 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.anchors.push({ kind: "trail", x: 0, y: 0, angle: 0, value: 2, maxValue: 500 });
       }
       if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
+      if (gongfaId === "moonfall-tide-ritual") runtime.authored.cycleCount = 3;
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -146,6 +147,8 @@ describe("expanded Gongfa archetypes", () => {
           { targetId: 96, x: 120, y: 0, healthRatio: 1, rank: "elite" }
         ] : gongfaId === "nine-sun-calamity-seal" ? [
           { targetId: 97, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+        ] : gongfaId === "moonfall-tide-ritual" ? [
+          { targetId: 98, x: 80, y: 0, healthRatio: 1, rank: "elite" }
         ] : undefined
       });
       expect(result.commands[0]?.kind).toBe(expectedCommand);
@@ -208,6 +211,7 @@ describe("expanded Gongfa archetypes", () => {
       if (command.kind === "authored-heavenfall-body") return [];
       if (command.kind === "authored-sundering-edict") return [];
       if (command.kind === "authored-falling-sun") return [];
+      if (command.kind === "authored-moon-orbit") return [];
       if (command.kind === "root-trap-array") {
         return [command.damage * command.count * command.pulses / cadence];
       }

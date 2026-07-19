@@ -173,8 +173,8 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill1: { name: "冰下缚阵", description: "在敌路种下冰河印，苏醒后反复迸发寒潮。" }, passive: { name: "凛冬暗流", resource: "寒霜", description: "困敌积累寒霜，扩大并延长后续伏阵。" }, skill2: { name: "冰河囚界", description: "以相连冰脉封锁广域，依序破冰迸发。" }
   },
   "moonfall-tide-ritual": {
-    name: "月坠潮仪", lore: "引幽月沉海，一击覆潮。", combatRole: "以漫长蓄势换取巨型潮击与持久暗流。", visualMotif: "幽月黑盘、汇聚蓝潮与深渊震环。",
-    skill1: { name: "月坠潮崩", description: "标记密集敌群，引月重潮轰击并留下多轮回潮。" }, passive: { name: "深渊合朔", resource: "合朔", description: "潮伤推进合朔，大幅强化下一次蓄势仪式。" }, skill2: { name: "月坠浩劫", description: "引深渊幽月镇压广域，并留下吞噬暗流。" }
+    name: "月坠潮仪", lore: "悬月不坠，引众生绕渊成朔。", combatRole: "缓慢拖动一轮滞后的悬月；敌人只有实际绕月运行才积累合朔，拖行过快会被甩脱。", visualMotif: "滞后的靛色月盘、清晰轨道、环行敌影与三种截然不同的终式。",
+    skill1: { name: "悬月引潮", description: "悬月在最密敌群处成形并滞后跟随，附近敌人沿真实轨道运行，固定时间后自动结算。" }, passive: { name: "深渊合朔", resource: "合朔", description: "只计算仍在轨敌人完成的实际角运动；命中与等待均不增长，逃脱会失去未成周天。" }, skill2: { name: "无月蚀界", description: "三次高合朔结算后，巨月随身缓行并悬停敌人，最终把其原有速度弯向月心一次。" }
   },
   "sword-burial-formation": {
     name: "葬剑伏阵", lore: "藏万剑于土，闻敌而鸣。", combatRole: "沿敌路埋设剑冢，以反复破土剑潮惩罚闯阵之敌。", visualMotif: "半埋金剑、墓印与升腾剑环。",
@@ -1053,7 +1053,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "ruptured-burning-current": { name: "焚流决口" },
   "long-sunset-trace": { name: "落霞长痕" },
   "horizon-opposing-tides": { name: "天际对潮" },
-  "reverse-scarlet-tide": { name: "赤浪倒卷" }
+  "reverse-scarlet-tide": { name: "赤浪倒卷" },
+  "sea-suppressing-heavy-moon": { name: "沉月镇海" },
+  "twin-moon-crossing": { name: "双月交潮" },
+  "swift-moon-vessel": { name: "疾月行舟" },
+  "still-sea-syzygy": { name: "静海留朔" },
+  "myriad-currents-to-moon": { name: "万流朝月" },
+  "mountain-weight-eclipse": { name: "重岳蚀心" },
+  "returning-abyss-moon": { name: "归墟沉月" },
+  "flying-star-release": { name: "飞星离潮" },
+  "grand-yin-suspension": { name: "太阴悬界" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;
