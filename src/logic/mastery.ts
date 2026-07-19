@@ -201,7 +201,8 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "frozen-river-formation",
   "thousand-root-formation",
   "black-tide-scripture",
-  "vermilion-bird-covenant"
+  "vermilion-bird-covenant",
+  "myriad-beast-grove"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
@@ -325,6 +326,23 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
       ["urgent-ember-egg", "Urgent Ember Egg", "Eggs hatch and ember recovery finish quickly.", "The returned bird has low maximum health and reduced terminal force.", "Nirvana egg speed and rebirth health"],
       ["true-plume-nirvana", "True-Plume Nirvana", "A successful durable egg returns the same bird as a larger persistent phoenix.", "The egg hatches very slowly and remains exposed longer.", "Durable egg and persistent phoenix form"],
       ["sacrifice-to-guard-the-master", "Sacrifice to Guard the Master", "The living bird negates one incoming blow while the Cultivator is at low health.", "It immediately becomes an exposed weak egg and loses all Bond.", "Low-health rescue and forced egg state"]
+    ]
+  },
+  "myriad-beast-grove": {
+    3: [
+      ["mountain-lord-enters-the-grove", "Mountain Lord Enters the Grove", "The Fox becomes a Mountain Lord that hunts elite and boss prey with heavy strikes.", "It neglects weak ordinary mobs.", "Fox species job and target priority"],
+      ["black-tortoise-guards-the-grove", "Black Tortoise Guards the Grove", "The Boar becomes a durable Black Tortoise interceptor.", "It loses active crowd breaking and deals low damage.", "Boar species job and defensive envelope"],
+      ["white-ape-calls-the-pack", "White Ape Calls the Pack", "The Deer becomes a White Ape whose call spreads the other species marks.", "The pack loses player defense and rooting.", "Deer species job and mark coordination"]
+    ],
+    6: [
+      ["two-beasts-aid-each-other", "Two Beasts Aid Each Other", "Any two distinct marks grant reliable Kinship.", "Kinship and ancestor readiness are capped lower.", "Cooperation threshold and Kinship cap"],
+      ["three-spirits-hunt-together", "Three Spirits Hunt Together", "A complete three-species kill grants double Kinship and pack healing.", "Two-mark kills grant nothing and the rule collapses while a beast is down.", "Complete-pack cooperation reward"],
+      ["unending-rotating-hunt", "Unending Rotating Hunt", "Consecutive different species combinations sustain Kinship gains.", "Repeating the same combination grants nothing.", "Kill-to-kill species rotation"]
+    ],
+    9: [
+      ["ancestors-run-the-wild", "Ancestors Run the Wild", "Each ancestor crosses the field for strong crowd clearing.", "Repeat boss hits are limited.", "Ancestral Menagerie field routes"],
+      ["ancestral-encirclement", "Ancestral Encirclement", "All living-species ancestors focus the strongest threat.", "It provides little area clearing.", "Ancestral Menagerie focus target"],
+      ["ancestors-return-to-the-grove", "Ancestors Return to the Grove", "The ancestors revive downed beasts and protect the pack.", "Ancestral damage is sharply reduced.", "Ancestral Menagerie restoration"]
     ]
   }
 };

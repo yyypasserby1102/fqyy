@@ -263,6 +263,8 @@ export class GameScene extends Phaser.Scene {
   private readonly activeProjectileImpacts = new Set<Phaser.GameObjects.Sprite>();
   private readonly rootInfectionMarkers = new Map<number, Phaser.GameObjects.Graphics>();
   private vermilionBirdMarker?: Phaser.GameObjects.Graphics;
+  private readonly myriadBeastMarkers = new Map<string, Phaser.GameObjects.Graphics>();
+  private readonly myriadBeastAssistMarkers = new Map<number, Phaser.GameObjects.Graphics>();
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -384,6 +386,15 @@ export class GameScene extends Phaser.Scene {
             bird?.companionState === "return" ? "Returning" :
               bird?.companionState === "phoenix" ? "True Phoenix" : "Close Guard";
       return `Vermilion Bird: ${stateLabel} · HP ${Math.floor(runtime.authored.secondaryResource * 100)}% · Bond ${Math.floor(runtime.authored.resource * 100)}%`;
+    }
+    if (runtime.gongfaId === "myriad-beast-grove") {
+      const labels = runtime.authored.anchors
+        .filter((anchor) => anchor.kind === "beast")
+        .map((anchor) => {
+          const species = anchor.beastSpecies === "boar" ? "Boar" : anchor.beastSpecies === "fox" ? "Fox" : "Deer";
+          return `${species} ${anchor.beastState === "downed" ? "Rebirthing" : `${Math.floor(anchor.value * 100)}%`}`;
+        });
+      return `Pack: ${labels.join(" · ")} · Kinship ${Math.floor(runtime.authored.resource * 100)}%`;
     }
     return undefined;
   }
@@ -699,6 +710,8 @@ export class GameScene extends Phaser.Scene {
     const velocityX = enemyBody.velocity.x;
     const velocityY = enemyBody.velocity.y;
     const targetId = enemy.combatTargetId;
+    this.myriadBeastAssistMarkers.get(targetId)?.destroy();
+    this.myriadBeastAssistMarkers.delete(targetId);
     const rank = enemy.role === "tribulation-boss"
       ? "boss" as const
       : enemy.maxHealth >= 150
@@ -740,6 +753,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "vermilion-bird-covenant") {
         this.syncVermilionBirdMarker(result.runtime);
+      }
+      if (result.runtime.gongfaId === "myriad-beast-grove") {
+        this.syncMyriadBeastMarkers(result.runtime);
       }
     }
     this.restorePrimaryRuntimeAdapter();
@@ -2209,6 +2225,9 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "vermilion-bird-covenant") {
         this.syncVermilionBirdMarker(result.runtime);
       }
+      if (result.runtime.gongfaId === "myriad-beast-grove") {
+        this.syncMyriadBeastMarkers(result.runtime);
+      }
     }
     this.restorePrimaryRuntimeAdapter();
   }
@@ -2487,6 +2506,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-vermilion-sacrifice") {
         this.fireAuthoredVermilionSacrifice(command);
+        return;
+      }
+
+      if (command.kind === "authored-beast-action") {
+        this.fireAuthoredBeastAction(command);
+        return;
+      }
+
+      if (command.kind === "authored-beast-ancestors") {
+        this.fireAuthoredBeastAncestors(command);
         return;
       }
 
@@ -3304,6 +3333,163 @@ export class GameScene extends Phaser.Scene {
     marker.arc(0, 0, 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * runtime.authored.resource);
     marker.strokePath();
     marker.setPosition(bird.x, bird.y);
+  }
+
+  private syncMyriadBeastMarkers(runtime: GongfaRuntime): void {
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const activeSpecies = new Set<string>();
+    for (const beast of runtime.authored.anchors.filter((anchor) => anchor.kind === "beast")) {
+      const species = beast.beastSpecies ?? "boar";
+      activeSpecies.add(species);
+      const marker = this.myriadBeastMarkers.get(species) ?? this.add.graphics().setDepth(15);
+      this.myriadBeastMarkers.set(species, marker);
+      marker.clear();
+      const downed = beast.beastState === "downed";
+      marker.setAlpha(downed ? 0.34 : 1);
+      if (species === "boar") {
+        marker.fillStyle(identity.accent, 0.94);
+        marker.fillRoundedRect(-18, -10, 36, 23, 8);
+        marker.fillTriangle(13, -8, 25, -15, 18, 1);
+        marker.fillTriangle(-13, -8, -25, -15, -18, 1);
+        if (beast.beastForm === "black-tortoise") {
+          marker.lineStyle(4, identity.secondary, 0.9);
+          marker.strokeEllipse(0, 0, 47, 32);
+        }
+      } else if (species === "fox") {
+        marker.fillStyle(identity.secondary, 0.95);
+        marker.fillTriangle(-17, 13, 0, -17, 17, 13);
+        marker.fillTriangle(-13, -9, -5, -23, -1, -7);
+        marker.fillTriangle(13, -9, 5, -23, 1, -7);
+        if (beast.beastForm === "mountain-lord") marker.lineStyle(5, 0xe0b85c, 0.9).strokeCircle(0, 0, 25);
+      } else {
+        marker.lineStyle(5, identity.secondary, 0.95);
+        marker.lineBetween(0, 13, 0, -12);
+        marker.lineBetween(0, -9, -15, -23);
+        marker.lineBetween(0, -9, 15, -23);
+        marker.lineBetween(-15, -23, -21, -14);
+        marker.lineBetween(15, -23, 21, -14);
+        if (beast.beastForm === "white-ape") {
+          marker.fillStyle(identity.accent, 0.92);
+          marker.fillCircle(0, 0, 14);
+        }
+      }
+      const healthRatio = Math.max(0, Math.min(1, beast.value / Math.max(0.01, beast.maxValue ?? 1)));
+      marker.fillStyle(0x172217, 0.82);
+      marker.fillRect(-20, 27, 40, 4);
+      marker.fillStyle(identity.accent, 0.96);
+      marker.fillRect(-20, 27, 40 * healthRatio, 4);
+      marker.setPosition(beast.x, beast.y);
+    }
+    for (const [species, marker] of this.myriadBeastMarkers) {
+      if (!activeSpecies.has(species)) {
+        marker.destroy();
+        this.myriadBeastMarkers.delete(species);
+      }
+    }
+    for (const [targetId, marker] of this.myriadBeastAssistMarkers) {
+      const target = this.getEnemyByCombatTargetId(targetId);
+      if (!target?.active) {
+        marker.destroy();
+        this.myriadBeastAssistMarkers.delete(targetId);
+      } else {
+        marker.setPosition(target.x, target.y - 34);
+      }
+    }
+  }
+
+  private markMyriadBeastAssist(targetId: number, species: "boar" | "fox" | "deer"): void {
+    const runtime = this.gongfaCollection.byId["myriad-beast-grove"];
+    if (!runtime) return;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "authored-beast-assist",
+      targetId,
+      species,
+      learnedMasteryIds: runtime.mastery.masteryLearnedIds
+    });
+    this.gongfaCollection.byId[runtime.gongfaId] = result.runtime;
+    if (this.gongfaCollection.primaryGongfaId === runtime.gongfaId) this.adoptPrimaryRuntime(result.runtime);
+    const target = this.getEnemyByCombatTargetId(targetId);
+    if (!target?.active) return;
+    const marks = Math.floor(result.runtime.authored.targetLedger[targetId] ?? 0);
+    const marker = this.myriadBeastAssistMarkers.get(targetId) ?? this.add.graphics().setDepth(16);
+    this.myriadBeastAssistMarkers.set(targetId, marker);
+    marker.clear();
+    const markColors = [0x7f9f55, 0xe3bd62, 0x75d6a0] as const;
+    [1, 2, 4].forEach((bit, index) => {
+      if ((marks & bit) === 0) return;
+      const x = (index - 1) * 13;
+      marker.fillStyle(markColors[index]!, 0.95);
+      if (bit === 1) marker.fillRoundedRect(x - 5, -5, 10, 10, 3);
+      if (bit === 2) marker.fillTriangle(x - 6, 5, x, -7, x + 6, 5);
+      if (bit === 4) {
+        marker.fillCircle(x, 0, 5);
+        marker.lineStyle(2, markColors[index]!, 0.95);
+        marker.lineBetween(x, -4, x - 5, -11);
+        marker.lineBetween(x, -4, x + 5, -11);
+      }
+    });
+    marker.setPosition(target.x, target.y - 34);
+    this.tweens.add({
+      targets: marker,
+      scale: { from: 1.35, to: 1 },
+      duration: 150
+    });
+  }
+
+  private fireAuthoredBeastAction(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-beast-action" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const route = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(13);
+    const color = command.species === "boar" ? 0x7f9f55 : command.species === "fox" ? 0xe3bd62 : 0x75d6a0;
+    route.lineStyle(command.species === "boar" ? 8 : 4, color, 0.82);
+    route.lineBetween(command.from.x, command.from.y, command.target.x, command.target.y);
+    route.fillStyle(color, 0.25);
+    route.fillCircle(command.target.x, command.target.y, command.radius);
+    const victims = (this.enemies.getChildren() as Enemy[]).filter((enemy) =>
+      enemy.active && Phaser.Math.Distance.Between(enemy.x, enemy.y, command.target.x, command.target.y) <= command.radius + 12
+    );
+    for (const enemy of victims) {
+      this.markMyriadBeastAssist(enemy.combatTargetId, command.species);
+      if (command.rootMs > 0) enemy.applySlow(0.12, command.rootMs);
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.tweens.add({ targets: route, alpha: 0, duration: 440, onComplete: () => route.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:${command.form}`);
+  }
+
+  private fireAuthoredBeastAncestors(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-beast-ancestors" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const visual = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(16);
+    const enemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+    const strongest = [...enemies].sort((a, b) => b.maxHealth - a.maxHealth)[0];
+    command.species.forEach((species, index) => {
+      const angle = (index / Math.max(1, command.species.length)) * Math.PI * 2;
+      const color = species === "boar" ? 0x7f9f55 : species === "fox" ? 0xe3bd62 : 0x75d6a0;
+      visual.lineStyle(12, color, 0.72);
+      if (command.fate === "encirclement" && strongest) {
+        const fromX = strongest.x + Math.cos(angle) * 230;
+        const fromY = strongest.y + Math.sin(angle) * 230;
+        visual.lineBetween(fromX, fromY, strongest.x, strongest.y);
+        if (strongest.active && strongest.receiveDamage(command.damage)) this.resolveEnemyDeath(strongest);
+      } else {
+        const y = this.player.y + (index - 1) * 74;
+        visual.lineBetween(this.player.x - 380, y, this.player.x + 380, y);
+        for (const enemy of enemies.filter((candidate) => candidate.active && Math.abs(candidate.y - y) <= 44)) {
+          if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+        }
+      }
+      visual.fillStyle(color, 0.9);
+      visual.fillCircle(this.player.x + Math.cos(angle) * 52, this.player.y + Math.sin(angle) * 52, 17 + index * 2);
+    });
+    if (command.fate === "return-grove") {
+      visual.lineStyle(7, identity.secondary, 0.9);
+      visual.strokeCircle(this.player.x, this.player.y, 112);
+    }
+    this.tweens.add({ targets: visual, alpha: 0, scale: 1.12, duration: 900, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:ancestors-${command.fate}`);
   }
 
   private fireFeatherRainFormation(

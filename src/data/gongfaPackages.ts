@@ -182,10 +182,10 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "supreme-sundering-decree", name: "Supreme Sundering Decree", description: "Pronounces a supreme decree that divides a vast battlefield line with boss-breaking force.", tags: ["ritual", "metal", "sword", "explosive"] }
   },
   "myriad-beast-grove": {
-    combatRole: "A pack summoner that overwhelms separated enemies with many small autonomous attacks.", visualMotif: "Jade beast masks, seed-spirit tracks, and branching hunting paths.",
-    skill1: { id: "seed-spirit-pack", name: "Seed-Spirit Pack", description: "Germinates woodland spirits that independently chase and harry nearby enemies.", tags: ["summon", "wood", "projectile"] },
-    passive: { name: "Wildwood Kinship", resource: "Kinship", description: "Pack hits build Kinship, calling more spirits and coordinating their attacks." },
-    skill2: { id: "myriad-beast-stampede", name: "Myriad-Beast Stampede", description: "Calls the ancestral grove into a many-spirit stampede across the arena.", tags: ["summon", "wood", "projectile"] }
+    combatRole: "A fixed mixed pack whose Boar, Fox, and Deer must survive and meaningfully assist the same kills.", visualMotif: "Three distinct jade beast bodies, species marks, formation routes, and giant one-action ancestors.",
+    skill1: { id: "seed-spirit-pack", name: "Three-Beast Pack", description: "Maintains exactly one Boar, Fox, and Deer with independent health, position, target logic, and seed rebirth.", tags: ["summon", "wood", "defensive"] },
+    passive: { name: "Wildwood Kinship", resource: "Kinship", description: "Kills assisted by different living species build Kinship; three-species kills heal the pack." },
+    skill2: { id: "myriad-beast-stampede", name: "Ancestral Menagerie", description: "At full Kinship, each currently living species calls one giant ancestor action, then vanishes.", tags: ["summon", "wood", "explosive"] }
   },
   "ancient-tree-body-art": {
     combatRole: "A durable melee style whose heavy close strikes and living bark punish surrounding attackers.", visualMotif: "Ancient growth rings, bark fists, and vast root-crater impacts.",

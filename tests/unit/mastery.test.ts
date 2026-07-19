@@ -558,7 +558,7 @@ describe("mastery progression", () => {
 
   it("offers the Surge Transformation milestones for every lighter gongfa", () => {
     for (const spec of surgeGongfaSpecs) {
-      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant"].includes(spec.gongfaId)) {
+      if (["mist-wraith-canon", "sword-burial-formation", "flame-demon-body-art", "frozen-river-formation", "thousand-root-formation", "black-tide-scripture", "vermilion-bird-covenant", "myriad-beast-grove"].includes(spec.gongfaId)) {
         continue;
       }
       expect(
@@ -617,6 +617,21 @@ describe("mastery progression", () => {
       gongfaId: "vermilion-bird-covenant", rank: 9, seed: "s", learnedIds: []
     })).toEqual([
       "urgent-ember-egg", "true-plume-nirvana", "sacrifice-to-guard-the-master"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "myriad-beast-grove", rank: 3, seed: "s", learnedIds: []
+    })).toEqual([
+      "mountain-lord-enters-the-grove", "black-tortoise-guards-the-grove", "white-ape-calls-the-pack"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "myriad-beast-grove", rank: 6, seed: "s", learnedIds: []
+    })).toEqual([
+      "two-beasts-aid-each-other", "three-spirits-hunt-together", "unending-rotating-hunt"
+    ]);
+    expect(getDeterministicMasteryChoiceIds({
+      gongfaId: "myriad-beast-grove", rank: 9, seed: "s", learnedIds: []
+    })).toEqual([
+      "ancestors-run-the-wild", "ancestral-encirclement", "ancestors-return-to-the-grove"
     ]);
   });
 

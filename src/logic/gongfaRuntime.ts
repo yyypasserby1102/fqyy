@@ -213,6 +213,12 @@ export type GongfaRuntimeEvent =
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds?: string[] }
   | { kind: "evade"; playerX?: number; playerY?: number; learnedMasteryIds?: string[] }
   | {
+      kind: "authored-beast-assist";
+      targetId: number;
+      species: "boar" | "fox" | "deer";
+      learnedMasteryIds?: string[];
+    }
+  | {
       kind: "yujian-projectile-hit";
       targetId: number;
       damage: number;
@@ -606,6 +612,26 @@ export type GongfaRuntimeCommand =
       x: number;
       y: number;
       sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-beast-action";
+      species: "boar" | "fox" | "deer";
+      form: "rock-boar" | "spirit-fox" | "verdant-deer" | "mountain-lord" | "black-tortoise" | "white-ape";
+      from: { x: number; y: number };
+      target: AuthoredTargetFact;
+      damage: number;
+      radius: number;
+      rootMs: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-beast-ancestors";
+      species: Array<"boar" | "fox" | "deer">;
+      targets: AuthoredTargetFact[];
+      damage: number;
+      fate: "wild-run" | "encirclement" | "return-grove";
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -2276,6 +2302,52 @@ function advanceAuthoredWorldFacts(
       state.charges = state.anchors.filter((anchor) => anchor.kind === "infection").length;
       state.resource = state.charges / Math.max(1, state.maxCharges);
     }
+
+    if (runtime.gongfaId === "myriad-beast-grove") {
+      const marks = Math.floor(state.targetLedger[event.targetId] ?? 0);
+      const markCount = (marks & 1 ? 1 : 0) + (marks & 2 ? 1 : 0) + (marks & 4 ? 1 : 0);
+      const twoBeasts = learnedIds.includes("two-beasts-aid-each-other");
+      const threeSpirits = learnedIds.includes("three-spirits-hunt-together");
+      const rotating = learnedIds.includes("unending-rotating-hunt");
+      const livingPack = state.anchors.filter((anchor) => anchor.kind === "beast" && anchor.beastState === "living");
+      const qualifying = markCount >= (twoBeasts ? 2 : 2);
+      if (qualifying) {
+        const combination = marks & 7;
+        const repeated = rotating && state.targetLedger[-44] === combination;
+        const complete = markCount === 3 && livingPack.length === 3;
+        let gain = twoBeasts ? 0.22 : complete ? 0.34 : 0.18;
+        if (threeSpirits) gain = complete ? 0.68 : 0;
+        if (rotating && repeated) gain = 0;
+        state.resource = Math.min(1, state.resource + (twoBeasts ? gain / 0.7 : gain));
+        if (rotating && gain > 0) state.targetLedger[-44] = combination;
+        if (complete) {
+          for (const beast of livingPack) {
+            beast.value = Math.min(beast.maxValue ?? 1, beast.value + (beast.maxValue ?? 1) * 0.3);
+          }
+        }
+      }
+      delete state.targetLedger[event.targetId];
+      state.secondaryResource = livingPack.length / 3;
+    }
+    return;
+  }
+
+  if (event.kind === "authored-beast-assist" && runtime.gongfaId === "myriad-beast-grove") {
+    const bit = event.species === "boar" ? 1 : event.species === "fox" ? 2 : 4;
+    state.targetLedger[event.targetId] = Math.floor(state.targetLedger[event.targetId] ?? 0) | bit;
+    return;
+  }
+
+  if (event.kind === "evade" && runtime.gongfaId === "myriad-beast-grove") {
+    const playerX = event.playerX ?? 0;
+    const playerY = event.playerY ?? 0;
+    const offsets = [[-42, 24], [42, 24], [0, -46]] as const;
+    state.anchors.filter((anchor) => anchor.kind === "beast").forEach((beast, index) => {
+      beast.x = playerX + (offsets[index]?.[0] ?? 0);
+      beast.y = playerY + (offsets[index]?.[1] ?? 0);
+      beast.targetId = undefined;
+    });
+    state.targetLedger[-40] = 620;
     return;
   }
 
@@ -2510,6 +2582,108 @@ function advanceAuthoredWorldFacts(
     state.secondaryResource = Math.max(0, bird.value / Math.max(0.01, bird.maxValue ?? 1));
     state.phase = ["guard", "outbound", "return", "ember", "egg", "phoenix"].indexOf(bird.companionState ?? "guard");
     state.charges = bird.companionState === "ember" ? 0 : 1;
+  }
+
+  if (runtime.gongfaId === "myriad-beast-grove") {
+    const playerX = event.playerX ?? 0;
+    const playerY = event.playerY ?? 0;
+    const targets = event.targets ?? [];
+    const forms = {
+      boar: learnedIds.includes("black-tortoise-guards-the-grove") ? "black-tortoise" : "rock-boar",
+      fox: learnedIds.includes("mountain-lord-enters-the-grove") ? "mountain-lord" : "spirit-fox",
+      deer: learnedIds.includes("white-ape-calls-the-pack") ? "white-ape" : "verdant-deer"
+    } as const;
+    const pack = state.anchors.filter((anchor) => anchor.kind === "beast");
+    const protectionRemaining = Math.max(0, (state.targetLedger[-45] ?? 0) - event.deltaMs);
+    state.targetLedger[-45] = protectionRemaining;
+    for (const beast of pack) {
+      const species = beast.beastSpecies ?? "boar";
+      beast.beastForm = forms[species];
+      if (beast.beastState === "downed") {
+        beast.rebirthMs = Math.max(0, (beast.rebirthMs ?? 5000) - event.deltaMs);
+        if (beast.rebirthMs <= 0) {
+          beast.beastState = "living";
+          beast.value = beast.maxValue ?? 1;
+          beast.x = playerX;
+          beast.y = playerY;
+        }
+        continue;
+      }
+      const nearbyThreats = targets.filter((target) => distanceSquared(target.x, target.y, beast.x, beast.y) <= 64 ** 2).length;
+      beast.value -= nearbyThreats * event.deltaMs * 0.000022 * (protectionRemaining > 0 ? 0.18 : 1);
+      if (beast.value <= 0) {
+        beast.value = 0;
+        beast.beastState = "downed";
+        beast.rebirthMs = Math.max(3600, 6000 - runtime.combat.count * 200);
+        beast.targetId = undefined;
+      }
+    }
+    const living = pack.filter((beast) => beast.beastState === "living");
+    let cooldown = Math.max(0, (state.targetLedger[-40] ?? 0) - event.deltaMs);
+    if (cooldown <= 0 && targets.length > 0) {
+      for (const beast of living) {
+        const species = beast.beastSpecies ?? "boar";
+        const form = beast.beastForm ?? forms[species];
+        const candidates = form === "mountain-lord"
+          ? targets.filter((target) => target.rank === "elite" || target.rank === "boss")
+          : targets;
+        const target = [...candidates].sort((a, b) => {
+          if (form === "mountain-lord") {
+            const weight = (target: AuthoredTargetFact): number => target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 0;
+            return weight(b) + b.healthRatio - weight(a) - a.healthRatio;
+          }
+          if (form === "black-tortoise") {
+            return distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY);
+          }
+          if (species === "boar") {
+            const density = (target: AuthoredTargetFact): number => targets.filter((other) =>
+              distanceSquared(target.x, target.y, other.x, other.y) <= 88 ** 2
+            ).length;
+            return density(b) - density(a);
+          }
+          if (species === "fox") {
+            const isolation = (target: AuthoredTargetFact): number => targets.filter((other) =>
+              other !== target && distanceSquared(target.x, target.y, other.x, other.y) <= 90 ** 2
+            ).length;
+            return a.healthRatio + isolation(a) * 0.2 - b.healthRatio - isolation(b) * 0.2;
+          }
+          return distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY);
+        })[0];
+        if (!target) continue;
+        const from = { x: beast.x, y: beast.y };
+        const recalled = !event.isMoving;
+        if (recalled) {
+          const angle = species === "boar" ? 2.5 : species === "fox" ? 0.65 : -Math.PI / 2;
+          beast.x = playerX + Math.cos(angle) * 48;
+          beast.y = playerY + Math.sin(angle) * 48;
+        } else if (species === "deer") {
+          beast.x = playerX;
+          beast.y = playerY - 48;
+        } else {
+          const spread = species === "boar" ? -34 : 34;
+          beast.x = target.x + spread;
+          beast.y = target.y + 18;
+        }
+        beast.targetId = target.targetId;
+        commands.push({
+          kind: "authored-beast-action",
+          species,
+          form,
+          from,
+          target,
+          damage: Math.max(1, Math.floor(runtime.combat.damage *
+            (form === "mountain-lord" ? 2.1 : form === "black-tortoise" ? 0.62 : form === "white-ape" ? 0.72 : species === "fox" ? 1.3 : 0.9))),
+          radius: (form === "black-tortoise" ? 26 : species === "boar" ? 64 : form === "white-ape" ? 48 : 22) +
+            runtime.combat.pierce * 4,
+          rootMs: species === "deer" && form !== "white-ape" ? 720 : 0,
+          sourceGongfaId: runtime.gongfaId
+        });
+      }
+      cooldown = Math.max(720, 1260 - runtime.combat.count * 55);
+    }
+    state.targetLedger[-40] = cooldown;
+    state.charges = living.length;
+    state.secondaryResource = living.length / 3;
   }
 
   state.anchors = state.anchors.filter((anchor) => {
@@ -2785,7 +2959,7 @@ export function advanceGongfaRuntime(
   let next = copyRuntime(runtime);
   const commands: GongfaRuntimeCommand[] = [];
   advanceAuthoredWorldFacts(next, event, commands);
-  if (event.kind === "enemy-death") {
+  if (event.kind === "enemy-death" || event.kind === "authored-beast-assist") {
     return { runtime: next, commands };
   }
 
@@ -2884,6 +3058,47 @@ export function advanceGongfaRuntime(
   if (event.kind === "skill2") {
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
+    if (event.skill2Id === "myriad-beast-stampede" && next.gongfaId === "myriad-beast-grove") {
+      const livingSpecies = next.authored.anchors
+        .filter((anchor) => anchor.kind === "beast" && anchor.beastState === "living")
+        .map((anchor) => anchor.beastSpecies)
+        .filter((species): species is "boar" | "fox" | "deer" => species !== undefined);
+      const ancestorSpecies = event.learnedMasteryIds.includes("two-beasts-aid-each-other")
+        ? livingSpecies.slice(0, 2)
+        : livingSpecies;
+      if (next.authored.resource >= 0.999 && ancestorSpecies.length >= 2) {
+        const learnedIds = event.learnedMasteryIds;
+        const fate = learnedIds.includes("ancestors-return-to-the-grove")
+          ? "return-grove" as const
+          : learnedIds.includes("ancestral-encirclement")
+            ? "encirclement" as const
+            : "wild-run" as const;
+        commands.push({
+          kind: "authored-beast-ancestors",
+          species: ancestorSpecies,
+          targets: event.targets ?? [],
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
+            (fate === "return-grove" ? 0.42 : fate === "encirclement" ? 1.5 : 0.82))),
+          fate,
+          sourceGongfaId: next.gongfaId,
+          masteryCast: {
+            skill2Id: "myriad-beast-stampede",
+            cooldownMs: Math.floor(authoredSkill2Plans["myriad-beast-stampede"].cooldownMs * skill2Stats.cadenceScale)
+          }
+        });
+        if (fate === "return-grove") {
+          for (const beast of next.authored.anchors.filter((anchor) => anchor.kind === "beast")) {
+            beast.beastState = "living";
+            beast.value = beast.maxValue ?? 1;
+            beast.rebirthMs = 0;
+          }
+          next.authored.targetLedger[-45] = 4200;
+        }
+        next.authored.resource = 0;
+        next.authored.activationCount += 1;
+      }
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "vermilion-host-descent" && next.gongfaId === "vermilion-bird-covenant") {
       const bird = next.authored.anchors.find((anchor) =>
         anchor.kind === "companion" && !["ember", "egg"].includes(anchor.companionState ?? "guard")
@@ -3991,6 +4206,9 @@ export function planGongfaAttack(
     }];
   }
   if (runtime.gongfaId === "vermilion-bird-covenant") {
+    return [];
+  }
+  if (runtime.gongfaId === "myriad-beast-grove") {
     return [];
   }
   if (runtime.gongfaId === "frozen-river-formation") {

@@ -510,6 +510,7 @@ describe("Gongfa runtime", () => {
         runtime.authored.targetLedger[-20] = 1;
         runtime.authored.resource = 1;
       }
+      if (gongfaId === "myriad-beast-grove") runtime.authored.resource = 1;
       if (gongfaId === "mist-wraith-canon") {
         runtime.authored.anchors.push({ kind: "stored-soul", x: 0, y: 0, value: 1 });
       }
@@ -562,6 +563,8 @@ describe("Gongfa runtime", () => {
                   { targetId: 94, x: 60, y: 0, healthRatio: 0.4, rank: "ordinary" }
                 ] : gongfaId === "vermilion-bird-covenant" ? [
                   { targetId: 96, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+                ] : gongfaId === "myriad-beast-grove" ? [
+                  { targetId: 97, x: 120, y: 0, healthRatio: 1, rank: "elite" }
                 ] : undefined
               });
 
@@ -2453,5 +2456,73 @@ describe("Gongfa runtime", () => {
       learnedMasteryIds: ["void-step-formation"]
     });
     expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+  });
+
+  it("builds Myriad Beast Kinship only from distinct species assisting one kill", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "myriad-beast-grove" });
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "authored-beast-assist", targetId: 71, species: "boar"
+    }).runtime;
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "authored-beast-assist", targetId: 71, species: "boar"
+    }).runtime;
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "enemy-death", targetId: 71, x: 10, y: 0, rank: "ordinary",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.resource).toBe(0);
+
+    for (const species of ["boar", "fox"] as const) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "authored-beast-assist", targetId: 72, species
+      }).runtime;
+    }
+    runtime = advanceGongfaRuntime(runtime, {
+      kind: "enemy-death", targetId: 72, x: 10, y: 0, rank: "ordinary",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0
+    }).runtime;
+    expect(runtime.authored.resource).toBeCloseTo(0.18);
+  });
+
+  it("keeps exactly three independent Myriad Beast jobs and reforms without attacking on Evade", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "myriad-beast-grove" });
+    expect(runtime.authored.anchors.map((anchor) => anchor.beastSpecies)).toEqual(["boar", "fox", "deer"]);
+    const evaded = advanceGongfaRuntime(runtime, {
+      kind: "evade", playerX: 80, playerY: 40
+    });
+    expect(evaded.commands).toEqual([]);
+    expect(evaded.runtime.authored.anchors.every((anchor) => anchor.targetId === undefined)).toBe(true);
+
+    const ticked = advanceGongfaRuntime(evaded.runtime, {
+      kind: "tick", deltaMs: 700, nearbyEnemyCount: 2, playerX: 80, playerY: 40,
+      isMoving: true,
+      targets: [
+        { targetId: 1, x: 180, y: 40, healthRatio: 1, rank: "elite" },
+        { targetId: 2, x: 210, y: 55, healthRatio: 0.3, rank: "ordinary" }
+      ],
+      learnedMasteryIds: ["mountain-lord-enters-the-grove"]
+    });
+    const actions = ticked.commands.filter((command) => command.kind === "authored-beast-action");
+    expect(actions).toHaveLength(3);
+    expect(actions.find((command) => command.species === "fox")?.form).toBe("mountain-lord");
+    expect(actions.find((command) => command.species === "fox")?.target.rank).toBe("elite");
+  });
+
+  it("calls one ancestor per living Myriad Beast species and consumes Kinship", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "myriad-beast-grove" });
+    runtime.authored.resource = 1;
+    const fox = runtime.authored.anchors.find((anchor) => anchor.beastSpecies === "fox")!;
+    fox.beastState = "downed";
+    fox.value = 0;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2",
+      skill2Id: "myriad-beast-stampede",
+      targets: [{ targetId: 9, x: 140, y: 0, healthRatio: 1, rank: "boss" }],
+      learnedMasteryIds: ["ancestral-encirclement"]
+    });
+    const ancestor = result.commands.find((command) => command.kind === "authored-beast-ancestors");
+    expect(ancestor?.species).toEqual(["boar", "deer"]);
+    expect(ancestor?.fate).toBe("encirclement");
+    expect(result.runtime.authored.resource).toBe(0);
   });
 });

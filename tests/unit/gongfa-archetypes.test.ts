@@ -19,7 +19,7 @@ const archetypes = [
   ["moonfall-tide-ritual", "ritual-impact", "moonfall-cataclysm", "heavenly-sun-descent"],
   ["sword-burial-formation", "authored-line-strike", "ten-thousand-sword-tomb", "authored-line-strike"],
   ["heaven-sundering-edict", "ritual-impact", "supreme-sundering-decree", "heavenly-sun-descent"],
-  ["myriad-beast-grove", "summon-wraiths", "myriad-beast-stampede", "hundred-ghost-procession"],
+  ["myriad-beast-grove", "authored-beast-action", "myriad-beast-stampede", "authored-beast-ancestors"],
   ["ancient-tree-body-art", "melee-combination", "world-tree-incarnation", "star-breaking-descent"]
 ] as const satisfies ReadonlyArray<readonly [GongfaId, string, string, string]>;
 
@@ -102,6 +102,7 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.targetLedger[-20] = 1;
         runtime.authored.resource = 1;
       }
+      if (gongfaId === "myriad-beast-grove") runtime.authored.resource = 1;
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
       const result = advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -119,6 +120,8 @@ describe("expanded Gongfa archetypes", () => {
           { targetId: 94, x: 60, y: 0, healthRatio: 0.4, rank: "ordinary" }
         ] : gongfaId === "vermilion-bird-covenant" ? [
           { targetId: 95, x: 120, y: 0, healthRatio: 1, rank: "elite" }
+        ] : gongfaId === "myriad-beast-grove" ? [
+          { targetId: 96, x: 120, y: 0, healthRatio: 1, rank: "elite" }
         ] : undefined
       });
       expect(result.commands[0]?.kind).toBe(expectedCommand);
@@ -140,7 +143,7 @@ describe("expanded Gongfa archetypes", () => {
       const runtime = createGongfaRuntime({ gongfaId });
       runtime.combat = { ...runtime.combat, ...gongfaConfigs[gongfaId].stages.yuanying! };
       const targets = [{ targetId: 77, x: 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];
-      const command = gongfaId === "vermilion-bird-covenant"
+      const command = gongfaId === "vermilion-bird-covenant" || gongfaId === "myriad-beast-grove"
         ? advanceGongfaRuntime(runtime, {
             kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
             movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0, targets
@@ -169,6 +172,10 @@ describe("expanded Gongfa archetypes", () => {
       }
       if (command.kind === "authored-vermilion-flight") {
         expect(command.maxHits).toBeGreaterThan(0);
+        return [];
+      }
+      if (command.kind === "authored-beast-action") {
+        expect(command.target.targetId).toBe(77);
         return [];
       }
       if (command.kind === "root-trap-array") {

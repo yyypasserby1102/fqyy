@@ -53,7 +53,7 @@ export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "moonfall-tide-ritual": { motifId: "abyssal-moonfall", label: "Abyssal moonfall", geometry: "calamity", accent: 0x5688d8, secondary: 0xbfeaff, spokes: 8, trailStyle: "converging dark tides" },
   "sword-burial-formation": { motifId: "buried-sword-tomb", label: "Buried sword tomb", geometry: "formation", accent: 0xd9c887, secondary: 0xf5f1dd, spokes: 10, trailStyle: "rising grave blades" },
   "heaven-sundering-edict": { motifId: "supreme-metal-edict", label: "Heaven-sundering edict", geometry: "calamity", accent: 0xf0df9e, secondary: 0xffffff, spokes: 4, trailStyle: "straight judgment rays" },
-  "myriad-beast-grove": { motifId: "seed-spirit-pack", label: "Seed-spirit hunting pack", geometry: "wraiths", accent: 0x6fbd61, secondary: 0xd7eda0, spokes: 5, trailStyle: "branching beast tracks" },
+  "myriad-beast-grove": { motifId: "three-beast-kinship", label: "Boar Fox Deer hunting formation", geometry: "formation", accent: 0x6fbd61, secondary: 0xd7eda0, spokes: 3, trailStyle: "three species-specific hunting routes" },
   "ancient-tree-body-art": { motifId: "world-tree-impact", label: "Ancient tree body seal", geometry: "impact", accent: 0x688b4b, secondary: 0xd1bd79, spokes: 9, trailStyle: "root-crater growth rings" }
 };
 

@@ -185,8 +185,8 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill1: { name: "断天一笔", description: "在密集敌群上书敕令，随后一击斩开标记之地。" }, passive: { name: "裁决天命", resource: "天命", description: "受金法裁决者积累天命，强化下一次斩令。" }, skill2: { name: "无上断天令", description: "宣下无上敕令，以破劫之力斩断广阔战线。" }
   },
   "myriad-beast-grove": {
-    name: "万兽灵林", lore: "种灵化兽，群猎八荒。", combatRole: "召唤灵兽群，以大量自主小击围猎分散敌人。", visualMotif: "翠玉兽面、种灵足迹与分枝猎路。",
-    skill1: { name: "种灵兽群", description: "萌生林中灵兽，自主追逐并袭扰附近敌人。" }, passive: { name: "荒林同契", resource: "同契", description: "兽群命中积累同契，召来更多灵兽并协同攻击。" }, skill2: { name: "万兽奔潮", description: "唤醒祖林万灵，化作横贯战场的兽潮。" }
+    name: "万兽灵林", lore: "一豕、一狐、一鹿，各司其猎，同契一林。", combatRole: "维持固定三兽猎群，让独立存活、各司其职的灵兽共同助攻同一场击杀。", visualMotif: "岩豕、灵狐、青鹿三种清晰兽影，物种印记、猎阵路线与一次显化的巨祖灵。",
+    skill1: { name: "三兽猎群", description: "固定维持岩豕、灵狐、青鹿各一只；它们拥有独立生命、位置、索敌职责与种子重生。" }, passive: { name: "荒林同契", resource: "亲缘", description: "不同存活物种共同助攻一次击杀才增长亲缘；三兽齐印还会治疗猎群。" }, skill2: { name: "万兽祖庭", description: "亲缘圆满时，当前每个存活物种各唤出一尊巨型祖灵完成一次本命行动，随后消散。" }
   },
   "ancient-tree-body-art": {
     name: "古木锻体术", lore: "身如古木，根深力沉。", combatRole: "以沉重近战与活木反震惩罚围攻之敌。", visualMotif: "古老年轮、树甲重拳与巨根震坑。",
@@ -999,7 +999,16 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string }> = {
   "paired-wing-flight": { name: "比翼同翔" },
   "urgent-ember-egg": { name: "烬卵急生" },
   "true-plume-nirvana": { name: "真羽涅槃" },
-  "sacrifice-to-guard-the-master": { name: "舍身护主" }
+  "sacrifice-to-guard-the-master": { name: "舍身护主" },
+  "mountain-lord-enters-the-grove": { name: "山君入林" },
+  "black-tortoise-guards-the-grove": { name: "玄龟镇林" },
+  "white-ape-calls-the-pack": { name: "白猿号群" },
+  "two-beasts-aid-each-other": { name: "双兽相援" },
+  "three-spirits-hunt-together": { name: "三灵会猎" },
+  "unending-rotating-hunt": { name: "轮猎不息" },
+  "ancestors-run-the-wild": { name: "群祖奔荒" },
+  "ancestral-encirclement": { name: "祖灵围猎" },
+  "ancestors-return-to-the-grove": { name: "祖林归巢" }
 };
 
 let zhReplacementPairs: Array<[string, string]> | null = null;

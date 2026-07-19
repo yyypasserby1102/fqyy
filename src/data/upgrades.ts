@@ -515,12 +515,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["fixed-mandate", "Fixed Mandate", "Mandate fades more slowly.", "surgeStability", 0.84, "Passive: Judgment Mandate"]
   ]],
   ["myriad-beast-grove", [
-    ["seed-spirit-tempering", "Seed-Spirit Tempering", "Woodland spirits strike harder.", "skill1Damage", 4, "Skill 1: Seed-Spirit Pack"],
-    ["teeming-grove", "Teeming Grove", "Calls another seed spirit.", "skill1Count", 1, "Skill 1: Seed-Spirit Pack"],
-    ["kinship-conduction", "Kinship Conduction", "Kinship empowers both summoning Skills.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["thorned-pack", "Thorned Pack", "Spirit attacks pierce another target.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
-    ["growing-kinship", "Growing Kinship", "Pack hits build Kinship faster.", "surgeBuild", 0.18, "Passive: Wildwood Kinship"],
-    ["ancestral-kinship", "Ancestral Kinship", "Kinship fades more slowly.", "surgeStability", 0.84, "Passive: Wildwood Kinship"]
+    ["seed-spirit-tempering", "Beast-Soul Tempering", "Each of the fixed three beasts strikes harder.", "skill1Damage", 4, "Skill 1: Three-Beast Pack"],
+    ["teeming-grove", "Swift Seed Rebirth", "The same downed species reforms from its seed sooner.", "skill1Count", 1, "Skill 1: Three-Beast Pack"],
+    ["kinship-conduction", "Kinship Conduction", "Cooperative kills empower both pack and ancestor actions.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["thorned-pack", "Broad Hunting Trails", "Species signature actions cover a slightly broader route.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["growing-kinship", "Clear Species Marks", "Distinct assist marks remain easy to read until that prey dies.", "surgeBuild", 0.18, "Passive: Wildwood Kinship"],
+    ["ancestral-kinship", "Deep Ancestral Memory", "Ancestral forms emerge with a more stable signature action.", "surgeStability", 0.84, "Skill 2: Ancestral Menagerie"]
   ]],
   ["ancient-tree-body-art", [
     ["old-growth-tempering", "Old-Growth Tempering", "Ancient-tree blows strike harder.", "skill1Damage", 7, "Skill 1: Old-Growth Combination"],

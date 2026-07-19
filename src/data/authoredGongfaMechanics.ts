@@ -390,7 +390,7 @@ export interface AuthoredGongfaRuntimeState {
   activationCount: number;
   targetLedger: Record<number, number>;
   anchors: Array<{
-    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion";
+    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "seal" | "infection" | "trail" | "companion" | "beast";
     x: number;
     y: number;
     value: number;
@@ -404,6 +404,10 @@ export interface AuthoredGongfaRuntimeState {
     chainId?: number;
     infectionStage?: 0 | 1 | 2;
     companionState?: "guard" | "outbound" | "return" | "ember" | "egg" | "phoenix";
+    beastSpecies?: "boar" | "fox" | "deer";
+    beastForm?: "rock-boar" | "spirit-fox" | "verdant-deer" | "mountain-lord" | "black-tortoise" | "white-ape";
+    beastState?: "living" | "downed";
+    rebirthMs?: number;
     maxValue?: number;
   }>;
 }
@@ -430,6 +434,19 @@ export function createAuthoredGongfaRuntimeState(gongfaId: GongfaId): AuthoredGo
       y: 0,
       value: 1,
       maxValue: 1
-    }] : []
+    }] : gongfaId === "myriad-beast-grove" ? ([
+      ["boar", "rock-boar", -46, 22],
+      ["fox", "spirit-fox", 46, 22],
+      ["deer", "verdant-deer", 0, -48]
+    ] as const).map(([beastSpecies, beastForm, x, y]) => ({
+      kind: "beast" as const,
+      beastSpecies,
+      beastForm,
+      beastState: "living" as const,
+      x,
+      y,
+      value: 1,
+      maxValue: 1
+    })) : []
   };
 }
