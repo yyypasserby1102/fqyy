@@ -129,10 +129,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "萌阳开界", description: "精确写成根→叶→棘时，在当前位置依次展开定域之根、扫径之叶与一次棘阳爆发，随后全数消失。" }
   },
   "ironwood-wave-form": {
-    name: "铁木浪形", lore: "木气层层展开，化作坚密壁浪。", combatRole: "厚重木垒推动战线，回返时迸裂为斜向木浪。", visualMotif: "墨绿年轮、方整木墙与斜飞裂片。",
-    skill1: { name: "铁木壁浪", description: "厚重木锋承载心木之力，沿敌阵一路推进。" },
-    passive: { name: "深心木", resource: "心木", description: "浪形命中积蓄心木，提升力量与宽度。" },
-    skill2: { name: "铁木奔流式", description: "木垒反复推开敌人，随后裂成两道斜向回返浪。" }
+    name: "铁木浪形", lore: "静立筑垒，移步推城，以年轮稳定驾驭整面铁木墙。", combatRole: "停止移动后朝最密威胁筑起实体木垒，再以移动将成熟墙体连根推出。", visualMotif: "方整木梁、清晰年轮、敞开墙角与整墙推进。",
+    skill1: { name: "铁木壁垒", description: "静止时朝最密威胁筑起可破坏木墙；稳定足够后移动会将墙体推出，过早移动则枯散。" },
+    passive: { name: "年轮稳定", resource: "稳定", description: "只在活墙后静止时增长，推墙时全部消耗；命中与其他木系功法均不能补充。" },
+    skill2: { name: "铁木城寨", description: "三次高稳定推墙后立起四面可破坏墙，墙角保持通行，余墙随后向外推出并清空建造记录。" }
   },
   "nine-sun-calamity-seal": {
     name: "九阳劫印", lore: "预断来位，定印不移；九兆归一，一日坠天。", combatRole: "自动预判高威胁或密集敌群的未来地面，固定长警示太阳印，并承担敌人逃离后的真实落空风险。", visualMotif: "固定同心日印、收缩明亮中心、九层可见日兆与归一凝日冲击。",
@@ -641,41 +641,41 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "绽放步",
     "lore": "每次躲避都会释放出绽放的鳞片花瓣。"
   },
-  "ironwood-spear": {
-    "name": "铁木矛",
-    "lore": "将波浪凝聚成一支刺骨的铁木长矛。"
+  "lone-great-rampart": {
+    "name": "独木巨垒",
+    "lore": "木墙更窄、更坚固，直推更强，但两侧暴露。"
   },
-  "ironwood-spread": {
-    "name": "铁木传播",
-    "lore": "将波浪传播到宽阔的铁木前沿。"
+  "linked-timber-palisade": {
+    "name": "连城木栅",
+    "lore": "木栅更宽但更脆，推进缓慢且伤害较低。"
   },
-  "swift-ironwood": {
-    "name": "斯威夫特铁木",
-    "lore": "推动波浪更快、更快。"
+  "living-root-curved-wall": {
+    "name": "活根曲墙",
+    "lore": "缓慢筑起正面弧墙，移动时向外分裂而非直推。"
   },
-  "lasting-heartwood": {
-    "name": "持久的心材",
-    "lore": "充分燃烧的心材不再褪色到一半以下。"
+  "deep-age-root": {
+    "name": "岁木深根",
+    "lore": "扎根与拔根更慢，换取更高的时间稳定与耐久。"
   },
-  "heartwood-cascade": {
-    "name": "心材瀑布",
-    "lore": "每次命中都会使心木的速度提高两倍。"
+  "enemy-pressed-forest": {
+    "name": "众敌压林",
+    "lore": "稳定只由压迫墙体的不同敌人提供，静止时间本身不再增长。"
   },
-  "heartwood-burst": {
-    "name": "铁木爆裂",
-    "lore": "当心材饱满时，下一波会以额外的力量爆发。"
+  "living-root-relocation": {
+    "name": "活根移垒",
+    "lore": "可缓慢带墙移位，但移动时稳定衰减且上限降低。"
   },
-  "heartwood-crown": {
-    "name": "心材冠",
-    "lore": "心材用光谱木材为每一波波浪加冕。"
+  "unbroken-iron-city": {
+    "name": "不破铁城",
+    "lore": "墙体更长更耐久，但推进伤害与推力显著降低。"
   },
-  "heartwood-domain": {
-    "name": "铁木领域",
-    "lore": "命中会留下一片心木鳞片的碎片。"
+  "mountain-collapse-timber-array": {
+    "name": "崩山木阵",
+    "lore": "推进更快更猛烈，但静止墙体非常脆弱。"
   },
-  "heartwood-step": {
-    "name": "铁木台阶",
-    "lore": "每次躲避都会释放出心木鳞片的波浪。"
+  "walking-city": {
+    "name": "行城移岳",
+    "lore": "推出的墙会短暂跟随移动方向，但推力降低。"
   },
   "execution-seal": {
     "name": "执行印章",
@@ -871,7 +871,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "growth-crown": { name: "青藤华冠" },
   "growth-domain": { name: "荆棘生域" },
   "swift-bloom": { name: "瞬息花开" },
-  "lasting-heartwood": { name: "心木长存" },
+  "lone-great-rampart": { name: "独木巨垒" },
+  "linked-timber-palisade": { name: "连城木栅" },
+  "living-root-curved-wall": { name: "活根曲墙" },
+  "deep-age-root": { name: "岁木深根" },
+  "enemy-pressed-forest": { name: "众敌压林" },
+  "living-root-relocation": { name: "活根移垒" },
+  "unbroken-iron-city": { name: "不破铁城" },
+  "mountain-collapse-timber-array": { name: "崩山木阵" },
+  "walking-city": { name: "行城移岳" },
   "execution-seal": { name: "诛敌剑印", lore: "御剑诀初式反复命中被标记的关键目标时，伤害会逐步提升。" },
   "sword-bloom": { name: "剑华分影", lore: "御剑诀初式首次命中时分裂出较弱飞剑，分别追索其他敌人。" },
   "reversing-sword-path": { name: "回锋剑路", lore: "御剑诀初式穿敌后折返修士身旁，再次贯穿沿途目标。" },

@@ -313,13 +313,13 @@ for (const visualCase of [
   });
 }
 
-test("all seven projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("all six projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
     "yujian-jue", "jinfeng-gong", "crimson-furnace-sword-art",
     "blazing-feather-art",
     "drifting-frost-needle",
-    "green-vine-art", "ironwood-wave-form"
+    "green-vine-art"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
 
@@ -350,9 +350,34 @@ test("all seven projectile-based Gongfa render their own treatment and trail", a
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(7);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(7);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(7);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(6);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(6);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(6);
+});
+
+test("Ironwood Wave Form renders a physical rooted wall and driven wall without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("ironwood-wave-form");
+    window.__gameTest!.forceSpawnEnemy("jade-rat");
+  });
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes("ironwood-rampart:rooted-rampart")
+  );
+  const enemyCleanupTimer = await page.evaluate(() => window.setInterval(
+    () => window.__gameTest?.forceClearEnemies(),
+    100
+  ));
+  await page.waitForTimeout(4200);
+  await page.keyboard.down("d");
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes("ironwood-rampart:driven-rampart")
+  );
+  await page.keyboard.up("d");
+  await page.evaluate((timer) => window.clearInterval(timer), enemyCleanupTimer);
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) => projectile.sourceGongfaId === "ironwood-wave-form")).toBe(false);
+  expect(snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("forged-brace:"))).toBe(false);
 });
 
 test("Gengjin Huti renders a persistent forged brace without substitute projectiles", async ({ page }) => {

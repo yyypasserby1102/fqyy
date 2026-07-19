@@ -550,9 +550,9 @@ Wood is playable through the `Water-Wood` dual-root profile.
 - `Ironwood Wave Form`
   - required roots: `wood`
   - pattern: `wave`
-  - fantasy: rib-like slashing fronts
-  - rank-10 Skill 2: `Ironwood Surge Form`, a pushing rampart that splinters into diagonal return waves and scales from Heartwood
-  - status: complete playable package with Rank-22 Mastery and heartwood-rampart combat motif
+  - fantasy: stop to build a physical directional timber rampart, then move to drive it
+  - rank-10 Skill 2: `Ironwood Citadel`, four destructible open-corner walls earned by three strong drives
+  - status: complete authored package with Rank-22 Mastery and physical ironwood-rampart motif
 
 ### Hybrid Gongfa
 

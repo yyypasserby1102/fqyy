@@ -110,7 +110,7 @@ const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype | undefined> = {
   "ice-mirror-guard": undefined,
   "green-vine-art": "surge",
   "verdant-ring-scripture": undefined,
-  "ironwood-wave-form": "surge",
+  "ironwood-wave-form": undefined,
   "nine-sun-calamity-seal": "surge",
   "mist-wraith-canon": "surge",
   "heavenfall-body-art": "surge",
@@ -135,7 +135,7 @@ function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: Gongf
     .filter((subtype) => runtime[subtype] !== undefined);
   // Ice Mirror used the shared Surge subtype before its finite-facet redesign.
   // Accept that legacy payload for migration while new checkpoints carry no subtype.
-  if (gongfaId === "ice-mirror-guard" && presentSubtypes.length === 1 && presentSubtypes[0] === "surge") {
+  if (["ice-mirror-guard", "ironwood-wave-form"].includes(gongfaId) && presentSubtypes.length === 1 && presentSubtypes[0] === "surge") {
     return hasNonNegativeFields(runtime.surge, subtypeNumberFields.surge);
   }
   if (expectedSubtype === undefined) return presentSubtypes.length === 0;

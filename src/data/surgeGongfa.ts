@@ -121,20 +121,6 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
     updraft: { id: "bloom-step", name: "Bloom Step", lore: "Each Evade looses a Bloom-scaled petal burst." }
   },
   {
-    gongfaId: "ironwood-wave-form",
-    resource: "Heartwood",
-    mechanics: { focusDamageScale: 1.5, focusPierce: 3, focusSpreadScale: 0.55, spreadCount: 2, spreadDegrees: 18, spreadDamageScale: 0.86, quickenCooldownScale: 0.78, quickenDamageScale: 0.88, quickenSpeed: 45, holdFloor: 3, cascadeGain: 2, burstCount: 2, crownPerStack: 1.5, domainDamageScale: 0.42, updraftStackScale: 0.75 },
-    focus: { id: "ironwood-spear", name: "Ironwood Spear", lore: "Condense the wave into a piercing ironwood spear." },
-    spread: { id: "ironwood-spread", name: "Ironwood Spread", lore: "Spread the wave into a broad ironwood front." },
-    quicken: { id: "swift-ironwood", name: "Swift Ironwood", lore: "Drive the wave faster and swifter." },
-    hold: { id: "lasting-heartwood", name: "Lasting Heartwood", lore: "Well-stoked Heartwood no longer fades below half." },
-    cascade: { id: "heartwood-cascade", name: "Heartwood Cascade", lore: "Each hit stokes Heartwood twice as fast." },
-    burst: { id: "heartwood-burst", name: "Ironwood Burst", lore: "At full Heartwood, the next wave erupts with extra force." },
-    crown: { id: "heartwood-crown", name: "Heartwood Crown", lore: "Heartwood crowns every wave with spectral timber." },
-    domain: { id: "heartwood-domain", name: "Ironwood Domain", lore: "Hits leave a Heartwood-scaled splintering field." },
-    updraft: { id: "heartwood-step", name: "Ironwood Step", lore: "Each Evade looses a Heartwood-scaled wave." }
-  },
-  {
     gongfaId: "nine-sun-calamity-seal",
     resource: "Zenith",
     mechanics: { focusDamageScale: 1.65, focusPierce: 0, focusSpreadScale: 1, spreadCount: 1, spreadDegrees: 0, spreadDamageScale: 0.72, quickenCooldownScale: 0.78, quickenDamageScale: 0.9, quickenSpeed: 0, holdFloor: 2, cascadeGain: 2, burstCount: 1, crownPerStack: 0.34, domainDamageScale: 0.5, updraftStackScale: 0.25 },

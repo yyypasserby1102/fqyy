@@ -711,10 +711,7 @@ test("pure Wood reveals all three Wood Gongfa packages", async ({ page }) => {
   expect(snapshot.progression.gongfa).toBe("green-vine-art");
 });
 
-for (const gongfaId of [
-  "green-vine-art",
-  "ironwood-wave-form"
-] as const) {
+for (const gongfaId of ["green-vine-art"] as const) {
   test(`${gongfaId} attacks and builds its Wood passive in observable combat`, async ({ page }) => {
     await startNewRun(page, "wood");
     await page.evaluate((id) => {
@@ -764,8 +761,7 @@ test("verdant-ring-scripture writes behavior glyphs and invokes without a hit-bu
 });
 
 for (const [gongfaId, cascadeId, skill2Id] of [
-  ["green-vine-art", "growth-cascade", "verdant-root-network"],
-  ["ironwood-wave-form", "heartwood-cascade", "ironwood-surge-form"]
+  ["green-vine-art", "growth-cascade", "verdant-root-network"]
 ] as const) {
   test(`${gongfaId} exposes transformed passive and live Skill 2 snapshots`, async ({ page }) => {
     await startNewRun(page, "wood");

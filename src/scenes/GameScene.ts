@@ -271,6 +271,7 @@ export class GameScene extends Phaser.Scene {
   private readonly burningSunspotEntrants = new Set<number>();
   private iceMirrorMarker?: Phaser.GameObjects.Graphics;
   private gengjinBraceMarker?: Phaser.GameObjects.Graphics;
+  private ironwoodRampartMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -405,6 +406,14 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "ancient-tree-body-art") {
       const state = runtime.authored.phase === 0 ? "Mobile" : runtime.authored.phase === 1 ? "Rooted" : runtime.authored.phase === 2 ? "Uprooting" : "World-Tree";
       return `Ancient Tree: ${state} · Rings ${runtime.authored.charges}/${runtime.authored.maxCharges}${runtime.authored.phase === 2 ? ` · ${Math.ceil(runtime.authored.phaseElapsedMs / 100) / 10}s` : ""}`;
+    }
+    if (runtime.gongfaId === "ironwood-wave-form") {
+      const walls = runtime.authored.anchors.filter((anchor) => anchor.kind === "wall");
+      const rampartState = runtime.authored.phase === 2 ? "Citadel holding" :
+        runtime.authored.phase === 3 ? "Citadel driving outward" :
+          walls.some((wall) => wall.participating) ? "Rampart driving" :
+            walls.length > 0 ? "Rampart rooted" : runtime.authored.phaseElapsedMs > 0 ? "Constructing" : "Awaiting threat";
+      return `Ironwood: ${rampartState} · Stability ${Math.floor(runtime.authored.resource)}/${runtime.authored.maxCharges} · Strong drives ${Math.min(3, runtime.authored.cycleCount)}/3 · Walls ${walls.length}`;
     }
     if (runtime.gongfaId === "heavenfall-body-art") {
       return `Falling Star: ${runtime.authored.phase === 1 ? "Transformed" : "Ready"} · Mass ${Math.floor(runtime.authored.resource * 100)}% · ${Math.max(0, Math.ceil((6000 - runtime.authored.phaseElapsedMs) / 100) / 10)}s`;
@@ -2370,6 +2379,11 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
+      if (command.kind === "authored-ironwood-walls") {
+        this.syncAuthoredIronwoodWalls(command);
+        return;
+      }
+
       if (command.kind === "authored-burning-corona") {
         this.applyAuthoredBurningCorona(command);
         return;
@@ -2415,10 +2429,6 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (command.kind === "ironwood-surge-form") {
-        this.fireIronwoodSurgeForm(command);
-        return;
-      }
 
       if (command.kind === "ritual-impact") {
         this.fireRitualImpact(command);
@@ -4226,72 +4236,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private fireIronwoodSurgeForm(
-    command: Extract<GongfaRuntimeCommand, { kind: "ironwood-surge-form" }>
-  ): void {
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const activationId = this.beginSkill2Activation();
-    const angle = this.getWaveAimAngle("last");
-    const originX = this.player.x;
-    const originY = this.player.y;
-    const travelDurationMs = command.lifetimeMs * command.distanceScale;
-    const travelSpeed = command.speed * command.speedScale;
-    const maximumRange = (travelSpeed * travelDurationMs) / 1000;
-    for (let wave = 0; wave < command.waveCount; wave += 1) {
-      const sideways = (wave - (command.waveCount - 1) / 2) * (command.width / command.waveCount);
-      this.spawnWaveProjectile(
-        originX + Math.cos(angle + Math.PI / 2) * sideways,
-        originY + Math.sin(angle + Math.PI / 2) * sideways,
-        angle,
-        command.damage,
-        command.pierce,
-        travelSpeed,
-        travelDurationMs,
-        1.2,
-        command.growthScale,
-        sourceGongfaId,
-        this.combatState.projectileTexture,
-        this.combatState.tint,
-        activationId
-      );
-    }
-    for (let pulse = 0; pulse < 3; pulse += 1) {
-      this.time.delayedCall(pulse * 120, () => {
-        this.pushEnemiesAlongLane(
-          angle,
-          command.width,
-          maximumRange,
-          command.pushStrength,
-          originX,
-          originY
-        );
-      });
-    }
-    this.time.delayedCall(travelDurationMs, () => {
-      for (let shot = 0; shot < command.returnShots; shot += 1) {
-        const spread =
-          command.returnShots === 1
-            ? 0
-            : Phaser.Math.Linear(-0.45, 0.45, shot / (command.returnShots - 1));
-        this.spawnWaveProjectile(
-          originX + Math.cos(angle) * maximumRange,
-          originY + Math.sin(angle) * maximumRange,
-          angle + Math.PI + spread,
-          Math.floor(command.damage * 0.75),
-          Math.max(0, command.pierce - 1),
-          travelSpeed + 35,
-          command.lifetimeMs,
-          1,
-          1,
-          sourceGongfaId,
-          this.combatState.projectileTexture,
-          this.combatState.tint,
-          activationId
-        );
-      }
-    });
-  }
-
   private getDensestClusterTargets(limit: number, radius: number): Enemy[] {
     const active = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
     const center = active.reduce<Enemy | undefined>((best, candidate) => {
@@ -4452,6 +4396,81 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.recordGongfaMotif(`${identity.motifId}:${command.shell ? "closed-lotus" : "directional-facets"}`);
+  }
+
+  private syncAuthoredIronwoodWalls(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-ironwood-walls" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    this.ironwoodRampartMarker ??= this.applyGongfaEffectVisualHierarchy(
+      this.add.graphics(), command.sourceGongfaId
+    ).setDepth(15);
+    const visual = this.ironwoodRampartMarker;
+    visual.clear();
+    if (command.walls.length === 0) return;
+    for (const wall of command.walls) {
+      const tangentX = Math.cos(wall.angle + Math.PI / 2);
+      const tangentY = Math.sin(wall.angle + Math.PI / 2);
+      const normalX = Math.cos(wall.angle);
+      const normalY = Math.sin(wall.angle);
+      const halfLength = wall.length / 2;
+      const halfThickness = wall.thickness / 2;
+      const durabilityRatio = Math.max(0, Math.min(1, wall.durability / Math.max(1, wall.maxDurability)));
+      const driving = wall.mode === "driving" || wall.mode === "citadel-drive";
+      visual.fillStyle(driving ? identity.secondary : identity.accent, 0.25 + durabilityRatio * 0.42);
+      visual.lineStyle(wall.mode === "citadel" ? 5 : 3, identity.secondary, 0.9);
+      visual.beginPath();
+      visual.moveTo(wall.x + tangentX * halfLength + normalX * halfThickness, wall.y + tangentY * halfLength + normalY * halfThickness);
+      visual.lineTo(wall.x - tangentX * halfLength + normalX * halfThickness, wall.y - tangentY * halfLength + normalY * halfThickness);
+      visual.lineTo(wall.x - tangentX * halfLength - normalX * halfThickness, wall.y - tangentY * halfLength - normalY * halfThickness);
+      visual.lineTo(wall.x + tangentX * halfLength - normalX * halfThickness, wall.y + tangentY * halfLength - normalY * halfThickness);
+      visual.closePath().fillPath().strokePath();
+      const beamCount = Math.max(2, Math.floor(wall.length / 42));
+      visual.lineStyle(2, 0x3c2b1d, 0.72);
+      for (let beam = 1; beam < beamCount; beam += 1) {
+        const offset = -halfLength + wall.length * beam / beamCount;
+        visual.lineBetween(
+          wall.x + tangentX * offset - normalX * halfThickness,
+          wall.y + tangentY * offset - normalY * halfThickness,
+          wall.x + tangentX * offset + normalX * halfThickness,
+          wall.y + tangentY * offset + normalY * halfThickness
+        );
+      }
+      if (wall.mode === "citadel-drive") {
+        visual.lineStyle(2, identity.accent, 0.88);
+        for (let splinter = 0; splinter < 4; splinter += 1) {
+          const offset = -halfLength * 0.72 + splinter * halfLength * 0.48;
+          visual.lineBetween(
+            wall.x + tangentX * offset - normalX * (halfThickness + 5),
+            wall.y + tangentY * offset - normalY * (halfThickness + 5),
+            wall.x + tangentX * (offset + 13) - normalX * (halfThickness + 20),
+            wall.y + tangentY * (offset + 13) - normalY * (halfThickness + 20)
+          );
+        }
+      }
+
+      for (const enemy of this.enemies.getChildren() as Enemy[]) {
+        if (!enemy.active) continue;
+        const dx = enemy.x - wall.x; const dy = enemy.y - wall.y;
+        const forward = dx * normalX + dy * normalY;
+        const sideways = -dx * normalY + dy * normalX;
+        if (Math.abs(forward) > halfThickness + 18 || Math.abs(sideways) > halfLength + 14) continue;
+        const body = enemy.body as Phaser.Physics.Arcade.Body;
+        const outward = forward >= 0 ? 1 : -1;
+        if (enemy.role !== "tribulation-boss") {
+          body.setVelocity(normalX * command.pushStrength * outward, normalY * command.pushStrength * outward);
+        }
+        if (driving) {
+          const damage = command.damage * Math.max(0, command.deltaMs) / 1000;
+          if (damage > 0 && enemy.receiveDamage(damage)) this.resolveEnemyDeath(enemy);
+        }
+      }
+    }
+    const mode = command.walls.some((wall) => wall.mode === "citadel-drive") ? "citadel-outward-splinters" :
+      command.walls.some((wall) => wall.mode === "citadel") ? "four-wall-citadel" :
+      command.walls.some((wall) => wall.mode === "driving") ? "driven-rampart" : "rooted-rampart";
+    const motif = `${identity.motifId}:${mode}`;
+    if (!this.recentGongfaMotifs.includes(motif)) this.recordGongfaMotif(motif);
   }
 
   private syncAuthoredGengjinBrace(

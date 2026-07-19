@@ -408,6 +408,18 @@ export type GongfaRuntimeCommand =
       masteryCast: MasterySkill2Cast;
     }
   | {
+      kind: "authored-ironwood-walls";
+      walls: Array<{
+        x: number; y: number; angle: number; length: number; thickness: number;
+        durability: number; maxDurability: number; mode: "rooted" | "driving" | "citadel" | "citadel-drive";
+      }>;
+      damage: number;
+      pushStrength: number;
+      deltaMs: number;
+      sourceGongfaId: GongfaId;
+      masteryCast?: MasterySkill2Cast;
+    }
+  | {
       kind: "incoming-damage";
       finalDamage: number;
     }
@@ -497,21 +509,6 @@ export type GongfaRuntimeCommand =
       pulseDelayMs: number;
       damage: number;
       radius: number;
-      masteryCast: MasterySkill2Cast;
-    }
-  | {
-      kind: "ironwood-surge-form";
-      waveCount: number;
-      returnShots: number;
-      growthScale: number;
-      damage: number;
-      width: number;
-      pushStrength: number;
-      pierce: number;
-      speed: number;
-      lifetimeMs: number;
-      distanceScale: number;
-      speedScale: number;
       masteryCast: MasterySkill2Cast;
     }
   | { kind: "ritual-impact"; count: number; damage: number; radius: number; telegraphMs: number; burnPulses: number; burnDelayMs: number }
@@ -1435,8 +1432,6 @@ function buildExplicitTimedSkill2Command(
       return { kind: skill2.intent, linkCount: Math.max(3, combat.count + resource + coverage), pulseCount: 3 + coverage, pulseDelayMs: delay(180), damage: damage(combat.damage * (0.7 + resource * 0.08)), reach: 220 + resource * 20 + coverage * 30, masteryCast };
     case "sprout-sun-circle":
       return { kind: skill2.intent, spokeCount: Math.max(8, combat.count + 5 + resource + coverage * 2), pulseCount: 3 + coverage, pulseDelayMs: delay(220), damage: damage(combat.damage * (1.1 + resource * 0.07)), radius: 100 + resource * 12 + coverage * 18, masteryCast };
-    case "ironwood-surge-form":
-      return { kind: skill2.intent, waveCount: Math.max(3, combat.count + 1 + coverage), returnShots: 2 + coverage, growthScale: 1.25 + resource * 0.05, damage: damage(combat.damage * (1.1 + resource * 0.08)), width: 80 + resource * 12 + coverage * 18, pushStrength: 170 + resource * 18 + coverage * 20, pierce: combat.pierce + 1, speed: combat.projectileSpeed, lifetimeMs: combat.projectileLifetimeMs + 360, distanceScale, speedScale, masteryCast };
     case "heavenly-sun-descent":
     case "moonfall-cataclysm":
     case "supreme-sundering-decree":
@@ -2047,7 +2042,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
         ? { ...blazingFeatherDefaults, ...input.blazingFeather }
         : undefined,
     surge: surgeGongfaIdSet.has(input.gongfaId) &&
-      !["verdant-ring-scripture", "ice-mirror-guard"].includes(input.gongfaId)
+      !["verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form"].includes(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -2511,6 +2506,192 @@ function cardinalFlowAngle(direction: number): number {
   return [0, Math.PI / 2, Math.PI, -Math.PI / 2][direction] ?? 0;
 }
 
+function ironwoodWallForm(learnedIds: string[]): {
+  length: number; durability: number; buildMs: number; stabilityCap: number;
+  driveSpeed: number; driveDamage: number; push: number;
+} {
+  let length = 150; let durability = 120; let buildMs = 650; let stabilityCap = 100;
+  let driveSpeed = 250; let driveDamage = 1; let push = 260;
+  if (learnedIds.includes("lone-great-rampart")) { length *= 0.58; durability *= 1.7; driveDamage *= 1.65; }
+  if (learnedIds.includes("linked-timber-palisade")) { length *= 1.75; durability *= 0.62; driveSpeed *= 0.68; driveDamage *= 0.65; }
+  if (learnedIds.includes("living-root-curved-wall")) { length *= 0.8; buildMs *= 1.75; }
+  if (learnedIds.includes("deep-age-root")) { durability *= 1.55; buildMs *= 1.7; stabilityCap = 145; driveSpeed *= 0.72; }
+  if (learnedIds.includes("living-root-relocation")) stabilityCap = 65;
+  if (learnedIds.includes("unbroken-iron-city")) { length *= 1.25; durability *= 1.55; driveDamage *= 0.55; push *= 0.72; }
+  if (learnedIds.includes("mountain-collapse-timber-array")) { durability *= 0.58; driveSpeed *= 1.4; driveDamage *= 1.75; push *= 1.35; }
+  if (learnedIds.includes("walking-city")) { driveSpeed *= 0.82; push *= 0.65; }
+  return { length, durability, buildMs, stabilityCap, driveSpeed, driveDamage, push };
+}
+
+function densestThreatAngle(targets: AuthoredTargetFact[], playerX: number, playerY: number): number {
+  const chosen = [...targets].sort((a, b) => {
+    const density = (target: AuthoredTargetFact) => targets.filter((other) =>
+      distanceSquared(target.x, target.y, other.x, other.y) <= 130 ** 2
+    ).length;
+    return density(b) - density(a) || distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY);
+  })[0];
+  return chosen ? Math.atan2(chosen.y - playerY, chosen.x - playerX) : 0;
+}
+
+function targetPressesWall(target: AuthoredTargetFact, wall: AuthoredGongfaRuntimeState["anchors"][number], length: number): boolean {
+  const angle = wall.angle ?? 0;
+  const dx = target.x - wall.x; const dy = target.y - wall.y;
+  const forward = dx * Math.cos(angle) + dy * Math.sin(angle);
+  const sideways = -dx * Math.sin(angle) + dy * Math.cos(angle);
+  return Math.abs(forward) <= 28 && Math.abs(sideways) <= length / 2;
+}
+
+function ironwoodWallCommand(
+  runtime: GongfaRuntime,
+  learnedIds: string[],
+  deltaMs: number,
+  masteryCast?: MasterySkill2Cast
+): Extract<GongfaRuntimeCommand, { kind: "authored-ironwood-walls" }> {
+  const form = ironwoodWallForm(learnedIds);
+  const citadel = runtime.authored.phase >= 2;
+  const skill2Stats = skill2RefinementStats(runtime);
+  return {
+    kind: "authored-ironwood-walls",
+    walls: runtime.authored.anchors.filter((anchor) => anchor.kind === "wall").map((wall) => ({
+      x: wall.x, y: wall.y, angle: wall.angle ?? 0,
+      length: citadel ? form.length * 0.72 * (1 + skill2Stats.coverage * 0.12) : form.length,
+      thickness: 28,
+      durability: wall.value,
+      maxDurability: wall.maxValue ?? form.durability,
+      mode: runtime.authored.phase === 3 ? "citadel-drive" : citadel && !wall.participating ? "citadel" : wall.participating ? "driving" : "rooted"
+    })),
+    damage: Math.max(1, Math.floor(runtime.combat.damage * form.driveDamage * (citadel ? skill2Stats.damageScale : 1))),
+    pushStrength: form.push + (citadel ? skill2Stats.coverage * 18 : 0),
+    deltaMs,
+    sourceGongfaId: runtime.gongfaId,
+    ...(masteryCast ? { masteryCast } : {})
+  };
+}
+
+function advanceIronwoodRampart(
+  runtime: GongfaRuntime,
+  event: Extract<GongfaRuntimeEvent, { kind: "tick" }>,
+  learnedIds: string[],
+  commands: GongfaRuntimeCommand[]
+): void {
+  const state = runtime.authored;
+  const form = ironwoodWallForm(learnedIds);
+  const playerX = event.playerX ?? 0; const playerY = event.playerY ?? 0;
+  const targets = event.targets ?? [];
+  const deltaSeconds = Math.max(0, event.deltaMs) / 1000;
+  const refinementDurability = form.durability + (runtime.skill1Refinements?.countBonus ?? 0) * 20;
+  let walls = state.anchors.filter((anchor) => anchor.kind === "wall");
+
+  for (const wall of walls) {
+    const pressing = targets.filter((target) => targetPressesWall(target, wall, state.phase >= 2 ? form.length * 0.72 : form.length));
+    const pressureScale = Math.pow(0.84, masteryEffectTiers(learnedIds, "surgeStability"));
+    const pressure = pressing.reduce((sum, target) => sum + (target.rank === "boss" ? 36 : target.rank === "elite" ? 20 : 9), 0) * pressureScale;
+    wall.value = Math.max(0, wall.value - pressure * deltaSeconds);
+    if (learnedIds.includes("enemy-pressed-forest") && !wall.participating) {
+      for (const target of pressing) {
+        if ((state.targetLedger[target.targetId] ?? 0) === 0) {
+          state.targetLedger[target.targetId] = 1;
+          state.resource = Math.min(form.stabilityCap, state.resource + 14);
+        }
+      }
+    }
+  }
+  state.anchors = state.anchors.filter((anchor) => anchor.kind !== "wall" || anchor.value > 0);
+  walls = state.anchors.filter((anchor) => anchor.kind === "wall");
+
+  if (state.cycleCount >= 3 && state.phase === 0 && walls.length === 0 &&
+      runtime.mastery.masterySkill2Id === "ironwood-surge-form" && runtime.mastery.masterySkill2CooldownRemaining === 0) {
+    const skill2Stats = skill2RefinementStats(runtime);
+    const durability = refinementDurability * 0.82 * skill2Stats.damageScale;
+    state.anchors = [0, 1, 2, 3].map((index) => {
+      const angle = index * Math.PI / 2;
+      return { kind: "wall" as const, x: playerX + Math.cos(angle) * 72, y: playerY + Math.sin(angle) * 72,
+        angle, value: durability, maxValue: durability, remainingMs: 3200 + skill2Stats.coverage * 250 };
+    });
+    state.phase = 2; state.phaseElapsedMs = 0; state.cycleCount = 0;
+    commands.push(ironwoodWallCommand(runtime, learnedIds, event.deltaMs, {
+      skill2Id: "ironwood-surge-form",
+      cooldownMs: Math.floor(authoredSkill2Plans["ironwood-surge-form"].cooldownMs * skill2Stats.cadenceScale)
+    }));
+    return;
+  }
+
+  if (state.phase === 2) {
+    state.phaseElapsedMs += event.deltaMs;
+    const citadelHoldMs = 3200 + skill2RefinementStats(runtime).coverage * 250;
+    if (state.phaseElapsedMs >= citadelHoldMs) {
+      walls.forEach((wall) => { wall.participating = true; wall.remainingMs = 1150; });
+      state.phase = 3; state.phaseElapsedMs = 0;
+    }
+  } else if (state.phase === 3) {
+    for (const wall of walls) {
+      wall.remainingMs = Math.max(0, (wall.remainingMs ?? 0) - event.deltaMs);
+      wall.x += Math.cos(wall.angle ?? 0) * form.driveSpeed * deltaSeconds;
+      wall.y += Math.sin(wall.angle ?? 0) * form.driveSpeed * deltaSeconds;
+    }
+    state.anchors = state.anchors.filter((anchor) => anchor.kind !== "wall" || (anchor.remainingMs ?? 0) > 0);
+    if (!state.anchors.some((anchor) => anchor.kind === "wall")) {
+      state.phase = 0;
+      state.phaseElapsedMs = 0;
+      state.resource = 0;
+      state.charges = 0;
+      for (const key of Object.keys(state.targetLedger).map(Number).filter((key) => key > 0)) {
+        delete state.targetLedger[key];
+      }
+    }
+  } else if (walls.some((wall) => wall.participating)) {
+    for (const wall of walls) {
+      wall.remainingMs = Math.max(0, (wall.remainingMs ?? 0) - event.deltaMs);
+      if (learnedIds.includes("walking-city") && event.movementAngle !== undefined) wall.angle = event.movementAngle;
+      wall.x += Math.cos(wall.angle ?? 0) * form.driveSpeed * deltaSeconds;
+      wall.y += Math.sin(wall.angle ?? 0) * form.driveSpeed * deltaSeconds;
+    }
+    state.anchors = state.anchors.filter((anchor) => anchor.kind !== "wall" || (anchor.remainingMs ?? 0) > 0);
+  } else if (walls.length === 0) {
+    if (!event.isMoving && targets.length > 0) {
+      state.phaseElapsedMs += event.deltaMs;
+      if (state.phaseElapsedMs >= form.buildMs) {
+        const angle = densestThreatAngle(targets, playerX, playerY);
+        const count = learnedIds.includes("living-root-curved-wall") ? 3 : 1;
+        for (let index = 0; index < count; index += 1) {
+          const segmentAngle = angle + (index - (count - 1) / 2) * 0.48;
+          state.anchors.push({ kind: "wall", x: playerX + Math.cos(segmentAngle) * 72, y: playerY + Math.sin(segmentAngle) * 72,
+            angle: segmentAngle, value: refinementDurability, maxValue: refinementDurability });
+        }
+        state.phaseElapsedMs = 0; state.resource = 0;
+        for (const key of Object.keys(state.targetLedger).map(Number).filter((key) => key > 0)) delete state.targetLedger[key];
+      }
+    } else state.phaseElapsedMs = 0;
+  } else if (!event.isMoving) {
+    if (!learnedIds.includes("enemy-pressed-forest")) {
+      const gainScale = learnedIds.includes("walking-city") ? 0.72 : 1;
+      state.resource = Math.min(form.stabilityCap, state.resource + 18 * gainScale *
+        (1 + masteryEffectTiers(learnedIds, "surgeBuild") * 0.18) * deltaSeconds);
+    }
+  } else if (learnedIds.includes("living-root-relocation") && state.continuousDistance < 34) {
+    const distance = Math.max(0, event.movementDistance ?? 0) * 0.45;
+    const angle = event.movementAngle ?? 0;
+    walls.forEach((wall) => { wall.x += Math.cos(angle) * distance; wall.y += Math.sin(angle) * distance; });
+    state.resource = Math.max(0, state.resource - 16 * deltaSeconds);
+  } else {
+    const stability = state.resource;
+    if (stability >= 35) {
+      const baseAngle = walls[0]?.angle ?? 0;
+      walls.forEach((wall, index) => {
+        wall.participating = true;
+        wall.remainingMs = learnedIds.includes("unbroken-iron-city") ? 1500 : learnedIds.includes("walking-city") ? 1450 : 1050;
+        if (learnedIds.includes("living-root-curved-wall")) wall.angle = baseAngle + (index - (walls.length - 1) / 2) * 0.75;
+      });
+      if (stability >= 70) state.cycleCount += 1;
+    } else state.anchors = state.anchors.filter((anchor) => anchor.kind !== "wall");
+    state.resource = 0; state.phaseElapsedMs = 0;
+  }
+
+  state.maxCharges = form.stabilityCap;
+  state.charges = Math.floor(state.resource);
+  commands.push(ironwoodWallCommand(runtime, learnedIds, event.deltaMs));
+}
+
 function advanceAuthoredWorldFacts(
   runtime: GongfaRuntime,
   event: GongfaRuntimeEvent,
@@ -2776,6 +2957,11 @@ function advanceAuthoredWorldFacts(
     state.continuousMovementMs = 0;
     state.continuousDistance = 0;
     state.lastMovementAngle = undefined;
+  }
+
+  if (runtime.gongfaId === "ironwood-wave-form") {
+    advanceIronwoodRampart(runtime, event, learnedIds, commands);
+    return;
   }
 
   if (runtime.gongfaId === "verdant-ring-scripture") {
@@ -3642,6 +3828,7 @@ export function advanceGongfaRuntime(
     !runtime.surge &&
     runtime.gongfaId !== "verdant-ring-scripture" &&
     runtime.gongfaId !== "ice-mirror-guard" &&
+    runtime.gongfaId !== "ironwood-wave-form" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -3657,7 +3844,8 @@ export function advanceGongfaRuntime(
   if (
     event.kind === "tick" &&
     event.skill2Enabled !== false &&
-    next.mastery.masterySkill2Id
+    next.mastery.masterySkill2Id &&
+    next.gongfaId !== "ironwood-wave-form"
   ) {
     const cooldown = advanceTimedMasterySkill2Cooldown(
       next.mastery.masterySkill2Id,
@@ -3747,6 +3935,11 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "skill2") {
+    if (event.skill2Id === "ironwood-surge-form" && next.gongfaId === "ironwood-wave-form") {
+      // Ironwood Citadel is not a timed button-like cast. The rampart state
+      // raises it only after three recorded high-Stability drives.
+      return { runtime: next, commands };
+    }
     const skill2Stats = skill2RefinementStats(next);
     const skill2Base = skill2Combat(next);
     if (event.skill2Id === "frozen-lotus-shell" && next.gongfaId === "ice-mirror-guard") {
@@ -5096,6 +5289,7 @@ export function planGongfaAttack(
     targets?: AuthoredTargetFact[];
   } = {}
 ): GongfaRuntimeCommand[] {
+  if (runtime.gongfaId === "ironwood-wave-form") return [];
   if (runtime.gongfaId === "ice-mirror-guard") return [];
   options = {
     ...options,

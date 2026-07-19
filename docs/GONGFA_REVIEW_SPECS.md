@@ -39,7 +39,7 @@ implementation, testing, balance review, and future regression checks.
 | Burning Ring Scripture / 焚轮经 | Hudao | Approved | Implemented and verified |
 | Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Implemented and verified |
 | Gengjin Huti / 庚金护体 | Hudao | Approved | Implemented and verified |
-| Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Pending redesign |
+| Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Implemented and verified |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Pending redesign |
 | Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Pending redesign |
 | Black Tide Scripture / 玄潮经 | Yuling | Approved | Pending redesign |
@@ -638,6 +638,31 @@ walls later drive outward and splinter, then all construction records clear.
 
 **Must not become:** Ancient Tree body transformation, Gengjin damage storage, Scarlet
 waves, Ice Lotus's sealed shell, or a generic Wood projectile.
+
+### Implemented tuning contract
+
+- Base construction requires `650ms` stationary with a live threat. The wall is
+  `150` wide with `120` durability and faces the densest automatic threat. Ordinary,
+  elite, and boss pressure remove `9/20/36` durability per second while touching it.
+- Stability grows `18/s` only while stationary behind a live wall, requires `35` to
+  drive, and counts as a strong drive at `70`. Moving early destroys the wall;
+  driving spends all Stability. Skill hits and other Wood methods add nothing.
+- R3 changes physical construction: Lone Great Rampart is `42%` narrower and `70%`
+  tougher; Linked Timber Palisade is `75%` wider and `38%` less durable; Living-Root
+  Curved Wall takes `75%` longer and builds three frontal sections that split outward.
+- R6 changes Stability law: Deep-Age Root has `145` cap, `55%` durability, and `70%`
+  slower construction; Enemy-Pressed Forest gains `14` once per distinct pressing
+  enemy and gains nothing from time; Living-Root Relocation caps at `65`, moves the
+  wall at `45%` player displacement, and drains `16/s` while relocating.
+- R9 changes wall payoff: Unbroken Iron City lengthens and toughens walls but reduces
+  drive damage/push; Mountain-Collapse Timber Array weakens rooted durability while
+  sharply accelerating drive force; Walking City steers driven walls briefly but
+  reduces push and time-based Stability gain.
+- After three strong drives, Ironwood Citadel raises four destructible walls for
+  `3.2s`. Their corners remain open; the player is never sealed. Surviving walls drive
+  outward for `1.15s`, then every wall and construction record clears.
+- Presentation is one solid squared timber body with beams, durability fade, and
+  whole-wall motion. No substitute wave projectile is scheduled.
 
 ---
 

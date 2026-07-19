@@ -367,13 +367,13 @@ These eight designs complete the declared Skill-2 contract for the remaining Gon
 - Observable cast: the circle and at least one thorn spoke appear even when no enemy is inside it.
 - Two-tier Refinements: `Sunroot Tempering` increases damage; `Fuller Circle` increases radius and spokes; `Early Spring` reduces cooldown and time to the final bloom.
 
-#### Ironwood Wave Form — Ironwood Surge Form
+#### Ironwood Wave Form — Ironwood Citadel
 
-- Trigger: independent timed activation.
-- Effect: drive a thick ironwood rampart in the held movement direction. It repeatedly damages and pushes enemies, then splinters into two diagonal return waves at maximum range.
-- Tags and interaction: `wave`, `wood`; Heartwood increases width, push strength, and splinter damage. Hits refresh Heartwood once per activation.
-- Observable cast: the rampart and scheduled splinter waves are emitted. Without held movement, use the last movement direction; if none exists, cooldown remains ready and the cast is not counted.
-- Two-tier Refinements: `Heartwood Tempering` increases damage; `Broad Trunk` increases width, distance, and push; `Surging Rings` reduces cooldown and increases speed.
+- Trigger: three high-Stability drives; it is not an independent timed cast.
+- Effect: raise four physical, destructible walls at the current location. Corners stay open and the player may leave; surviving walls later drive outward and clear all construction.
+- Tags and interaction: `wave`, `wood`, `defensive`; Stability grows only from stationary time behind a live wall unless a selected branch replaces that source with distinct wall pressure.
+- Observable cast: four squared timber bodies appear with open corners, durability fade, and later whole-wall outward motion. No substitute projectile or diagonal return wave is created.
+- Refinements preserve the conservation rule: Skill 1 improvements alter wall durability/drive output; Skill 2 improvements may alter citadel coverage or timing, never generate Heartwood from hits.
 
 Linggen can evolve through exceptional progression that adds roots without removing existing ones. Initial Linggen contain one or two roots, while an evolved Linggen can eventually contain all five. Adding a root should immediately expand compatible offerings but should not mutate any learned Gongfa. At the next Stage Breakthrough, the new Gongfa offering should be generated from the cultivator's current Linggen, including any roots added since the previous selection. The hidden and difficult route to obtaining enough roots for Huashen is intentionally deferred while the normal Yuanying path is designed.
 

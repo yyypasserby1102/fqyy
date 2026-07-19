@@ -494,7 +494,7 @@ describe("Gongfa runtime", () => {
       "ice-mirror-guard": "authored-mirror-facets",
       "green-vine-art": "verdant-root-network",
       "verdant-ring-scripture": "authored-sprout-sun",
-      "ironwood-wave-form": "ironwood-surge-form",
+      "ironwood-wave-form": "authored-ironwood-walls",
       "vermilion-bird-covenant": "authored-vermilion-flight"
     };
     (Object.keys(gongfaConfigs) as GongfaId[]).forEach((gongfaId) => {
@@ -504,6 +504,10 @@ describe("Gongfa runtime", () => {
 
       const runtime = createGongfaRuntime({ gongfaId });
       if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
+      if (gongfaId === "ironwood-wave-form") {
+        runtime.authored.cycleCount = 3;
+        runtime.mastery.masterySkill2Id = skill2Id;
+      }
       if (gongfaId === "burning-ring-scripture") runtime.burningRing!.heat = 100;
       if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (gongfaId === "vermilion-bird-covenant") {
@@ -561,7 +565,12 @@ describe("Gongfa runtime", () => {
         );
       }
       const result =
-        plan?.trigger === "cycle"
+        gongfaId === "ironwood-wave-form"
+          ? advanceGongfaRuntime(runtime, {
+              kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+              targets: [{ targetId: 51, x: 120, y: 0, healthRatio: 1, rank: "ordinary" }]
+            })
+        : plan?.trigger === "cycle"
           ? advanceGongfaRuntime(runtime, {
               kind: "tick",
               deltaMs: plan.cooldownMs,
@@ -571,6 +580,8 @@ describe("Gongfa runtime", () => {
               playerY: 0,
               targets: gongfaId === "burning-ring-scripture"
                 ? [{ targetId: 50, x: 108, y: 0, healthRatio: 1, rank: "ordinary" }]
+                : gongfaId === "ironwood-wave-form"
+                  ? [{ targetId: 51, x: 120, y: 0, healthRatio: 1, rank: "ordinary" }]
                 : undefined
             })
           : plan?.trigger === "threshold"
@@ -665,7 +676,7 @@ describe("Gongfa runtime", () => {
     }
   });
 
-  it("keeps Ironwood Surge Form ready until a movement direction exists", () => {
+  it("does not let Ironwood Citadel bypass its three strong-drive requirement", () => {
     const runtime = createGongfaRuntime({ gongfaId: "ironwood-wave-form" });
     const result = advanceGongfaRuntime(runtime, {
       kind: "skill2",
@@ -755,12 +766,104 @@ describe("Gongfa runtime", () => {
       radius: 225,
       phaseDelayMs: 620
     });
-    expect(cast("ironwood-wave-form")).toMatchObject({
-      kind: "ironwood-surge-form",
-      width: 152,
-      pushStrength: 278,
-      returnShots: 2
+    expect(cast("ironwood-wave-form")).toBeUndefined();
+  });
+
+  const ironwoodTarget = (targetId = 1, x = 120, y = 0) =>
+    ({ targetId, x, y, healthRatio: 1, rank: "ordinary" as const });
+
+  it("constructs, matures, and physically drives one directional Ironwood rampart", () => {
+    const initial = createGongfaRuntime({ gongfaId: "ironwood-wave-form" });
+    const built = advanceGongfaRuntime(initial, {
+      kind: "tick", deltaMs: 650, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0, targets: [ironwoodTarget()]
     });
+    expect(built.runtime.authored.anchors).toHaveLength(1);
+    expect(built.runtime.authored.anchors[0]).toMatchObject({ kind: "wall", x: 72, y: 0, value: 120 });
+    expect(built.commands).toContainEqual(expect.objectContaining({
+      kind: "authored-ironwood-walls",
+      walls: [expect.objectContaining({ mode: "rooted", length: 150 })]
+    }));
+
+    const matured = advanceGongfaRuntime(built.runtime, {
+      kind: "tick", deltaMs: 4000, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0, targets: [ironwoodTarget()]
+    }).runtime;
+    expect(matured.authored.resource).toBe(72);
+    const driven = advanceGongfaRuntime(matured, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0,
+      targets: [ironwoodTarget()]
+    });
+    expect(driven.runtime.authored.resource).toBe(0);
+    expect(driven.runtime.authored.cycleCount).toBe(1);
+    expect(driven.commands).toContainEqual(expect.objectContaining({
+      kind: "authored-ironwood-walls",
+      walls: [expect.objectContaining({ mode: "driving" })]
+    }));
+    expect(planGongfaAttack(driven.runtime, 0)).toEqual([]);
+  });
+
+  it("withers on an early move and loses durability only to bodies pressing the wall", () => {
+    const built = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "ironwood-wave-form" }), {
+      kind: "tick", deltaMs: 650, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0, targets: [ironwoodTarget()]
+    }).runtime;
+    const pressured = advanceGongfaRuntime(built, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0, targets: [ironwoodTarget(2, 72, 0)]
+    }).runtime;
+    expect(pressured.authored.anchors[0]?.value).toBe(111);
+    const withered = advanceGongfaRuntime(built, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: 0, movementDistance: 4, playerX: 0, playerY: 0,
+      targets: [ironwoodTarget()]
+    }).runtime;
+    expect(withered.authored.anchors).toHaveLength(0);
+  });
+
+  it("gives all Ironwood branches distinct construction, Stability, and drive laws", () => {
+    const buildWith = (learnedMasteryIds: string[], deltaMs = 1200) => advanceGongfaRuntime(
+      createGongfaRuntime({ gongfaId: "ironwood-wave-form" }),
+      { kind: "tick", deltaMs, nearbyEnemyCount: 2, isMoving: false, playerX: 0, playerY: 0,
+        targets: [ironwoodTarget(1), ironwoodTarget(2, 130, 30)], learnedMasteryIds }
+    );
+    const lone = buildWith(["lone-great-rampart"], 650);
+    const broad = buildWith(["linked-timber-palisade"], 650);
+    const curved = buildWith(["living-root-curved-wall"], 1200);
+    const loneWall = lone.commands.find((command) => command.kind === "authored-ironwood-walls");
+    const broadWall = broad.commands.find((command) => command.kind === "authored-ironwood-walls");
+    expect(loneWall?.walls[0]!.length).toBeLessThan(broadWall?.walls[0]!.length ?? 0);
+    expect(loneWall?.walls[0]!.maxDurability).toBeGreaterThan(broadWall?.walls[0]!.maxDurability ?? 0);
+    expect(curved.runtime.authored.anchors).toHaveLength(3);
+
+    const pressed = advanceGongfaRuntime(buildWith(["enemy-pressed-forest"], 650).runtime, {
+      kind: "tick", deltaMs: 1000, nearbyEnemyCount: 2, isMoving: false, playerX: 0, playerY: 0,
+      targets: [ironwoodTarget(7, 72, 0), ironwoodTarget(8, 72, 12)], learnedMasteryIds: ["enemy-pressed-forest"]
+    }).runtime;
+    expect(pressed.authored.resource).toBe(28);
+
+    const deep = buildWith(["deep-age-root"], 1200).runtime;
+    expect(deep.authored.maxCharges).toBe(145);
+    const relocation = buildWith(["living-root-relocation"], 650).runtime;
+    expect(relocation.authored.maxCharges).toBe(65);
+
+    const city = advanceGongfaRuntime(createGongfaRuntime({
+      gongfaId: "ironwood-wave-form",
+      mastery: { masterySkill2Id: "ironwood-surge-form" },
+      authored: { cycleCount: 3 }
+    }), {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 2, isMoving: false,
+      playerX: 10, playerY: 20, targets: [ironwoodTarget()]
+    });
+    const citadel = city.commands.find((command) => command.kind === "authored-ironwood-walls" && "masteryCast" in command);
+    expect(city.runtime.authored).toMatchObject({ phase: 2, cycleCount: 0 });
+    expect(citadel).toMatchObject({
+      kind: "authored-ironwood-walls",
+      walls: expect.arrayContaining([expect.objectContaining({ mode: "citadel" })]),
+      masteryCast: { skill2Id: "ironwood-surge-form", cooldownMs: 2800 }
+    });
+    expect(citadel?.walls).toHaveLength(4);
   });
 
   it("plans generic primary attacks behind the runtime seam", () => {

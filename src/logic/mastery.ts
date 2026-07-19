@@ -210,13 +210,31 @@ const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
   "scarlet-wave-manual",
   "moonfall-tide-ritual",
   "verdant-ring-scripture",
-  "ice-mirror-guard"
+  "ice-mirror-guard",
+  "ironwood-wave-form"
 ]);
 
 const approvedRuntimeTransformationSeeds: Partial<Record<
   GongfaId,
   Record<3 | 6 | 9, readonly ApprovedTransformationSeed[]>
 >> = {
+  "ironwood-wave-form": {
+    3: [
+      ["lone-great-rampart", "Lone Great Rampart", "A narrow wall gains 70% durability and a 65% stronger drive.", "The wall covers 42% less width, leaving both sides exposed.", "Rampart width, durability, and drive"],
+      ["linked-timber-palisade", "Linked Timber Palisade", "A wall 75% wider controls a broad front.", "Durability falls 38% and its drive is slow and weak.", "Rampart width, durability, and control"],
+      ["living-root-curved-wall", "Living-Root Curved Wall", "Build a frontal three-section semicircle that splits outward on movement.", "Construction takes 75% longer and it never performs a straight drive.", "Rampart geometry, construction, and split release"]
+    ],
+    6: [
+      ["deep-age-root", "Deep-Age Root", "Stationary time grants a 45% higher Stability cap and 55% more durability.", "Rooting and uprooting are substantially slower.", "Time-based Stability, durability, and transition speed"],
+      ["enemy-pressed-forest", "Enemy-Pressed Forest", "Each distinct enemy pressing the wall grants Stability.", "Stationary time alone grants no Stability.", "Distinct wall pressure and Stability source"],
+      ["living-root-relocation", "Living-Root Relocation", "Move slowly while keeping and repositioning the live rampart.", "Stability decays while moving and its cap is only 65.", "Rampart relocation, movement, and Stability cap"]
+    ],
+    9: [
+      ["unbroken-iron-city", "Unbroken Iron City", "Walls become 55% tougher, longer, and remain rooted longer.", "Every drive deals 45% less damage and pushes less.", "Wall endurance and drive tradeoff"],
+      ["mountain-collapse-timber-array", "Mountain-Collapse Timber Array", "Drives accelerate and splinter with 75% more force.", "Stationary wall durability falls 42%.", "Drive speed, damage, and stationary weakness"],
+      ["walking-city", "Walking City", "A driven wall follows the Cultivator's movement direction briefly.", "Push strength falls 35% and Stability gain is slower.", "Drive steering, duration, and push"]
+    ]
+  },
   "ice-mirror-guard": {
     3: [
       ["three-enclosure-heavy-mirrors", "Three-Enclosure Heavy Mirrors", "Three large mirrors each block two attacks and reflect with 55% more force.", "Only three directions are covered and rotation is slow, leaving much larger gaps.", "Facet count, durability, arc width, rotation, and reflection"],

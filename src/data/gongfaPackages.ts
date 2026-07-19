@@ -111,11 +111,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "sprout-sun-circle", name: "Sprout-Sun Invocation", description: "The exact Root→Leaf→Thorn order creates fixed roots, sweeping leaves, then one disappearing thorn sun at the player position.", tags: ["ritual", "wood", "defensive"] }
   },
   "ironwood-wave-form": {
-    combatRole: "Dense timber ramparts that shove a lane and splinter on return.",
-    visualMotif: "Dark-green growth rings, squared timber fronts, and diagonal splinters.",
-    skill1: { id: "ironwood-wave", name: "Ironwood Wave", description: "A thick wooden front drives through an enemy lane with the weight of accumulated Heartwood.", tags: ["wave", "wood"] },
-    passive: { name: "Deep Heartwood", resource: "Heartwood", description: "Wave hits deepen Heartwood, adding force and breadth until the stored strength fades." },
-    skill2: { id: "ironwood-surge-form", name: "Ironwood Surge Form", description: "A timber rampart repeatedly shoves enemies forward, then splinters into two diagonal return waves.", tags: ["wave", "wood", "defensive"] }
+    combatRole: "Stop to construct a physical directional rampart, then move to uproot and drive it.",
+    visualMotif: "Squared timber beams, visible growth rings, exposed corners, and whole-wall motion.",
+    skill1: { id: "ironwood-wave", name: "Ironwood Rampart", description: "Standing still raises a damageable wall toward the densest threat; movement drives a sufficiently stable wall and withers an unfinished one.", tags: ["wave", "wood", "defensive"] },
+    passive: { name: "Growth-Ring Stability", resource: "Stability", description: "Stability grows only while stationary behind a live rampart and is fully spent by its drive." },
+    skill2: { id: "ironwood-surge-form", name: "Ironwood Citadel", description: "After three strong drives, raises four destructible walls with passable corners; surviving walls later drive outward and clear all construction.", tags: ["wave", "wood", "defensive"] }
   },
   "nine-sun-calamity-seal": {
     combatRole: "Automatically predicts future enemy ground, commits one fixed long-warning sun, and accepts a real miss risk.",

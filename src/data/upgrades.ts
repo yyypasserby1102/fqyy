@@ -427,12 +427,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["long-spring", "Long Spring", "Bloom fades more slowly between cycles.", "surgeStability", 0.84, "Passive: Returning Spring"]
   ]],
   ["ironwood-wave-form", [
-    ["heartwood-tempering", "Heartwood Tempering", "Ironwood Waves strike with greater force.", "skill1Damage", 5, "Skill 1: Ironwood Wave"],
-    ["growth-rings", "Growth Rings", "Each drive gains another timber front.", "skill1Count", 1, "Skill 1: Ironwood Wave"],
-    ["heartwood-resonance", "Heartwood Resonance", "Heartwood empowers both Ironwood Wave and Ironwood Surge Form.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["splintered-edge", "Splintered Edge", "Every Skill in the Ironwood package gains piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
-    ["deepening-heartwood", "Deepening Heartwood", "Wave hits deepen Heartwood more rapidly.", "surgeBuild", 0.18, "Passive: Deep Heartwood"],
-    ["old-growth", "Old Growth", "Heartwood fades more slowly between drives.", "surgeStability", 0.84, "Passive: Deep Heartwood"]
+    ["heartwood-tempering", "Rampart Tempering", "Driven Ironwood walls strike with greater force.", "skill1Damage", 5, "Skill 1: Ironwood Rampart"],
+    ["growth-rings", "Dense Growth Rings", "Each constructed wall gains another durability ring.", "skill1Count", 1, "Skill 1: Ironwood Rampart"],
+    ["heartwood-resonance", "Citadel Resonance", "Ironwood Rampart and Ironwood Citadel gain force without changing Stability sources.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["splintered-edge", "Driving Edge", "Driven walls gain stronger penetration and push.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["deepening-heartwood", "Deepening Rings", "Stationary time grows Stability more rapidly.", "surgeBuild", 0.18, "Passive: Growth-Ring Stability"],
+    ["old-growth", "Seasoned Bracing", "Enemy pressure erodes wall durability more slowly.", "surgeStability", 0.84, "Passive: Growth-Ring Stability"]
   ]],
   ["nine-sun-calamity-seal", [
     ["sun-seal-tempering", "Sun-Seal Tempering", "Falling Sun Seal strikes with greater ritual force.", "skill1Damage", 12, "Skill 1: Falling Sun Seal"],
