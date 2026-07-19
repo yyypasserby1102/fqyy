@@ -388,12 +388,17 @@ export class GameScene extends Phaser.Scene {
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
       const bird = runtime.authored.anchors.find((anchor) => anchor.kind === "companion");
+      const timer = runtime.authored.targetLedger[-30] ?? 0;
+      const learned = runtime.mastery.masteryLearnedIds;
+      const hatchMs = learned.includes("urgent-ember-egg") ? 2200 : learned.includes("true-plume-nirvana") ? 5600 : 4200;
+      const recoveryMs = learned.includes("urgent-ember-egg") ? 2400 : learned.includes("true-plume-nirvana") ? 5200 : 4200;
       const stateLabel = bird?.companionState === "egg" ? "Nirvana Egg" :
-        bird?.companionState === "ember" ? "Ember Recovery" :
+        bird?.companionState === "ember" ? `Ember Recovery ${Math.max(0, Math.ceil((recoveryMs - timer) / 100) / 10)}s` :
           bird?.companionState === "outbound" ? "Outbound Dive" :
             bird?.companionState === "return" ? "Returning" :
               bird?.companionState === "phoenix" ? "True Phoenix" : "Close Guard";
-      return `Vermilion Bird: ${stateLabel} · HP ${Math.floor(runtime.authored.secondaryResource * 100)}% · Bond ${Math.floor(runtime.authored.resource * 100)}%`;
+      const eggProgress = bird?.companionState === "egg" ? ` · Hatch ${Math.min(100, Math.floor(timer / hatchMs * 100))}%` : "";
+      return `Vermilion Bird: ${stateLabel} · HP ${Math.floor(runtime.authored.secondaryResource * 100)}% · Bond ${Math.floor(runtime.authored.resource * 100)}%${eggProgress}`;
     }
     if (runtime.gongfaId === "myriad-beast-grove") {
       const labels = runtime.authored.anchors
@@ -3271,13 +3276,17 @@ export class GameScene extends Phaser.Scene {
     if (command.waypoints.length === 0) return;
     const identity = getGongfaVisualIdentity(command.sourceGongfaId);
     const trail = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(13);
-    trail.lineStyle(command.terminal ? 8 : 4, identity.accent, command.terminal ? 0.92 : 0.72);
+    const lineWidth = command.flightStyle === "rebirth" ? 11 : command.flightStyle === "head-hunt" ? 8 :
+      command.flightStyle === "sweep" ? 7 : command.flightStyle === "guardian" ? 6 : command.flightStyle === "return" ? 3 : 4;
+    trail.lineStyle(lineWidth, command.flightStyle === "guardian" || command.flightStyle === "return" ? identity.secondary : identity.accent, command.terminal ? 0.94 : 0.76);
     trail.beginPath();
     trail.moveTo(command.from.x, command.from.y);
     command.waypoints.forEach((point, index) => {
       const previous = index === 0 ? command.from : command.waypoints[index - 1]!;
-      const midX = (previous.x + point.x) / 2 + (index % 2 === 0 ? 18 : -18);
-      const midY = (previous.y + point.y) / 2 - 16;
+      const bend = command.flightStyle === "head-hunt" || command.flightStyle === "guardian" ? 0 :
+        command.flightStyle === "sweep" ? (index % 2 === 0 ? 34 : -34) : command.flightStyle === "return" ? 8 : 18;
+      const midX = (previous.x + point.x) / 2 + bend;
+      const midY = (previous.y + point.y) / 2 - Math.abs(bend) * 0.8;
       trail.lineTo(midX, midY);
       trail.lineTo(point.x, point.y);
     });
@@ -3291,11 +3300,29 @@ export class GameScene extends Phaser.Scene {
       trail.lineBetween(centerX, centerY, centerX + Math.cos(angle + 2.35) * 18, centerY + Math.sin(angle + 2.35) * 18);
       trail.lineBetween(centerX, centerY, centerX + Math.cos(angle - 2.35) * 18, centerY + Math.sin(angle - 2.35) * 18);
     });
+    const destination = command.waypoints[command.waypoints.length - 1]!;
+    if (command.flightStyle === "guardian") {
+      trail.lineStyle(5, identity.secondary, 0.82);
+      trail.strokeCircle(command.from.x, command.from.y, 42);
+      trail.strokeCircle(destination.x, destination.y, 30);
+    } else if (command.flightStyle === "sweep") {
+      trail.lineStyle(3, identity.secondary, 0.72);
+      command.waypoints.forEach((point) => trail.strokeCircle(point.x, point.y, command.width * 0.55));
+    } else if (command.flightStyle === "head-hunt") {
+      const angle = Phaser.Math.Angle.Between(command.from.x, command.from.y, destination.x, destination.y);
+      trail.lineStyle(4, identity.secondary, 0.9);
+      for (const side of [-1, 1]) trail.lineBetween(destination.x, destination.y, destination.x - Math.cos(angle + side * 0.55) * 42, destination.y - Math.sin(angle + side * 0.55) * 42);
+    } else if (command.flightStyle === "rebirth") {
+      trail.lineStyle(7, identity.secondary, 0.94);
+      trail.strokeCircle(destination.x, destination.y, 48);
+      trail.strokeCircle(destination.x, destination.y, 66);
+      trail.lineBetween(destination.x, destination.y, destination.x - 72, destination.y - 48);
+      trail.lineBetween(destination.x, destination.y, destination.x + 72, destination.y - 48);
+    }
     const birdGlyph = createGongfaSigil(
       this, command.from.x, command.from.y, command.sourceGongfaId,
       command.terminal ? 42 : 27, 0.95
     ).setDepth(14);
-    const destination = command.waypoints[command.waypoints.length - 1]!;
     this.tweens.add({
       targets: birdGlyph,
       x: destination.x,
@@ -3326,7 +3353,7 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.tweens.add({ targets: trail, alpha: 0, duration: command.terminal ? 820 : 560, onComplete: () => trail.destroy() });
-    this.recordGongfaMotif(`${identity.motifId}:${command.terminal ? "terminal-dive" : "guided-flight"}`);
+    this.recordGongfaMotif(`${identity.motifId}:${command.flightStyle}`);
   }
 
   private fireAuthoredVermilionSacrifice(
@@ -3361,24 +3388,49 @@ export class GameScene extends Phaser.Scene {
     this.vermilionBirdMarker = marker;
     marker.clear();
     const birdState = bird.companionState ?? "guard";
+    const stateTimer = runtime.authored.targetLedger[-30] ?? 0;
     if (birdState === "egg") {
       marker.fillStyle(identity.secondary, 0.9);
       marker.fillEllipse(0, 0, 25, 33);
       marker.lineStyle(3, identity.accent, 0.9);
       marker.strokeEllipse(0, 0, 31, 39);
+      const hatchMs = runtime.mastery.masteryLearnedIds.includes("urgent-ember-egg") ? 2200 :
+        runtime.mastery.masteryLearnedIds.includes("true-plume-nirvana") ? 5600 : 4200;
+      marker.lineStyle(5, identity.secondary, 0.9);
+      marker.beginPath();
+      marker.arc(0, 0, 31, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, stateTimer / hatchMs));
+      marker.strokePath();
     } else if (birdState === "ember") {
       marker.fillStyle(identity.accent, 0.9);
       marker.fillTriangle(-10, 10, 0, -15, 10, 10);
       marker.fillStyle(identity.secondary, 0.85);
       marker.fillTriangle(-5, 9, 0, -5, 5, 9);
+      const recoveryMs = runtime.mastery.masteryLearnedIds.includes("urgent-ember-egg") ? 2400 :
+        runtime.mastery.masteryLearnedIds.includes("true-plume-nirvana") ? 5200 : 4200;
+      marker.lineStyle(4, identity.secondary, 0.75);
+      marker.beginPath();
+      marker.arc(0, 0, 27, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, stateTimer / recoveryMs));
+      marker.strokePath();
     } else {
-      const phoenixScale = birdState === "phoenix" ? 1.45 : 1;
+      const phoenixScale = (bird.maxValue ?? 1) > 1 ? 1.45 : 1;
       marker.fillStyle(identity.secondary, 0.92);
       marker.fillCircle(0, -2, 7 * phoenixScale);
       marker.fillStyle(identity.accent, 0.86);
       marker.fillTriangle(0, 0, -25 * phoenixScale, -12, -9, 10 * phoenixScale);
       marker.fillTriangle(0, 0, 25 * phoenixScale, -12, 9, 10 * phoenixScale);
       marker.fillTriangle(-5, 6, 0, 24 * phoenixScale, 5, 6);
+      if (birdState === "phoenix") {
+        marker.lineStyle(4, identity.secondary, 0.9);
+        marker.lineBetween(-6, 10, -17, 37);
+        marker.lineBetween(0, 10, 0, 44);
+        marker.lineBetween(6, 10, 17, 37);
+        marker.strokeCircle(0, -4, 18);
+      }
+      if (birdState === "outbound" || birdState === "return") {
+        const angle = bird.angle ?? 0;
+        marker.lineStyle(birdState === "return" ? 3 : 5, birdState === "return" ? identity.secondary : identity.accent, 0.7);
+        marker.lineBetween(-Math.cos(angle) * 52, -Math.sin(angle) * 52, -Math.cos(angle) * 18, -Math.sin(angle) * 18);
+      }
     }
     const healthRatio = Math.max(0, Math.min(1, bird.value / Math.max(0.01, bird.maxValue ?? 1)));
     marker.fillStyle(0x18212a, 0.78);

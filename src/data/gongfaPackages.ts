@@ -153,7 +153,7 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
   },
   "vermilion-bird-covenant": {
     combatRole: "A companion keeper who guides one vulnerable bird through dangerous dives and safe returns.", visualMotif: "One persistent vermilion silhouette, outbound feather routes, a health ring, and one physical egg.",
-    skill1: { id: "ember-bird-brood", name: "One Vermilion Bird", description: "The same living bird automatically dives along movement-guided routes, then must return safely before attacking again.", tags: ["summon", "fire", "ailment"] },
+    skill1: { id: "ember-bird-brood", name: "One Vermilion Bird", description: "Movement heading guides the same vulnerable bird's automatic dive; its real return route must finish safely before Bond or another attack.", tags: ["summon", "fire", "ailment"] },
     passive: { name: "Phoenix Bond", resource: "Bond", description: "Only a dangerous flight followed by a safe return builds Bond; hits alone grant nothing and being downed erases it." },
     skill2: { id: "vermilion-host-descent", name: "Vermilion Rebirth", description: "At full Bond, the bird makes a terminal dive and becomes one damageable egg that can hatch into the same individual.", tags: ["summon", "fire", "ailment", "defensive"] }
   },

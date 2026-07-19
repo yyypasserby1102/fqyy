@@ -41,7 +41,7 @@ implementation, testing, balance review, and future regression checks.
 | Gengjin Huti / 庚金护体 | Hudao | Approved | Implemented and verified |
 | Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Implemented and verified |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Implemented and verified |
-| Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Pending redesign |
+| Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Implemented and verified |
 | Black Tide Scripture / 玄潮经 | Yuling | Approved | Pending redesign |
 | Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Implemented and verified |
 | Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Implemented and verified |
@@ -918,6 +918,40 @@ It never creates a second bird.
 
 **Must not become:** Blazing Feather projectiles, Myriad Beast's mixed pack, a generic
 pet multiplier, manual dive aiming, or multiple phoenix summons.
+
+### Implemented tuning contract
+
+- Exactly one persistent companion record owns health, maximum health, position,
+  target, flight state, and egg/ember state. No branch or rebirth creates a second
+  bird. The normal attack planner emits no substitute projectile attack.
+- Moving automatically starts a dive when prey exists. The ordinary movement heading
+  weights target choice; no pointer, cursor, or skill-button aim is read. Standing
+  during an outbound dive requests a return rather than producing another attack.
+- Outbound exposure drains health according to nearby danger. Return flight retains
+  its real starting position, visibly travels toward the moving player for `560–1120ms`,
+  and remains vulnerable along that route. Only a completed living reunion grants
+  Bond; a return-path down immediately clears all Bond and enters ember recovery.
+- Head Hunt refuses ordinary-only packs, dives deepest, deals the highest focused
+  damage, and suffers `1.5×` outbound danger. Guardian caps its route at `105px`, uses
+  a close shield silhouette, and suffers `0.45×` danger. Sweeping Flight visits up to
+  three distinct targets with a broad ribbon route, weak single-target damage, and the
+  longest, most dangerous return.
+- Nurtured Covenant caps raw Bond at `65%`, heals `24%` maximum health on reunion, and
+  reduces Vermilion Rebirth damage to `72%`. Blood Covenant grants `42%` Bond only for
+  a living sub-half-health return. Paired Wing accumulates alignment across the whole
+  return: aligned movement accelerates it and grants `32%`, while opposing movement
+  slows it and grants only `10%`.
+- Full normalized Bond can trigger Vermilion Rebirth only from Close Guard or the
+  persistent Phoenix state. The terminal dive consumes Bond, life, and the current
+  bird, leaving one damageable egg at the landing site. Staying within `115px` doubles
+  hatch progress; nearby enemies damage the egg and destruction falls back to ember.
+- Urgent Egg uses a `2.2s` hatch and weak `0.68`-health rebirth. True Plume uses a
+  durable but exposed `5.6s` egg and returns the same individual as a `1.4`-health
+  phoenix with a larger crowned silhouette. Sacrifice negates one low-health blow but
+  forces a weak `0.55`-health egg and clears Bond.
+- Guided, head-hunt, guardian, sweeping, return, terminal-rebirth, egg, ember, and true
+  phoenix states use different routes or silhouettes, with visible health, Bond, hatch,
+  and recovery progress.
 
 ---
 

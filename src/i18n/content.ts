@@ -164,7 +164,7 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
   },
   "vermilion-bird-covenant": {
     name: "朱雀灵契", lore: "独契一羽朱雀，以险飞与安归养成同一性命。", combatRole: "护持唯一朱雀完成出击与返巢；它有独立生命，倒下后会失去凤契。", visualMotif: "唯一朱红鸟影、出返羽路、生命契环与实体涅槃卵。",
-    skill1: { name: "独契朱雀", description: "同一只活体朱雀依玩家移动方向自动俯冲，并必须安全返巢后才能再次出击。" },
+    skill1: { name: "独契朱雀", description: "同一只活体朱雀受普通移动方向引导自主俯冲；返航不会瞬移，必须沿真实路线活着重聚后才能增长凤契或再次出击。" },
     passive: { name: "凤契", resource: "契合", description: "只有危险出飞后安全归返才能增长凤契；命中本身不增长，倒下则清空。" },
     skill2: { name: "朱雀涅槃", description: "凤契圆满时发动终末俯冲并化为一枚可受伤的卵，成功孵化仍是同一只朱雀。" }
   },

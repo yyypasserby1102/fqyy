@@ -650,6 +650,7 @@ export type GongfaRuntimeCommand =
       width: number;
       maxHits: number;
       terminal: boolean;
+      flightStyle: "guided" | "head-hunt" | "guardian" | "sweep" | "return" | "rebirth";
       sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     }
@@ -3392,9 +3393,13 @@ function advanceAuthoredWorldFacts(
       bird!.companionState = "ember";
       bird!.value = 0;
       bird!.maxValue = 1;
+      bird!.targetId = undefined;
+      bird!.originPlayerX = undefined;
+      bird!.originPlayerY = undefined;
       stateTimer = 0;
       rawBond = 0;
       state.resource = 0;
+      state.targetLedger[-31] = 0;
     };
 
     if (birdState === "guard" || birdState === "phoenix") {
@@ -3404,15 +3409,33 @@ function advanceAuthoredWorldFacts(
         const headHunt = learnedIds.includes("crimson-feather-head-hunt");
         const guardian = learnedIds.includes("cinnabar-plume-guardian");
         const sweeping = learnedIds.includes("firewing-sweeping-formation");
-        const ordered = [...targets].sort((a, b) => {
+        const movementAngle = event.movementAngle ?? state.lastMovementAngle ?? 0;
+        const alignment = (target: AuthoredTargetFact): number => Math.cos(
+          Math.atan2(target.y - playerY, target.x - playerX) - movementAngle
+        );
+        const eligible = headHunt
+          ? targets.filter((target) => target.rank === "elite" || target.rank === "boss")
+          : targets;
+        const ordered = [...eligible].sort((a, b) => {
           if (headHunt) {
             const rankA = a.rank === "boss" ? 3 : a.rank === "elite" ? 2 : 1;
             const rankB = b.rank === "boss" ? 3 : b.rank === "elite" ? 2 : 1;
-            return rankB + b.healthRatio - (rankA + a.healthRatio);
+            return rankB * 4 + alignment(b) + b.healthRatio - (rankA * 4 + alignment(a) + a.healthRatio);
           }
-          return distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY);
+          return alignment(b) * 600 - Math.sqrt(distanceSquared(b.x, b.y, playerX, playerY)) -
+            (alignment(a) * 600 - Math.sqrt(distanceSquared(a.x, a.y, playerX, playerY)));
         });
         const chosen = sweeping ? ordered.slice(0, 3) : ordered.slice(0, 1);
+        if (chosen.length === 0) {
+          state.targetLedger[-20] = rawBond;
+          state.targetLedger[-21] = bondCap;
+          state.targetLedger[-30] = stateTimer;
+          state.resource = rawBond / bondCap;
+          state.secondaryResource = Math.max(0, bird.value / Math.max(0.01, bird.maxValue ?? 1));
+          state.phase = ["guard", "outbound", "return", "ember", "egg", "phoenix"].indexOf(bird.companionState ?? "guard");
+          state.charges = 1;
+          return;
+        }
         const waypoints = chosen.map((target) => {
           if (!guardian) return { x: target.x, y: target.y, targetId: target.targetId };
           const angle = Math.atan2(target.y - playerY, target.x - playerX);
@@ -3434,6 +3457,7 @@ function advanceAuthoredWorldFacts(
           width: guardian ? 26 : sweeping ? 54 : 34,
           maxHits: sweeping ? 3 : 1,
           terminal: false,
+          flightStyle: headHunt ? "head-hunt" : guardian ? "guardian" : sweeping ? "sweep" : "guided",
           sourceGongfaId: runtime.gongfaId
         });
         bird.x = destination.x;
@@ -3464,25 +3488,42 @@ function advanceAuthoredWorldFacts(
           width: 18,
           maxHits: 0,
           terminal: false,
+          flightStyle: "return",
           sourceGongfaId: runtime.gongfaId
         });
         bird.angle = returnAngle;
-        bird.x = playerX;
-        bird.y = playerY;
+        bird.originPlayerX = bird.x;
+        bird.originPlayerY = bird.y;
         bird.companionState = "return";
         stateTimer = 0;
+        state.targetLedger[-31] = 0;
       }
     } else if (birdState === "return") {
       const paired = learnedIds.includes("paired-wing-flight");
       const alignment = paired && event.isMoving && event.movementAngle !== undefined
         ? Math.cos(event.movementAngle - (bird.angle ?? 0))
         : 0;
-      stateTimer += event.deltaMs * (paired ? alignment > 0.5 ? 1.55 : alignment < -0.5 ? 0.55 : 1 : 1);
-      if (stateTimer >= 720) {
+      const progressScale = paired ? alignment > 0.5 ? 1.55 : alignment < -0.5 ? 0.55 : 1 : 1;
+      stateTimer += event.deltaMs * progressScale;
+      state.targetLedger[-31] = (state.targetLedger[-31] ?? 0) + alignment * event.deltaMs;
+      const sweeping = learnedIds.includes("firewing-sweeping-formation");
+      const headHunt = learnedIds.includes("crimson-feather-head-hunt");
+      const guardian = learnedIds.includes("cinnabar-plume-guardian");
+      const returnDuration = guardian ? 560 : sweeping ? 1120 : headHunt ? 900 : 720;
+      const progress = Math.min(1, stateTimer / returnDuration);
+      bird.x = (bird.originPlayerX ?? bird.x) + (playerX - (bird.originPlayerX ?? bird.x)) * progress;
+      bird.y = (bird.originPlayerY ?? bird.y) + (playerY - (bird.originPlayerY ?? bird.y)) * progress;
+      bird.angle = Math.atan2(playerY - bird.y, playerX - bird.x);
+      const dangerCount = targets.filter((target) => distanceSquared(target.x, target.y, bird!.x, bird!.y) <= 68 ** 2).length;
+      bird.value -= dangerCount * event.deltaMs * 0.00006 * (guardian ? 0.42 : sweeping ? 1.25 : headHunt ? 1.1 : 1);
+      if (bird.value <= 0) {
+        downBird();
+      } else if (stateTimer >= returnDuration) {
         const lowHealthReturn = bird.value / Math.max(0.01, bird.maxValue ?? 1) < 0.5;
+        const pairedAlignment = (state.targetLedger[-31] ?? 0) / Math.max(1, returnDuration);
         const bondGain = learnedIds.includes("blood-covenant-of-fire-bathing")
           ? lowHealthReturn ? 0.42 : 0.18
-          : paired ? alignment > 0.5 ? 0.32 : 0.16 : 0.22;
+          : paired ? pairedAlignment > 0.25 ? 0.32 : pairedAlignment < -0.25 ? 0.1 : 0.16 : 0.22;
         rawBond = Math.min(bondCap, rawBond + bondGain);
         if (learnedIds.includes("nurtured-covenant")) {
           bird.value = Math.min(bird.maxValue ?? 1, bird.value + (bird.maxValue ?? 1) * 0.24);
@@ -3490,7 +3531,10 @@ function advanceAuthoredWorldFacts(
         bird.companionState = (bird.maxValue ?? 1) > 1 ? "phoenix" : "guard";
         bird.x = playerX;
         bird.y = playerY;
+        bird.originPlayerX = undefined;
+        bird.originPlayerY = undefined;
         stateTimer = 0;
+        state.targetLedger[-31] = 0;
       }
     } else if (birdState === "ember") {
       stateTimer += event.deltaMs;
@@ -4562,7 +4606,7 @@ export function advanceGongfaRuntime(
     }
     if (event.skill2Id === "vermilion-host-descent" && next.gongfaId === "vermilion-bird-covenant") {
       const bird = next.authored.anchors.find((anchor) =>
-        anchor.kind === "companion" && !["ember", "egg"].includes(anchor.companionState ?? "guard")
+        anchor.kind === "companion" && ["guard", "phoenix"].includes(anchor.companionState ?? "guard")
       );
       const targets = event.targets ?? [];
       const target = [...targets].sort((a, b) => {
@@ -4574,16 +4618,18 @@ export function advanceGongfaRuntime(
         const learnedIds = event.learnedMasteryIds;
         const truePlume = learnedIds.includes("true-plume-nirvana");
         const urgent = learnedIds.includes("urgent-ember-egg");
+        const nurtured = learnedIds.includes("nurtured-covenant");
         const eggHealth = truePlume ? 1.4 : urgent ? 0.48 : 0.62;
         commands.push({
           kind: "authored-vermilion-flight",
           from: { x: bird.x, y: bird.y },
           waypoints: [{ x: target.x, y: target.y, targetId: target.targetId }],
           damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
-            (truePlume ? 3.5 : urgent ? 2.4 : 3.1))),
+            (truePlume ? 3.5 : urgent ? 2.4 : 3.1) * (nurtured ? 0.72 : 1))),
           width: 58 + skill2Stats.coverage * 8,
           maxHits: 4 + skill2Stats.coverage,
           terminal: true,
+          flightStyle: "rebirth",
           sourceGongfaId: next.gongfaId,
           masteryCast: {
             skill2Id: "vermilion-host-descent",
