@@ -136,7 +136,7 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     visualMotif: "A growing metal-star body, compressed travel wake, projected landing line, and distinct lance/crater/return impacts.",
     skill1: { id: "falling-star-combination", name: "Falling-Star Body", description: "Continuous movement near danger transforms the body; passing through ordinary enemies deals contact damage on individual cooldowns.", tags: ["melee", "metal", "defensive"] },
     passive: { name: "Meteor Mass", resource: "Mass", description: "Straight uninterrupted travel builds Mass; stopping, sharp turns, and hard impacts shed it. Hits build none." },
-    skill2: { id: "star-breaking-descent", name: "Star-Breaking Descent", description: "At full Mass or the form's limit, crash along the current movement heading and spend all Mass.", tags: ["melee", "metal", "explosive"] }
+    skill2: { id: "star-breaking-descent", name: "Star-Breaking Descent", description: "At full Mass or the form's limit, rise briefly while ordinary movement steers a visible landing preview, then crash and spend all Mass.", tags: ["melee", "metal", "explosive"] }
   },
   "thousand-root-formation": {
     combatRole: "A living-host controller that preserves finite parasitic lineages long enough to mature and erupt.",

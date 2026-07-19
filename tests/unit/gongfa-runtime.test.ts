@@ -529,6 +529,8 @@ describe("Gongfa runtime", () => {
         runtime.authored.phase = 1;
         runtime.authored.resource = 1;
         runtime.authored.phaseElapsedMs = 6000;
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.mastery.masterySkill2CooldownRemaining = 0;
       }
       if (gongfaId === "heaven-sundering-edict") {
         runtime.authored.resource = 1;
@@ -565,7 +567,20 @@ describe("Gongfa runtime", () => {
           { kind: "infection", targetId: 94, x: 60, y: 0, value: 0, infectionStage: 0 }
         );
       }
-      const result =
+      const result = gongfaId === "heavenfall-body-art"
+        ? (() => {
+            const committed = advanceGongfaRuntime(runtime, {
+              kind: "tick", deltaMs: 16, nearbyEnemyCount: 3, isMoving: true,
+              movementAngle: 0, playerX: 0, playerY: 0,
+              targets: [{ targetId: 48, x: 260, y: 0, healthRatio: 1, rank: "elite" }]
+            });
+            return advanceGongfaRuntime(committed.runtime, {
+              kind: "tick", deltaMs: 760, nearbyEnemyCount: 3, isMoving: true,
+              movementAngle: 0, playerX: 12, playerY: 0,
+              targets: [{ targetId: 48, x: 260, y: 0, healthRatio: 1, rank: "elite" }]
+            });
+          })()
+        :
         gongfaId === "crimson-furnace-sword-art"
           ? advanceGongfaRuntime(runtime, {
               kind: "tick", deltaMs: 16, nearbyEnemyCount: 5, playerX: 0, playerY: 0,
@@ -2774,21 +2789,88 @@ describe("Gongfa runtime", () => {
     expect(runtime.authored.resource).toBe(0);
   });
 
-  it("spends committed Heavenfall Mass on a movement-steered R9 descent", () => {
+  it("automatically rises, previews, then spends Heavenfall Mass on the recorded return route", () => {
     const runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
     runtime.authored.phase = 1;
     runtime.authored.resource = 1;
     runtime.authored.phaseElapsedMs = 6000;
     runtime.authored.lastMovementAngle = Math.PI / 2;
-    const result = advanceGongfaRuntime(runtime, {
-      kind: "skill2", skill2Id: "star-breaking-descent",
+    runtime.authored.targetLedger[-70] = Math.PI / 2;
+    runtime.authored.targetLedger[-73] = -80;
+    runtime.authored.targetLedger[-74] = 20;
+    runtime.mastery.masterySkill2Id = "star-breaking-descent";
+    runtime.mastery.masterySkill2CooldownRemaining = 0;
+    let result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: Math.PI / 2, playerX: 0, playerY: 0,
+      learnedMasteryIds: ["reverse-star-return"]
+    });
+    expect(result.runtime.authored.phase).toBe(2);
+    expect(result.commands.some((command) => command.kind === "authored-star-descent")).toBe(false);
+    result = advanceGongfaRuntime(result.runtime, {
+      kind: "tick", deltaMs: 760, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: Math.PI / 2, playerX: 0, playerY: 10,
       learnedMasteryIds: ["reverse-star-return"]
     });
     const descent = result.commands.find((command) => command.kind === "authored-star-descent");
     expect(descent?.angle).toBe(Math.PI / 2);
     expect(descent?.fate).toBe("reverse-return");
+    expect(descent?.returnX).toBe(-80);
+    expect(descent?.returnY).toBe(20);
     expect(result.runtime.authored.resource).toBe(0);
     expect(result.runtime.authored.phase).toBe(0);
+  });
+
+  it("does not let a direct Skill 2 event bypass Heavenfall movement commitment", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
+    runtime.authored.phase = 1;
+    runtime.authored.resource = 1;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "star-breaking-descent",
+      learnedMasteryIds: ["heavenfall-crater"]
+    });
+    expect(result.commands).toEqual([]);
+    expect(result.runtime.authored.phase).toBe(1);
+  });
+
+  it("makes Heavenfall ordinary and hard collisions visibly cost Mass unless the road-opening branch preserves it", () => {
+    const collide = (learnedMasteryIds: string[], rank: "ordinary" | "elite") => {
+      const runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
+      runtime.authored.phase = 1;
+      runtime.authored.resource = 0.7;
+      runtime.authored.targetLedger[-70] = 0;
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+        movementAngle: 0, playerX: 0, playerY: 0, learnedMasteryIds,
+        targets: [{ targetId: 72, x: 10, y: 0, healthRatio: 1, rank }]
+      }).runtime;
+    };
+    expect(collide([], "ordinary").authored.resource).toBeLessThan(0.7);
+    const road = collide(["iron-body-opens-the-road"], "ordinary");
+    expect(road.authored.resource).toBeGreaterThan(0.7);
+    expect(road.authored.targetLedger[-72]).toBe(360);
+    expect(collide([], "elite").authored.resource).toBeLessThan(0.4);
+  });
+
+  it("gives the three Heavenfall body choices different silhouettes and contact power", () => {
+    const bodyFor = (masteryId: string) => {
+      const runtime = createGongfaRuntime({ gongfaId: "heavenfall-body-art" });
+      runtime.authored.phase = 1;
+      runtime.authored.resource = 0.4;
+      runtime.authored.targetLedger[-70] = 0;
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+        movementAngle: 0, playerX: 0, playerY: 0, learnedMasteryIds: [masteryId],
+        targets: [{ targetId: 73, x: 10, y: 0, healthRatio: 1, rank: "ordinary" }]
+      }).commands.find((command) => command.kind === "authored-heavenfall-body");
+    };
+    const piercing = bodyFor("star-piercing-iron-body");
+    const giant = bodyFor("heavenfall-giant-body");
+    const light = bodyFor("wandering-star-light-body");
+    expect(giant?.radius).toBeGreaterThan(light?.radius ?? 0);
+    expect(light?.radius).toBeGreaterThan(piercing?.radius ?? 0);
+    expect(giant?.damage).toBeGreaterThan(piercing?.damage ?? 0);
+    expect(piercing?.damage).toBeGreaterThan(light?.damage ?? 0);
   });
 
   it("writes Heaven-Sundering Mandate only from complete double judgments", () => {

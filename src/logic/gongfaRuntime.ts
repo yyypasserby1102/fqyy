@@ -688,13 +688,16 @@ export type GongfaRuntimeCommand =
     }
   | {
       kind: "authored-heavenfall-body";
-      x: number; y: number; radius: number; damage: number; force: number;
+      x: number; y: number; radius: number; mass: number; angle: number;
+      committing: boolean; landingX?: number; landingY?: number;
+      damage: number; force: number;
       eligibleTargetIds: number[];
       sourceGongfaId: GongfaId;
     }
   | {
       kind: "authored-star-descent";
-      x: number; y: number; angle: number; mass: number; damage: number; radius: number;
+      originX: number; originY: number; landingX: number; landingY: number;
+      returnX?: number; returnY?: number; angle: number; mass: number; damage: number; radius: number;
       fate: "star-lance" | "crater" | "reverse-return"; sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     }
@@ -3695,8 +3698,28 @@ function advanceAuthoredWorldFacts(
     const targets = event.targets ?? [];
     const playerX = event.playerX ?? 0;
     const playerY = event.playerY ?? 0;
+    const light = learnedIds.includes("wandering-star-light-body");
+    const giant = learnedIds.includes("heavenfall-giant-body");
+    const piercing = learnedIds.includes("star-piercing-iron-body");
+    const noReturn = learnedIds.includes("no-return-advance");
+    const opensRoad = learnedIds.includes("iron-body-opens-the-road");
+    const pivot = learnedIds.includes("heaven-turning-pivot");
+    const starLance = learnedIds.includes("mountain-piercing-star-lance");
+    const reverseReturn = learnedIds.includes("reverse-star-return");
+    const cap = light ? 0.68 : pivot ? 0.78 : 1;
+    const radiusFor = (mass: number): number => (piercing ? 24 : giant ? 58 : 38) + mass * 24;
+    const wrapAngle = (angle: number): number => Math.atan2(Math.sin(angle), Math.cos(angle));
+    const turnToward = (from: number, to: number, maximum: number): number =>
+      from + Math.max(-maximum, Math.min(maximum, wrapAngle(to - from)));
     for (const key of Object.keys(state.targetLedger).map(Number).filter((key) => key > 0)) {
       state.targetLedger[key] = Math.max(0, state.targetLedger[key]! - event.deltaMs);
+    }
+    state.targetLedger[-72] = Math.max(0, (state.targetLedger[-72] ?? 0) - event.deltaMs);
+    if (runtime.mastery.masterySkill2Id) {
+      runtime.mastery.masterySkill2CooldownRemaining = Math.max(
+        0,
+        runtime.mastery.masterySkill2CooldownRemaining - event.deltaMs
+      );
     }
     if (state.phase === 0) {
       state.phaseElapsedMs = moving && targets.length > 0 ? state.phaseElapsedMs + event.deltaMs : 0;
@@ -3704,6 +3727,8 @@ function advanceAuthoredWorldFacts(
         state.phase = 1; state.phaseElapsedMs = 0; state.resource = 0; state.secondaryResource = 0;
         state.lastMovementAngle = event.movementAngle;
         state.targetLedger[-70] = event.movementAngle ?? 0;
+        state.targetLedger[-73] = playerX;
+        state.targetLedger[-74] = playerY;
       }
     } else if (state.phase === 1) {
       state.phaseElapsedMs += event.deltaMs;
@@ -3712,11 +3737,6 @@ function advanceAuthoredWorldFacts(
       const turn = previousHeading === undefined ? 0 : Math.abs(Math.atan2(
         Math.sin(angle - previousHeading), Math.cos(angle - previousHeading)
       ));
-      const light = learnedIds.includes("wandering-star-light-body");
-      const giant = learnedIds.includes("heavenfall-giant-body");
-      const noReturn = learnedIds.includes("no-return-advance");
-      const pivot = learnedIds.includes("heaven-turning-pivot");
-      const cap = light ? 0.68 : pivot ? 0.78 : 1;
       if (!moving) state.resource = Math.max(0, state.resource - event.deltaMs * 0.0011);
       else if (turn > 1.05) {
         if (pivot && state.secondaryResource < 1) { state.resource *= 0.5; state.secondaryResource = 1; }
@@ -3727,23 +3747,84 @@ function advanceAuthoredWorldFacts(
       }
       state.lastMovementAngle = angle;
       state.targetLedger[-70] = angle;
-      const radius = (learnedIds.includes("star-piercing-iron-body") ? 24 : giant ? 58 : 38) + state.resource * 24;
+      const radius = radiusFor(state.resource);
       const eligible = targets.filter((target) => target.rank === "ordinary" &&
         distanceSquared(target.x, target.y, playerX, playerY) <= radius ** 2 &&
         (state.targetLedger[target.targetId] ?? 0) <= 0
       );
-      if (eligible.length > 0) {
-        for (const target of eligible) state.targetLedger[target.targetId] = 720;
-        commands.push({
-          kind: "authored-heavenfall-body", x: playerX, y: playerY, radius,
-          damage: Math.max(1, Math.floor(runtime.combat.damage * (0.5 + state.resource * 0.65))),
-          force: 90 + state.resource * 190, eligibleTargetIds: eligible.map((target) => target.targetId),
-          sourceGongfaId: runtime.gongfaId
-        });
+      const hardCollisions = targets.filter((target) => target.rank !== "ordinary" &&
+        distanceSquared(target.x, target.y, playerX, playerY) <= radius ** 2 &&
+        (state.targetLedger[target.targetId] ?? 0) <= 0
+      );
+      if (eligible.length > 0 && !opensRoad) state.resource = Math.max(0, state.resource - eligible.length * 0.055);
+      if (eligible.length > 0 && opensRoad) state.targetLedger[-72] = Math.max(state.targetLedger[-72] ?? 0, 360);
+      if (hardCollisions.length > 0) state.resource = Math.max(0, state.resource - hardCollisions.length * 0.32);
+      for (const target of [...eligible, ...hardCollisions]) state.targetLedger[target.targetId] = 720;
+      const bodyPower = piercing ? 1.18 : giant ? 1.42 : light ? 0.78 : 1;
+      commands.push({
+        kind: "authored-heavenfall-body", x: playerX, y: playerY, radius: radiusFor(state.resource),
+        mass: state.resource, angle, committing: false,
+        damage: Math.max(1, Math.floor(runtime.combat.damage * (0.5 + state.resource * 0.65) * bodyPower)),
+        force: (90 + state.resource * 190) * bodyPower, eligibleTargetIds: eligible.map((target) => target.targetId),
+        sourceGongfaId: runtime.gongfaId
+      });
+      const descentReady = runtime.mastery.masterySkill2Id === "star-breaking-descent" &&
+        runtime.mastery.masterySkill2CooldownRemaining === 0 && event.skill2Enabled !== false;
+      if (descentReady && (state.resource >= cap - 0.001 || state.phaseElapsedMs >= 6000)) {
+        state.phase = 2;
+        state.phaseElapsedMs = 0;
+        state.secondaryResource = state.resource;
+        state.targetLedger[-70] = angle;
       }
       if (state.phaseElapsedMs >= 6200 && !runtime.mastery.masterySkill2Id) {
         state.phase = 0; state.phaseElapsedMs = 0; state.resource = 0;
       }
+    } else if (state.phase === 2) {
+      if (event.skill2Enabled !== false) state.phaseElapsedMs += event.deltaMs;
+      const mass = state.secondaryResource;
+      const currentHeading = state.targetLedger[-70] ?? state.lastMovementAngle ?? 0;
+      const strongest = [...targets].sort((a, b) => {
+        const rank = (target: AuthoredTargetFact): number => target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 1;
+        return rank(b) * 10 + (1 - b.healthRatio) - (rank(a) * 10 + (1 - a.healthRatio));
+      })[0];
+      const desiredHeading = starLance && strongest
+        ? Math.atan2(strongest.y - playerY, strongest.x - playerX)
+        : event.movementAngle ?? currentHeading;
+      const steeringRate = (light ? 2.9 : giant ? 1.15 : piercing ? 0.82 : 1.75) * (1 - mass * 0.42);
+      const heading = turnToward(currentHeading, desiredHeading, steeringRate * event.deltaMs / 1000);
+      state.targetLedger[-70] = heading;
+      state.lastMovementAngle = heading;
+      const travel = 110 + mass * 170;
+      const landingX = playerX + Math.cos(heading) * travel;
+      const landingY = playerY + Math.sin(heading) * travel;
+      commands.push({
+        kind: "authored-heavenfall-body", x: playerX, y: playerY, radius: radiusFor(mass),
+        mass, angle: heading, committing: true, landingX, landingY,
+        damage: 0, force: 0, eligibleTargetIds: [], sourceGongfaId: runtime.gongfaId
+      });
+      if (state.phaseElapsedMs >= 760) {
+        const fate = starLance ? "star-lance" as const : reverseReturn ? "reverse-return" as const : "crater" as const;
+        const skill2Stats = skill2RefinementStats(runtime);
+        const skill2Base = skill2Combat(runtime);
+        const cooldownMs = Math.floor(authoredSkill2Plans["star-breaking-descent"].cooldownMs * skill2Stats.cadenceScale);
+        commands.push({
+          kind: "authored-star-descent",
+          originX: playerX, originY: playerY, landingX, landingY,
+          ...(reverseReturn ? { returnX: state.targetLedger[-73] ?? playerX, returnY: state.targetLedger[-74] ?? playerY } : {}),
+          angle: heading, mass,
+          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * (0.75 + mass * 1.8))),
+          radius: fate === "star-lance" ? 24 + mass * 14 : fate === "reverse-return" ? 24 + mass * 10 : 90 + mass * 150,
+          fate, sourceGongfaId: runtime.gongfaId,
+          masteryCast: { skill2Id: "star-breaking-descent", cooldownMs }
+        });
+        runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+        state.phase = fate === "crater" ? 3 : 0;
+        state.phaseElapsedMs = fate === "crater" ? 1450 : 0;
+        state.resource = 0; state.secondaryResource = 0;
+      }
+    } else if (state.phase === 3) {
+      state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
+      if (state.phaseElapsedMs === 0) state.phase = 0;
     }
   }
 
@@ -4145,7 +4226,8 @@ export function advanceGongfaRuntime(
     event.skill2Enabled !== false &&
     next.mastery.masterySkill2Id &&
     next.gongfaId !== "ironwood-wave-form" &&
-    next.gongfaId !== "crimson-furnace-sword-art"
+    next.gongfaId !== "crimson-furnace-sword-art" &&
+    next.gongfaId !== "heavenfall-body-art"
   ) {
     const cooldown = advanceTimedMasterySkill2Cooldown(
       next.mastery.masterySkill2Id,
@@ -4411,22 +4493,8 @@ export function advanceGongfaRuntime(
       return { runtime: next, commands };
     }
     if (event.skill2Id === "star-breaking-descent" && next.gongfaId === "heavenfall-body-art") {
-      const cap = event.learnedMasteryIds.includes("wandering-star-light-body") ? 0.68 :
-        event.learnedMasteryIds.includes("heaven-turning-pivot") ? 0.78 : 1;
-      if (next.authored.phase === 1 && (next.authored.resource >= cap - 0.01 || next.authored.phaseElapsedMs >= 6000)) {
-        const fate = event.learnedMasteryIds.includes("mountain-piercing-star-lance") ? "star-lance" as const :
-          event.learnedMasteryIds.includes("reverse-star-return") ? "reverse-return" as const : "crater" as const;
-        const mass = next.authored.resource;
-        commands.push({
-          kind: "authored-star-descent", x: 0, y: 0, angle: next.authored.lastMovementAngle ?? 0,
-          mass, damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * (0.75 + mass * 1.8))),
-          radius: fate === "star-lance" ? 34 : fate === "reverse-return" ? 26 : 90 + mass * 150,
-          fate, sourceGongfaId: next.gongfaId,
-          masteryCast: { skill2Id: "star-breaking-descent", cooldownMs: Math.floor(authoredSkill2Plans["star-breaking-descent"].cooldownMs * skill2Stats.cadenceScale) }
-        });
-        next.authored.phase = 0; next.authored.phaseElapsedMs = 0; next.authored.resource = 0;
-        next.authored.secondaryResource = 0;
-      }
+      // This capstone is committed and resolved by the movement-driven authored state machine.
+      // A generic timed Skill 2 event must never bypass its rise, steering, or landing warning.
       return { runtime: next, commands };
     }
     if (event.skill2Id === "world-tree-incarnation" && next.gongfaId === "ancient-tree-body-art") {

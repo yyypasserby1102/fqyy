@@ -43,7 +43,7 @@ implementation, testing, balance review, and future regression checks.
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Implemented and verified |
 | Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Pending redesign |
 | Black Tide Scripture / 玄潮经 | Yuling | Approved | Pending redesign |
-| Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Pending redesign |
+| Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Implemented and verified |
 | Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Pending redesign |
 | Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Pending redesign |
 | Flame-Demon Body Art / 炎魔锻体术 | Youxuan | Approved | Pending redesign |
@@ -773,6 +773,30 @@ the form. Damage, area, and impact use the Mass present at commitment.
 **Must not become:** Jinfeng's persistent movement cuts, Flame Demon's health
 sacrifice, Ancient Tree's rooted form, Gengjin stored damage, or an ordinary melee
 combo.
+
+### Implemented tuning contract
+
+- Moving near a threat for `420ms` enters Falling-Star Body. The ordinary attack planner
+  emits nothing during this Gongfa; the moving body is the attack and each ordinary
+  target has a `720ms` personal contact cooldown.
+- Base Mass grows by `20%/s` while traveling and drains by `110%/s` while stopped.
+  A sharp turn costs `36%`; an ordinary collision costs `5.5%`, while an elite or boss
+  hard collision costs `32%`. Hits themselves never award Mass.
+- Star-Piercing, Giant, and Light Body use different radii, movement speed, contact
+  power, turning response, gain rates, and caps. Higher current Mass further reduces turning response. No-Return,
+  Opens-the-Road, and Pivot respectively enforce the full-reset turn, the `360ms`
+  passage slowdown, and the one-use half-Mass turn.
+- Full Mass or the six-second form limit automatically enters a `760ms` rise and
+  commitment phase when Star-Breaking Descent is ready. Ordinary movement may still
+  turn the projected landing at a limited rate. Direct Skill 2 events cannot skip
+  this warning, and no pointer or cursor input is read.
+- Star Lance automatically bends toward the highest-rank threat and uses a narrow
+  pierce. Crater uses the largest area, applies crowd control, and imposes `1.45s` of
+  slow recovery. Reverse Return records the transformation's starting position and
+  performs its weaker second pass along that actual approach route.
+- Presentation keeps a persistent mass-scaled meteor body and compressed wake,
+  switches to a live projected landing line/cross during commitment, then renders
+  visibly separate lance, crater, and outbound/return silhouettes.
 
 ---
 

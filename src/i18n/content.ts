@@ -150,7 +150,7 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     name: "天坠锻体术", lore: "行身如星，直进聚质，循势坠天。", combatRole: "持续移动自动化为坠星身，以不中断的行进方向积累陨星质量，并沿当前航向自动落地。", visualMotif: "随质量扩张的金属星体、压缩行迹、落点预示线与星槊、天坑、返星三种终击。",
     skill1: { name: "坠星身", description: "临敌持续移动会暂化坠星身；身体穿过普通敌人时按目标独立冷却造成碰撞伤害。" },
     passive: { name: "陨星质量", resource: "质量", description: "不间断直行增长质量；停步、急转与硬碰撞会损失质量，命中本身不增长。" },
-    skill2: { name: "碎星天坠", description: "质量圆满或形态到期时，沿当前普通移动方向坠落，消耗全部质量并结束形态。" }
+    skill2: { name: "碎星天坠", description: "质量圆满或形态到期时短暂升空；期间仅以普通移动有限修正可见落点，随后坠落并消耗全部质量。" }
   },
   "thousand-root-formation": {
     name: "万根寄命经", lore: "寄一根于一命，以宿主存亡养成根脉传承。", combatRole: "寄生控场，维持有限活体根脉成熟，并借宿主死亡完成一脉一传。", visualMotif: "宿主体内翠种、破体根枝与爬行汇合的根母。",
