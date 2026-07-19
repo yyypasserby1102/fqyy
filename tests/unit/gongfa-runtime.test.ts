@@ -524,6 +524,8 @@ describe("Gongfa runtime", () => {
         runtime.authored.phase = 1;
         runtime.authored.charges = runtime.authored.maxCharges;
         runtime.authored.resource = 1;
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.mastery.masterySkill2CooldownRemaining = 0;
       }
       if (gongfaId === "heavenfall-body-art") {
         runtime.authored.phase = 1;
@@ -567,7 +569,13 @@ describe("Gongfa runtime", () => {
           { kind: "infection", targetId: 94, x: 60, y: 0, value: 0, infectionStage: 0 }
         );
       }
-      const result = gongfaId === "heavenfall-body-art"
+      const result = gongfaId === "ancient-tree-body-art"
+        ? advanceGongfaRuntime(runtime, {
+            kind: "tick", deltaMs: 900, nearbyEnemyCount: 3, isMoving: false,
+            playerX: 0, playerY: 0,
+            targets: [{ targetId: 47, x: 120, y: 0, healthRatio: 1, rank: "elite" }]
+          })
+        : gongfaId === "heavenfall-body-art"
         ? (() => {
             const committed = advanceGongfaRuntime(runtime, {
               kind: "tick", deltaMs: 16, nearbyEnemyCount: 3, isMoving: true,
@@ -2853,14 +2861,120 @@ describe("Gongfa runtime", () => {
     runtime.authored.phase = 1;
     runtime.authored.charges = runtime.authored.maxCharges;
     runtime.authored.resource = 1;
-    const result = advanceGongfaRuntime(runtime, {
+    runtime.mastery.masterySkill2Id = "world-tree-incarnation";
+    runtime.mastery.masterySkill2CooldownRemaining = 0;
+    const bypass = advanceGongfaRuntime(runtime, {
       kind: "skill2", skill2Id: "world-tree-incarnation",
+      learnedMasteryIds: ["world-sheltering-canopy"]
+    });
+    expect(bypass.runtime.authored.phase).toBe(1);
+    expect(bypass.commands).toHaveLength(0);
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 900, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0,
+      targets: [{ targetId: 70, x: 120, y: 0, healthRatio: 1, rank: "elite" }],
       learnedMasteryIds: ["world-sheltering-canopy"]
     });
     const cycle = result.commands.find((command) => command.kind === "authored-ancient-tree-cycle");
     expect(result.runtime.authored.phase).toBe(3);
     expect(cycle?.worldTree).toBe(true);
     expect(cycle?.law).toBe("sheltering");
+    expect(cycle?.clearProjectiles).toBe(true);
+    expect(cycle?.masteryCast?.skill2Id).toBe("world-tree-incarnation");
+  });
+
+  it("separates Ancient Tree root, rotating branch, and farthest canopy targets", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+    runtime.authored.phase = 1;
+    runtime.authored.charges = 2;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 3, isMoving: false,
+      playerX: 0, playerY: 0,
+      targets: [
+        { targetId: 1, x: 40, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 150, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 3, x: 220, y: 0, healthRatio: 1, rank: "elite" }
+      ]
+    });
+    const cycle = result.commands.find((command) => command.kind === "authored-ancient-tree-cycle");
+    expect(cycle?.rootTargetIds).toEqual([1]);
+    expect(cycle?.branchTargetIds).toContain(2);
+    expect(cycle?.canopyTargetIds).toEqual([3]);
+    expect(cycle?.activeBranchSector).toBe(0);
+    expect(cycle?.rootDamage).not.toBe(cycle?.canopyDamage);
+  });
+
+  it("makes Ancient Tree forms and World-Tree laws mechanically distinct", () => {
+    const formCycle = (learnedMasteryIds: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+      runtime.authored.phase = 1;
+      runtime.authored.charges = 2;
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: false,
+        playerX: 0, playerY: 0,
+        targets: [{ targetId: 1, x: 40, y: 0, healthRatio: 1, rank: "ordinary" }],
+        learnedMasteryIds
+      }).commands.find((command) => command.kind === "authored-ancient-tree-cycle");
+    };
+    const banyan = formCycle(["great-rooted-banyan"]);
+    const ironCrown = formCycle(["iron-crowned-divine-tree"]);
+    const fusang = formCycle(["spirit-fruit-fusang"]);
+    expect(banyan!.rootRadius).toBeGreaterThan(ironCrown!.rootRadius);
+    expect(ironCrown!.canopyDamage).toBeGreaterThan(ironCrown!.rootDamage);
+    expect(fusang!.canopyRadius).toBeLessThan(banyan!.canopyRadius);
+    expect(fusang!.heal).toBeGreaterThan(0);
+
+    const lawCycle = (law: string) => {
+      const runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+      runtime.authored.phase = 1;
+      runtime.authored.charges = runtime.authored.maxCharges;
+      runtime.mastery.masterySkill2Id = "world-tree-incarnation";
+      return advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 900, nearbyEnemyCount: 1, isMoving: false,
+        playerX: 0, playerY: 0,
+        targets: [
+          { targetId: 11, x: 800, y: 0, healthRatio: 1, rank: "ordinary" },
+          { targetId: 12, x: 180, y: 0, healthRatio: 1, rank: "elite" },
+          { targetId: 13, x: 700, y: 0, healthRatio: 1, rank: "boss" }
+        ],
+        learnedMasteryIds: [law]
+      }).commands.find((command) => command.kind === "authored-ancient-tree-cycle");
+    };
+    const manyRoots = lawCycle("myriad-roots-pervade-the-realm");
+    const oneTree = lawCycle("one-tree-upholds-heaven");
+    const shelter = lawCycle("world-sheltering-canopy");
+    expect(manyRoots?.rootTargetIds).toEqual([11, 13]);
+    expect(oneTree?.rootTargetIds).toEqual([13]);
+    expect(oneTree?.branchTargetIds).toEqual([13]);
+    expect(oneTree?.canopyTargetIds).toEqual([13]);
+    expect(shelter?.clearProjectiles).toBe(true);
+    expect(shelter?.heal).toBeGreaterThan(0);
+    expect(shelter!.rootDamage).toBeLessThan(manyRoots!.rootDamage);
+  });
+
+  it("spends a Hollow Trunk ring only on fatal damage and cannot regrow it until uprooting", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "ancient-tree-body-art" });
+    runtime.authored.phase = 1;
+    runtime.authored.charges = 2;
+    const nonFatal = advanceGongfaRuntime(runtime, {
+      kind: "incoming-damage", amount: 20, currentHealth: 100, healthRatio: 0.05,
+      learnedMasteryIds: ["hollow-trunk-tribulation"]
+    });
+    expect(nonFatal.runtime.authored.charges).toBe(2);
+    expect(nonFatal.commands.find((command) => command.kind === "incoming-damage")?.finalDamage).toBe(20);
+    const fatal = advanceGongfaRuntime(nonFatal.runtime, {
+      kind: "incoming-damage", amount: 100, currentHealth: 100,
+      learnedMasteryIds: ["hollow-trunk-tribulation"]
+    });
+    expect(fatal.runtime.authored.charges).toBe(1);
+    expect(fatal.runtime.authored.targetLedger[-64]).toBe(1);
+    expect(fatal.commands.find((command) => command.kind === "incoming-damage")?.finalDamage).toBe(0);
+    const regrowth = advanceGongfaRuntime(fatal.runtime, {
+      kind: "tick", deltaMs: 10000, nearbyEnemyCount: 1, isMoving: false,
+      playerX: 0, playerY: 0,
+      learnedMasteryIds: ["hollow-trunk-tribulation"]
+    });
+    expect(regrowth.runtime.authored.charges).toBe(4);
   });
 
   it("builds Heavenfall Mass from straight travel and sheds it on a sharp turn", () => {

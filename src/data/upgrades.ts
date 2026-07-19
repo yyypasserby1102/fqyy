@@ -523,12 +523,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["ancestral-kinship", "Deep Ancestral Memory", "Ancestral forms emerge with a more stable signature action.", "surgeStability", 0.84, "Skill 2: Ancestral Menagerie"]
   ]],
   ["ancient-tree-body-art", [
-    ["old-growth-tempering", "Old-Growth Tempering", "Ancient-tree blows strike harder.", "skill1Damage", 7, "Skill 1: Old-Growth Combination"],
-    ["ringed-combination", "Ringed Combination", "Adds another heavy blow.", "skill1Count", 1, "Skill 1: Old-Growth Combination"],
-    ["bark-conduction", "Bark Conduction", "Bark empowers both body-art Skills.", "gongfaDamageSynergy", 3, "Owning Gongfa: both Skills"],
-    ["wider-rootcrater", "Wider Rootcrater", "Body-art strikes reach farther.", "gongfaRangeSynergy", 10, "Owning Gongfa: both Skills"],
-    ["living-bark", "Living Bark", "Close hits thicken Bark faster.", "surgeBuild", 0.18, "Passive: Living Bark Reprisal"],
-    ["evergreen-bark", "Evergreen Bark", "Bark fades more slowly.", "surgeStability", 0.84, "Passive: Living Bark Reprisal"]
+    ["old-growth-tempering", "Old-Growth Tempering", "Root, branch, and canopy strikes deal more damage.", "skill1Damage", 7, "Skill 1: Ancient Tree Body"],
+    ["ringed-combination", "Many-Branch Crown", "Adds one more rotating branch sector without adding a Ring.", "skill1Count", 1, "Skill 1: Ancient Tree Body"],
+    ["bark-conduction", "Worldwood Conduction", "Strengthens both the three-layer tree cycle and World-Tree law.", "gongfaDamageSynergy", 3, "Owning Gongfa: both Skills"],
+    ["wider-rootcrater", "Broad Root and Crown", "Expands the inner root zone and outer canopy by 10.", "gongfaRangeSynergy", 10, "Skill 1: Ancient Tree Body"],
+    ["living-bark", "Quickened Cambium", "Rooted time grows each Ring 18% faster.", "surgeBuild", 0.18, "Passive: Growth Rings"],
+    ["evergreen-bark", "Loose-Root Practice", "Uprooting completes 16% faster without preserving Rings.", "surgeStability", 0.84, "Passive: Growth Rings"]
   ]]
 ];
 

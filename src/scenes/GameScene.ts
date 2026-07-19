@@ -266,6 +266,8 @@ export class GameScene extends Phaser.Scene {
   private readonly myriadBeastMarkers = new Map<string, Phaser.GameObjects.Graphics>();
   private readonly myriadBeastAssistMarkers = new Map<number, Phaser.GameObjects.Graphics>();
   private heavenfallBodyMarker?: Phaser.GameObjects.Graphics;
+  private ancientTreeMarker?: Phaser.GameObjects.Graphics;
+  private ancientTreeMarkerSignature = "";
   private moonfallMarker?: Phaser.GameObjects.Graphics;
   private readonly moonfallVelocityRecord = new Map<number, { x: number; y: number }>();
   private verdantGlyphMarker?: Phaser.GameObjects.Graphics;
@@ -865,6 +867,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "heavenfall-body-art") {
         this.syncHeavenfallBodyMarker(result.runtime);
+      }
+      if (result.runtime.gongfaId === "ancient-tree-body-art") {
+        this.syncAncientTreeMarker(result.runtime);
       }
       if (result.runtime.gongfaId === "moonfall-tide-ritual") {
         this.syncMoonfallMarker(result.runtime);
@@ -3876,35 +3881,129 @@ export class GameScene extends Phaser.Scene {
   private fireAuthoredAncientTreeCycle(
     command: Extract<GongfaRuntimeCommand, { kind: "authored-ancient-tree-cycle" }>
   ): void {
-    const x = command.x || this.player.x;
-    const y = command.y || this.player.y;
+    const x = command.x;
+    const y = command.y;
     const identity = getGongfaVisualIdentity(command.sourceGongfaId);
     const tree = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(14);
-    tree.lineStyle(command.worldTree ? 9 : 5, identity.accent, 0.78);
+    tree.fillStyle(identity.accent, command.worldTree ? 0.1 : 0.05);
+    tree.fillCircle(x, y, command.rootRadius);
+    tree.lineStyle(command.worldTree ? 9 : 4, identity.accent, 0.74);
     for (let ring = 1; ring <= Math.max(1, command.rings); ring += 1) {
       tree.strokeCircle(x, y, command.rootRadius * ring / Math.max(1, command.rings));
     }
-    tree.lineStyle(6, identity.secondary, 0.82);
     for (let sector = 0; sector < command.branchSectors; sector += 1) {
       const angle = sector / command.branchSectors * Math.PI * 2;
+      tree.lineStyle(sector === command.activeBranchSector ? 10 : 2, identity.secondary,
+        sector === command.activeBranchSector ? 0.94 : 0.2);
       tree.lineBetween(x, y, x + Math.cos(angle) * command.canopyRadius, y + Math.sin(angle) * command.canopyRadius);
     }
-    tree.lineStyle(command.worldTree ? 12 : 5, identity.secondary, 0.55);
+    tree.lineStyle(command.worldTree ? 12 : 5, identity.secondary, command.worldTree ? 0.78 : 0.48);
     tree.strokeCircle(x, y, command.canopyRadius);
-    let enemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
-    const strongest = [...enemies].sort((a, b) => b.maxHealth - a.maxHealth)[0];
-    if (command.law === "one-tree") enemies = strongest ? [strongest] : [];
-    for (const enemy of enemies) {
-      const distance = Phaser.Math.Distance.Between(x, y, enemy.x, enemy.y);
-      if (distance > command.canopyRadius + 14) continue;
-      if (command.canopyFocus && distance > command.rootRadius && enemy.role !== "tribulation-boss" && enemy.maxHealth < 150) continue;
-      const bossScale = enemy.role === "tribulation-boss" && command.law === "many-roots" ? 0.35 : 1;
-      if (distance <= command.rootRadius) enemy.applySlow(0.18, 720);
-      if (enemy.receiveDamage(command.damage * bossScale)) this.resolveEnemyDeath(enemy);
+
+    const strike = (targetIds: number[], damage: number, layer: "root" | "branch" | "canopy"): void => {
+      for (const targetId of targetIds) {
+        const enemy = this.getEnemyByCombatTargetId(targetId);
+        if (!enemy?.active) continue;
+        if (layer === "root") {
+          enemy.applySlow(0.18, command.worldTree ? 980 : 720);
+          const angle = Phaser.Math.Angle.Between(x, y, enemy.x, enemy.y);
+          enemy.applyForcedVelocity(angle, command.rootForce, 240);
+          tree.lineStyle(command.worldTree ? 7 : 4, identity.accent, 0.82);
+          tree.lineBetween(x, y, enemy.x, enemy.y);
+        } else if (layer === "branch") {
+          tree.fillStyle(identity.secondary, 0.86);
+          tree.fillCircle(enemy.x, enemy.y, 8);
+        } else {
+          tree.lineStyle(4, identity.secondary, 0.88);
+          tree.strokeCircle(enemy.x, enemy.y, command.worldTree ? 24 : 15);
+        }
+        const bossScale = enemy.role === "tribulation-boss" ? command.bossDamageScale : 1;
+        if (enemy.receiveDamage(damage * bossScale)) this.resolveEnemyDeath(enemy);
+      }
+    }
+    strike(command.rootTargetIds, command.rootDamage, "root");
+    strike(command.branchTargetIds, command.branchDamage, "branch");
+    strike(command.canopyTargetIds, command.canopyDamage, "canopy");
+
+    if (command.clearProjectiles) {
+      for (const hazard of [...this.activeBossHazards]) {
+        if (Phaser.Math.Distance.Between(hazard.x, hazard.y, x, y) > command.canopyRadius) continue;
+        hazard.destroy();
+        this.activeBossHazards.delete(hazard);
+      }
     }
     if (command.heal > 0) this.player.heal(command.heal);
+    if (command.heal > 0) {
+      const healFraction = Math.min(0.3, command.heal * 0.015);
+      for (const runtime of this.learnedGongfaRuntimes) {
+        for (const companion of runtime.authored.anchors.filter((anchor) =>
+          anchor.kind === "companion" || anchor.kind === "beast"
+        )) {
+          const maxValue = companion.maxValue ?? 1;
+          companion.value = Math.min(maxValue, companion.value + maxValue * healFraction);
+        }
+      }
+    }
     this.tweens.add({ targets: tree, alpha: 0, scale: 1.04, duration: 780, onComplete: () => tree.destroy() });
-    this.recordGongfaMotif(`${identity.motifId}:${command.worldTree ? "world-tree" : command.law}`);
+    this.recordGongfaMotif(`${identity.motifId}:${command.worldTree ? `world-tree-${command.law}` : `root-branch-canopy-${command.activeBranchSector}`}`);
+  }
+
+  private syncAncientTreeMarker(runtime: GongfaRuntime): void {
+    if (runtime.authored.phase === 0) {
+      this.ancientTreeMarker?.destroy();
+      this.ancientTreeMarker = undefined;
+      this.ancientTreeMarkerSignature = "";
+      return;
+    }
+    const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const marker = this.ancientTreeMarker ?? this.add.graphics().setDepth(12);
+    this.ancientTreeMarker = marker;
+    marker.clear();
+    const rings = runtime.authored.charges;
+    const worldTree = runtime.authored.phase === 3;
+    const uprooting = runtime.authored.phase === 2;
+    const learned = runtime.mastery.masteryLearnedIds;
+    const law = learned.includes("one-tree-upholds-heaven") ? "one-tree" :
+      learned.includes("world-sheltering-canopy") ? "sheltering" : "many-roots";
+    const radius = 38 + rings * 10 + (worldTree ? 34 : 0);
+    marker.fillStyle(identity.accent, worldTree ? 0.17 : 0.08);
+    marker.fillCircle(0, 0, radius);
+    marker.lineStyle(worldTree ? 10 : uprooting ? 3 : 6, identity.accent, uprooting ? 0.4 : 0.82);
+    for (let ring = 1; ring <= Math.max(1, rings); ring += 1) {
+      marker.strokeCircle(0, 0, radius * ring / Math.max(1, rings));
+    }
+    const branches = Math.max(1, rings + 1);
+    const activeBranch = Math.floor(runtime.authored.targetLedger[-62] ?? 0) % branches;
+    for (let branch = 0; branch < branches; branch += 1) {
+      const angle = branch / branches * Math.PI * 2;
+      marker.lineStyle(branch === activeBranch ? 6 : 2, identity.secondary, branch === activeBranch ? 0.9 : 0.35);
+      marker.lineBetween(0, 0, Math.cos(angle) * radius, Math.sin(angle) * radius);
+    }
+    if (worldTree) {
+      marker.lineStyle(12, identity.secondary, 0.88);
+      marker.lineBetween(0, 18, 0, -radius * 0.62);
+      if (law === "many-roots") {
+        for (let root = 0; root < 10; root += 1) {
+          const angle = root / 10 * Math.PI * 2;
+          marker.lineStyle(4, identity.accent, 0.7);
+          marker.lineBetween(0, 8, Math.cos(angle) * radius * 1.25, Math.sin(angle) * radius * 1.25);
+        }
+      } else if (law === "one-tree") {
+        marker.lineStyle(11, identity.accent, 0.86);
+        marker.lineBetween(0, 0, radius * 1.25, 0);
+      } else {
+        marker.lineStyle(8, identity.secondary, 0.88);
+        marker.beginPath();
+        marker.arc(0, 4, radius * 1.2, Math.PI, Math.PI * 2);
+        marker.strokePath();
+      }
+    }
+    marker.setPosition(this.player.x, this.player.y);
+    const signature = `${runtime.authored.phase}:${rings}:${law}`;
+    if (signature !== this.ancientTreeMarkerSignature) {
+      this.ancientTreeMarkerSignature = signature;
+      this.recordGongfaMotif(`${identity.motifId}:rooted-${signature}`);
+    }
   }
 
   private fireAuthoredHeavenfallBody(
@@ -6346,7 +6445,8 @@ export class GameScene extends Phaser.Scene {
         ...(incomingAngle !== undefined ? { incomingAngle } : {}),
         ...(sourceDistance !== undefined ? { sourceDistance } : {}),
         ...(sourceId !== undefined ? { sourceId } : {}),
-        healthRatio: this.player.stats.maxHealth > 0 ? this.player.stats.health / this.player.stats.maxHealth : 0
+        healthRatio: this.player.stats.maxHealth > 0 ? this.player.stats.health / this.player.stats.maxHealth : 0,
+        currentHealth: this.player.stats.health
       });
       this.adoptPrimaryRuntime(result.runtime);
       const damageCommand = result.commands.find(

@@ -114,6 +114,8 @@ describe("expanded Gongfa archetypes", () => {
         runtime.authored.phase = 1;
         runtime.authored.charges = runtime.authored.maxCharges;
         runtime.authored.resource = 1;
+        runtime.mastery.masterySkill2Id = expectedSkill2;
+        runtime.mastery.masterySkill2CooldownRemaining = 0;
       }
       if (gongfaId === "heavenfall-body-art") {
         runtime.authored.phase = 1;
@@ -129,7 +131,11 @@ describe("expanded Gongfa archetypes", () => {
       if (gongfaId === "nine-sun-calamity-seal") runtime.authored.charges = 9;
       if (gongfaId === "moonfall-tide-ritual") runtime.authored.cycleCount = 3;
       expect(getRank10Skill2Id(gongfaId)).toBe(expectedSkill2);
-      const result = gongfaId === "heavenfall-body-art" ? (() => {
+      const result = gongfaId === "ancient-tree-body-art" ? advanceGongfaRuntime(runtime, {
+        kind: "tick", deltaMs: 900, nearbyEnemyCount: 8, isMoving: false,
+        playerX: 0, playerY: 0,
+        targets: [{ targetId: 89, x: 120, y: 0, healthRatio: 1, rank: "elite" }]
+      }) : gongfaId === "heavenfall-body-art" ? (() => {
         const committed = advanceGongfaRuntime(runtime, {
           kind: "tick", deltaMs: 16, nearbyEnemyCount: 8, isMoving: true,
           movementAngle: 0, playerX: 0, playerY: 0,

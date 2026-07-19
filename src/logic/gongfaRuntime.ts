@@ -271,7 +271,7 @@ export type GongfaRuntimeEvent =
       targets?: AuthoredTargetFact[];
       learnedMasteryIds?: string[];
     }
-  | { kind: "incoming-damage"; amount: number; incomingAngle?: number; sourceDistance?: number; sourceId?: number; healthRatio?: number; skill2Id?: string; learnedMasteryIds?: string[] }
+  | { kind: "incoming-damage"; amount: number; incomingAngle?: number; sourceDistance?: number; sourceId?: number; healthRatio?: number; currentHealth?: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | {
       kind: "enemy-death";
       targetId: number;
@@ -683,8 +683,13 @@ export type GongfaRuntimeCommand =
   | {
       kind: "authored-ancient-tree-cycle";
       x: number; y: number; rings: number; rootRadius: number; branchSectors: number;
-      canopyRadius: number; damage: number; law: "many-roots" | "one-tree" | "sheltering";
-      heal: number; worldTree: boolean; canopyFocus: boolean; sourceGongfaId: GongfaId;
+      canopyRadius: number; activeBranchSector: number;
+      rootTargetIds: number[]; branchTargetIds: number[]; canopyTargetIds: number[];
+      rootDamage: number; branchDamage: number; canopyDamage: number; rootForce: number;
+      bossDamageScale: number;
+      law: "many-roots" | "one-tree" | "sheltering";
+      heal: number; worldTree: boolean; canopyFocus: boolean; clearProjectiles: boolean;
+      sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     }
   | {
@@ -3685,56 +3690,140 @@ function advanceAuthoredWorldFacts(
   if (runtime.gongfaId === "ancient-tree-body-art") {
     const playerX = event.playerX ?? 0;
     const playerY = event.playerY ?? 0;
+    const targets = event.targets ?? [];
     const moving = event.isMoving === true;
     const thousand = learnedIds.includes("one-ring-in-a-thousand-years");
     const spring = learnedIds.includes("spring-flourishing");
     const fusang = learnedIds.includes("spirit-fruit-fusang");
     const maxRings = thousand ? 3 : spring ? 7 : 5;
     state.maxCharges = maxRings;
+    let worldTreeActivated = false;
+    let worldTreeMasteryCast: MasterySkill2Cast | undefined;
+    if (runtime.mastery.masterySkill2Id) {
+      runtime.mastery.masterySkill2CooldownRemaining = Math.max(
+        0,
+        runtime.mastery.masterySkill2CooldownRemaining - event.deltaMs
+      );
+    }
     if (state.phase === 0) {
       state.resource = 0;
       state.charges = 0;
+      state.targetLedger[-63] = 0;
+      state.targetLedger[-64] = 0;
       state.phaseElapsedMs = moving || event.nearbyEnemyCount === 0 ? 0 : state.phaseElapsedMs + event.deltaMs;
       if (state.phaseElapsedMs >= 520) { state.phase = 1; state.phaseElapsedMs = 0; }
     } else if (state.phase === 1) {
       if (moving) {
         state.phase = 2;
-        state.phaseElapsedMs = 360 + state.charges * (spring ? 310 : 170);
+        state.phaseElapsedMs = (360 + state.charges * (spring ? 310 : 170)) *
+          Math.pow(0.84, masteryEffectTiers(learnedIds, "surgeStability"));
+        state.targetLedger[-63] = 0;
       } else {
-        const interval = thousand ? 2600 : spring ? 620 : fusang ? 1900 : 1250;
+        const interval = (thousand ? 2600 : spring ? 620 : fusang ? 1900 : 1250) /
+          (1 + masteryEffectTiers(learnedIds, "surgeBuild") * 0.18);
+        const lostRings = Math.max(0, Math.floor(state.targetLedger[-64] ?? 0));
+        const currentRingCap = Math.max(0, maxRings - lostRings);
         state.secondaryResource += event.deltaMs;
-        while (state.secondaryResource >= interval && state.charges < maxRings) {
+        while (state.secondaryResource >= interval && state.charges < currentRingCap) {
           state.secondaryResource -= interval;
           state.charges += 1;
         }
         state.resource = state.charges / maxRings;
+        const canBecomeWorldTree = state.charges >= maxRings &&
+          runtime.mastery.masterySkill2Id === "world-tree-incarnation" &&
+          runtime.mastery.masterySkill2CooldownRemaining === 0 && event.skill2Enabled !== false;
+        state.targetLedger[-63] = canBecomeWorldTree
+          ? (state.targetLedger[-63] ?? 0) + event.deltaMs
+          : 0;
+        if ((state.targetLedger[-63] ?? 0) >= 900) {
+          const skill2Stats = skill2RefinementStats(runtime);
+          const cooldownMs = Math.floor(authoredSkill2Plans["world-tree-incarnation"].cooldownMs * skill2Stats.cadenceScale);
+          state.phase = 3;
+          state.phaseElapsedMs = 5600;
+          state.targetLedger[-60] = 0;
+          state.targetLedger[-63] = 0;
+          runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+          worldTreeActivated = true;
+          worldTreeMasteryCast = { skill2Id: "world-tree-incarnation", cooldownMs };
+        }
       }
     } else if (state.phase === 2) {
       state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
       if (state.phaseElapsedMs === 0) {
         state.phase = 0; state.charges = 0; state.resource = 0; state.secondaryResource = 0;
+        state.targetLedger[-64] = 0;
       }
     } else if (state.phase === 3) {
       state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
       if (state.phaseElapsedMs === 0) {
         state.phase = 0; state.charges = 0; state.resource = 0; state.secondaryResource = 0;
+        state.targetLedger[-64] = 0;
       }
     }
     let attackTimer = Math.max(0, (state.targetLedger[-60] ?? 0) - event.deltaMs);
-    if ((state.phase === 1 || state.phase === 3) && attackTimer === 0 && event.nearbyEnemyCount > 0) {
+    if (
+      (state.phase === 1 || state.phase === 3) &&
+      attackTimer === 0 &&
+      (event.nearbyEnemyCount > 0 || (state.phase === 3 && targets.length > 0) || worldTreeActivated)
+    ) {
       const banyan = learnedIds.includes("great-rooted-banyan");
       const ironCrown = learnedIds.includes("iron-crowned-divine-tree");
       const law = learnedIds.includes("one-tree-upholds-heaven") ? "one-tree" as const :
         learnedIds.includes("world-sheltering-canopy") ? "sheltering" as const : "many-roots" as const;
       const ringPower = thousand ? 1.65 : spring ? 0.72 : 1;
+      const worldTree = state.phase === 3;
+      const refinementRange = runtime.skill1Refinements?.rangeBonus ?? 0;
+      const rootRadius = (banyan ? 112 : ironCrown ? 48 : 72) + state.charges * (banyan ? 15 : 10) + refinementRange;
+      const branchSectors = Math.max(1, state.charges + 1 + (runtime.skill1Refinements?.countBonus ?? 0));
+      const canopyRadius = (fusang ? 150 : 205) + state.charges * 18 + refinementRange;
+      const activeBranchSector = Math.floor(state.targetLedger[-62] ?? 0) % branchSectors;
+      state.targetLedger[-62] = activeBranchSector + 1;
+      const rank = (target: AuthoredTargetFact): number => target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 1;
+      const strongest = [...targets].sort((a, b) => rank(b) * 10 + b.healthRatio - rank(a) * 10 - a.healthRatio)[0];
+      const inCanopy = targets.filter((target) => distanceSquared(target.x, target.y, playerX, playerY) <= canopyRadius ** 2);
+      const outerCanopy = inCanopy.filter((target) =>
+        distanceSquared(target.x, target.y, playerX, playerY) > rootRadius ** 2
+      );
+      const farthest = [...outerCanopy].sort((a, b) =>
+        distanceSquared(b.x, b.y, playerX, playerY) - distanceSquared(a.x, a.y, playerX, playerY)
+      )[0];
+      const canopyPriority = ironCrown
+        ? [...outerCanopy].filter((target) => target.rank !== "ordinary").sort((a, b) => rank(b) - rank(a))[0] ?? farthest
+        : farthest;
+      const sectorCenter = activeBranchSector / branchSectors * Math.PI * 2;
+      const branchTargets = inCanopy.filter((target) => {
+        const distance = Math.sqrt(distanceSquared(target.x, target.y, playerX, playerY));
+        const angle = Math.atan2(target.y - playerY, target.x - playerX);
+        return distance > rootRadius && angularDistance(angle, sectorCenter) <= Math.PI / branchSectors * 0.72;
+      });
+      let rootTargetIds = inCanopy.filter((target) =>
+        distanceSquared(target.x, target.y, playerX, playerY) <= rootRadius ** 2
+      ).map((target) => target.targetId);
+      let branchTargetIds = branchTargets.map((target) => target.targetId);
+      let canopyTargetIds = canopyPriority ? [canopyPriority.targetId] : [];
+      if (worldTree && law === "many-roots") {
+        rootTargetIds = targets.filter((target) => target.rank === "ordinary" || target.rank === "boss").map((target) => target.targetId);
+      } else if (worldTree && law === "one-tree" && strongest) {
+        rootTargetIds = [strongest.targetId];
+        branchTargetIds = [strongest.targetId];
+        canopyTargetIds = [strongest.targetId];
+      }
+      const basePower = runtime.combat.damage * ringPower * (worldTree ? 1.45 : 0.72);
+      const shelterScale = law === "sheltering" ? 0.35 : 1;
+      const focusScale = worldTree && law === "one-tree" ? 1.35 : 1;
       commands.push({
         kind: "authored-ancient-tree-cycle", x: playerX, y: playerY, rings: state.charges,
-        rootRadius: (banyan ? 112 : ironCrown ? 48 : 72) + state.charges * (banyan ? 15 : 10),
-        branchSectors: Math.max(1, state.charges + 1),
-        canopyRadius: (fusang ? 150 : 205) + state.charges * 18,
-        damage: Math.max(1, Math.floor(runtime.combat.damage * ringPower * (banyan ? 0.58 : fusang ? 0.62 : 1) * (state.phase === 3 ? 1.45 : 0.72))),
-        law, heal: fusang || law === "sheltering" ? 2 + state.charges : 0,
-        worldTree: state.phase === 3, canopyFocus: ironCrown, sourceGongfaId: runtime.gongfaId
+        rootRadius, branchSectors, canopyRadius, activeBranchSector,
+        rootTargetIds, branchTargetIds, canopyTargetIds,
+        rootDamage: Math.max(1, Math.floor(basePower * (banyan ? 0.55 : ironCrown ? 0.28 : fusang ? 0.32 : 0.42) * shelterScale * focusScale)),
+        branchDamage: Math.max(1, Math.floor(basePower * (banyan ? 0.22 : ironCrown ? 0.38 : fusang ? 0.25 : 0.35) * shelterScale * focusScale)),
+        canopyDamage: Math.max(1, Math.floor(basePower * (banyan ? 0.25 : ironCrown ? 0.72 : fusang ? 0.26 : 0.48) * shelterScale * focusScale)),
+        rootForce: banyan ? 115 : ironCrown ? 45 : 78,
+        bossDamageScale: law === "many-roots" ? 0.28 : 1,
+        law, heal: law === "sheltering" && worldTree ? 12 : fusang || law === "sheltering" ? 2 + state.charges : 0,
+        worldTree, canopyFocus: ironCrown, clearProjectiles: law === "sheltering",
+        sourceGongfaId: runtime.gongfaId,
+        ...(worldTreeActivated && worldTreeMasteryCast ? { masteryCast: worldTreeMasteryCast } : {})
       });
       attackTimer = state.phase === 3 ? 520 : 920;
     }
@@ -4275,7 +4364,8 @@ export function advanceGongfaRuntime(
     next.mastery.masterySkill2Id &&
     next.gongfaId !== "ironwood-wave-form" &&
     next.gongfaId !== "crimson-furnace-sword-art" &&
-    next.gongfaId !== "heavenfall-body-art"
+    next.gongfaId !== "heavenfall-body-art" &&
+    next.gongfaId !== "ancient-tree-body-art"
   ) {
     const cooldown = advanceTimedMasterySkill2Cooldown(
       next.mastery.masterySkill2Id,
@@ -4546,21 +4636,8 @@ export function advanceGongfaRuntime(
       return { runtime: next, commands };
     }
     if (event.skill2Id === "world-tree-incarnation" && next.gongfaId === "ancient-tree-body-art") {
-      if (next.authored.phase === 1 && next.authored.charges >= next.authored.maxCharges) {
-        const law = event.learnedMasteryIds.includes("one-tree-upholds-heaven") ? "one-tree" as const :
-          event.learnedMasteryIds.includes("world-sheltering-canopy") ? "sheltering" as const : "many-roots" as const;
-        next.authored.phase = 3;
-        next.authored.phaseElapsedMs = 5600;
-        next.authored.targetLedger[-60] = 0;
-        commands.push({
-          kind: "authored-ancient-tree-cycle", x: 0, y: 0, rings: next.authored.charges,
-          rootRadius: 150 + next.authored.charges * 14, branchSectors: next.authored.charges + 2,
-          canopyRadius: 260 + next.authored.charges * 20,
-          damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * (law === "sheltering" ? 0.42 : 1.2))),
-          law, heal: law === "sheltering" ? 12 : 0, worldTree: true, canopyFocus: false, sourceGongfaId: next.gongfaId,
-          masteryCast: { skill2Id: "world-tree-incarnation", cooldownMs: Math.floor(authoredSkill2Plans["world-tree-incarnation"].cooldownMs * skill2Stats.cadenceScale) }
-        });
-      }
+      // World Tree is earned by remaining rooted at full rings. A generic timed
+      // Skill 2 event must not bypass the visible hold or its immobility cost.
       return { runtime: next, commands };
     }
     if (event.skill2Id === "myriad-beast-stampede" && next.gongfaId === "myriad-beast-grove") {
@@ -5233,9 +5310,14 @@ export function advanceGongfaRuntime(
 
     if (next.gongfaId === "ancient-tree-body-art" &&
       event.learnedMasteryIds.includes("hollow-trunk-tribulation") &&
-      next.authored.charges > 0 && (event.healthRatio ?? 1) <= 0.12) {
+      next.authored.charges > 0 &&
+      (event.currentHealth !== undefined
+        ? event.amount >= event.currentHealth
+        : (event.healthRatio ?? 1) <= 0.12)) {
       next.authored.charges -= 1;
       next.authored.resource = next.authored.charges / Math.max(1, next.authored.maxCharges);
+      next.authored.secondaryResource = 0;
+      next.authored.targetLedger[-64] = (next.authored.targetLedger[-64] ?? 0) + 1;
       commands.push({ kind: "incoming-damage", finalDamage: 0 });
       return { runtime: next, commands };
     }

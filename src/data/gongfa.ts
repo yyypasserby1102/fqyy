@@ -550,7 +550,7 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
   },
   "ancient-tree-body-art": {
     id: "ancient-tree-body-art", name: "Ancient Tree Body Art", requiredRoots: ["wood"], pattern: "melee", title: "Ancient Tree Body Art",
-    lore: "Root the body like an old tree, crushing nearby foes and returning violence through living bark.", projectileTexture: "aura-blade", tint: 0x73a85e,
+    lore: "Stop amid danger to take root, grow the years as visible Rings, and answer near, middle, and far threats with root, branch, and canopy.", projectileTexture: "aura-blade", tint: 0x73a85e,
     stages: {
       lianqi: { damage: 22, cooldownMs: 1200, count: 2, pierce: 0, projectileSpeed: 0, projectileLifetimeMs: 210, spreadDeg: 110, auraRadius: 108, retaliationDamage: 10, range: 0, returnShots: 0, shellBursts: 0 },
       zhuji: { damage: 30, cooldownMs: 1050, count: 3, pierce: 0, projectileSpeed: 0, projectileLifetimeMs: 190, spreadDeg: 130, auraRadius: 124, retaliationDamage: 16, range: 0, returnShots: 0, shellBursts: 0 },

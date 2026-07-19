@@ -45,7 +45,7 @@ implementation, testing, balance review, and future regression checks.
 | Black Tide Scripture / 玄潮经 | Yuling | Approved | Implemented and verified |
 | Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Implemented and verified |
 | Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Implemented and verified |
-| Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Pending redesign |
+| Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Implemented and verified |
 | Flame-Demon Body Art / 炎魔锻体术 | Youxuan | Approved | Pending redesign |
 | Mist Wraith Canon / 雾灵真典 | Youxuan | Approved | Pending redesign |
 | Frozen River Formation / 冰河伏阵 | Youxuan | Approved | Pending redesign |
@@ -1074,6 +1074,32 @@ Rings. There is no directional or manual aiming step.
 
 **Must not become:** Ironwood's constructed directional walls, Myriad-Root's target
 infection, Verdant glyph ordering, Gengjin stored damage, or a generic radial aura.
+
+### Implemented tuning contract
+
+- Danger within `520ms` of standing still begins rooted form. Movement from rooted
+  form starts a visible uproot of `360ms + 170ms` per Ring; Spring Flourishing uses
+  `310ms` per Ring. Attacks, kills, and incoming damage never grow Rings.
+- The default tree grows five Rings at `1.25s` each. Thousand-Year grows three at
+  `2.6s` each with `1.65×` layer power; Spring grows seven at `0.62s` each with
+  `0.72×` power; Fusang uses `1.9s` Rings, reduced canopy reach, and heals on cycles.
+- Every attack is three separately targeted and separately resolved layers: roots
+  seize and push targets in the inner radius, exactly one branch sector advances in
+  sequence, and the canopy selects the farthest reachable threat. Iron Crown instead
+  prioritizes an elite or boss for its high-damage canopy.
+- Hollow-Trunk checks actual incoming damage against current health. It consumes a
+  Ring only for a fatal hit, prevents that hit, and locks the lost layer until the
+  next completed uproot; banked growth time is also cleared.
+- Holding maximum Rings for `0.9s` automatically begins World-Tree for `5.6s` and
+  locks movement. Direct or generic Skill-2 events cannot bypass this hold. End of
+  duration forcibly returns to mobile form with zero Rings.
+- Myriad Roots assigns realm-wide roots to ordinary enemies and bosses but applies
+  only `28%` root damage to bosses; One Tree sends all three layers to the strongest
+  enemy; Sheltering Canopy uses `35%` damage, destroys hostile boss hazards inside
+  its canopy, and heals the player plus injured companions.
+- A persistent rooted-body marker displays every current Ring, the rotating active
+  branch, uprooting state, and law-specific World-Tree silhouette. The HUD reports
+  mobile, rooted, uprooting, or World-Tree state and exact Rings.
 
 ---
 
