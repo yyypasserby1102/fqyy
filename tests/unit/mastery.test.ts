@@ -514,7 +514,7 @@ describe("mastery progression", () => {
       rank: 3,
       seed: "seed-123",
       learnedIds: []
-    })).toEqual(["searing-feathers", "feather-storm", "swift-molt"]);
+    })).toEqual(["searing-quill", "feather-storm", "swift-molt"]);
 
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "blazing-feather-art",
@@ -530,13 +530,13 @@ describe("mastery progression", () => {
       rank: 6,
       seed: "seed-123",
       learnedIds: ["feather-storm"]
-    })).toEqual(["banked-embers", "ember-cascade", "ember-burst"]);
+    })).toEqual(["endless-plumage", "combat-molt", "last-feather"]);
 
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "blazing-feather-art",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["feather-storm", "banked-embers"]
+      learnedIds: ["feather-storm", "endless-plumage"]
     })).toEqual([]);
   });
 
@@ -545,14 +545,14 @@ describe("mastery progression", () => {
       gongfaId: "blazing-feather-art",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["feather-storm", "banked-embers"]
-    })).toEqual(["phoenix-ascendant", "searing-domain", "molten-updraft"]);
+      learnedIds: ["feather-storm", "endless-plumage"]
+    })).toEqual(["phoenix-brand", "sun-chasing-wings", "ashen-pursuit"]);
 
     expect(getDeterministicMasteryChoiceIds({
       gongfaId: "blazing-feather-art",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["feather-storm", "banked-embers", "searing-domain"]
+      learnedIds: ["feather-storm", "endless-plumage", "phoenix-brand"]
     })).toEqual([]);
   });
 

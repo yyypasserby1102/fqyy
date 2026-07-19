@@ -26,8 +26,8 @@ implementation, testing, balance review, and future regression checks.
 
 | Gongfa | Family | Review | Implementation |
 | --- | --- | --- | --- |
-| Blazing Feather Art / 烈羽诀 | Youxia | Approved | Pending redesign |
-| Drifting Frost Needle / 游霜针 | Youxia | Approved | Pending redesign |
+| Blazing Feather Art / 烈羽诀 | Youxia | Approved | Implemented and verified |
+| Drifting Frost Needle / 游霜针 | Youxia | Approved | Implemented and verified |
 | Yujian Jue / 御剑诀 | Youxia | Approved | Pending redesign |
 | Jinfeng Gong / 金锋功 | Youxia | Approved | Pending redesign |
 | Green Vine Art / 青藤诀 | Youxia | Approved | Pending redesign |
@@ -90,6 +90,20 @@ executes low-health targets, clears Brands, and leaves the quiver empty.
 **Must not become:** homing swords, a companion bird, generic fire volleys, or a
 player-aimed shot.
 
+### Implemented tuning contract
+
+- 普攻只生成自动朝向优先目标的实体扇区，不读取鼠标、摇杆瞄准或移动朝向。基础羽匣为
+  `5` 发；内圈命中仅造成 `0.38×`，外缘最佳距离造成 `1.45×`，因此贴脸不能偷取完整收益。
+- 灼心翎、烈羽风暴、疾蜕分别改写扇角/射程/重击、宽扇清群、三发快匣与攻速；它们不是
+  同一弹幕的数量或属性换色。无尽羽藏为 `8` 发慢换羽，战中蜕羽用闪避替换残匣且不攻击，
+  末羽焚空只强化最后一发并把空匣时间拉长。
+- 凤印为长寿命标记；逐日翼只有连续最佳命中才扩宽外缘，一次失败清空连击；灰烬追猎只在
+  带印目标死亡时把该印转给最远有效敌人。三者分别改变库存、站位容错与死亡拓扑。
+- 凤翎贯日要求同一匣内至少 `3` 次最佳命中及至少 `2` 个凤印；系统枚举带印节点，选择穿过
+  最多凤印的直线，每个带印目标至多结算一次，低于 `18%` 生命处决，随后清印并强制空匣。
+- 战场常驻显示肩侧羽匣、空槽、凤印；HUD 同时显示余羽、换羽倒计时、理想命中准备与印数。
+  运行时不再创建 Ember/Surge，也不会退回 `homing-volley` 或旧 Feather Rain。
+
 ---
 
 ## Drifting Frost Needle / 游霜针
@@ -129,6 +143,20 @@ stores no persistent marks and creates no straight corridor.
 
 **Must not become:** Blazing's Brand corridor, Yujian's weapon inventory, Ice Mirror
 reflection, or a generic frost volley.
+
+### Implemented tuning contract
+
+- 每次攻击只放出一根自动针，从最近可用穴位开始，并只沿 `255px` 内尚未出现在当前针路的
+  真实目标折转；没有新穴位会断链。运行时不再创建 Frost/Surge，也不会生成追踪齐射。
+- 破军孤针只有一个高伤节点；连珠引线最多四个低伤节点；飞霜急点缩短到 `170px` 锁距并加快
+  攻击节奏。静水凝神断链时只保留末两穴并降低伤害保持；移星换穴允许首领轮换身体点但不增加
+  定念；寒魄孤注以满定念换取 `2.5×` 终针及 `0.95s` 普通敌人冻结，随后清路。
+- 逆星刻痕让死亡穴位原地悬留 `1.8s`；七宿连衡插入不可受击的半透明虚宿并降低全部节点伤害；
+  霜封刹那只冻结满定念去程，返程明确不续冻。
+- 第五个记录点出现且逆序冬线就绪时立即触发，不等待独立计时施法。返程严格使用当前节点数组的
+  逆序，伤害逐点上升；完成后定念与针路同时清空。
+- 战场常驻显示淡蓝穴星与真实折线，虚宿使用半透明轮廓；HUD 显示 `Focus 0–5`、当前节点数与
+  逆返准备状态。它不保存凤印、不选择直线贯廊，也没有可重复使用的武器库存。
 
 ---
 

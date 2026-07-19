@@ -425,42 +425,6 @@ function localizeZhMasteryChoice(id: string): MasteryChoiceDefinition {
 
 const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
 {
-  "searing-feathers": {
-    "name": "灼热羽毛",
-    "lore": "将羽毛凝结成更少的、穿甲的炽热的轴。"
-  },
-  "feather-storm": {
-    "name": "羽毛风暴",
-    "lore": "每个周期都会释放出一大片燃烧的羽毛。"
-  },
-  "swift-molt": {
-    "name": "迅速蜕皮",
-    "lore": "脱落羽毛的速度越来越快，弹幕速度也越来越快。"
-  },
-  "banked-embers": {
-    "name": "银行余烬",
-    "lore": "充足的余烬不再褪色到一半以下。"
-  },
-  "ember-cascade": {
-    "name": "余烬瀑布",
-    "lore": "每击中一根羽毛，燃烬的速度都会加快两倍。"
-  },
-  "ember-burst": {
-    "name": "余烬爆裂",
-    "lore": "当余烬满时，下一次齐射会爆发出额外的羽毛。"
-  },
-  "phoenix-ascendant": {
-    "name": "凤凰上升",
-    "lore": "余烬在每一次齐射中都笼罩着幽灵般的炽热羽毛。"
-  },
-  "searing-domain": {
-    "name": "灼热领域",
-    "lore": "羽毛击中留下了余烬鳞片的炽热场地。"
-  },
-  "molten-updraft": {
-    "name": "熔融上升气流",
-    "lore": "每次躲避都会释放出一片灰烬鳞片的羽毛。"
-  },
   "lancing-crescent": {
     "name": "兰斯新月",
     "lore": "将新月压缩成一支深深刺穿的猩红色长矛。"
@@ -496,42 +460,6 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
   "heatwave-step": {
     "name": "热浪步",
     "lore": "每次闪避都会释放出一道焦鳞波。"
-  },
-  "piercing-frost": {
-    "name": "冰霜刺骨",
-    "lore": "将针磨成深深刺穿的冰冻碎片。"
-  },
-  "frost-flurry": {
-    "name": "冰霜乱舞",
-    "lore": "散布大量的霜针。"
-  },
-  "swift-frost": {
-    "name": "迅捷霜冻",
-    "lore": "松散的霜针越来越快。"
-  },
-  "lasting-frost": {
-    "name": "持久霜冻",
-    "lore": "充分燃烧的霜冻不会再褪色到一半以下。"
-  },
-  "frost-cascade": {
-    "name": "冰霜瀑布",
-    "lore": "每击中一根针，弗罗斯特的速度都会加快两倍。"
-  },
-  "frost-burst": {
-    "name": "霜降爆裂",
-    "lore": "在完全霜冻时，下一次齐射会爆发出额外的针。"
-  },
-  "frost-crown": {
-    "name": "霜冠",
-    "lore": "霜冻为每一次齐射都加上了幽灵针。"
-  },
-  "frost-domain": {
-    "name": "霜域",
-    "lore": "针击中会留下一片冰霜鳞片的冰冻区域。"
-  },
-  "frost-step": {
-    "name": "冰霜步",
-    "lore": "每次闪避都会释放出冰霜鳞片的针齐射。"
   },
   "crushing-tide": {
     "name": "粉碎潮汐",
@@ -828,11 +756,24 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
 };
 
 const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: string; cost?: string; scope?: string }> = {
-  "searing-feathers": { name: "炽羽凝锋" },
-  "swift-molt": { name: "疾羽蜕生" },
-  "banked-embers": { name: "蕴火余烬" },
-  "phoenix-ascendant": { name: "凤羽升华" },
-  "molten-updraft": { name: "熔火升流" },
+  "searing-quill": { name: "灼心翎", lore: "羽扇收束为狭长重翎，最佳射程伤害与穿透大增，但侧向覆盖锐减。", gain: "最佳射程的一击更重，射程更远。", cost: "扇面大幅收窄，侧翼敌人更容易漏过", scope: "羽扇角度、射程与最佳射程伤害" },
+  "feather-storm": { name: "烈羽风暴", lore: "羽扇展开为宽阔短扇，擅长清群，但射程与单体伤害下降。", gain: "扇面大幅展开，可同时扫中分散敌群。", cost: "射程缩短，单个目标受到的伤害显著降低", scope: "羽扇宽度、射程与清群能力" },
+  "swift-molt": { name: "疾蜕", lore: "攻击与换羽更快，但羽匣缩为三发且每发更弱。", gain: "攻击和换羽速度显著加快。", cost: "羽匣仅剩三发，每发伤害降低", scope: "羽匣容量、攻击间隔与换羽时间" },
+  "endless-plumage": { name: "无尽羽藏", lore: "羽匣扩为八发，但打空后的换羽时间显著延长。", gain: "羽匣容量提升至八发。", cost: "空匣后的换羽时间显著延长", scope: "连续射击次数与空匣真空期" },
+  "combat-molt": { name: "战中蜕羽", lore: "闪避可立刻替换未满羽匣，但不会借机发射攻击，并舍弃余羽。", gain: "闪避时立刻装满羽匣。", cost: "闪避不发动攻击，并丢弃匣中剩余羽翎", scope: "闪避与羽匣重装" },
+  "last-feather": { name: "末羽焚空", lore: "最后一羽产生沉重爆燃，但空匣换羽更慢。", gain: "每匣最后一羽造成强力爆燃。", cost: "打空后的换羽时间显著延长", scope: "末发爆发与空匣风险" },
+  "phoenix-brand": { name: "凤印", lore: "最佳射程命中的目标留下更持久的可见凤印，偏离射程则无印。", gain: "最佳射程命中留下长时间存在的可见凤印。", cost: "近距或超距命中不会留下凤印", scope: "最佳射程命中与凤翔天际线的标记储备" },
+  "sun-chasing-wings": { name: "逐日翼", lore: "连续最佳命中逐步放宽有效射程；一次失败会清空扩宽与准备。", gain: "连续最佳命中会逐步放宽最佳射程带。", cost: "一次落空便清除扩宽效果与绝学准备", scope: "连续命中、最佳射程带与绝学准备" },
+  "ashen-pursuit": { name: "灰烬追猎", lore: "带印目标死亡时，凤印转移至最远有效敌人，可能因此离开理想贯廊。", gain: "带印目标死亡时，凤印转移给最远的有效敌人。", cost: "转移后的凤印可能偏离可用贯廊", scope: "凤印继承与贯廊站位" },
+  "army-breaking-lone-needle": { name: "破军孤针", lore: "单针直击威力极高，但绝不弹射。", gain: "首个穴位受到极高的单点伤害。", cost: "飞针绝不弹向第二个穴位", scope: "首穴伤害与针路长度" },
+  "linked-pearl-thread": { name: "连珠引线", lore: "一针可连续经过四个不同弱点，但首击与后续伤害更低。", gain: "一针最多串联四个不同穴位。", cost: "首击与后续每一击的伤害均降低", scope: "不同穴位数量与沿途伤害" },
+  "swift-frost-point": { name: "飞霜急点", lore: "重新寻穴更快，但锁定距离更短，失去下一穴时惩罚更重。", gain: "飞针更快重新寻找下一穴位。", cost: "锁定距离缩短，断链时定念损失更重", scope: "寻穴速度、距离与断链惩罚" },
+  "still-water-focus": { name: "静水凝神", lore: "断链时保留最后两穴，但整条针路的伤害保持率下降。", gain: "断链时保留最后两个穴位。", cost: "针路越往后，伤害衰减越明显", scope: "定念保留与连锁伤害" },
+  "moving-star-acupoint": { name: "移星换穴", lore: "首领可轮换暴露另一处穴位而不增减定念，但该次弹射较弱。", gain: "同一首领可轮换暴露不同穴位，且不会重置定念。", cost: "重复首领上的弹射更弱，也不会增加定念", scope: "首领多穴位与定念累计" },
+  "cold-soul-commitment": { name: "寒魄孤注", lore: "满定念换取一次巨力终针并短暂冻结普通敌人，随后清空针路。", gain: "满定念时打出巨力终针，并短暂冻结普通敌人。", cost: "命中后清空全部针路，无法正常保留连锁", scope: "满定念消耗、终针伤害与控制" },
+  "reverse-star-trace": { name: "逆星刻痕", lore: "目标死亡后原穴位短暂悬留，但不能再承受伤害且很快消散。", gain: "目标死亡后，其穴位会短暂留在原地维持返程路线。", cost: "残留穴位很快消散，且不能再承受伤害", scope: "死亡后的路线连续性与穴位寿命" },
+  "seven-lodge-balance": { name: "七宿连衡", lore: "虚宿可补全稀疏星路，但所有真实与返程节点伤害降低。", gain: "虚宿可补全稀疏针路，使其更容易形成返程。", cost: "所有真实穴位与返程节点伤害降低", scope: "虚拟穴位、针路完成与节点伤害" },
+  "frost-sealed-instant": { name: "霜封刹那", lore: "满定念时短暂冻结去程普通敌人；逆返不会延长控制。", gain: "定念完成时，短暂冻结去程命中的普通敌人。", cost: "逆返不会延长冻结，也不会再次施加控制", scope: "去程控制与返程伤害" },
   "lancing-crescent": { name: "贯日炎月" },
   "frost-cascade": { name: "凝霜连生" },
   "tide-crown": { name: "玄潮加冕" },

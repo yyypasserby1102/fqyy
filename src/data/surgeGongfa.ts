@@ -65,20 +65,6 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
     updraft: { id: "heatwave-step", name: "Heatwave Step", lore: "Each Evade looses a Scorch-scaled wave." }
   },
   {
-    gongfaId: "drifting-frost-needle",
-    resource: "Frost",
-    mechanics: { focusDamageScale: 1.32, focusPierce: 3, focusSpreadScale: 0.7, spreadCount: 2, spreadDegrees: 30, spreadDamageScale: 0.82, quickenCooldownScale: 0.68, quickenDamageScale: 0.8, quickenSpeed: 90, holdFloor: 2, cascadeGain: 2, burstCount: 4, crownPerStack: 1, domainDamageScale: 0.3, updraftStackScale: 1 },
-    focus: { id: "piercing-frost", name: "Piercing Frost", lore: "Hone the needles into deep-piercing frozen shards." },
-    spread: { id: "frost-flurry", name: "Frost Flurry", lore: "Scatter a wide flurry of frost needles." },
-    quicken: { id: "swift-frost", name: "Swift Frost", lore: "Loose frost needles faster and swifter." },
-    hold: { id: "lasting-frost", name: "Lasting Frost", lore: "Well-stoked Frost no longer fades below half." },
-    cascade: { id: "frost-cascade", name: "Frost Cascade", lore: "Each needle hit stokes Frost twice as fast." },
-    burst: { id: "frost-burst", name: "Frostfall Burst", lore: "At full Frost, the next volley erupts with extra needles." },
-    crown: { id: "frost-crown", name: "Frost Crown", lore: "Frost crowns every volley with spectral needles." },
-    domain: { id: "frost-domain", name: "Hoarfrost Domain", lore: "Needle hits leave a Frost-scaled frozen field." },
-    updraft: { id: "frost-step", name: "Frost Step", lore: "Each Evade looses a Frost-scaled needle volley." }
-  },
-  {
     gongfaId: "black-tide-scripture",
     resource: "Tide",
     mechanics: { focusDamageScale: 1.45, focusPierce: 2, focusSpreadScale: 0.58, spreadCount: 2, spreadDegrees: 20, spreadDamageScale: 0.84, quickenCooldownScale: 0.76, quickenDamageScale: 0.86, quickenSpeed: 50, holdFloor: 3, cascadeGain: 3, burstCount: 2, crownPerStack: 1, domainDamageScale: 0.4, updraftStackScale: 1 },

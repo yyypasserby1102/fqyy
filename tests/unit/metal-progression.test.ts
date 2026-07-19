@@ -201,8 +201,8 @@ describe("Metal progression tree", () => {
     expect(getGongfaSkillTags("burning-ring-scripture")).toEqual(["aura", "fire"]);
   });
 
-  it("derives fallback skill tags and progression narratives for non-specialized Gongfa", () => {
-    expect(getGongfaSkillTags("blazing-feather-art")).toEqual(["homing", "fire"]);
+  it("derives authored skill tags and progression narratives for Blazing Feather Art", () => {
+    expect(getGongfaSkillTags("blazing-feather-art")).toEqual(["projectile", "fire"]);
 
     const summary = getStageProgressionSummary("blazing-feather-art");
     expect(summary.lianqi.signatureChange).toBe("acquire Blazing Feather Art");

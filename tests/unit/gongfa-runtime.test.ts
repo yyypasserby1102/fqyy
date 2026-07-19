@@ -487,9 +487,9 @@ describe("Gongfa runtime", () => {
 
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
     const expectedEffectKinds: Partial<Record<GongfaId, string>> = {
-      "blazing-feather-art": "feather-rain-formation",
+      "blazing-feather-art": "authored-phoenix-horizon",
       "scarlet-wave-manual": "authored-scarlet-tides",
-      "drifting-frost-needle": "mirror-needle-constellation",
+      "drifting-frost-needle": "authored-reverse-winter-thread",
       "black-tide-scripture": "authored-deluge-mandate",
       "ice-mirror-guard": "authored-mirror-facets",
       "green-vine-art": "verdant-root-network",
@@ -504,6 +504,23 @@ describe("Gongfa runtime", () => {
 
       const runtime = createGongfaRuntime({ gongfaId });
       if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
+      if (gongfaId === "blazing-feather-art") {
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.mastery.masterySkill2CooldownRemaining = 0;
+        runtime.authored.cycleCount = 2;
+        runtime.authored.anchors.push(
+          { kind: "phoenix-brand", x: 175, y: 0, targetId: 201, value: 1 },
+          { kind: "phoenix-brand", x: 210, y: 0, targetId: 202, value: 1 }
+        );
+      }
+      if (gongfaId === "drifting-frost-needle") {
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.mastery.masterySkill2CooldownRemaining = 0;
+        runtime.authored.anchors.push(...[1, 2, 3, 4].map((targetId, index) => ({
+          kind: "weakpoint" as const, x: 40 + index * 45, y: index % 2 ? 25 : 0,
+          targetId, value: 1
+        })));
+      }
       if (gongfaId === "ironwood-wave-form") {
         runtime.authored.cycleCount = 3;
         runtime.mastery.masterySkill2Id = skill2Id;
@@ -582,7 +599,13 @@ describe("Gongfa runtime", () => {
           { kind: "infection", targetId: 94, x: 60, y: 0, value: 0, infectionStage: 0 }
         );
       }
-      const result = gongfaId === "flame-demon-body-art"
+      const result = gongfaId === "blazing-feather-art"
+        ? { runtime, commands: planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+            targets: [{ targetId: 203, x: 200, y: 0, healthRatio: 1, rank: "elite" }] }) }
+        : gongfaId === "drifting-frost-needle"
+        ? { runtime, commands: planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+            targets: [{ targetId: 5, x: 220, y: -10, healthRatio: 1, rank: "elite" }] }) }
+        : gongfaId === "flame-demon-body-art"
         ? advanceGongfaRuntime(runtime, {
             kind: "authored-asura-transform", healthRatio: 0.19,
             learnedMasteryIds: ["world-burning-asura"]
@@ -743,6 +766,27 @@ describe("Gongfa runtime", () => {
   it("projects defining resource-scaled behavior for every newly authored Skill 2", () => {
     const cast = (gongfaId: GongfaId) => {
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "blazing-feather-art") {
+        runtime.mastery.masterySkill2Id = "feather-rain-formation";
+        runtime.authored.cycleCount = 2;
+        runtime.authored.anchors.push(
+          { kind: "phoenix-brand", x: 175, y: 0, targetId: 1, value: 1 },
+          { kind: "phoenix-brand", x: 210, y: 0, targetId: 2, value: 1 }
+        );
+        return planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+          targets: [{ targetId: 3, x: 200, y: 0, healthRatio: 1, rank: "elite" }] })
+          .find((command) => command.kind === "authored-phoenix-horizon");
+      }
+      if (gongfaId === "drifting-frost-needle") {
+        runtime.mastery.masterySkill2Id = "mirror-needle-constellation";
+        runtime.authored.anchors.push(...[1, 2, 3, 4].map((targetId, index) => ({
+          kind: "weakpoint" as const, x: 40 + index * 45, y: index % 2 ? 25 : 0,
+          targetId, value: 1
+        })));
+        return planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+          targets: [{ targetId: 5, x: 220, y: -10, healthRatio: 1, rank: "elite" }] })
+          .find((command) => command.kind === "authored-reverse-winter-thread");
+      }
       if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (gongfaId === "vermilion-bird-covenant") {
         runtime.authored.targetLedger[-20] = 1;
@@ -760,7 +804,6 @@ describe("Gongfa runtime", () => {
           { kind: "glyph", glyph: "thorn", x: 0, y: 0, value: 1 }
         );
       }
-      if (runtime.blazingFeather) runtime.blazingFeather.emberStacks = 6;
       if (runtime.surge) runtime.surge.stacks = 6;
       return advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -775,10 +818,8 @@ describe("Gongfa runtime", () => {
     };
 
     expect(cast("blazing-feather-art")).toMatchObject({
-      kind: "feather-rain-formation",
-      fanCount: 3,
-      feathersPerFan: 7,
-      damage: 22
+      kind: "authored-phoenix-horizon",
+      targetIds: [1, 2, 3]
     });
     expect(cast("scarlet-wave-manual")).toMatchObject({
       kind: "authored-scarlet-tides",
@@ -786,9 +827,8 @@ describe("Gongfa runtime", () => {
       immediateSeam: true
     });
     expect(cast("drifting-frost-needle")).toMatchObject({
-      kind: "mirror-needle-constellation",
-      needleCount: 10,
-      pierce: 3
+      kind: "authored-reverse-winter-thread",
+      points: expect.arrayContaining([expect.objectContaining({ targetId: 5 })])
     });
     expect(cast("black-tide-scripture")).toMatchObject({
       kind: "authored-deluge-mandate",
@@ -2391,151 +2431,66 @@ describe("Gongfa runtime", () => {
     expect(unleashedCount).toBeGreaterThan(plainCount);
   });
 
-  it("applies Blazing Feather rank-3 structural Transformations", () => {
-    const base = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
-
-    const searing = applyGongfaImprovement(base, "searing-feathers").runtime;
-    expect(searing.combat.pierce).toBe(base.combat.pierce + 2);
-    expect(searing.combat.count).toBe(Math.max(1, base.combat.count - 1));
-    expect(searing.combat.damage).toBeGreaterThan(base.combat.damage);
-
-    const storm = applyGongfaImprovement(base, "feather-storm").runtime;
-    expect(storm.combat.count).toBe(base.combat.count + 3);
-    expect(storm.combat.spreadDeg).toBe(base.combat.spreadDeg + 24);
-    expect(storm.combat.damage).toBeLessThan(base.combat.damage);
-
-    const swift = applyGongfaImprovement(base, "swift-molt").runtime;
-    expect(swift.combat.cooldownMs).toBeLessThan(base.combat.cooldownMs);
-    expect(swift.combat.damage).toBeLessThan(base.combat.damage);
-    expect(swift.combat.projectileSpeed).toBe(base.combat.projectileSpeed + 80);
+  it("Blazing Feather uses a finite non-homing fan with a visibly stronger outer edge", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+    const [fan] = planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0,
+      targets: [
+        { targetId: 1, x: 70, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 200, y: 5, healthRatio: 1, rank: "elite" }
+      ]
+    });
+    expect(fan?.kind).toBe("authored-blazing-feather-fan");
+    if (fan?.kind !== "authored-blazing-feather-fan") return;
+    const close = fan.targets.find((target) => target.targetId === 1)!;
+    const edge = fan.targets.find((target) => target.targetId === 2)!;
+    expect(edge.optimal).toBe(true);
+    expect(edge.damage).toBeGreaterThan(close.damage * 2);
+    expect(runtime.authored.charges).toBe(4);
+    expect(runtime.blazingFeather).toBeUndefined();
   });
 
-  it("Ember Surge builds on hits, boosts damage and feather count, and fades", () => {
-    let runtime = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
-    const baseDamage = runtime.combat.damage;
-    const [basePlan] = planGongfaAttack(runtime, 0);
-    const baseCount = basePlan.kind === "homing-volley" ? basePlan.count : 0;
-
-    for (let i = 0; i < 4; i += 1) {
-      runtime = advanceGongfaRuntimeForProjectileHit(runtime, {
-        sourceGongfaId: "blazing-feather-art",
-        targetId: 1,
-        damage: 10,
-        learnedMasteryIds: [],
-        baseDamageKilledTarget: false,
-        embedStacks: 0,
-        embedPower: 0
-      }).runtime;
-    }
-    expect(runtime.blazingFeather!.emberStacks).toBe(4);
-    expect(runtime.combat.damage).toBeGreaterThan(baseDamage);
-    const [chargedPlan] = planGongfaAttack(runtime, 0);
-    const chargedCount = chargedPlan.kind === "homing-volley" ? chargedPlan.count : 0;
-    expect(chargedCount).toBeGreaterThan(baseCount);
-
-    const faded = advanceGongfaRuntime(runtime, {
-      kind: "tick",
-      deltaMs: 4000,
-      nearbyEnemyCount: 0,
-      isMoving: false
-    }).runtime;
-    expect(faded.blazingFeather!.emberStacks).toBeLessThan(4);
-  });
-
-  it("does not stoke an owning resource for a repeated Skill 2 activation hit", () => {
-    const hitFacts = {
-      targetId: 1,
-      damage: 10,
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0,
-      resourceGainEligible: false
+  it("Blazing Feather R3 and R6 branches change fan geometry or quiver economy", () => {
+    const target = [{ targetId: 2, x: 200, y: 0, healthRatio: 1, rank: "elite" as const }];
+    const plan = (ids: string[]) => {
+      const runtime = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+      const command = planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0, targets: target, learnedMasteryIds: ids })[0];
+      return { runtime, command };
     };
-    const feather = advanceGongfaRuntimeForProjectileHit(
-      createGongfaRuntime({ gongfaId: "blazing-feather-art" }),
-      { ...hitFacts, sourceGongfaId: "blazing-feather-art" }
-    ).runtime;
-    const wave = advanceGongfaRuntimeForProjectileHit(
-      createGongfaRuntime({ gongfaId: "scarlet-wave-manual" }),
-      { ...hitFacts, sourceGongfaId: "scarlet-wave-manual" }
-    ).runtime;
-
-    expect(feather.blazingFeather!.emberStacks).toBe(0);
-    expect(wave.surge!.stacks).toBe(0);
+    const searing = plan(["searing-quill"]);
+    const storm = plan(["feather-storm"]);
+    expect(searing.command?.kind === "authored-blazing-feather-fan" &&
+      storm.command?.kind === "authored-blazing-feather-fan" && searing.command.arc).toBeLessThan(
+        storm.command?.kind === "authored-blazing-feather-fan" ? storm.command.arc : 0
+      );
+    const endless = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+    advanceGongfaRuntime(endless, { kind: "tick", deltaMs: 1, nearbyEnemyCount: 1,
+      learnedMasteryIds: ["endless-plumage"] });
+    expect(endless.authored.maxCharges).toBe(5);
+    const updated = advanceGongfaRuntime(endless, { kind: "tick", deltaMs: 1, nearbyEnemyCount: 1,
+      learnedMasteryIds: ["endless-plumage"] }).runtime;
+    expect(updated.authored.maxCharges).toBe(8);
+    const swift = applyGongfaImprovement(createGongfaRuntime({ gongfaId: "blazing-feather-art" }), "swift-molt").runtime;
+    expect(swift.combat.cooldownMs).toBeLessThan(createGongfaRuntime({ gongfaId: "blazing-feather-art" }).combat.cooldownMs);
   });
 
-  it("Ember Cascade builds Embers faster; Banked Embers holds them at half", () => {
-    const base = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
-    const cascade = advanceGongfaRuntimeForProjectileHit(base, {
-      sourceGongfaId: "blazing-feather-art",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: ["ember-cascade"],
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    }).runtime;
-    expect(cascade.blazingFeather!.emberStacks).toBe(2);
-
-    let banked = createGongfaRuntime({
-      gongfaId: "blazing-feather-art",
-      blazingFeather: { emberStacks: 6, emberDurationRemaining: 10 }
-    });
-    for (let i = 0; i < 10; i += 1) {
-      banked = advanceGongfaRuntime(banked, {
-        kind: "tick",
-        deltaMs: 3000,
-        nearbyEnemyCount: 0,
-        isMoving: false,
-        learnedMasteryIds: ["banked-embers"]
-      }).runtime;
-    }
-    expect(banked.blazingFeather!.emberStacks).toBe(3);
-  });
-
-  it("Ember Burst adds feathers only at full Embers", () => {
-    const full = createGongfaRuntime({
-      gongfaId: "blazing-feather-art",
-      blazingFeather: { emberStacks: 6 }
-    });
-    const [burst] = planGongfaAttack(full, 0, { learnedMasteryIds: ["ember-burst"] });
-    const [plain] = planGongfaAttack(full, 0);
-    const burstCount = burst.kind === "homing-volley" ? burst.count : 0;
-    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
-    expect(burstCount).toBe(plainCount + 3);
-  });
-
-  it("Blazing Feather rank-9: Phoenix Ascendant, Searing Domain, Molten Updraft", () => {
-    const stoked = createGongfaRuntime({
-      gongfaId: "blazing-feather-art",
-      blazingFeather: { emberStacks: 4 }
-    });
-
-    // Phoenix Ascendant adds spectral feathers by current Embers.
-    const [crowned] = planGongfaAttack(stoked, 0, { learnedMasteryIds: ["phoenix-ascendant"] });
-    const [plain] = planGongfaAttack(stoked, 0);
-    const crownedCount = crowned.kind === "homing-volley" ? crowned.count : 0;
-    const plainCount = plain.kind === "homing-volley" ? plain.count : 0;
-    expect(crownedCount).toBe(plainCount + 4);
-
-    // Searing Domain leaves a blazing field (aura-burst) on hit.
-    const domainHit = advanceGongfaRuntimeForProjectileHit(stoked, {
-      sourceGongfaId: "blazing-feather-art",
-      targetId: 1,
-      damage: 10,
-      learnedMasteryIds: ["searing-domain"],
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    });
-    expect(domainHit.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-
-    // Molten Updraft looses an extra feather volley on Evade.
-    const evaded = advanceGongfaRuntime(stoked, {
-      kind: "evade",
-      learnedMasteryIds: ["molten-updraft"]
-    });
-    expect(evaded.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+  it("Phoenix Horizon requires ideal hits and Brands, chooses one corridor, then empties the quiver", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
+    runtime.mastery.masterySkill2Id = "feather-rain-formation";
+    runtime.mastery.masterySkill2CooldownRemaining = 0;
+    runtime.authored.cycleCount = 2;
+    runtime.authored.anchors.push(
+      { kind: "phoenix-brand", x: 170, y: 0, targetId: 1, value: 1 },
+      { kind: "phoenix-brand", x: 210, y: 4, targetId: 2, value: 1 }
+    );
+    const commands = planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+      targets: [{ targetId: 3, x: 200, y: 2, healthRatio: 1, rank: "elite" }] });
+    const horizon = commands.find((command) => command.kind === "authored-phoenix-horizon");
+    expect(horizon?.kind).toBe("authored-phoenix-horizon");
+    expect(horizon?.kind === "authored-phoenix-horizon" && horizon.targetIds).toEqual([1, 2, 3]);
+    expect(runtime.authored.charges).toBe(0);
+    expect(runtime.authored.anchors).toEqual([]);
+    expect(commands.some((command) => command.kind === "homing-volley")).toBe(false);
   });
 
   it("Scarlet Twin Tides uses pair state rather than hit-built Surge", () => {
@@ -2646,18 +2601,45 @@ describe("Gongfa runtime", () => {
     expect(thornFinal?.power).toBeGreaterThan(1);
   });
 
-  it("remaining projectile Surge updraft behaviour stays pattern-aware", () => {
-    const frostBase = createGongfaRuntime({ gongfaId: "drifting-frost-needle" });
-    const frostSpread = applyGongfaImprovement(frostBase, "frost-flurry").runtime;
-    expect(frostSpread.combat.count - frostBase.combat.count).toBe(2);
-    expect(frostSpread.combat.spreadDeg).toBeGreaterThan(frostBase.combat.spreadDeg);
-
-    const homingEvade = advanceGongfaRuntime(
-      createGongfaRuntime({ gongfaId: "drifting-frost-needle", surge: { stacks: 3 } }),
-      { kind: "evade", learnedMasteryIds: ["frost-step"] }
+  it("Drifting Frost records distinct weak points and immediately reverses the exact five-point zigzag", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "drifting-frost-needle" });
+    runtime.mastery.masterySkill2Id = "mirror-needle-constellation";
+    runtime.mastery.masterySkill2CooldownRemaining = 0;
+    runtime.authored.anchors.push(
+      { kind: "weakpoint", x: 60, y: 0, targetId: 1, value: 1 },
+      { kind: "weakpoint", x: 100, y: 40, targetId: 2, value: 1 },
+      { kind: "weakpoint", x: 140, y: -20, targetId: 3, value: 1 },
+      { kind: "weakpoint", x: 180, y: 35, targetId: 4, value: 1 }
     );
-    expect(homingEvade.commands.some((command) => command.kind === "homing-volley")).toBe(true);
+    const commands = planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+      targets: [{ targetId: 5, x: 220, y: -15, healthRatio: 1, rank: "elite" }] });
+    const reverse = commands.find((command) => command.kind === "authored-reverse-winter-thread");
+    expect(reverse?.kind === "authored-reverse-winter-thread" &&
+      reverse.points.map((point) => point.targetId)).toEqual([5, 4, 3, 2, 1]);
+    expect(reverse?.kind === "authored-reverse-winter-thread" &&
+      reverse.points.at(-1)!.damage).toBeGreaterThan(
+        reverse?.kind === "authored-reverse-winter-thread" ? reverse.points[0]!.damage : Infinity
+      );
+    expect(runtime.authored.anchors).toEqual([]);
+    expect(runtime.surge).toBeUndefined();
+    expect(commands.some((command) => command.kind === "homing-volley")).toBe(false);
+  });
 
+  it("Drifting Frost R3 routes are structurally different", () => {
+    const targets = [1, 2, 3, 4].map((targetId, index) => ({
+      targetId, x: 70 + index * 55, y: index % 2 ? 35 : 0, healthRatio: 1,
+      rank: "ordinary" as const
+    }));
+    const cast = (learnedMasteryIds: string[]) => planGongfaAttack(
+      createGongfaRuntime({ gongfaId: "drifting-frost-needle" }), 0,
+      { playerX: 0, playerY: 0, targets, learnedMasteryIds }
+    )[0];
+    const lone = cast(["army-breaking-lone-needle"]);
+    const linked = cast(["linked-pearl-thread"]);
+    const swift = cast(["swift-frost-point"]);
+    expect(lone?.kind === "authored-frost-needle-chain" && lone.points).toHaveLength(1);
+    expect(linked?.kind === "authored-frost-needle-chain" && linked.points).toHaveLength(4);
+    expect(swift?.kind === "authored-frost-needle-chain" && swift.points.length).toBeLessThan(4);
   });
 
   it("Sword Crown and Intent Domain scale with Intent; Void-Step looses a volley", () => {

@@ -592,6 +592,10 @@ export function getGongfaSkillTags(gongfaId: GongfaId): GongfaTag[] {
       return ["aura", "metal", "defensive"];
     case "crimson-furnace-sword-art":
       return ["projectile", "explosive", "fire", "metal"];
+    case "blazing-feather-art":
+      return ["projectile", "fire"];
+    case "drifting-frost-needle":
+      return ["projectile", "water"];
     case "burning-ring-scripture":
       return ["aura", "fire"];
     case "nine-sun-calamity-seal":

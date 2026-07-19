@@ -89,8 +89,7 @@ export interface SurgeState {
 }
 
 export interface BlazingFeatherState {
-  // Ember Surge passive: hits stoke Embers that boost feather damage and add
-  // feathers; Embers fade over time.
+  /** Legacy checkpoint payload; new runtimes migrate to authored quiver state. */
   emberStacks: number;
   emberDurationRemaining: number;
   emberAppliedDamageBonus: number;
@@ -227,7 +226,6 @@ export type GongfaRuntimeEvent =
     }
   | { kind: "projectile-hit"; damage: number; learnedMasteryIds?: string[] }
   | { kind: "jinfeng-wave-hit"; learnedMasteryIds?: string[] }
-  | { kind: "blazing-feather-hit"; learnedMasteryIds?: string[] }
   | { kind: "surge-hit"; learnedMasteryIds?: string[] }
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds?: string[] }
   | { kind: "evade"; playerX?: number; playerY?: number; nearbyEnemyCount?: number; learnedMasteryIds?: string[] }
@@ -811,6 +809,40 @@ export type GongfaRuntimeCommand =
       x: number; y: number; radius: number; rootDamage: number; leafDamage: number;
       thornDamage: number; phaseDelayMs: number; sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-blazing-feather-fan";
+      origin: { x: number; y: number };
+      angle: number;
+      arc: number;
+      range: number;
+      optimalStart: number;
+      optimalEnd: number;
+      targets: Array<{ targetId: number; x: number; y: number; damage: number; optimal: boolean }>;
+      lastFeather: boolean;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-phoenix-horizon";
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      targetIds: number[];
+      damage: number;
+      executeHealthRatio: number;
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-frost-needle-chain";
+      points: Array<{ targetId: number; x: number; y: number; damage: number }>;
+      freezeMs: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-reverse-winter-thread";
+      points: Array<{ targetId: number; x: number; y: number; damage: number }>;
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -1301,7 +1333,6 @@ function resetTransientRuntimeTimers(runtime: GongfaRuntime): void {
     runtime.burningRing.sunspotCooldownRemaining = 0;
   }
   if (runtime.crimsonFurnace) runtime.crimsonFurnace.furnaceCascadeCooldownRemaining = 0;
-  if (runtime.blazingFeather) runtime.blazingFeather.emberDurationRemaining = 0;
   if (runtime.surge) runtime.surge.durationRemaining = 0;
 }
 
@@ -1469,7 +1500,7 @@ function buildExplicitTimedSkill2Command(
     skill2Id: skill2.intent,
     cooldownMs: Math.max(600, Math.floor(skill2.cooldownMs * cadenceScale))
   };
-  const resource = runtime.blazingFeather?.emberStacks ?? runtime.surge?.stacks ?? 0;
+  const resource = runtime.surge?.stacks ?? 0;
 
   switch (skill2.intent) {
     case "feather-rain-formation":
@@ -1698,25 +1729,6 @@ const yujianDefaults: YujianState = {
 };
 
 const INTENT_DURATION_MS = 3000;
-
-const EMBER_DURATION_MS = 2600;
-const MAX_EMBER_STACKS = 6;
-
-const blazingFeatherDefaults: BlazingFeatherState = {
-  emberStacks: 0,
-  emberDurationRemaining: 0,
-  emberAppliedDamageBonus: 0
-};
-
-function syncBlazingFeatherCombat(runtime: GongfaRuntime): void {
-  const state = runtime.blazingFeather;
-  if (!state) {
-    return;
-  }
-  const desiredDamageBonus = state.emberStacks * 2;
-  runtime.combat.damage += desiredDamageBonus - state.emberAppliedDamageBonus;
-  state.emberAppliedDamageBonus = desiredDamageBonus;
-}
 
 const SURGE_DURATION_MS = 2600;
 const MAX_SURGE_STACKS = 6;
@@ -2095,12 +2107,11 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
             pressureAppliedRadiusBonus: 0
           }
         : undefined,
-    blazingFeather:
-      input.gongfaId === "blazing-feather-art"
-        ? { ...blazingFeatherDefaults, ...input.blazingFeather }
-        : undefined,
+    // Legacy Ember fields are accepted by the codec but are no longer live.
+    // Blazing Feather now uses the authored finite-quiver state below.
+    blazingFeather: undefined,
     surge: surgeGongfaIdSet.has(input.gongfaId) &&
-      !["verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(input.gongfaId)
+      !["blazing-feather-art", "drifting-frost-needle", "verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -2123,7 +2134,6 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
   syncGengjinCombat(runtime);
   syncBurningRingCombat(runtime);
   syncCrimsonFurnaceCombat(runtime);
-  syncBlazingFeatherCombat(runtime);
   syncSurgeCombat(runtime);
   return runtime;
 }
@@ -2422,18 +2432,6 @@ export function advanceGongfaRuntimeForProjectileHit(
     commands.push(...result.commands);
   }
 
-  if (
-    facts.resourceGainEligible !== false &&
-    facts.sourceGongfaId === "blazing-feather-art" &&
-    next.blazingFeather
-  ) {
-    const result = advanceGongfaRuntime(next, {
-      kind: "blazing-feather-hit",
-      learnedMasteryIds: facts.learnedMasteryIds
-    });
-    next = result.runtime;
-    commands.push(...result.commands);
-  }
 
   if (facts.sourceGongfaId === "gengjin-huti" && next.gengjin) {
     const result = advanceGongfaRuntime(next, {
@@ -2558,6 +2556,22 @@ function distanceSquared(ax: number, ay: number, bx: number, by: number): number
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+}
+
+function normalizedAngleDifference(a: number, b: number): number {
+  return Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+}
+
+function distanceToInfiniteLine(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 0.001) return Math.hypot(point.x - from.x, point.y - from.y);
+  return Math.abs(dy * point.x - dx * point.y + to.x * from.y - to.y * from.x) / length;
 }
 
 function movementCrossesLine(
@@ -3065,6 +3079,49 @@ function advanceAuthoredWorldFacts(
     : runtime.mastery.masteryLearnedIds;
 
   if (event.kind === "enemy-death") {
+    if (runtime.gongfaId === "blazing-feather-art") {
+      const deadBrands = state.anchors.filter((anchor) =>
+        anchor.kind === "phoenix-brand" && anchor.targetId === event.targetId
+      );
+      if (deadBrands.length > 0 && learnedIds.includes("ashen-pursuit")) {
+        const branded = new Set(state.anchors
+          .filter((anchor) => anchor.kind === "phoenix-brand" && anchor.targetId !== event.targetId)
+          .map((anchor) => anchor.targetId));
+        const recipient = [...(event.targets ?? [])]
+          .filter((target) => !branded.has(target.targetId))
+          .sort((a, b) =>
+            distanceSquared(b.x, b.y, event.playerX, event.playerY) -
+            distanceSquared(a.x, a.y, event.playerX, event.playerY)
+          )[0];
+        if (recipient) {
+          deadBrands[0]!.targetId = recipient.targetId;
+          deadBrands[0]!.x = recipient.x;
+          deadBrands[0]!.y = recipient.y;
+          deadBrands[0]!.remainingMs = 7000;
+        }
+      }
+      state.anchors = state.anchors.filter((anchor) =>
+        anchor.kind !== "phoenix-brand" || anchor.targetId !== event.targetId ||
+        (learnedIds.includes("ashen-pursuit") && deadBrands[0]?.targetId !== event.targetId)
+      );
+    }
+
+    if (runtime.gongfaId === "drifting-frost-needle") {
+      const deadNodes = state.anchors.filter((anchor) =>
+        anchor.kind === "weakpoint" && anchor.targetId === event.targetId
+      );
+      if (learnedIds.includes("reverse-star-trace")) {
+        for (const node of deadNodes) {
+          node.targetId = undefined;
+          node.remainingMs = 1800 * Math.pow(1.16, masteryEffectTiers(learnedIds, "surgeStability"));
+        }
+      } else if (deadNodes.length > 0) {
+        state.anchors = [];
+        state.resource = 0;
+        state.charges = 0;
+      }
+    }
+
     if (runtime.gongfaId === "crimson-furnace-sword-art" &&
         learnedIds.includes("sealed-leftover-needle") && (event.embedStacks ?? 0) > 0) {
       const targetId = -100_000 - state.activationCount;
@@ -3314,6 +3371,18 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "evade" && runtime.gongfaId === "blazing-feather-art") {
+    const combatMolt = learnedIds.includes("combat-molt");
+    if (state.charges === 0 || (combatMolt && state.charges < state.maxCharges)) {
+      state.charges = state.maxCharges;
+      state.phaseElapsedMs = 0;
+      state.phase = 0;
+      state.cycleCount = 0;
+      state.resource = 1;
+    }
+    return;
+  }
+
   if (
     event.kind === "evade" && runtime.gongfaId === "sword-burial-formation" &&
     learnedIds.includes("seal-grave-treading-stars")
@@ -3364,6 +3433,48 @@ function advanceAuthoredWorldFacts(
 
   if (runtime.gongfaId === "crimson-furnace-sword-art") {
     advanceCrimsonNetwork(runtime, event, learnedIds, commands);
+    return;
+  }
+
+  if (runtime.gongfaId === "blazing-feather-art") {
+    const maxCharges = learnedIds.includes("endless-plumage") ? 8 :
+      learnedIds.includes("swift-molt") ? 3 : state.maxCharges;
+    state.maxCharges = maxCharges;
+    if (state.charges === 0) {
+      if (state.phaseElapsedMs <= 0) {
+        const reloadMs = learnedIds.includes("last-feather") ? 2300 :
+          learnedIds.includes("endless-plumage") ? 2200 :
+            learnedIds.includes("swift-molt") ? 900 : 1500;
+        state.phaseElapsedMs = reloadMs * Math.pow(0.92, masteryEffectTiers(learnedIds, "surgeBuild"));
+        state.phase = 1;
+      }
+      state.phaseElapsedMs = Math.max(0, state.phaseElapsedMs - event.deltaMs);
+      if (state.phaseElapsedMs === 0) {
+        state.charges = state.maxCharges;
+        state.cycleCount = 0;
+        state.phase = 0;
+      }
+    }
+    state.resource = state.charges / Math.max(1, state.maxCharges);
+    state.anchors = state.anchors.filter((anchor) => {
+      if (anchor.kind !== "phoenix-brand" || anchor.remainingMs === undefined) return true;
+      anchor.remainingMs = Math.max(0, anchor.remainingMs - event.deltaMs);
+      return anchor.remainingMs > 0;
+    });
+    for (const brand of state.anchors.filter((anchor) => anchor.kind === "phoenix-brand")) {
+      const target = event.targets?.find((candidate) => candidate.targetId === brand.targetId);
+      if (target) { brand.x = target.x; brand.y = target.y; }
+    }
+    return;
+  }
+
+  if (runtime.gongfaId === "drifting-frost-needle") {
+    state.anchors = state.anchors.filter((anchor) =>
+      anchor.kind !== "weakpoint" || anchor.remainingMs === undefined ||
+      (anchor.remainingMs = Math.max(0, anchor.remainingMs - event.deltaMs)) > 0
+    );
+    state.charges = state.anchors.filter((anchor) => anchor.kind === "weakpoint").length;
+    state.resource = Math.min(1, state.charges / 5);
     return;
   }
 
@@ -4541,6 +4652,8 @@ export function advanceGongfaRuntime(
     runtime.gongfaId !== "frozen-river-formation" &&
     runtime.gongfaId !== "sword-burial-formation" &&
     runtime.gongfaId !== "thousand-root-formation" &&
+    runtime.gongfaId !== "blazing-feather-art" &&
+    runtime.gongfaId !== "drifting-frost-needle" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -4684,6 +4797,15 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "skill2") {
+    if (event.skill2Id === "feather-rain-formation" && next.gongfaId === "blazing-feather-art") {
+      // Phoenix Horizon is earned and fired by an ideal-range magazine; a
+      // timer may ready it, but may never substitute the old feather rain.
+      return { runtime: next, commands };
+    }
+    if (event.skill2Id === "mirror-needle-constellation" && next.gongfaId === "drifting-frost-needle") {
+      // Reverse Winter Thread fires immediately from the fifth recorded point.
+      return { runtime: next, commands };
+    }
     if (event.skill2Id === "ironwood-surge-form" && next.gongfaId === "ironwood-wave-form") {
       // Ironwood Citadel is not a timed button-like cast. The rampart state
       // raises it only after three recorded high-Stability drives.
@@ -5344,29 +5466,6 @@ export function advanceGongfaRuntime(
     return { runtime: next, commands };
   }
 
-  if (event.kind === "blazing-feather-hit") {
-    const state = next.blazingFeather;
-    if (!state) {
-      return { runtime: next, commands };
-    }
-    // Ember Surge: hits stoke Embers; Ember Cascade stokes them faster.
-    const gain = (event.learnedMasteryIds.includes("ember-cascade") ? 2 : 1) +
-      masteryEffectTiers(event.learnedMasteryIds, "surgeBuild");
-    state.emberStacks = Math.min(MAX_EMBER_STACKS, state.emberStacks + gain);
-    state.emberDurationRemaining = EMBER_DURATION_MS *
-      (1 + masteryEffectTiers(event.learnedMasteryIds, "surgeStability") * 0.25);
-    syncBlazingFeatherCombat(next);
-    // Searing Domain: hits leave an Ember-scaled blazing field.
-    if (event.learnedMasteryIds.includes("searing-domain") && state.emberStacks > 0) {
-      commands.push({
-        kind: "aura-burst",
-        damage: Math.max(1, Math.floor(next.combat.damage * 0.35)),
-        count: 2 + Math.floor(state.emberStacks / 2)
-      });
-    }
-    return { runtime: next, commands };
-  }
-
   if (event.kind === "surge-hit") {
     const state = next.surge;
     if (!state) {
@@ -5442,13 +5541,6 @@ export function advanceGongfaRuntime(
       commands.push({
         kind: "homing-volley",
         count: Math.max(1, next.combat.count)
-      });
-    }
-    // Molten Updraft: each Evade looses an Ember-scaled feather volley.
-    if (next.blazingFeather && event.learnedMasteryIds.includes("molten-updraft")) {
-      commands.push({
-        kind: "homing-volley",
-        count: Math.max(1, next.combat.count + next.blazingFeather.emberStacks)
       });
     }
     // Surge "updraft": each Evade looses a stack-scaled volley of its pattern.
@@ -5789,24 +5881,6 @@ export function advanceGongfaRuntime(
     }
   }
 
-  if (next.blazingFeather && next.blazingFeather.emberStacks > 0) {
-    const blazingLearned = event.learnedMasteryIds ?? [];
-    next.blazingFeather.emberDurationRemaining = Math.max(
-      0,
-      next.blazingFeather.emberDurationRemaining - Math.max(0, event.deltaMs)
-    );
-    if (next.blazingFeather.emberDurationRemaining === 0) {
-      // Banked Embers holds Embers at half (3 of 6) once they are well stoked.
-      const floor =
-        blazingLearned.includes("banked-embers") && next.blazingFeather.emberStacks >= 3 ? 3 : 0;
-      next.blazingFeather.emberStacks = Math.max(floor, next.blazingFeather.emberStacks - 1);
-      if (next.blazingFeather.emberStacks > 0) {
-        next.blazingFeather.emberDurationRemaining = EMBER_DURATION_MS;
-      }
-      syncBlazingFeatherCombat(next);
-    }
-  }
-
   if (next.surge && next.surge.stacks > 0) {
     const surgeLearned = event.learnedMasteryIds ?? [];
     next.surge.durationRemaining = Math.max(
@@ -6069,6 +6143,212 @@ export function planGongfaAttack(
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
   if (runtime.gongfaId === "verdant-ring-scripture") return [];
+  if (runtime.gongfaId === "blazing-feather-art") {
+    const state = runtime.authored;
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const targets = options.targets ?? [];
+    if (targets.length === 0 || state.charges <= 0) return [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const rankValue = (target: AuthoredTargetFact): number =>
+      target.rank === "boss" ? 3 : target.rank === "elite" ? 2 : 1;
+    const priority = [...targets].sort((a, b) =>
+      rankValue(b) * 10 + b.healthRatio - rankValue(a) * 10 - a.healthRatio
+    )[0]!;
+    const angle = Math.atan2(priority.y - playerY, priority.x - playerX);
+    const searing = learnedIds.includes("searing-quill") || learnedIds.includes("searing-feathers");
+    const storm = learnedIds.includes("feather-storm");
+    const arc = searing ? Math.PI / 9 : storm ? Math.PI * 0.7 : Math.PI * 0.38;
+    const range = Math.max(260, runtime.combat.range + (searing ? 125 : storm ? -35 : 50));
+    const streakBand = learnedIds.includes("sun-chasing-wings")
+      ? Math.min(0.14, (state.targetLedger[-20] ?? 0) * 0.025)
+      : 0;
+    const optimalStart = range * (0.58 - streakBand);
+    const optimalEnd = range * (0.94 + streakBand * 0.25);
+    const finalCharge = state.charges === 1;
+    const lastFeather = finalCharge && learnedIds.includes("last-feather");
+    const damageScale = searing ? 1.55 : storm ? 0.68 :
+      learnedIds.includes("swift-molt") ? 0.82 : 1;
+    const hitTargets = targets.flatMap((target) => {
+      const distance = Math.hypot(target.x - playerX, target.y - playerY);
+      const targetAngle = Math.atan2(target.y - playerY, target.x - playerX);
+      if (distance > range || normalizedAngleDifference(targetAngle, angle) > arc / 2) return [];
+      const optimal = distance >= optimalStart && distance <= optimalEnd;
+      return [{
+        targetId: target.targetId, x: target.x, y: target.y, optimal,
+        damage: Math.max(1, Math.floor(runtime.combat.damage * damageScale *
+          (optimal ? 1.45 : 0.38) * (lastFeather ? 1.8 : 1)))
+      }];
+    });
+    const optimalTargets = hitTargets.filter((target) => target.optimal);
+    if (optimalTargets.length > 0) {
+      state.cycleCount += optimalTargets.length;
+      state.targetLedger[-20] = (state.targetLedger[-20] ?? 0) + 1;
+      if (runtime.mastery.masterySkill2Id === "feather-rain-formation" ||
+          learnedIds.includes("phoenix-brand") || learnedIds.includes("ashen-pursuit")) {
+        for (const target of optimalTargets) {
+          const existing = state.anchors.find((anchor) =>
+            anchor.kind === "phoenix-brand" && anchor.targetId === target.targetId
+          );
+          const brandLifetime = (learnedIds.includes("phoenix-brand") ? 11_000 :
+            learnedIds.includes("sun-chasing-wings") ? 4200 : 7000) *
+            Math.pow(1.16, masteryEffectTiers(learnedIds, "surgeStability"));
+          if (existing) {
+            existing.x = target.x; existing.y = target.y; existing.remainingMs = brandLifetime;
+          } else {
+            state.anchors.push({ kind: "phoenix-brand", x: target.x, y: target.y,
+              targetId: target.targetId, value: 1, remainingMs: brandLifetime });
+          }
+        }
+      }
+    } else if (learnedIds.includes("sun-chasing-wings")) {
+      state.targetLedger[-20] = 0;
+      state.cycleCount = 0;
+    }
+    state.charges = Math.max(0, state.charges - 1);
+    state.resource = state.charges / Math.max(1, state.maxCharges);
+    if (state.charges === 0) state.phaseElapsedMs = 0;
+    const commands: GongfaRuntimeCommand[] = [{
+      kind: "authored-blazing-feather-fan",
+      origin: { x: playerX, y: playerY }, angle, arc, range, optimalStart, optimalEnd,
+      targets: hitTargets, lastFeather, sourceGongfaId: runtime.gongfaId
+    }];
+    const brands = state.anchors.filter((anchor) =>
+      anchor.kind === "phoenix-brand" && anchor.targetId !== undefined
+    );
+    if (state.cycleCount >= 3 && brands.length >= 2 &&
+        runtime.mastery.masterySkill2Id === "feather-rain-formation" &&
+        (runtime.mastery.masterySkill2CooldownRemaining <= 0 || runtime.mastery.masterySkill2Casts === 0)) {
+      let bestFrom = brands[0]!;
+      let bestTo = brands[1]!;
+      let bestTargets = brands;
+      for (let i = 0; i < brands.length; i += 1) {
+        for (let j = i + 1; j < brands.length; j += 1) {
+          const from = brands[i]!; const to = brands[j]!;
+          const aligned = brands.filter((brand) => distanceToInfiniteLine(brand, from, to) <= 42);
+          if (aligned.length > bestTargets.length) {
+            bestFrom = from; bestTo = to; bestTargets = aligned;
+          }
+        }
+      }
+      const skill2Stats = skill2RefinementStats(runtime);
+      const cooldownMs = Math.floor(authoredSkill2Plans["feather-rain-formation"].cooldownMs * skill2Stats.cadenceScale);
+      commands.push({
+        kind: "authored-phoenix-horizon",
+        from: { x: bestFrom.x, y: bestFrom.y }, to: { x: bestTo.x, y: bestTo.y },
+        targetIds: bestTargets.flatMap((brand) => brand.targetId === undefined ? [] : [brand.targetId]),
+        damage: Math.max(1, Math.floor(skill2Combat(runtime).damage * 2.1 * skill2Stats.damageScale)),
+        executeHealthRatio: 0.18, sourceGongfaId: runtime.gongfaId,
+        masteryCast: { skill2Id: "feather-rain-formation", cooldownMs }
+      });
+      runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+      state.anchors = state.anchors.filter((anchor) => anchor.kind !== "phoenix-brand");
+      state.charges = 0; state.resource = 0; state.cycleCount = 0; state.phaseElapsedMs = 0;
+    }
+    return commands;
+  }
+  if (runtime.gongfaId === "drifting-frost-needle") {
+    const state = runtime.authored;
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const targets = options.targets ?? [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const existing = state.anchors.filter((anchor) => anchor.kind === "weakpoint");
+    const retainedTargetIds = new Set(existing.flatMap((anchor) =>
+      anchor.targetId === undefined || anchor.targetId < 0 ? [] : [anchor.targetId]
+    ));
+    const priorTargetIds = new Set(retainedTargetIds);
+    const lone = learnedIds.includes("army-breaking-lone-needle") || learnedIds.includes("piercing-frost");
+    const linked = learnedIds.includes("linked-pearl-thread") || learnedIds.includes("frost-flurry");
+    const swift = learnedIds.includes("swift-frost-point") || learnedIds.includes("swift-frost");
+    const maxNewPoints = lone ? 1 : linked ? 4 : swift ? 2 : 3;
+    const lockRange = (swift ? 170 : 255) + masteryEffectTiers(learnedIds, "surgeBuild") * 18;
+    let cursor = existing.at(-1) ?? { x: playerX, y: playerY };
+    const route: AuthoredTargetFact[] = [];
+    const remaining = [...targets];
+    while (route.length < maxNewPoints) {
+      const nextTarget = remaining
+        .filter((target) => !retainedTargetIds.has(target.targetId) &&
+          ((route.length === 0 && existing.length === 0) ||
+            Math.hypot(target.x - cursor.x, target.y - cursor.y) <= lockRange))
+        .sort((a, b) =>
+          distanceSquared(a.x, a.y, cursor.x, cursor.y) - distanceSquared(b.x, b.y, cursor.x, cursor.y)
+        )[0];
+      if (!nextTarget) break;
+      route.push(nextTarget);
+      retainedTargetIds.add(nextTarget.targetId);
+      remaining.splice(remaining.indexOf(nextTarget), 1);
+      cursor = nextTarget;
+    }
+    if (route.length < maxNewPoints && learnedIds.includes("moving-star-acupoint")) {
+      const repeatedBoss = targets.find((target) =>
+        target.rank === "boss" && priorTargetIds.has(target.targetId)
+      );
+      if (repeatedBoss) {
+        const pointIndex = state.activationCount % 4;
+        const offsetAngle = pointIndex * Math.PI / 2;
+        route.push({ ...repeatedBoss, x: repeatedBoss.x + Math.cos(offsetAngle) * 22,
+          y: repeatedBoss.y + Math.sin(offsetAngle) * 22 });
+      }
+    }
+    if (route.length === 0) {
+      if (learnedIds.includes("still-water-focus")) state.anchors = existing.slice(-2);
+      else state.anchors = [];
+      state.charges = state.anchors.length;
+      state.resource = Math.min(1, state.charges / 5);
+      return [];
+    }
+    const firstScale = (lone ? 1.9 : linked ? 0.62 : swift ? 0.8 : 1) *
+      (learnedIds.includes("seven-lodge-balance") ? 0.72 : 1);
+    const retention = learnedIds.includes("still-water-focus") ? 0.88 : 1;
+    const points = route.map((target, index) => ({
+      targetId: target.targetId, x: target.x, y: target.y,
+      damage: Math.max(1, Math.floor(runtime.combat.damage * firstScale * Math.pow(retention, index)))
+    }));
+    for (const point of points) {
+      if (learnedIds.includes("moving-star-acupoint") && priorTargetIds.has(point.targetId)) continue;
+      state.anchors.push({ kind: "weakpoint", x: point.x, y: point.y,
+        targetId: point.targetId, value: 1, chainId: state.activationCount++ });
+    }
+    if (learnedIds.includes("seven-lodge-balance") && state.anchors.length < 5) {
+      const pair = state.anchors.slice(-2);
+      if (pair.length === 2) state.anchors.push({ kind: "weakpoint",
+        x: (pair[0]!.x + pair[1]!.x) / 2, y: (pair[0]!.y + pair[1]!.y) / 2,
+        targetId: -1_000_000 - state.activationCount++, value: 0.45 });
+    }
+    state.anchors = state.anchors.slice(-7);
+    state.charges = state.anchors.length;
+    state.resource = Math.min(1, state.charges / 5);
+    const commands: GongfaRuntimeCommand[] = [{
+      kind: "authored-frost-needle-chain", points,
+      freezeMs: (learnedIds.includes("frost-sealed-instant") && state.charges >= 5) ||
+        (learnedIds.includes("cold-soul-commitment") && state.charges >= 5) ? 950 : 0,
+      sourceGongfaId: runtime.gongfaId
+    }];
+    if (state.charges >= 5 && runtime.mastery.masterySkill2Id === "mirror-needle-constellation" &&
+        (runtime.mastery.masterySkill2CooldownRemaining <= 0 || runtime.mastery.masterySkill2Casts === 0)) {
+      const routeBack = [...state.anchors].reverse();
+      const skill2Stats = skill2RefinementStats(runtime);
+      const cooldownMs = Math.floor(authoredSkill2Plans["mirror-needle-constellation"].cooldownMs * skill2Stats.cadenceScale);
+      commands.push({
+        kind: "authored-reverse-winter-thread",
+        points: routeBack.map((point, index) => ({
+          targetId: point.targetId ?? -1, x: point.x, y: point.y,
+          damage: Math.max(1, Math.floor(skill2Combat(runtime).damage * skill2Stats.damageScale * (0.72 + index * 0.22) *
+            (learnedIds.includes("seven-lodge-balance") ? 0.7 : 1)))
+        })),
+        sourceGongfaId: runtime.gongfaId,
+        masteryCast: { skill2Id: "mirror-needle-constellation", cooldownMs }
+      });
+      runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+      state.anchors = []; state.charges = 0; state.resource = 0;
+    } else if (state.charges >= 5 && learnedIds.includes("cold-soul-commitment")) {
+      const last = points.at(-1);
+      if (last) last.damage = Math.floor(last.damage * 2.5);
+      state.anchors = []; state.charges = 0; state.resource = 0;
+    }
+    return commands;
+  }
   if (runtime.gongfaId === "mist-wraith-canon") {
     const learnedIds = options.learnedMasteryIds ?? [];
     const targets = options.targets ?? [];
@@ -6585,21 +6865,6 @@ export function planGongfaAttack(
       if (runtime.yujian && learnedMasteryIds.includes("sword-crown")) {
         count += runtime.yujian.intentStacks;
       }
-      // Ember Surge adds a feather per two Embers; Ember Burst spends a full
-      // charge for an extra flurry.
-      if (runtime.blazingFeather) {
-        count += Math.floor(runtime.blazingFeather.emberStacks / 2);
-        if (
-          learnedMasteryIds.includes("ember-burst") &&
-          runtime.blazingFeather.emberStacks >= MAX_EMBER_STACKS
-        ) {
-          count += 3;
-        }
-        // Phoenix Ascendant: Embers crown the volley with spectral feathers.
-        if (learnedMasteryIds.includes("phoenix-ascendant")) {
-          count += runtime.blazingFeather.emberStacks;
-        }
-      }
       count += surgeBonusCount(runtime, learnedMasteryIds);
       const commands: GongfaRuntimeCommand[] = [
         {
@@ -6782,29 +7047,27 @@ function applyStructuralTransformation(
   }
 
   if (runtime.gongfaId === "blazing-feather-art") {
-    if (transformationId === "searing-feathers") {
-      const next = copyRuntime(runtime);
-      next.combat.pierce += 2;
-      next.combat.count = Math.max(1, next.combat.count - 1);
-      next.combat.damage = Math.round(next.combat.damage * 1.35 * 100) / 100;
-      next.combat.spreadDeg = Math.round(next.combat.spreadDeg * 0.65);
-      return next;
-    }
-
-    if (transformationId === "feather-storm") {
-      const next = copyRuntime(runtime);
-      next.combat.count += 3;
-      next.combat.spreadDeg += 24;
-      next.combat.damage = Math.round(next.combat.damage * 0.8 * 100) / 100;
-      return next;
-    }
-
     if (transformationId === "swift-molt") {
       const next = copyRuntime(runtime);
-      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.72));
-      next.combat.damage = Math.round(next.combat.damage * 0.82 * 100) / 100;
-      next.combat.projectileSpeed += 80;
+      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.7));
       return next;
+    }
+    if (["searing-quill", "feather-storm", "endless-plumage", "combat-molt", "last-feather",
+      "phoenix-brand", "sun-chasing-wings", "ashen-pursuit"].includes(transformationId)) {
+      return copyRuntime(runtime);
+    }
+  }
+
+  if (runtime.gongfaId === "drifting-frost-needle") {
+    if (transformationId === "swift-frost-point") {
+      const next = copyRuntime(runtime);
+      next.combat.cooldownMs = Math.max(180, Math.floor(next.combat.cooldownMs * 0.68));
+      return next;
+    }
+    if (["army-breaking-lone-needle", "linked-pearl-thread", "still-water-focus",
+      "moving-star-acupoint", "cold-soul-commitment", "reverse-star-trace",
+      "seven-lodge-balance", "frost-sealed-instant"].includes(transformationId)) {
+      return copyRuntime(runtime);
     }
   }
 

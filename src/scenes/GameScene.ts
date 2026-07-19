@@ -281,6 +281,8 @@ export class GameScene extends Phaser.Scene {
   private gengjinBraceMarker?: Phaser.GameObjects.Graphics;
   private ironwoodRampartMarker?: Phaser.GameObjects.Graphics;
   private crimsonFurnaceNetworkMarker?: Phaser.GameObjects.Graphics;
+  private blazingFeatherMarker?: Phaser.GameObjects.Graphics;
+  private frostNeedleMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -397,6 +399,17 @@ export class GameScene extends Phaser.Scene {
         return `Tide: Deluge locked · ${direction} · Drain ${Math.ceil(lockRemaining / 100) / 10}s`;
       }
       return `Tide: ${phase} → ${next} · ${direction} · ${Math.floor(runtime.authored.resource * 100)}% · Cycles ${Math.min(3, runtime.authored.cycleCount)}/3`;
+    }
+    if (runtime.gongfaId === "blazing-feather-art") {
+      const brands = runtime.authored.anchors.filter((anchor) => anchor.kind === "phoenix-brand").length;
+      const reload = runtime.authored.charges === 0
+        ? `Reload ${Math.ceil(runtime.authored.phaseElapsedMs / 100) / 10}s`
+        : `Quiver ${runtime.authored.charges}/${runtime.authored.maxCharges}`;
+      return `Blazing Feather: ${reload} · Ideal ${runtime.authored.cycleCount}/3 · Phoenix Brands ${brands}`;
+    }
+    if (runtime.gongfaId === "drifting-frost-needle") {
+      const route = runtime.authored.anchors.filter((anchor) => anchor.kind === "weakpoint").length;
+      return `Frost Needle: Focus ${Math.min(5, route)}/5 · Recorded zigzag ${route} · ${route >= 5 ? "Reverse ready" : "seeking distinct point"}`;
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
       const bird = runtime.authored.anchors.find((anchor) => anchor.kind === "companion");
@@ -934,6 +947,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (result.runtime.gongfaId === "verdant-ring-scripture") {
         this.syncVerdantGlyphMarker(result.runtime);
+      }
+      if (result.runtime.gongfaId === "blazing-feather-art" || result.runtime.gongfaId === "drifting-frost-needle") {
+        this.syncPrecisionGongfaMarkers(result.runtime);
       }
     }
     this.restorePrimaryRuntimeAdapter();
@@ -2331,6 +2347,9 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "sword-burial-formation") {
         this.syncSwordBurialMarker(result.runtime);
       }
+      if (result.runtime.gongfaId === "blazing-feather-art" || result.runtime.gongfaId === "drifting-frost-needle") {
+        this.syncPrecisionGongfaMarkers(result.runtime);
+      }
     }
     this.restorePrimaryRuntimeAdapter();
   }
@@ -2706,6 +2725,26 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-sprout-sun") {
         this.fireAuthoredSproutSun(command);
+        return;
+      }
+
+      if (command.kind === "authored-blazing-feather-fan") {
+        this.fireAuthoredBlazingFeatherFan(command);
+        return;
+      }
+
+      if (command.kind === "authored-phoenix-horizon") {
+        this.fireAuthoredPhoenixHorizon(command);
+        return;
+      }
+
+      if (command.kind === "authored-frost-needle-chain") {
+        this.fireAuthoredFrostNeedleChain(command);
+        return;
+      }
+
+      if (command.kind === "authored-reverse-winter-thread") {
+        this.fireAuthoredReverseWinterThread(command);
         return;
       }
 
@@ -5016,6 +5055,144 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private syncPrecisionGongfaMarkers(runtime: GongfaRuntime): void {
+    if (runtime.gongfaId === "blazing-feather-art") {
+      this.frostNeedleMarker?.clear();
+      const marker = this.blazingFeatherMarker ?? this.add.graphics().setDepth(20);
+      this.blazingFeatherMarker = marker;
+      marker.clear();
+      marker.lineStyle(2, 0xffc45a, 0.95);
+      marker.fillStyle(0xff5a32, 0.22);
+      for (const brand of runtime.authored.anchors.filter((anchor) => anchor.kind === "phoenix-brand")) {
+        marker.strokeCircle(brand.x, brand.y, 15);
+        marker.fillTriangle(brand.x, brand.y - 13, brand.x - 8, brand.y + 9, brand.x + 8, brand.y + 9);
+      }
+      const charges = runtime.authored.charges;
+      for (let index = 0; index < runtime.authored.maxCharges; index += 1) {
+        const angle = -Math.PI * 0.85 + index * 0.17;
+        const radius = 42;
+        marker.fillStyle(index < charges ? 0xffc45a : 0x40272c, index < charges ? 0.9 : 0.55);
+        marker.fillTriangle(
+          this.player.x + Math.cos(angle) * radius, this.player.y + Math.sin(angle) * radius,
+          this.player.x + Math.cos(angle - 0.06) * (radius + 15), this.player.y + Math.sin(angle - 0.06) * (radius + 15),
+          this.player.x + Math.cos(angle + 0.06) * (radius + 15), this.player.y + Math.sin(angle + 0.06) * (radius + 15)
+        );
+      }
+      return;
+    }
+    if (runtime.gongfaId === "drifting-frost-needle") {
+      this.blazingFeatherMarker?.clear();
+      const marker = this.frostNeedleMarker ?? this.add.graphics().setDepth(20);
+      this.frostNeedleMarker = marker;
+      marker.clear();
+      const nodes = runtime.authored.anchors.filter((anchor) => anchor.kind === "weakpoint");
+      marker.lineStyle(2, 0x8feaff, 0.72);
+      for (let index = 1; index < nodes.length; index += 1) {
+        marker.lineBetween(nodes[index - 1]!.x, nodes[index - 1]!.y, nodes[index]!.x, nodes[index]!.y);
+      }
+      nodes.forEach((node, index) => {
+        marker.fillStyle(node.targetId !== undefined && node.targetId < 0 ? 0xc7f8ff : 0x62cfff,
+          node.targetId !== undefined && node.targetId < 0 ? 0.45 : 0.9);
+        marker.fillCircle(node.x, node.y, 4 + index * 0.45);
+      });
+    }
+  }
+
+  private fireAuthoredBlazingFeatherFan(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-blazing-feather-fan" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(18);
+    visual.fillStyle(0xff6536, 0.18);
+    visual.slice(command.origin.x, command.origin.y, command.range,
+      command.angle - command.arc / 2, command.angle + command.arc / 2, false);
+    visual.fillPath();
+    visual.lineStyle(5, 0xffd36b, 0.9);
+    visual.beginPath();
+    visual.arc(command.origin.x, command.origin.y, command.optimalStart,
+      command.angle - command.arc / 2, command.angle + command.arc / 2);
+    visual.strokePath();
+    visual.lineStyle(command.lastFeather ? 9 : 4, command.lastFeather ? 0xffffff : 0xff8a3d, 0.95);
+    visual.beginPath();
+    visual.arc(command.origin.x, command.origin.y, command.optimalEnd,
+      command.angle - command.arc / 2, command.angle + command.arc / 2);
+    visual.strokePath();
+    for (const hit of command.targets) {
+      const enemy = this.getEnemyByCombatTargetId(hit.targetId);
+      if (!enemy?.active) continue;
+      if (enemy.receiveDamage(hit.damage)) this.resolveEnemyDeath(enemy);
+      if (command.lastFeather && enemy.active) {
+        this.damageEnemiesWithin(hit.x, hit.y, 52, Math.floor(hit.damage * 0.35), command.sourceGongfaId);
+      }
+    }
+    this.tweens.add({ targets: visual, alpha: 0, duration: 260, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:optimal-edge-fan`);
+    const runtime = this.gongfaCollection.byId[command.sourceGongfaId];
+    if (runtime) this.syncPrecisionGongfaMarkers(runtime);
+  }
+
+  private fireAuthoredPhoenixHorizon(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-phoenix-horizon" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(24);
+    visual.lineStyle(28, 0xff5d2f, 0.28);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    visual.lineStyle(8, 0xffef9a, 0.95);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    for (const targetId of new Set(command.targetIds)) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (!enemy?.active) continue;
+      const ratio = enemy.maxHealth > 0 ? enemy.health / enemy.maxHealth : 1;
+      const damage = ratio <= command.executeHealthRatio ? enemy.health + 1 : command.damage;
+      if (enemy.receiveDamage(damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.cameras.main.shake(180, 0.005);
+    this.tweens.add({ targets: visual, alpha: 0, duration: 520, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:phoenix-horizon`);
+  }
+
+  private fireAuthoredFrostNeedleChain(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-frost-needle-chain" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(22);
+    visual.lineStyle(3, 0xa9f5ff, 0.95);
+    let previous = { x: this.player.x, y: this.player.y };
+    command.points.forEach((point, index) => {
+      visual.lineBetween(previous.x, previous.y, point.x, point.y);
+      visual.fillStyle(0xe7fdff, 0.95); visual.fillCircle(point.x, point.y, 5);
+      previous = point;
+      this.time.delayedCall(index * 70, () => {
+        const enemy = this.getEnemyByCombatTargetId(point.targetId);
+        if (!enemy?.active) return;
+        if (command.freezeMs > 0 && enemy.role !== "tribulation-boss") enemy.applySlow(0.04, command.freezeMs);
+        if (enemy.receiveDamage(point.damage)) this.resolveEnemyDeath(enemy);
+      });
+    });
+    this.tweens.add({ targets: visual, alpha: 0, duration: 360, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:weakpoint-zigzag`);
+  }
+
+  private fireAuthoredReverseWinterThread(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-reverse-winter-thread" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(23).setAlpha(0);
+    visual.lineStyle(6, 0xe8ffff, 0.95);
+    for (let index = 1; index < command.points.length; index += 1) {
+      visual.lineBetween(command.points[index - 1]!.x, command.points[index - 1]!.y,
+        command.points[index]!.x, command.points[index]!.y);
+    }
+    this.time.delayedCall(240, () => {
+      visual.setAlpha(1);
+      command.points.forEach((point, index) => this.time.delayedCall(index * 75, () => {
+        if (point.targetId < 0) return;
+        const enemy = this.getEnemyByCombatTargetId(point.targetId);
+        if (enemy?.active && enemy.receiveDamage(point.damage)) this.resolveEnemyDeath(enemy);
+      }));
+      this.tweens.add({ targets: visual, alpha: 0, delay: command.points.length * 75,
+        duration: 320, onComplete: () => visual.destroy() });
+      this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:reverse-winter-thread`);
+    });
+  }
+
   private fireSunsetWaveApex(
     command: Extract<GongfaRuntimeCommand, { kind: "sunset-wave-apex" }>
   ): void {
@@ -5242,11 +5419,7 @@ export class GameScene extends Phaser.Scene {
   private stokeSkill2Resource(sourceGongfaId: GongfaId): void {
     const runtime = this.gongfaCollection.byId[sourceGongfaId];
     if (!runtime) return;
-    const event = runtime.blazingFeather
-      ? ({ kind: "blazing-feather-hit" } as const)
-      : runtime.surge
-        ? ({ kind: "surge-hit" } as const)
-        : undefined;
+    const event = runtime.surge ? ({ kind: "surge-hit" } as const) : undefined;
     if (!event) return;
     const result = advanceGongfaRuntime(runtime, event);
     this.adoptPrimaryRuntime(result.runtime);
@@ -6666,11 +6839,10 @@ export class GameScene extends Phaser.Scene {
           damage: runtime.combat.damage,
           count: runtime.combat.count,
           cooldownMs: runtime.combat.cooldownMs,
-          passiveStacks: runtime.surge?.stacks ?? runtime.blazingFeather?.emberStacks ?? 0,
-          passiveDamageBonus: runtime.surge?.appliedDamageBonus ??
-            runtime.blazingFeather?.emberAppliedDamageBonus ?? 0,
+          passiveStacks: runtime.surge?.stacks ?? 0,
+          passiveDamageBonus: runtime.surge?.appliedDamageBonus ?? 0,
           passiveStackGain: runtime.mastery.masteryLearnedIds.some((id) =>
-            SURGE_CASCADE_IDS.has(id) || id === "ember-cascade"
+            SURGE_CASCADE_IDS.has(id)
           ) ? 2 : 1,
           skill2Id: runtime.mastery.masterySkill2Id,
           skill2Casts: runtime.mastery.masterySkill2Casts

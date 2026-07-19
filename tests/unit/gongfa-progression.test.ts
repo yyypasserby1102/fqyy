@@ -20,13 +20,13 @@ describe("projectGongfaProgression", () => {
     const result = projectGongfaProgression({
       gongfaId: "blazing-feather-art",
       rank: 3,
-      learnedMasteryIds: ["searing-feathers"],
+      learnedMasteryIds: ["searing-quill"],
       pendingRanks: [],
       skill2Unlocked: false
     });
     const rank3 = result.milestones[0];
 
-    expect(rank3.choices.find((choice) => choice.id === "searing-feathers")?.state).toBe("selected");
+    expect(rank3.choices.find((choice) => choice.id === "searing-quill")?.state).toBe("selected");
     expect(rank3.choices.filter((choice) => choice.state === "unselected")).toHaveLength(2);
   });
 

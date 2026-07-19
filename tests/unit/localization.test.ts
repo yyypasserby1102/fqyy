@@ -236,7 +236,7 @@ describe("localization", () => {
   });
 
   it("localizes every structured Transformation field in choice payloads", () => {
-    const source = localizeMasteryChoice("en", "searing-feathers");
+    const source = localizeMasteryChoice("en", "searing-quill");
     const payload = localizeChoicePayload("zh-CN", {
       title: "Blazing Feather Art Mastery Rank 3",
       options: [{

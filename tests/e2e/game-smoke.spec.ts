@@ -1564,7 +1564,7 @@ test("Burning Ring Scripture builds Heat only while distinct enemies occupy its 
   )).toBe(false);
 });
 
-test("Blazing Feather Art unlocks Feather Rain Formation as an observable Skill 2", async ({
+test("Blazing Feather Art unlocks Phoenix Horizon as an earned corridor", async ({
   page
 }) => {
   await startNewRun(page, "fire");
@@ -1578,22 +1578,38 @@ test("Blazing Feather Art unlocks Feather Rain Formation as an observable Skill 
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.gongfa).toBe("blazing-feather-art");
-  expect(snapshot.progression.skillTags).toEqual(["homing", "fire"]);
+  expect(snapshot.progression.skillTags).toEqual(["projectile", "fire"]);
 
+  await reachNextMasteryChoiceThroughQi(page);
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  const featherStormIndex = snapshot.choice?.options.findIndex(
+    (option) => option.id === "feather-storm"
+  ) ?? -1;
+  expect(featherStormIndex).toBeGreaterThanOrEqual(0);
+  await page.evaluate((index) => window.__gameTest!.selectChoice(index), featherStormIndex);
   await advanceMasteryToRankThroughQi(page, 10);
   await chooseUntil(page, () => false);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.masterySkill2).toBe("feather-rain-formation");
 
-  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(3));
-  await page.waitForFunction(
-    () =>
-      window.__gameTest!.getSnapshot().progression.masterySkill2Casts > 0 &&
-      window.__gameTest!.getSnapshot().counts.projectiles > 0
-  );
+  await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(5));
+  for (let i = 0; i < 80; i += 1) {
+    snapshot = await page.evaluate(() => {
+      window.__gameTest!.forceSpawnHealingPill(10_000);
+      return window.__gameTest!.getSnapshot();
+    });
+    if (
+      snapshot.progression.masterySkill2Casts > 0 &&
+      snapshot.visuals.gongfaMotifs.includes("phoenix-pinions:phoenix-horizon")
+    ) break;
+    await page.waitForTimeout(200);
+  }
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.masterySkill2Casts).toBeGreaterThan(0);
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "blazing-feather-art"
+  )).toBe(false);
 });
 
 test("Crimson Furnace Sword Art embeds targets, falls back on timeout, and unlocks Furnace Cascade", async ({

@@ -354,7 +354,7 @@ const family = (gongfaId: GongfaId, seed: FamilySeed, unlockRank = 0): UpgradeCo
   unlockRank,
   category: unlockRank >= 10
     ? "skill2"
-    : seed[3] === "skill1Damage" || seed[3] === "skill1Count"
+    : ["skill1Damage", "skill1Count", "skill1Cooldown", "skill1Pierce", "skill1Range"].includes(seed[3])
       ? "skill1"
       : seed[3] === "surgeBuild" || seed[3] === "surgeStability"
         ? "passive"
@@ -371,12 +371,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["ember-step", "Wheel-Turning Step", "Every Evade advances the existing broken corona by one sixth-turn without creating Heat or another attack.", "evadeSynergy", 8, "Cultivator Evade → Skill 1: Revolving Broken Corona"]
   ]],
   ["blazing-feather-art", [
-    ["tempered-plumage", "Tempered Plumage", "Blazing Feathers strike with greater force.", "skill1Damage", 4, "Skill 1: Blazing Feathers"],
-    ["expanded-plumage", "Expanded Plumage", "Each volley releases another blazing feather.", "skill1Count", 1, "Skill 1: Blazing Feathers"],
-    ["swift-pinions", "Ember-Fed Pinions", "Embers empower both Blazing Feathers and Feather Rain Formation.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["piercing-quills", "Phoenix Quills", "Every Skill in the Blazing Feather package gains piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
-    ["ember-kindling", "Ember Kindling", "Feather hits stoke Embers more rapidly.", "surgeBuild", 0.18, "Passive: Ember Plumage"],
-    ["banked-plumage", "Banked Plumage", "Embers take longer to fade between hits.", "surgeStability", 0.84, "Passive: Ember Plumage"]
+    ["tempered-plumage", "Tempered Plumage", "Ideal-edge hits of Blazing Feather Fan strike with greater force.", "skill1Damage", 4, "Skill 1: Blazing Feather Fan"],
+    ["expanded-plumage", "Expanded Plumage", "The fan edge covers a slightly broader firing shape.", "skill1Range", 18, "Skill 1: Blazing Feather Fan"],
+    ["swift-pinions", "Horizon-Fed Pinions", "Both the ideal fan edge and Phoenix Horizon gain force.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["piercing-quills", "Phoenix Quills", "Every ideal edge and the final corridor gain piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["ember-kindling", "Fitted Feather Case", "The quiver reloads with a more stable combat rhythm.", "surgeBuild", 0.18, "Passive: Molting Quiver"],
+    ["banked-plumage", "Long-Lived Brand", "Phoenix Brands remain legible longer before fading.", "surgeStability", 0.84, "Passive: Molting Quiver"]
   ]],
   ["scarlet-wave-manual", [
     ["scarlet-tempering", "Scarlet Tempering", "Scarlet Crescents burn with greater force.", "skill1Damage", 5, "Skill 1: Scarlet Crescents"],
@@ -387,12 +387,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["lasting-cinders", "Lasting Cinders", "Scorch takes longer to fade between sweeps.", "surgeStability", 0.84, "Passive: Rolling Scorch"]
   ]],
   ["drifting-frost-needle", [
-    ["frost-tempering", "Frost Tempering", "Drifting Frost Needles strike with greater force.", "skill1Damage", 4, "Skill 1: Drifting Frost Needles"],
-    ["needle-flurry", "Needle Flurry", "Each volley gains another frost needle.", "skill1Count", 1, "Skill 1: Drifting Frost Needles"],
-    ["quickened-current", "Frozen Meridian", "Frost empowers both Drifting Needles and Mirror Needle Constellation.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["crystal-point", "Crystal Point", "Every Skill in the Frost Needle package gains piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
-    ["deepening-frost", "Deepening Frost", "Needle hits gather Frost more rapidly.", "surgeBuild", 0.18, "Passive: Gathering Hoarfrost"],
-    ["lingering-winter", "Lingering Winter", "Frost takes longer to thaw between volleys.", "surgeStability", 0.84, "Passive: Gathering Hoarfrost"]
+    ["frost-tempering", "Frost Tempering", "Frost Star Needle preserves more force across real weak points.", "skill1Damage", 4, "Skill 1: Frost Star Needle"],
+    ["needle-flurry", "Extended Meridian", "The needle can maintain a longer acquisition reach.", "skill1Range", 18, "Skill 1: Frost Star Needle"],
+    ["quickened-current", "Frozen Meridian", "Both the outbound zigzag and Reverse Winter Thread gain force.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["crystal-point", "Crystal Point", "Real weak-point hits retain additional piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["deepening-frost", "Clear Acupoint", "The needle reacquires its next distinct point sooner.", "surgeBuild", 0.18, "Passive: Cold-Star Focus"],
+    ["lingering-winter", "Lingering Star Trace", "Death-preserved route points remain visible longer.", "surgeStability", 0.84, "Passive: Cold-Star Focus"]
   ]],
   ["black-tide-scripture", [
     ["tide-tempering", "Tide Tempering", "Black Tide surges strike with greater force.", "skill1Damage", 5, "Skill 1: Black Tide"],

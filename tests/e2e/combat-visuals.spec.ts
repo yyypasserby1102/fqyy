@@ -241,16 +241,6 @@ for (const visualCase of [
     motif: "golden-horizon",
     silhouette: { x: 1.35, y: 0.62 },
   },
-  {
-    linggen: "water-metal",
-    choiceIndex: 0,
-    gongfa: "drifting-frost-needle",
-    projectile: "qi-bolt",
-    travel: "projectile-qi-bolt-travel",
-    impact: "impact-qi-bolt",
-    motif: "hoarfrost-stars",
-    silhouette: { x: 0.62, y: 1.12 },
-  },
 ] as const) {
   test(`${visualCase.gongfa} uses its production travel and impact family`, async ({
     page,
@@ -313,12 +303,10 @@ for (const visualCase of [
   });
 }
 
-test("all six projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("the four remaining projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
     "yujian-jue", "jinfeng-gong", "crimson-furnace-sword-art",
-    "blazing-feather-art",
-    "drifting-frost-needle",
     "green-vine-art"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
@@ -350,9 +338,29 @@ test("all six projectile-based Gongfa render their own treatment and trail", asy
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(6);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(6);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(6);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(4);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(4);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(4);
+});
+
+test("Blazing Feather and Drifting Frost render authored fan and zigzag bodies without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  for (const [gongfaId, motif] of [
+    ["blazing-feather-art", "phoenix-pinions:optimal-edge-fan"],
+    ["drifting-frost-needle", "hoarfrost-stars:weakpoint-zigzag"]
+  ] as const) {
+    await page.evaluate((id) => {
+      window.__gameTest!.forceClearEnemies();
+      window.__gameTest!.forceEquipGongfa(id);
+      window.__gameTest!.forceSpawnEnemies(4);
+    }, gongfaId);
+    await page.waitForFunction(
+      (expected) => window.__gameTest?.getSnapshot().visuals.gongfaMotifs.includes(expected),
+      motif
+    );
+    const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+    expect(snapshot.visuals.projectiles.some((projectile) => projectile.sourceGongfaId === gongfaId)).toBe(false);
+  }
 });
 
 test("Ironwood Wave Form renders a physical rooted wall and driven wall without substitute projectiles", async ({ page }) => {

@@ -55,11 +55,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "furnace-cascade", name: "Furnace Cascade", description: "At sufficient live Pressure, ignites every connected furnace and reforges each consumed needle for exactly one follow-up chain.", tags: ["homing", "projectile", "explosive", "fire", "metal"] }
   },
   "blazing-feather-art": {
-    combatRole: "Escalating homing volleys that become a fiery aerial barrage.",
-    visualMotif: "Orange feather fans, ember motes, and descending phoenix-wing rain.",
-    skill1: { id: "blazing-feathers", name: "Blazing Feathers", description: "Homing fire feathers seek nearby enemies and multiply as the Cultivator's Embers rise.", tags: ["homing", "projectile", "fire"] },
-    passive: { name: "Ember Plumage", resource: "Embers", description: "Feather hits stoke Embers, adding damage and feathers until the banked heat fades." },
-    skill2: { id: "feather-rain-formation", name: "Feather Rain Formation", description: "Successive fans of fire feathers descend on the densest cluster and retarget surviving enemies.", tags: ["homing", "projectile", "fire"] }
+    combatRole: "Automatic marksman fan that rewards maintaining one narrow outer-edge distance band.",
+    visualMotif: "A red-gold razor fan, a visible shoulder quiver, Phoenix Brands, and one straight phoenix horizon.",
+    skill1: { id: "blazing-feathers", name: "Blazing Feather Fan", description: "Automatically snaps a non-homing fan toward the priority threat; only its visible outer edge burns and pierces at full force.", tags: ["projectile", "fire"] },
+    passive: { name: "Molting Quiver", resource: "Feathers", description: "Each fan spends one finite feather. An empty quiver visibly reloads, while an empty-quiver Evade completes the molt immediately." },
+    skill2: { id: "feather-rain-formation", name: "Phoenix Horizon", description: "After enough ideal hits in one magazine, one automatically chosen corridor crosses the current Phoenix Brands once, then empties the quiver.", tags: ["projectile", "fire"] }
   },
   "burning-ring-scripture": {
     combatRole: "A physical broken corona that rewards holding distinct enemies inside a dangerous close band.",
@@ -76,11 +76,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "sunset-wave-apex", name: "Sunset Divide", description: "After three Confluences, opposing arena walls meet at the last seam and detonate that entire line once.", tags: ["wave", "fire", "explosive"] }
   },
   "drifting-frost-needle": {
-    combatRole: "Cold precision volleys that gain coverage and piercing pressure.",
-    visualMotif: "Cyan needle constellations, ice-star glints, and hoarfrost trails.",
-    skill1: { id: "drifting-frost-needles", name: "Drifting Frost Needles", description: "Cold needles curve toward exposed enemies and gather piercing force as Frost rises.", tags: ["homing", "projectile", "water"] },
-    passive: { name: "Gathering Hoarfrost", resource: "Frost", description: "Needle hits gather Frost, adding damage and projectiles before the cold concentration fades." },
-    skill2: { id: "mirror-needle-constellation", name: "Mirror Needle Constellation", description: "An orbiting constellation distributes staggered frost needles across nearby enemies and retargets the fallen.", tags: ["homing", "projectile", "water"] }
+    combatRole: "Automatic precision needle that survives only by finding a new exposed weak point for every jump.",
+    visualMotif: "One pale-blue needle, sharp temporary star points, a zigzag thread, then the same thread flashing backward.",
+    skill1: { id: "drifting-frost-needles", name: "Frost Star Needle", description: "Selects the nearest exposed point and jumps only to different available points; a body hit or missing next point ends the route.", tags: ["projectile", "water"] },
+    passive: { name: "Cold-Star Focus", resource: "Focus", description: "Distinct points in the current temporary zigzag preserve damage and build Focus. Repeating or losing the route clears it." },
+    skill2: { id: "mirror-needle-constellation", name: "Reverse Winter Thread", description: "The fifth recorded point immediately sends the same needle backward through the exact zigzag with rising damage, then clears route and Focus.", tags: ["projectile", "water"] }
   },
   "black-tide-scripture": {
     combatRole: "A world-current controller whose Ebb, Still, and Flood calendar is accelerated or delayed by movement.",

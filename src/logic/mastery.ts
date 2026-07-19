@@ -195,6 +195,8 @@ type ApprovedTransformationSeed = readonly [
 ];
 
 const approvedRuntimeTransformationGongfaIds = new Set<GongfaId>([
+  "blazing-feather-art",
+  "drifting-frost-needle",
   "mist-wraith-canon",
   "sword-burial-formation",
   "flame-demon-body-art",
@@ -218,6 +220,40 @@ const approvedRuntimeTransformationSeeds: Partial<Record<
   GongfaId,
   Record<3 | 6 | 9, readonly ApprovedTransformationSeed[]>
 >> = {
+  "blazing-feather-art": {
+    3: [
+      ["searing-quill", "Searing Quill", "The fan becomes a narrow, heavy piercing edge with a much stronger ideal hit.", "Most side coverage is lost.", "Fan arc, range, and ideal-edge damage"],
+      ["feather-storm", "Feather Storm", "The fan becomes very broad and catches spread-out packs.", "Its reach and per-target damage are sharply reduced.", "Fan breadth, reach, and crowd coverage"],
+      ["swift-molt", "Swift Molt", "Attack and reload cadence become much faster.", "The quiver shrinks to three weaker volleys.", "Magazine size, attack cadence, and reload"]
+    ],
+    6: [
+      ["endless-plumage", "Endless Plumage", "The quiver holds eight volleys.", "An empty quiver takes much longer to reload.", "Magazine size and empty downtime"],
+      ["combat-molt", "Combat Molt", "Evade instantly replaces even a partially spent quiver.", "The Evade creates no attack and discards remaining feathers.", "Evade and quiver replacement"],
+      ["last-feather", "Last Feather", "The final feather explodes with a bright, heavy impact.", "Empty reload is substantially slower.", "Final-shot payoff and reload risk"]
+    ],
+    9: [
+      ["phoenix-brand", "Phoenix Brand", "Every ideal-range victim keeps a long-lived visible Phoenix Brand.", "Close and over-range hits leave no mark.", "Ideal hits and capstone corridor inventory"],
+      ["sun-chasing-wings", "Sun-Chasing Wings", "Consecutive ideal volleys widen the precision band.", "One failed volley clears the widening and ideal-hit preparation.", "Precision streak and optimal-distance band"],
+      ["ashen-pursuit", "Ashen Pursuit", "A dead branded target transfers its Brand to the farthest valid enemy.", "The transferred mark may leave the useful firing lane.", "Brand death transfer and corridor geometry"]
+    ]
+  },
+  "drifting-frost-needle": {
+    3: [
+      ["army-breaking-lone-needle", "Army-Breaking Lone Needle", "One heavy needle gains exceptional direct force.", "It never ricochets to another weak point.", "Initial point damage and chain length"],
+      ["linked-pearl-thread", "Linked-Pearl Thread", "One needle may visit four distinct exposed points.", "The first and subsequent hits are weaker.", "Distinct-point jump count and damage retention"],
+      ["swift-frost-point", "Swift Frost Point", "Needles reacquire their next point rapidly.", "Lock range is short and missing a point breaks Focus harshly.", "Reacquisition cadence, range, and failure"]
+    ],
+    6: [
+      ["still-water-focus", "Still-Water Focus", "A failed route preserves its last two points.", "Damage retention along the route is weaker.", "Focus loss and chain damage"],
+      ["moving-star-acupoint", "Moving-Star Acupoint", "A boss may expose another cyclic body point without resetting Focus.", "Boss ricochet damage is reduced.", "Repeated-boss weak points and Focus"],
+      ["cold-soul-commitment", "Cold-Soul Commitment", "Full Focus is spent on one greatly enlarged final hit and a brief ordinary-enemy freeze.", "The route clears without a normal retained chain.", "Full-Focus spend and control"]
+    ],
+    9: [
+      ["reverse-star-trace", "Reverse-Star Trace", "A dead target leaves its route node briefly suspended in place.", "The preserved node expires quickly and cannot be damaged.", "Death continuity and route lifetime"],
+      ["seven-lodge-balance", "Seven-Lodge Balance", "Virtual lodge points can complete a sparse constellation.", "Every real and return-node hit deals less damage.", "Virtual route nodes and per-node damage"],
+      ["frost-sealed-instant", "Frost-Sealed Instant", "Completing Focus freezes ordinary outbound targets briefly.", "The reverse traversal never extends that freeze.", "Outbound control versus return damage"]
+    ]
+  },
   "ironwood-wave-form": {
     3: [
       ["lone-great-rampart", "Lone Great Rampart", "A narrow wall gains 70% durability and a 65% stronger drive.", "The wall covers 42% less width, leaving both sides exposed.", "Rampart width, durability, and drive"],
@@ -531,87 +567,6 @@ function buildApprovedRuntimeTransformations(): MasteryChoiceDefinition[] {
 }
 
 export const masteryTransformationConfigs: MasteryChoiceDefinition[] = [
-  {
-    id: "searing-feathers",
-    name: "Searing Feathers",
-    lore: "Condense the feathers into fewer, armor-piercing blazing shafts.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 3,
-    exclusivityGroup: "blazing-feather-art:rank-3"
-  },
-  {
-    id: "feather-storm",
-    name: "Feather Storm",
-    lore: "Loose a wide flurry of blazing feathers each cycle.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 3,
-    exclusivityGroup: "blazing-feather-art:rank-3"
-  },
-  {
-    id: "swift-molt",
-    name: "Swift Molt",
-    lore: "Shed feathers faster and swifter, quickening the barrage.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 3,
-    exclusivityGroup: "blazing-feather-art:rank-3"
-  },
-  {
-    id: "banked-embers",
-    name: "Banked Embers",
-    lore: "Well-stoked Embers no longer fade below half.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 6,
-    exclusivityGroup: "blazing-feather-art:rank-6"
-  },
-  {
-    id: "ember-cascade",
-    name: "Ember Cascade",
-    lore: "Each feather hit stokes Embers twice as fast.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 6,
-    exclusivityGroup: "blazing-feather-art:rank-6"
-  },
-  {
-    id: "ember-burst",
-    name: "Ember Burst",
-    lore: "At full Embers, the next volley erupts with extra feathers.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 6,
-    exclusivityGroup: "blazing-feather-art:rank-6"
-  },
-  {
-    id: "phoenix-ascendant",
-    name: "Phoenix Ascendant",
-    lore: "Embers crown every volley with spectral blazing feathers.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 9,
-    exclusivityGroup: "blazing-feather-art:rank-9"
-  },
-  {
-    id: "searing-domain",
-    name: "Searing Domain",
-    lore: "Feather hits leave Ember-scaled blazing fields.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 9,
-    exclusivityGroup: "blazing-feather-art:rank-9"
-  },
-  {
-    id: "molten-updraft",
-    name: "Molten Updraft",
-    lore: "Each Evade looses an Ember-scaled burst of feathers.",
-    kind: "transformation",
-    requiredGongfaIds: ["blazing-feather-art"],
-    milestoneRank: 9,
-    exclusivityGroup: "blazing-feather-art:rank-9"
-  },
   ...buildSurgeTransformations(),
   ...buildApprovedRuntimeTransformations(),
   {

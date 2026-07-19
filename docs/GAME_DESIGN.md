@@ -311,13 +311,13 @@ Pre-rank-10 Mastery pool:
 
 These eight designs complete the declared Skill-2 contract for the remaining Gongfa. Each Skill operates independently while Skill 1 continues, produces a visible combat event, and interacts with the owning resource. A successful cast is counted only when its described world effect is emitted.
 
-#### Blazing Feather Art — Feather Rain Formation
+#### Blazing Feather Art — Phoenix Horizon
 
-- Trigger: independent timed activation.
-- Effect: mark the densest enemy cluster, then rain successive fans of homing fire feathers into that area. Each fan retargets living enemies before falling.
-- Tags and interaction: `projectile`, `fire`; Embers add feathers and damage. Formation hits stoke Embers at most once per target per activation.
-- Observable cast: at least one rain fan containing one or more feathers is emitted. With no target, cooldown remains ready and the cast is not counted.
-- Two-tier Refinements: `Rain Tempering` increases damage; `Expanded Plumage` increases fan count and area; `Swift Descent` reduces cooldown and delay between fans.
+- Trigger: earned automatically after at least three optimal-edge hits in one finite magazine and two current Phoenix Brands; it is not an independent timer cast.
+- Effect: choose the straight line crossing the most Brands, send one phoenix through it, hit each branded target once, execute targets below 18%, clear Brands, and empty the quiver.
+- Tags and interaction: `projectile`, `fire`; close-range fan hits are deliberately weak, optimal-edge hits build the same-magazine preparation, and no hit creates Ember stacks.
+- Observable cast: one red-gold corridor replaces the ordinary fan. With too few ideal hits or Brands, cooldown remains ready and no cast is counted.
+- Two-tier Refinements: `Rain Tempering` strengthens the corridor; `Expanded Plumage` widens its world presence; `Swift Descent` shortens readiness cooldown without bypassing the earned trigger.
 
 #### Scarlet Wave Manual — Sunset Wave Apex
 
@@ -327,13 +327,13 @@ These eight designs complete the declared Skill-2 contract for the remaining Gon
 - Observable cast: both opposing walls are emitted. With no valid lane target, cooldown remains ready and the cast is not counted.
 - Two-tier Refinements: `Apex Tempering` increases damage; `Broadened Sunset` increases width and distance; `Hastened Dusk` reduces cooldown and increases speed.
 
-#### Drifting Frost Needle — Mirror Needle Constellation
+#### Drifting Frost Needle — Reverse Winter Thread
 
-- Trigger: independent timed activation.
-- Effect: form a visible orbit of frost needles, distribute them across nearby enemies, then release staggered homing volleys. Needles retarget if their target dies before launch.
-- Tags and interaction: `projectile`, `water`; Frost adds needles and pierce. Each enemy hit contributes Frost at most once per activation.
-- Observable cast: the orbit appears and releases at least one needle. With no target, cooldown remains ready and the cast is not counted.
-- Two-tier Refinements: `Constellation Tempering` increases damage; `Expanded Constellation` increases needle count and coverage; `Swift Alignment` reduces cooldown and stagger delay.
+- Trigger: immediate threshold activation when the temporary route records its fifth point; it is not an independent timer cast.
+- Effect: traverse the exact recorded zigzag in reverse with damage rising at each node, then clear both Focus and route. It never substitutes a straight line or orbiting volley.
+- Tags and interaction: `projectile`, `water`; only distinct exposed points build Focus. A repeated body or missing next point breaks the route, subject to the selected authored branch.
+- Observable cast: the pale outbound thread flashes backward through the same node order. Without five points, cooldown remains ready and no cast is counted.
+- Two-tier Refinements: `Constellation Tempering` increases return damage; `Expanded Constellation` strengthens route coverage; `Swift Alignment` reduces cooldown while preserving the five-point requirement.
 
 #### Black Tide Scripture — Moon Tide Vault
 

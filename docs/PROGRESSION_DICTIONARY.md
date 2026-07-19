@@ -456,10 +456,10 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
 
 - `Blazing Feather Art`
   - required roots: `fire`
-  - pattern: `homing`
-  - fantasy: blazing feather shots
-  - rank-10 Skill 2: `Feather Rain Formation`, successive fans of retargeting homing feathers whose count and damage scale from Embers
-  - status: complete playable package with Rank-22 Mastery and phoenix-pinion combat motif
+  - authored pattern: finite non-homing fan with a narrow optimal-distance edge
+  - fantasy: manage a visible feather quiver, hold ideal range, and brand a phoenix corridor
+  - rank-10 Skill 2: `Phoenix Horizon`, an earned straight crossing through the most current Phoenix Brands
+  - status: reviewed and verified Rank-22 package; no Ember stack loop or generic homing volley
 - `Burning Ring Scripture`
   - required roots: `fire`
   - Skill 1: `Revolving Flame Ring`
@@ -514,10 +514,10 @@ The current three Metal Gongfa are sufficient only for the vertical slice. A ful
 
 - `Drifting Frost Needle`
   - required roots: `water`
-  - pattern: `homing`
-  - fantasy: curved frost needles
-  - rank-10 Skill 2: `Mirror Needle Constellation`, an orbit that releases staggered retargeting frost needles and scales from Frost
-  - status: complete playable package with Rank-22 Mastery and hoarfrost-constellation combat motif
+  - authored pattern: one automatic needle chaining temporary, distinct weak points
+  - fantasy: preserve a pale zigzag route, then flash through the exact route backward
+  - rank-10 Skill 2: `Reverse Winter Thread`, triggered immediately by the fifth recorded point
+  - status: reviewed and verified Rank-22 package; no Frost stack loop or generic homing volley
 - `Black Tide Scripture`
   - required roots: `water`
   - pattern: `wave`

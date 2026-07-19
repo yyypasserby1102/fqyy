@@ -8,10 +8,10 @@ import {
 } from "../../src/logic/mastery";
 import {
   advanceGongfaMasteryProgress,
-  advanceGongfaRuntime,
   applyGongfaImprovement,
   createGongfaCollectionFromCheckpoint,
-  createGongfaRuntime
+  createGongfaRuntime,
+  planGongfaAttack
 } from "../../src/logic/gongfaRuntime";
 
 describe("complete Gongfa refinement tracks", () => {
@@ -39,20 +39,30 @@ describe("complete Gongfa refinement tracks", () => {
   });
 
   it("enforces Skill-1 and Skill-2 effect scopes in runtime numbers", () => {
-    const cast = (runtime: ReturnType<typeof createGongfaRuntime>) =>
-      advanceGongfaRuntime(runtime, {
-        kind: "skill2",
-        skill2Id: "feather-rain-formation",
-        eligibleTargetCount: 3
-      }).commands[0];
+    const cast = (runtime: ReturnType<typeof createGongfaRuntime>) => {
+      runtime.mastery.masterySkill2Id = "feather-rain-formation";
+      runtime.mastery.masterySkill2CooldownRemaining = 0;
+      runtime.authored.cycleCount = 2;
+      runtime.authored.anchors.push(
+        { kind: "phoenix-brand", x: 170, y: 0, targetId: 1, value: 1 },
+        { kind: "phoenix-brand", x: 210, y: 0, targetId: 2, value: 1 }
+      );
+      return planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+        targets: [{ targetId: 3, x: 200, y: 0, healthRatio: 1, rank: "elite" }] })
+        .find((command) => command.kind === "authored-phoenix-horizon");
+    };
     const base = createGongfaRuntime({ gongfaId: "blazing-feather-art" });
     const skill1Refined = applyGongfaImprovement(base, "tempered-plumage").runtime;
     expect(skill1Refined.combat.damage).toBeGreaterThan(base.combat.damage);
-    expect(cast(skill1Refined)).toMatchObject({ damage: (cast(base) as { damage: number }).damage });
+    const baseDamage = (cast(base) as { damage: number }).damage;
+    expect(cast(skill1Refined)).toMatchObject({ damage: baseDamage });
 
-    skill1Refined.mastery.masteryLearnedIds.push("blazing-feather-art-rain-tempering");
-    expect((cast(skill1Refined) as { damage: number }).damage).toBeGreaterThan(
-      (cast(base) as { damage: number }).damage
+    const skill2Refined = applyGongfaImprovement(
+      createGongfaRuntime({ gongfaId: "blazing-feather-art" }), "tempered-plumage"
+    ).runtime;
+    skill2Refined.mastery.masteryLearnedIds.push("blazing-feather-art-rain-tempering");
+    expect((cast(skill2Refined) as { damage: number }).damage).toBeGreaterThan(
+      (cast(createGongfaRuntime({ gongfaId: "blazing-feather-art" })) as { damage: number }).damage
     );
   });
 
@@ -68,15 +78,19 @@ describe("complete Gongfa refinement tracks", () => {
       primaryGongfaId: "blazing-feather-art",
       runtimes: [legacyRuntime]
     }).byId["blazing-feather-art"]!;
-    const command = advanceGongfaRuntime(restored, {
-      kind: "skill2",
-      skill2Id: "feather-rain-formation",
-      eligibleTargetCount: 3
-    }).commands[0] as { damage: number };
-    const baseCommand = advanceGongfaRuntime(
-      createGongfaRuntime({ gongfaId: "blazing-feather-art" }),
-      { kind: "skill2", skill2Id: "feather-rain-formation", eligibleTargetCount: 3 }
-    ).commands[0] as { damage: number };
+    const prepareCast = (runtime: ReturnType<typeof createGongfaRuntime>) => {
+      runtime.mastery.masterySkill2Id = "feather-rain-formation";
+      runtime.authored.cycleCount = 2;
+      runtime.authored.anchors.push(
+        { kind: "phoenix-brand", x: 170, y: 0, targetId: 1, value: 1 },
+        { kind: "phoenix-brand", x: 210, y: 0, targetId: 2, value: 1 }
+      );
+      return planGongfaAttack(runtime, 0, { playerX: 0, playerY: 0,
+        targets: [{ targetId: 3, x: 200, y: 0, healthRatio: 1, rank: "elite" }] })
+        .find((entry) => entry.kind === "authored-phoenix-horizon") as { damage: number };
+    };
+    const command = prepareCast(restored);
+    const baseCommand = prepareCast(createGongfaRuntime({ gongfaId: "blazing-feather-art" }));
 
     expect(restored.skill1Refinements?.damageBonus).toBe(4);
     expect(command.damage).toBe(baseCommand.damage);
