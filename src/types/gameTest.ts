@@ -128,6 +128,10 @@ export interface GameSnapshot {
     skillTags: string[];
     galeMomentum: number;
     guard: number;
+    guardCapacity: number;
+    guardFractures: number;
+    guardDisabled: boolean;
+    guardShield: number;
     guardMitigation: number;
     bladeShellCharge: number;
     bladeShellCasts: number;
@@ -215,6 +219,7 @@ export interface GameTestHarness {
   forceSpawnEnemy(enemyId: EnemyId): void;
   selectChoice(index: number): void;
   forceDamagePlayer(amount: number): void;
+  forceCloseDamagePlayer(amount: number, sourceId?: number): void;
   forceDamageEnemy(enemyId: EnemyId, amount: number): void;
   forceDamageBoss(amount: number): void;
   forceTriggerTribulationBossSlam(): void;

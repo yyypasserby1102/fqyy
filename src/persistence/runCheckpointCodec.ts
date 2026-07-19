@@ -142,6 +142,8 @@ function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: Gongf
   if (presentSubtypes.length !== 1 || presentSubtypes[0] !== expectedSubtype) return false;
   const state = runtime[expectedSubtype];
   if (!hasNonNegativeFields(state, subtypeNumberFields[expectedSubtype])) return false;
+  if (expectedSubtype === "gengjin" && isRecord(state) &&
+      state.isMoving !== undefined && typeof state.isMoving !== "boolean") return false;
   if (expectedSubtype === "yujian") {
     const stacks = state.executionSealStacksByTarget;
     return isRecord(stacks) && Object.values(stacks).every(isNonNegativeNumber);

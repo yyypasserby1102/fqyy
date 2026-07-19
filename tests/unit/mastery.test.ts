@@ -35,9 +35,9 @@ describe("mastery progression", () => {
       cost: "Locks out Sword Bloom or Reversing Sword Path at Rank 3.",
       scope: "Flying Sword Volley form and hit pattern"
     });
-    expect(getMasteryChoiceDefinition("iron-gravity-domain")).toMatchObject({
-      gain: "At high Guard, pull nearby enemies into repeated aura bursts.",
-      cost: "Locks out Gengjin Fortress or Unbroken Advance at Rank 9."
+    expect(getMasteryChoiceDefinition("eight-wastes-rebound")).toMatchObject({
+      gain: "Release reaches up to eight nearby enemies",
+      cost: "Each target receives only its share of the fixed total"
     });
   });
   it("marks a Gongfa Fully Mastered only after Skill 2 and its authored Refinements are complete", () => {
@@ -202,13 +202,13 @@ describe("mastery progression", () => {
       seed: "seed-123",
       learnedIds: []
     })).toEqual([
-      "rebounding-edge",
-      "hundred-blade-halo",
-      "iron-wake"
+      "rebounding-edge-armor",
+      "hundred-forged-heavy-armor",
+      "flowing-gold-vent"
     ]);
 
-    expect(getMasteryChoiceDefinition("iron-wake")).toMatchObject({
-      name: "Iron Wake",
+    expect(getMasteryChoiceDefinition("flowing-gold-vent")).toMatchObject({
+      name: "Flowing-Gold Vent",
       kind: "transformation",
       milestoneRank: 3,
       exclusivityGroup: "gengjin-huti:rank-3"
@@ -220,7 +220,7 @@ describe("mastery progression", () => {
       gongfaId: "gengjin-huti",
       rank: 3,
       seed: "seed-123",
-      learnedIds: ["hundred-blade-halo"]
+      learnedIds: ["hundred-forged-heavy-armor"]
     })).toEqual([]);
   });
 
@@ -229,15 +229,15 @@ describe("mastery progression", () => {
       gongfaId: "gengjin-huti",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["hundred-blade-halo"]
+      learnedIds: ["hundred-forged-heavy-armor"]
     })).toEqual([
       "immovable-mountain",
-      "flowing-iron-body",
-      "ten-thousand-armor-resonance"
+      "flowing-gold-turn",
+      "armor-remembers-enemy"
     ]);
 
-    expect(getMasteryChoiceDefinition("flowing-iron-body")).toMatchObject({
-      name: "Flowing Iron Body",
+    expect(getMasteryChoiceDefinition("flowing-gold-turn")).toMatchObject({
+      name: "Flowing-Gold Turn",
       kind: "transformation",
       milestoneRank: 6,
       exclusivityGroup: "gengjin-huti:rank-6"
@@ -249,7 +249,7 @@ describe("mastery progression", () => {
       gongfaId: "gengjin-huti",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["hundred-blade-halo", "immovable-mountain"]
+      learnedIds: ["hundred-forged-heavy-armor", "immovable-mountain"]
     })).toEqual([]);
   });
 
@@ -258,15 +258,15 @@ describe("mastery progression", () => {
       gongfaId: "gengjin-huti",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["hundred-blade-halo", "immovable-mountain"]
+      learnedIds: ["hundred-forged-heavy-armor", "immovable-mountain"]
     })).toEqual([
-      "gengjin-fortress",
-      "iron-gravity-domain",
-      "unbroken-advance"
+      "eight-wastes-rebound",
+      "one-edge-breaks-mountain",
+      "unbroken-golden-city"
     ]);
 
-    expect(getMasteryChoiceDefinition("iron-gravity-domain")).toMatchObject({
-      name: "Iron Gravity Domain",
+    expect(getMasteryChoiceDefinition("one-edge-breaks-mountain")).toMatchObject({
+      name: "One Edge Breaks Mountain",
       kind: "transformation",
       milestoneRank: 9,
       exclusivityGroup: "gengjin-huti:rank-9"
@@ -278,7 +278,7 @@ describe("mastery progression", () => {
       gongfaId: "gengjin-huti",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["hundred-blade-halo", "immovable-mountain", "gengjin-fortress"]
+      learnedIds: ["hundred-forged-heavy-armor", "immovable-mountain", "eight-wastes-rebound"]
     })).toEqual([]);
   });
 

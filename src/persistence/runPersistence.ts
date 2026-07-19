@@ -89,6 +89,16 @@ export interface ActiveRunCheckpoint {
   bladeShellThreshold: number;
   bladeShellCooldownRemaining: number;
   bladeShellCasts: number;
+  guardCapacity?: number;
+  guardFractureCount?: number;
+  guardFractureRecoveryRemaining?: number;
+  guardMitigationDisabledRemaining?: number;
+  guardPostEvadeLayerRemaining?: number;
+  guardPostEvadeGuard?: number;
+  guardRememberedSourceId?: number;
+  guardRememberedHits?: number;
+  guardShieldValue?: number;
+  guardShieldRemaining?: number;
   hiddenLinggenId: LinggenId;
   revealedLinggenId?: LinggenId;
   lingcaoCollected: boolean;

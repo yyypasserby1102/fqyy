@@ -242,16 +242,6 @@ for (const visualCase of [
     silhouette: { x: 1.35, y: 0.62 },
   },
   {
-    linggen: "metal",
-    choiceIndex: 2,
-    gongfa: "gengjin-huti",
-    projectile: "aura-blade",
-    travel: "projectile-aura-blade-travel",
-    impact: "impact-aura-blade",
-    motif: "tempered-facets",
-    silhouette: { x: 0.9, y: 0.9 },
-  },
-  {
     linggen: "water-metal",
     choiceIndex: 0,
     gongfa: "drifting-frost-needle",
@@ -323,10 +313,10 @@ for (const visualCase of [
   });
 }
 
-test("all eight projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("all seven projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
-    "yujian-jue", "jinfeng-gong", "gengjin-huti", "crimson-furnace-sword-art",
+    "yujian-jue", "jinfeng-gong", "crimson-furnace-sword-art",
     "blazing-feather-art",
     "drifting-frost-needle",
     "green-vine-art", "ironwood-wave-form"
@@ -360,9 +350,27 @@ test("all eight projectile-based Gongfa render their own treatment and trail", a
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(8);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(8);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(8);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(7);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(7);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(7);
+});
+
+test("Gengjin Huti renders a persistent forged brace without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("gengjin-huti");
+    window.__gameTest!.forceCloseDamagePlayer(20, 42);
+  });
+  await page.waitForFunction(() =>
+    window.__gameTest!.getSnapshot().visuals.gongfaMotifs.some(
+      (motif) => motif.startsWith("forged-brace:tempered-brace:")
+    )
+  );
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.progression.guard).toBe(6);
+  expect(snapshot.progression.guardCapacity).toBe(100);
+  expect(snapshot.visuals.projectiles.some((projectile) => projectile.sourceGongfaId === "gengjin-huti")).toBe(false);
+  expect(snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("mirror-lotus:"))).toBe(false);
 });
 
 test("Ice Mirror Guard renders persistent directional facets without substitute projectiles", async ({ page }) => {

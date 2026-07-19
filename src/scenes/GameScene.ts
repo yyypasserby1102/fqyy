@@ -80,8 +80,6 @@ import {
   createGongfaRuntime,
   createGongfaCollectionRuntime,
   galeStepSeveranceCorridor,
-  ironWakeWall,
-  reboundingEdgeBlade,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
@@ -272,6 +270,7 @@ export class GameScene extends Phaser.Scene {
   private burningCoronaMarker?: Phaser.GameObjects.Graphics;
   private readonly burningSunspotEntrants = new Set<number>();
   private iceMirrorMarker?: Phaser.GameObjects.Graphics;
+  private gengjinBraceMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -606,7 +605,6 @@ export class GameScene extends Phaser.Scene {
         this.player.presentEvade(this.evade.state.direction);
         this.sfx.evade();
         this.maybeCutGaleStepCorridor();
-        this.maybeCutIronWake();
         this.applyEvadeRuntimeEffects();
       }
     }
@@ -633,7 +631,7 @@ export class GameScene extends Phaser.Scene {
       presentedMovement,
       evadeState.active
         ? evadeState.speed
-        : this.player.stats.moveSpeed * this.getBlackTidePlayerMoveScale(movement)
+        : this.player.stats.moveSpeed * this.getBlackTidePlayerMoveScale(movement) * this.getGengjinMoveScale()
     );
     this.player.advanceVisual(delta, presentedMovement);
     if (movement.lengthSq() > 0) {
@@ -1071,8 +1069,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     enemy.contactCooldownUntil = now + 750;
-    this.applyIncomingDamage(enemy.touchDamage, enemy.x, enemy.y);
-    this.maybeReboundEdge(enemy);
+    this.applyIncomingDamage(enemy.touchDamage, enemy.x, enemy.y, enemy.combatTargetId);
 
     for (const runtime of this.learnedGongfaRuntimes) {
       if (runtime.combat.pattern !== "melee" || runtime.combat.retaliationDamage <= 0) continue;
@@ -1084,7 +1081,7 @@ export class GameScene extends Phaser.Scene {
       if (enemy.receiveDamage(reflected)) this.resolveEnemyDeath(enemy);
     }
 
-    if (this.combatState.pattern === "aura" && this.combatState.retaliationDamage > 0) {
+    if (this.combatState.pattern === "aura" && !this.gongfaRuntime?.gengjin && this.combatState.retaliationDamage > 0) {
       this.emitAuraBurst(this.combatState.retaliationDamage, Math.max(4, Math.floor(this.combatState.count / 2)));
     }
 
@@ -1544,7 +1541,7 @@ export class GameScene extends Phaser.Scene {
     this.time.delayedCall(720, () => {
       if (!telegraph.active) return;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, x, y) <= profile.slamRadius) {
-        this.applyIncomingDamage(profile.slamDamage, x, y);
+        this.applyIncomingDamage(profile.slamDamage, x, y, boss.combatTargetId);
       }
       this.flashCamera(90, 215, 185, 109);
       this.activeBossHazards.delete(telegraph);
@@ -1944,39 +1941,6 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private maybeCutIronWake(): void {
-    const direction = this.evade.state.direction;
-    const angle = Math.atan2(direction.y, direction.x) + Math.PI / 2;
-    for (const runtime of this.learnedGongfaRuntimes) {
-      const wall = ironWakeWall(runtime);
-      if (!wall) {
-        continue;
-      }
-      const combat = { ...runtime.combat };
-      for (let i = 0; i < wall.count; i += 1) {
-        this.time.delayedCall(i * 45, () => {
-          if (!this.player.active) {
-            return;
-          }
-          this.spawnWaveProjectile(
-            this.player.x,
-            this.player.y,
-            angle,
-            Math.max(1, Math.floor(combat.damage * 0.6)),
-            wall.pierce,
-            combat.projectileSpeed,
-            combat.projectileLifetimeMs + 260,
-            0.9,
-            1,
-            runtime.gongfaId,
-            combat.projectileTexture,
-            combat.tint
-          );
-        });
-      }
-    }
-  }
-
   private applyEvadeRuntimeEffects(): void {
     this.bloodCombinationSerial += 1;
     for (const runtime of this.learnedGongfaRuntimes) {
@@ -1993,36 +1957,6 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.restorePrimaryRuntimeAdapter();
-  }
-
-  private maybeReboundEdge(enemy: Enemy): void {
-    if (!enemy.active) {
-      return;
-    }
-
-    const runtime = this.learnedGongfaRuntimes.find((candidate) =>
-      Boolean(reboundingEdgeBlade(candidate))
-    );
-    if (!runtime) {
-      return;
-    }
-    const blade = reboundingEdgeBlade(runtime)!;
-
-    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-    this.spawnWaveProjectile(
-      this.player.x,
-      this.player.y,
-      angle,
-      blade.damage,
-      blade.pierce,
-      runtime.combat.projectileSpeed + 80,
-      runtime.combat.projectileLifetimeMs + 200,
-      1.0,
-      1,
-      runtime.gongfaId,
-      runtime.combat.projectileTexture,
-      runtime.combat.tint
-    );
   }
 
   private pullEnemiesToward(radius: number, strength: number): void {
@@ -2211,6 +2145,11 @@ export class GameScene extends Phaser.Scene {
     const flowAngle = [0, Math.PI / 2, Math.PI, -Math.PI / 2][direction] ?? 0;
     const movementAngle = movement.angle();
     return Math.cos(movementAngle - flowAngle) < -0.55 ? 0.72 : 0.82;
+  }
+
+  private getGengjinMoveScale(): number {
+    const runtime = this.gongfaCollection.byId["gengjin-huti"];
+    return runtime?.mastery.masteryLearnedIds.includes("hundred-forged-heavy-armor") ? 0.84 : 1;
   }
 
   private getWaveAimAngle(aimMode: "nearest" | "last" = "last"): number {
@@ -2416,8 +2355,18 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (command.kind === "blade-shell-rebound") {
-        this.fireBladeShellRebound(command);
+      if (command.kind === "authored-gengjin-brace") {
+        this.syncAuthoredGengjinBrace(command);
+        return;
+      }
+
+      if (command.kind === "authored-gengjin-reflection") {
+        this.applyAuthoredGengjinReflection(command);
+        return;
+      }
+
+      if (command.kind === "authored-gengjin-release") {
+        this.applyAuthoredGengjinRelease(command);
         return;
       }
 
@@ -4505,6 +4454,75 @@ export class GameScene extends Phaser.Scene {
     this.recordGongfaMotif(`${identity.motifId}:${command.shell ? "closed-lotus" : "directional-facets"}`);
   }
 
+  private syncAuthoredGengjinBrace(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-gengjin-brace" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    this.gengjinBraceMarker ??= this.applyGongfaEffectVisualHierarchy(
+      this.add.graphics(), command.sourceGongfaId
+    ).setDepth(16);
+    const visual = this.gengjinBraceMarker;
+    visual.clear().setPosition(this.player.x, this.player.y);
+    const fill = Math.max(0, Math.min(1, command.guard / Math.max(1, command.capacity)));
+    const radius = 38 + fill * 9;
+    for (let plate = 0; plate < 6; plate += 1) {
+      const angle = plate * Math.PI / 3;
+      const nextAngle = angle + Math.PI / 3;
+      const inner = radius - 9;
+      visual.fillStyle(command.disabled ? 0x5a4c42 : identity.secondary, 0.12 + fill * 0.34);
+      visual.lineStyle(command.shield > 0 ? 5 : 2.5, command.shield > 0 ? 0xffe89a : identity.accent, command.disabled ? 0.3 : 0.85);
+      visual.beginPath();
+      visual.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
+      visual.lineTo(Math.cos(angle) * radius, Math.sin(angle) * radius);
+      visual.lineTo(Math.cos(nextAngle) * radius, Math.sin(nextAngle) * radius);
+      visual.lineTo(Math.cos(nextAngle) * inner, Math.sin(nextAngle) * inner);
+      visual.closePath().fillPath().strokePath();
+    }
+    visual.lineStyle(2, 0x251d17, 0.9);
+    for (let crack = 0; crack < command.fractures; crack += 1) {
+      const angle = -Math.PI / 2 + crack * 0.72;
+      visual.lineBetween(
+        Math.cos(angle) * (radius - 13), Math.sin(angle) * (radius - 13),
+        Math.cos(angle + 0.16) * (radius + 3), Math.sin(angle + 0.16) * (radius + 3)
+      );
+    }
+    const motif = `${identity.motifId}:tempered-brace:${command.fractures}`;
+    if (!this.recentGongfaMotifs.includes(motif)) this.recordGongfaMotif(motif);
+  }
+
+  private applyAuthoredGengjinReflection(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-gengjin-reflection" }>
+  ): void {
+    const enemy = this.getEnemyByCombatTargetId(command.targetId);
+    if (!enemy?.active) return;
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const edge = this.add.graphics().setDepth(18).lineStyle(5, identity.secondary, 0.94);
+    edge.lineBetween(this.player.x, this.player.y, enemy.x, enemy.y);
+    this.tweens.add({ targets: edge, alpha: 0, duration: 180, onComplete: () => edge.destroy() });
+    if (enemy.receiveDamage(command.amount)) this.resolveEnemyDeath(enemy);
+    this.recordGongfaMotif(`${identity.motifId}:rebounding-edge-armor`);
+  }
+
+  private applyAuthoredGengjinRelease(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-gengjin-release" }>
+  ): void {
+    const identity = getGongfaVisualIdentity(command.sourceGongfaId);
+    const visual = this.add.graphics().setDepth(19);
+    if (command.law === "shield") {
+      visual.lineStyle(7, 0xffe89a, 0.94).strokeCircle(this.player.x, this.player.y, 58);
+    } else {
+      visual.lineStyle(command.law === "single" ? 9 : 4, identity.secondary, 0.95);
+      for (const allocation of command.allocations) {
+        const enemy = this.getEnemyByCombatTargetId(allocation.targetId);
+        if (!enemy?.active) continue;
+        visual.lineBetween(this.player.x, this.player.y, enemy.x, enemy.y);
+        if (enemy.receiveDamage(allocation.amount)) this.resolveEnemyDeath(enemy);
+      }
+    }
+    this.tweens.add({ targets: visual, alpha: 0, scale: 1.12, duration: 360, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${identity.motifId}:conserved-release:${command.law}`);
+  }
+
   private fireAuthoredMirrorReflection(
     command: Extract<GongfaRuntimeCommand, { kind: "authored-mirror-reflection" }>
   ): void {
@@ -4723,15 +4741,6 @@ export class GameScene extends Phaser.Scene {
         );
       });
     });
-  }
-
-  private fireBladeShellRebound(
-    command: Extract<GongfaRuntimeCommand, { kind: "blade-shell-rebound" }>
-  ): void {
-    this.emitAuraBurst(
-      Math.floor(command.baseDamage * 0.82 * command.damageScale),
-      command.baseBladeCount + 2 + command.bonusBlades
-    );
   }
 
   private getNearestEnemies(count: number): Enemy[] {
@@ -5498,6 +5507,10 @@ export class GameScene extends Phaser.Scene {
       furnaceCascadeCasts: gongfaView.furnaceCascadeCasts,
       crimsonPressureRadiusScale: gongfaView.crimsonPressureRadiusScale,
       guard: gongfaView.guard,
+      guardCapacity: gongfaView.guardCapacity,
+      guardFractures: gongfaView.guardFractures,
+      guardDisabled: gongfaView.guardDisabled,
+      guardShield: gongfaView.guardShield,
       guardMitigation: gongfaView.guardMitigation,
       bladeShellCharge: gongfaView.bladeShellCharge,
       bladeShellCasts: gongfaView.bladeShellCasts,
@@ -5565,6 +5578,10 @@ export class GameScene extends Phaser.Scene {
             ? getGongfaSkillTags(this.runState.mainGongfaId).join(", ")
             : "",
           guard: gongfaView.guard,
+          guardCapacity: gongfaView.guardCapacity,
+          guardFractures: gongfaView.guardFractures,
+          guardDisabled: gongfaView.guardDisabled,
+          guardShield: gongfaView.guardShield,
           guardMitigation: gongfaView.guardMitigation,
           bladeShellCasts: gongfaView.bladeShellCasts,
           bladeShellCharge: gongfaView.bladeShellCharge,
@@ -5738,6 +5755,10 @@ export class GameScene extends Phaser.Scene {
         furnaceCascadeCasts: gongfaView.furnaceCascadeCasts,
         crimsonPressureRadiusScale: gongfaView.crimsonPressureRadiusScale,
         guard: gongfaView.guard,
+        guardCapacity: gongfaView.guardCapacity,
+        guardFractures: gongfaView.guardFractures,
+        guardDisabled: gongfaView.guardDisabled,
+        guardShield: gongfaView.guardShield,
         guardMitigation: gongfaView.guardMitigation,
         bladeShellCharge: gongfaView.bladeShellCharge,
         bladeShellCasts: gongfaView.bladeShellCasts,
@@ -5879,6 +5900,14 @@ export class GameScene extends Phaser.Scene {
     this.publishHud(this.lastMessage);
   }
 
+  forceCloseDamagePlayer(amount: number, sourceId = 999_999): void {
+    this.applyIncomingDamage(amount, this.player.x + 80, this.player.y, sourceId);
+    if (this.player.stats.health <= 0) {
+      this.handlePlayerDeath("Cultivator fell. Qi scattered.");
+    }
+    this.publishHud(this.lastMessage);
+  }
+
   forceDamageEnemy(enemyId: EnemyId, amount: number): void {
     const enemy = (this.enemies.getChildren() as Enemy[]).find(
       (candidate) => candidate.active && candidate.config.id === enemyId
@@ -5960,7 +5989,7 @@ export class GameScene extends Phaser.Scene {
     return this.activeRunSave?.seed ?? 0;
   }
 
-  private applyIncomingDamage(amount: number, sourceX?: number, sourceY?: number): void {
+  private applyIncomingDamage(amount: number, sourceX?: number, sourceY?: number, sourceId?: number): void {
     if (this.evade.state.invulnerable) {
       return;
     }
@@ -5976,11 +6005,16 @@ export class GameScene extends Phaser.Scene {
     const incomingAngle = sourceX !== undefined && sourceY !== undefined
       ? Phaser.Math.Angle.Between(this.player.x, this.player.y, sourceX, sourceY)
       : undefined;
+    const sourceDistance = sourceX !== undefined && sourceY !== undefined
+      ? Phaser.Math.Distance.Between(this.player.x, this.player.y, sourceX, sourceY)
+      : undefined;
     for (const runtime of this.learnedGongfaRuntimes) {
       const result = advanceGongfaRuntime(runtime, {
         kind: "incoming-damage",
         amount: finalDamage,
         ...(incomingAngle !== undefined ? { incomingAngle } : {}),
+        ...(sourceDistance !== undefined ? { sourceDistance } : {}),
+        ...(sourceId !== undefined ? { sourceId } : {}),
         healthRatio: this.player.stats.maxHealth > 0 ? this.player.stats.health / this.player.stats.maxHealth : 0
       });
       this.adoptPrimaryRuntime(result.runtime);

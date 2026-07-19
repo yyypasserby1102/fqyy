@@ -41,11 +41,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "golden-gale-corridor", name: "Golden Gale Corridor", description: "A lingering cutting corridor repeatedly severs enemies in the movement lane and sustains Momentum.", tags: ["wave", "metal"] }
   },
   "gengjin-huti": {
-    combatRole: "Close defensive pressure that converts danger into retaliation.",
-    visualMotif: "Steel-blue guard rings, faceted shields, and radial blade eruptions.",
-    skill1: { id: "gengjin-guard", name: "Gengjin Guard", description: "A close defensive aura releases retaliatory metal edges when enemies enter or strike nearby.", tags: ["aura", "metal", "defensive"] },
-    passive: { name: "Tempered Body", resource: "Guard", description: "Nearby danger and prevented damage build Guard, improving mitigation and defensive-tagged Skills." },
-    skill2: { id: "blade-shell-rebound", name: "Blade Shell", description: "Prevented damage and close Evades charge a Guard-scaled shell that erupts in a radial blade burst.", tags: ["aura", "metal", "defensive"] }
+    combatRole: "Close-hit mitigation that stores only prevented force for a conserved release.",
+    visualMotif: "Layered steel braces, capacity fill, visible fractures, and allocation edges.",
+    skill1: { id: "gengjin-guard", name: "Gengjin Brace", description: "Close-source hits are proportionally reduced and the exact prevented force enters a hard, fracture-prone Guard cap.", tags: ["aura", "metal", "defensive"] },
+    passive: { name: "Tempered Guard", resource: "Guard", description: "Overflow fractures the brace and briefly disables mitigation; distant attacks never generate Guard." },
+    skill2: { id: "blade-shell-rebound", name: "Blade-Shell Rebound", description: "At high Guard and nearby danger, releases exactly the stored total by the chosen law, clears Guard, and repairs fractures.", tags: ["reflect", "metal", "defensive"] }
   },
   "crimson-furnace-sword-art": {
     combatRole: "Embed-and-detonate setup that chains explosive priority bursts.",

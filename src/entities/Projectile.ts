@@ -49,7 +49,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     if (!value) return;
     const geometry = getGongfaVisualIdentity(value).geometry;
     const silhouette: Record<typeof geometry, readonly [number, number]> = {
-      "sword-seal": [1.12, 0.72], corridor: [1.35, 0.62], facets: [0.9, 0.9],
+      "sword-seal": [1.12, 0.72], corridor: [1.35, 0.62], facets: [0.9, 0.9], armor: [1.1, 1],
       furnace: [0.76, 1.08], wings: [1.08, 0.56], solar: [1, 1], crescent: [1.28, 0.7],
       constellation: [0.62, 1.12], tide: [1.42, 0.68], lotus: [0.94, 0.94],
       roots: [0.72, 1.2], bloom: [1.08, 1.08], rings: [1.5, 0.76],

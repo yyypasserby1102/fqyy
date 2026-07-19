@@ -25,6 +25,7 @@ function attachGameTestHarness(game: Phaser.Game): void {
       forceSpawnEnemy: (enemyId: EnemyId) => getGameScene().forceSpawnEnemy(enemyId),
       selectChoice: (index) => getGameScene().forceSelectChoice(index),
       forceDamagePlayer: (amount: number) => getGameScene().forceDamagePlayer(amount),
+      forceCloseDamagePlayer: (amount: number, sourceId?: number) => getGameScene().forceCloseDamagePlayer(amount, sourceId),
       forceDamageEnemy: (enemyId: EnemyId, amount: number) =>
         getGameScene().forceDamageEnemy(enemyId, amount),
       forceDamageBoss: (amount: number) => getGameScene().forceDamageBoss(amount),

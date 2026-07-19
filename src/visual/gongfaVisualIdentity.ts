@@ -4,6 +4,7 @@ export type GongfaSigilGeometry =
   | "sword-seal"
   | "corridor"
   | "facets"
+  | "armor"
   | "furnace"
   | "wings"
   | "solar"
@@ -33,7 +34,7 @@ export interface GongfaVisualIdentity {
 export const gongfaVisualIdentities: Record<GongfaId, GongfaVisualIdentity> = {
   "yujian-jue": { motifId: "ordered-sword-seal", label: "Ordered sword seal", geometry: "sword-seal", accent: 0xb7e3ff, secondary: 0xf4f8ff, spokes: 5, trailStyle: "straight blade script" },
   "jinfeng-gong": { motifId: "golden-horizon", label: "Golden cutting horizon", geometry: "corridor", accent: 0xf2d273, secondary: 0xdcefff, spokes: 3, trailStyle: "parallel wind ribbons" },
-  "gengjin-huti": { motifId: "tempered-facets", label: "Tempered guard facets", geometry: "facets", accent: 0xaed7e5, secondary: 0xffffff, spokes: 8, trailStyle: "angular shield echoes" },
+  "gengjin-huti": { motifId: "forged-brace", label: "Layered forged brace", geometry: "armor", accent: 0xd4b068, secondary: 0xffe7a6, spokes: 6, trailStyle: "heavy plate seams and fracture scars" },
   "crimson-furnace-sword-art": { motifId: "crucible-rune", label: "Crimson crucible rune", geometry: "furnace", accent: 0xff654f, secondary: 0xffc05c, spokes: 4, trailStyle: "black-core ember sparks" },
   "blazing-feather-art": { motifId: "phoenix-pinions", label: "Phoenix feather pinions", geometry: "wings", accent: 0xff9b61, secondary: 0xffdc79, spokes: 7, trailStyle: "falling ember barbs" },
   "burning-ring-scripture": { motifId: "revolving-corona", label: "Revolving solar corona", geometry: "solar", accent: 0xff8b4f, secondary: 0xffef9a, spokes: 10, trailStyle: "segmented solar orbit" },

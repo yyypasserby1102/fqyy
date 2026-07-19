@@ -159,6 +159,17 @@ export interface GengjinState {
   bladeShellCooldownRemaining: number;
   bladeShellCasts: number;
   gengjinPulseCooldownRemaining: number;
+  guardCapacity: number;
+  fractureCount: number;
+  fractureRecoveryRemaining: number;
+  mitigationDisabledRemaining: number;
+  postEvadeLayerRemaining: number;
+  postEvadeGuard: number;
+  rememberedSourceId: number;
+  rememberedHits: number;
+  shieldValue: number;
+  shieldRemaining: number;
+  isMoving: boolean;
 }
 
 export interface BurningRingState {
@@ -257,7 +268,7 @@ export type GongfaRuntimeEvent =
       targets?: AuthoredTargetFact[];
       learnedMasteryIds?: string[];
     }
-  | { kind: "incoming-damage"; amount: number; incomingAngle?: number; healthRatio?: number; skill2Id?: string; learnedMasteryIds?: string[] }
+  | { kind: "incoming-damage"; amount: number; incomingAngle?: number; sourceDistance?: number; sourceId?: number; healthRatio?: number; skill2Id?: string; learnedMasteryIds?: string[] }
   | { kind: "crimson-detonation"; x: number; y: number; damage: number; fromEmbed: boolean }
   | {
       kind: "enemy-death";
@@ -373,11 +384,27 @@ export type GongfaRuntimeCommand =
       sourceGongfaId: GongfaId;
     }
   | {
-      kind: "blade-shell-rebound";
-      damageScale: number;
-      bonusBlades: number;
-      baseDamage: number;
-      baseBladeCount: number;
+      kind: "authored-gengjin-brace";
+      guard: number;
+      capacity: number;
+      fractures: number;
+      disabled: boolean;
+      shield: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-gengjin-reflection";
+      targetId: number;
+      amount: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-gengjin-release";
+      law: "shared" | "single" | "shield";
+      conservedTotal: number;
+      allocations: Array<{ targetId: number; amount: number }>;
+      shield: number;
+      sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
     }
   | {
@@ -1498,6 +1525,16 @@ export interface GongfaRuntimeCheckpointFields {
   bladeShellThreshold: number;
   bladeShellCooldownRemaining: number;
   bladeShellCasts: number;
+  guardCapacity: number;
+  guardFractureCount: number;
+  guardFractureRecoveryRemaining: number;
+  guardMitigationDisabledRemaining: number;
+  guardPostEvadeLayerRemaining: number;
+  guardPostEvadeGuard: number;
+  guardRememberedSourceId: number;
+  guardRememberedHits: number;
+  guardShieldValue: number;
+  guardShieldRemaining: number;
 }
 
 export type GongfaRuntimeCheckpointInput = Partial<GongfaRuntimeCheckpointFields>;
@@ -1512,6 +1549,10 @@ export interface GongfaRuntimeView {
   furnaceCascadeCasts: number;
   crimsonPressureRadiusScale: number;
   guard: number;
+  guardCapacity: number;
+  guardFractures: number;
+  guardDisabled: boolean;
+  guardShield: number;
   guardMitigation: number;
   bladeShellCharge: number;
   bladeShellCasts: number;
@@ -1546,7 +1587,18 @@ const gengjinDefaults: GengjinState = {
   bladeShellThreshold: 100,
   bladeShellCooldownRemaining: 0,
   bladeShellCasts: 0,
-  gengjinPulseCooldownRemaining: 0
+  gengjinPulseCooldownRemaining: 0,
+  guardCapacity: 100,
+  fractureCount: 0,
+  fractureRecoveryRemaining: 0,
+  mitigationDisabledRemaining: 0,
+  postEvadeLayerRemaining: 0,
+  postEvadeGuard: 0,
+  rememberedSourceId: 0,
+  rememberedHits: 0,
+  shieldValue: 0,
+  shieldRemaining: 0,
+  isMoving: false
 };
 
 const burningRingDefaults: BurningRingState = {
@@ -1772,21 +1824,115 @@ function syncGengjinCombat(runtime: GongfaRuntime): void {
     return;
   }
 
-  const stageState = gongfaConfigs["gengjin-huti"].stages.lianqi!;
-  const desiredRetaliationBonus = Math.max(1, Math.floor(state.guardValue * 0.18));
-  const desiredAuraBonus = Math.floor(state.guardValue * 0.35);
-  const desiredDamageBonus = Math.floor(state.guardValue * 0.08);
+  runtime.combat.retaliationDamage -= state.guardAppliedRetaliationBonus;
+  runtime.combat.auraRadius -= state.guardAppliedAuraBonus;
+  runtime.combat.damage -= state.guardAppliedDamageBonus;
+  state.guardAppliedRetaliationBonus = 0;
+  state.guardAppliedAuraBonus = 0;
+  state.guardAppliedDamageBonus = 0;
+  state.guardMitigation = gengjinMitigation(state, runtime.mastery.masteryLearnedIds);
+}
 
-  runtime.combat.retaliationDamage +=
-    desiredRetaliationBonus - state.guardAppliedRetaliationBonus;
-  runtime.combat.auraRadius += desiredAuraBonus - state.guardAppliedAuraBonus;
-  runtime.combat.damage += desiredDamageBonus - state.guardAppliedDamageBonus;
+const GENGJIN_CLOSE_RANGE = 190;
+const GENGJIN_RELEASE_THRESHOLD = 60;
 
-  state.guardAppliedRetaliationBonus = desiredRetaliationBonus;
-  state.guardAppliedAuraBonus = desiredAuraBonus;
-  state.guardAppliedDamageBonus = desiredDamageBonus;
-  state.guardMitigation = Math.min(0.65, state.guardValue / 220 + state.guardMitigationBonus);
-  runtime.combat.auraRadius = Math.max(stageState.auraRadius, runtime.combat.auraRadius);
+function gengjinCapacity(state: GengjinState, learnedIds: string[]): number {
+  if (learnedIds.includes("flowing-gold-vent")) return 72;
+  let capacity = learnedIds.includes("hundred-forged-heavy-armor") ? 150 : 100;
+  if (learnedIds.includes("immovable-mountain") && !state.isMoving) capacity += 50;
+  return capacity;
+}
+
+function gengjinMitigation(
+  state: GengjinState,
+  learnedIds: string[],
+  sourceId?: number,
+  includePostEvadeLayer = true
+): number {
+  if (state.mitigationDisabledRemaining > 0) return 0;
+  let mitigation = learnedIds.includes("hundred-forged-heavy-armor") ? 0.42 : 0.3;
+  if (learnedIds.includes("immovable-mountain") && !state.isMoving) mitigation += 0.12;
+  if (learnedIds.includes("armor-remembers-enemy") && sourceId !== undefined &&
+      state.rememberedSourceId === sourceId) {
+    mitigation += Math.min(0.15, state.rememberedHits * 0.03);
+  }
+  if (includePostEvadeLayer && state.postEvadeLayerRemaining > 0 && state.postEvadeGuard > 0) mitigation += 0.18;
+  return Math.min(0.68, mitigation + state.guardMitigationBonus);
+}
+
+function gengjinBraceCommand(runtime: GongfaRuntime): Extract<GongfaRuntimeCommand, { kind: "authored-gengjin-brace" }> {
+  const state = runtime.gengjin!;
+  return {
+    kind: "authored-gengjin-brace",
+    guard: state.guardValue,
+    capacity: state.guardCapacity,
+    fractures: state.fractureCount,
+    disabled: state.mitigationDisabledRemaining > 0,
+    shield: state.shieldValue,
+    sourceGongfaId: runtime.gongfaId
+  };
+}
+
+function buildGengjinRelease(
+  runtime: GongfaRuntime,
+  targets: AuthoredTargetFact[],
+  learnedIds: string[],
+  playerX: number,
+  playerY: number
+): Extract<GongfaRuntimeCommand, { kind: "authored-gengjin-release" }> | undefined {
+  const state = runtime.gengjin;
+  if (!state || state.guardValue < GENGJIN_RELEASE_THRESHOLD) return undefined;
+  const nearby = targets
+    .map((target) => ({
+      ...target,
+      distance: Math.hypot(target.x - playerX, target.y - playerY)
+    }))
+    .filter((target) => target.distance <= GENGJIN_CLOSE_RANGE)
+    .sort((a, b) => a.distance - b.distance || b.healthRatio - a.healthRatio);
+  if (nearby.length === 0) return undefined;
+
+  const conservedTotal = Math.floor(state.guardValue);
+  let law: "shared" | "single" | "shield" = "shared";
+  let allocations: Array<{ targetId: number; amount: number }> = [];
+  let shield = 0;
+  if (learnedIds.includes("unbroken-golden-city")) {
+    law = "shield";
+    shield = conservedTotal;
+  } else if (learnedIds.includes("one-edge-breaks-mountain")) {
+    law = "single";
+    allocations = [{ targetId: nearby[0].targetId, amount: conservedTotal }];
+  } else {
+    const recipients = learnedIds.includes("eight-wastes-rebound") ? nearby.slice(0, 8) : nearby.slice(0, 4);
+    const base = Math.floor(conservedTotal / recipients.length);
+    let remainder = conservedTotal - base * recipients.length;
+    allocations = recipients.map((target) => ({
+      targetId: target.targetId,
+      amount: base + (remainder-- > 0 ? 1 : 0)
+    }));
+  }
+  state.guardValue = 0;
+  state.bladeShellCharge = 0;
+  state.bladeShellCasts += 1;
+  state.bladeShellCooldownRemaining = 1800;
+  state.fractureCount = 0;
+  state.fractureRecoveryRemaining = 0;
+  state.mitigationDisabledRemaining = 0;
+  if (shield > 0) {
+    state.shieldValue = shield;
+    state.shieldRemaining = 5000;
+  }
+  return {
+    kind: "authored-gengjin-release",
+    law,
+    conservedTotal,
+    allocations,
+    shield,
+    sourceGongfaId: runtime.gongfaId,
+    masteryCast: {
+      skill2Id: "blade-shell-rebound",
+      cooldownMs: Math.floor(authoredSkill2Plans["blade-shell-rebound"].cooldownMs * skill2RefinementStats(runtime).cadenceScale)
+    }
+  };
 }
 
 function syncBurningRingCombat(runtime: GongfaRuntime): void {
@@ -1961,7 +2107,17 @@ export function createGongfaRuntimeFromCheckpoint(
             bladeShellCharge: checkpoint.bladeShellCharge,
             bladeShellThreshold: checkpoint.bladeShellThreshold,
             bladeShellCooldownRemaining: checkpoint.bladeShellCooldownRemaining,
-            bladeShellCasts: checkpoint.bladeShellCasts
+            bladeShellCasts: checkpoint.bladeShellCasts,
+            guardCapacity: checkpoint.guardCapacity,
+            fractureCount: checkpoint.guardFractureCount,
+            fractureRecoveryRemaining: checkpoint.guardFractureRecoveryRemaining,
+            mitigationDisabledRemaining: checkpoint.guardMitigationDisabledRemaining,
+            postEvadeLayerRemaining: checkpoint.guardPostEvadeLayerRemaining,
+            postEvadeGuard: checkpoint.guardPostEvadeGuard,
+            rememberedSourceId: checkpoint.guardRememberedSourceId,
+            rememberedHits: checkpoint.guardRememberedHits,
+            shieldValue: checkpoint.guardShieldValue,
+            shieldRemaining: checkpoint.guardShieldRemaining
           })
         : undefined,
     burningRing:
@@ -2044,7 +2200,17 @@ export function projectGongfaRuntimeCheckpoint(
     bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
     bladeShellThreshold: gengjin?.bladeShellThreshold ?? 100,
     bladeShellCooldownRemaining: gengjin?.bladeShellCooldownRemaining ?? 0,
-    bladeShellCasts: gengjin?.bladeShellCasts ?? 0
+    bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
+    guardCapacity: gengjin?.guardCapacity ?? 100,
+    guardFractureCount: gengjin?.fractureCount ?? 0,
+    guardFractureRecoveryRemaining: gengjin?.fractureRecoveryRemaining ?? 0,
+    guardMitigationDisabledRemaining: gengjin?.mitigationDisabledRemaining ?? 0,
+    guardPostEvadeLayerRemaining: gengjin?.postEvadeLayerRemaining ?? 0,
+    guardPostEvadeGuard: gengjin?.postEvadeGuard ?? 0,
+    guardRememberedSourceId: gengjin?.rememberedSourceId ?? 0,
+    guardRememberedHits: gengjin?.rememberedHits ?? 0,
+    guardShieldValue: gengjin?.shieldValue ?? 0,
+    guardShieldRemaining: gengjin?.shieldRemaining ?? 0
   };
 }
 
@@ -2126,6 +2292,10 @@ export function projectGongfaRuntimeView(runtime: GongfaRuntime | undefined): Go
     furnaceCascadeCasts: crimsonFurnace?.furnaceCascadeCasts ?? 0,
     crimsonPressureRadiusScale: crimsonFurnace?.pressureRadiusScale ?? 0.45,
     guard: gengjin?.guardValue ?? 0,
+    guardCapacity: gengjin?.guardCapacity ?? 100,
+    guardFractures: gengjin?.fractureCount ?? 0,
+    guardDisabled: (gengjin?.mitigationDisabledRemaining ?? 0) > 0,
+    guardShield: gengjin?.shieldValue ?? 0,
     guardMitigation: gengjin?.guardMitigation ?? 0,
     bladeShellCharge: gengjin?.bladeShellCharge ?? 0,
     bladeShellCasts: gengjin?.bladeShellCasts ?? 0,
@@ -4240,11 +4410,6 @@ export function advanceGongfaRuntime(
   }
 
   if (event.kind === "gengjin-defensive-hit") {
-    // Ten-Thousand Armor Resonance: defensive-tagged Skill hits build Guard.
-    if (next.gengjin && event.learnedMasteryIds.includes("ten-thousand-armor-resonance")) {
-      next.gengjin.guardValue = Math.min(100, next.gengjin.guardValue + 1.5);
-      syncGengjinCombat(next);
-    }
     return { runtime: next, commands };
   }
 
@@ -4280,19 +4445,12 @@ export function advanceGongfaRuntime(
     if (next.burningRing && event.learnedMasteryIds.includes("ember-step")) {
       next.burningRing.rotation += Math.PI / 3;
     }
-    // Flowing Iron Body: each Evade grants Guard and a defensive shockwave.
-    if (next.gengjin && event.learnedMasteryIds.includes("flowing-iron-body")) {
-      next.gengjin.guardValue = Math.min(100, next.gengjin.guardValue + 20);
-      syncGengjinCombat(next);
-      commands.push({ kind: "aura-burst", damage: next.combat.damage, count: 8 });
-    }
-    // Unbroken Advance: Evade becomes a Guard-scaled breakthrough strike.
-    if (next.gengjin && event.learnedMasteryIds.includes("unbroken-advance")) {
-      commands.push({
-        kind: "aura-burst",
-        damage: next.combat.damage + Math.floor(next.gengjin.guardValue * 0.6),
-        count: 10
-      });
+    if (next.gengjin && event.learnedMasteryIds.includes("flowing-gold-turn") && next.gengjin.guardValue > 0) {
+      const vented = Math.max(1, Math.floor(next.gengjin.guardValue * 0.4));
+      next.gengjin.guardValue -= vented;
+      next.gengjin.postEvadeGuard = vented;
+      next.gengjin.postEvadeLayerRemaining = 1000;
+      commands.push(gengjinBraceCommand(next));
     }
     // Void-Step Formation: each Evade looses an extra sword volley.
     if (next.yujian && event.learnedMasteryIds.includes("void-step-formation")) {
@@ -4484,33 +4642,67 @@ export function advanceGongfaRuntime(
       return { runtime: next, commands };
     }
 
-    const finalDamage = Math.max(1, Math.floor(event.amount * (1 - state.guardMitigation)));
-    state.bladeShellCharge = Math.min(
-      state.bladeShellThreshold,
-      state.bladeShellCharge + finalDamage * 2
-    );
-    syncGengjinCombat(next);
-    commands.push({ kind: "incoming-damage", finalDamage });
+    let remainingAmount = Math.max(0, Math.floor(event.amount));
+    if (state.shieldRemaining > 0 && state.shieldValue > 0) {
+      const absorbed = Math.min(state.shieldValue, remainingAmount);
+      state.shieldValue -= absorbed;
+      remainingAmount -= absorbed;
+    }
+    const closeSource = event.sourceDistance !== undefined && event.sourceDistance <= GENGJIN_CLOSE_RANGE;
+    if (!closeSource || remainingAmount <= 0) {
+      commands.push({ kind: "incoming-damage", finalDamage: remainingAmount });
+      commands.push(gengjinBraceCommand(next));
+      return { runtime: next, commands };
+    }
 
-    const skill2 = getAuthoredSkill2Plan(event.skill2Id);
-    if (skill2?.trigger === "threshold" && state.bladeShellCooldownRemaining === 0) {
-      if (state.bladeShellCharge >= state.bladeShellThreshold) {
-        state.bladeShellCasts += 1;
-        state.bladeShellCharge = 0;
-        state.bladeShellCooldownRemaining = 1800;
-        commands.push({
-          kind: "blade-shell-rebound",
-          damageScale: skill2RefinementStats(next).damageScale,
-          bonusBlades: skill2RefinementStats(next).coverage * 2,
-          baseDamage: skill2Combat(next).damage,
-          baseBladeCount: skill2Combat(next).count,
-          masteryCast: {
-            skill2Id: "blade-shell-rebound",
-            cooldownMs: Math.floor(authoredSkill2Plans["blade-shell-rebound"].cooldownMs * skill2RefinementStats(next).cadenceScale)
-          }
-        });
+    const learnedIds = event.learnedMasteryIds ?? [];
+    if (learnedIds.includes("armor-remembers-enemy") && event.sourceId !== undefined) {
+      if (state.rememberedSourceId === event.sourceId) state.rememberedHits += 1;
+      else {
+        state.rememberedSourceId = event.sourceId;
+        state.rememberedHits = 1;
       }
     }
+    const braceMitigation = gengjinMitigation(state, learnedIds, event.sourceId, false);
+    const layerMitigation = state.postEvadeLayerRemaining > 0 && state.postEvadeGuard > 0
+      ? Math.min(0.18, state.postEvadeGuard / Math.max(1, remainingAmount))
+      : 0;
+    state.guardMitigation = Math.min(0.68, braceMitigation + layerMitigation);
+    const finalDamage = Math.max(1, Math.floor(remainingAmount * (1 - state.guardMitigation)));
+    const prevented = Math.max(0, remainingAmount - finalDamage);
+    const braceFinalDamage = Math.max(1, Math.floor(remainingAmount * (1 - braceMitigation)));
+    const layerPrevented = Math.max(0, braceFinalDamage - finalDamage);
+    state.postEvadeGuard = Math.max(0, state.postEvadeGuard - layerPrevented);
+    if (state.postEvadeGuard === 0) state.postEvadeLayerRemaining = 0;
+    let stored = Math.max(0, prevented - layerPrevented);
+    if (learnedIds.includes("rebounding-edge-armor") && prevented > 0) {
+      const reflected = Math.max(1, Math.floor(prevented * 0.35));
+      stored = Math.floor(prevented * 0.65);
+      if (event.sourceId !== undefined) commands.push({
+        kind: "authored-gengjin-reflection",
+        targetId: event.sourceId,
+        amount: reflected,
+        sourceGongfaId: next.gongfaId
+      });
+    }
+    if (learnedIds.includes("armor-remembers-enemy")) stored = Math.floor(stored * 0.78);
+    state.guardCapacity = gengjinCapacity(state, learnedIds);
+    const proposed = state.guardValue + stored;
+    if (proposed > state.guardCapacity) {
+      if (learnedIds.includes("flowing-gold-vent")) {
+        state.guardValue = state.guardCapacity;
+      } else {
+        state.fractureCount = Math.min(3, state.fractureCount + 1);
+        state.fractureRecoveryRemaining = learnedIds.includes("hundred-forged-heavy-armor") ? 6500 : 4200;
+        state.mitigationDisabledRemaining = learnedIds.includes("hundred-forged-heavy-armor") ? 4200 : 2800;
+        state.guardValue = Math.floor(state.guardCapacity * 0.35);
+      }
+    } else {
+      state.guardValue = proposed;
+    }
+    state.bladeShellCharge = state.guardValue;
+    commands.push({ kind: "incoming-damage", finalDamage });
+    commands.push(gengjinBraceCommand(next));
     return { runtime: next, commands };
   }
 
@@ -4695,81 +4887,38 @@ export function advanceGongfaRuntime(
 
   if (next.gengjin) {
     const learnedMasteryIds = event.learnedMasteryIds ?? [];
-    // Immovable Mountain: standing still greatly increases Guard gain (and, via
-    // higher Guard, defensive output through syncGengjinCombat).
-    const stillGuardBonus =
-      learnedMasteryIds.includes("immovable-mountain") && !event.isMoving ? 1.8 : 1;
-    if (event.nearbyEnemyCount > 0) {
-      next.gengjin.guardValue = Math.min(
-        100,
-        next.gengjin.guardValue +
-          event.nearbyEnemyCount * next.gengjin.guardBuildRate * stillGuardBonus * deltaSeconds
-      );
-      next.gengjin.bladeShellCharge = Math.min(
-        next.gengjin.bladeShellThreshold,
-        next.gengjin.bladeShellCharge +
-          event.nearbyEnemyCount * 7 * deltaSeconds +
-          next.gengjin.guardValue * 0.05 * deltaSeconds
-      );
-    } else {
-      next.gengjin.guardValue = Math.max(
-        0,
-        next.gengjin.guardValue - next.gengjin.guardDecayRate * deltaSeconds
-      );
-      next.gengjin.bladeShellCharge = Math.max(
-        0,
-        next.gengjin.bladeShellCharge - 5 * deltaSeconds
-      );
+    const state = next.gengjin;
+    state.isMoving = event.isMoving === true;
+    state.guardCapacity = gengjinCapacity(state, learnedMasteryIds);
+    if (state.guardValue > state.guardCapacity) state.guardValue = state.guardCapacity;
+    state.bladeShellCharge = state.guardValue;
+    state.bladeShellCooldownRemaining = Math.max(0, state.bladeShellCooldownRemaining - event.deltaMs);
+    state.mitigationDisabledRemaining = Math.max(0, state.mitigationDisabledRemaining - event.deltaMs);
+    state.postEvadeLayerRemaining = Math.max(0, state.postEvadeLayerRemaining - event.deltaMs);
+    if (state.postEvadeLayerRemaining === 0) state.postEvadeGuard = 0;
+    state.shieldRemaining = Math.max(0, state.shieldRemaining - event.deltaMs);
+    if (state.shieldRemaining === 0) state.shieldValue = 0;
+    state.fractureRecoveryRemaining = Math.max(0, state.fractureRecoveryRemaining - event.deltaMs);
+    if (state.fractureRecoveryRemaining === 0 && state.fractureCount > 0) {
+      state.fractureCount -= 1;
+      state.fractureRecoveryRemaining = state.fractureCount > 0
+        ? (learnedMasteryIds.includes("hundred-forged-heavy-armor") ? 6500 : 4200)
+        : 0;
     }
-    syncGengjinCombat(next);
-
-    // Rank-9 Guard pulses share one cooldown (Iron Gravity Domain and Unbroken
-    // Advance are exclusive milestone choices, so at most one ever fires).
-    next.gengjin.gengjinPulseCooldownRemaining = Math.max(
-      0,
-      next.gengjin.gengjinPulseCooldownRemaining - Math.max(0, event.deltaMs)
-    );
-    if (next.gengjin.gengjinPulseCooldownRemaining === 0) {
-      // Iron Gravity Domain: at high Guard, pull enemies into an aura burst.
-      if (learnedMasteryIds.includes("iron-gravity-domain") && next.gengjin.guardValue >= 60) {
-        next.gengjin.gengjinPulseCooldownRemaining = 1500;
-        commands.push({ kind: "gravity-pull", radius: 200, strength: 220 });
-        commands.push({ kind: "aura-burst", damage: next.combat.damage, count: 10 });
-      } else if (
-        // Unbroken Advance: high-Guard movement strikes nearby enemies.
-        learnedMasteryIds.includes("unbroken-advance") &&
-        event.isMoving &&
-        next.gengjin.guardValue >= 40
-      ) {
-        next.gengjin.gengjinPulseCooldownRemaining = 900;
-        commands.push({ kind: "aura-burst", damage: next.combat.damage, count: 6 });
-      }
-    }
+    state.guardMitigation = gengjinMitigation(state, learnedMasteryIds);
 
     const skill2 = getAuthoredSkill2Plan(event.skill2Id);
-    if (skill2?.trigger === "threshold") {
-      if (next.gengjin.bladeShellCooldownRemaining > 0) {
-        next.gengjin.bladeShellCooldownRemaining = Math.max(
-          0,
-          next.gengjin.bladeShellCooldownRemaining - Math.max(0, event.deltaMs)
-        );
-      } else if (next.gengjin.bladeShellCharge >= next.gengjin.bladeShellThreshold) {
-        next.gengjin.bladeShellCasts += 1;
-        next.gengjin.bladeShellCharge = 0;
-        next.gengjin.bladeShellCooldownRemaining = 1800;
-        commands.push({
-          kind: "blade-shell-rebound",
-          damageScale: skill2RefinementStats(next).damageScale,
-          bonusBlades: skill2RefinementStats(next).coverage * 2,
-          baseDamage: skill2Combat(next).damage,
-          baseBladeCount: skill2Combat(next).count,
-          masteryCast: {
-            skill2Id: "blade-shell-rebound",
-            cooldownMs: Math.floor(authoredSkill2Plans["blade-shell-rebound"].cooldownMs * skill2RefinementStats(next).cadenceScale)
-          }
-        });
-      }
+    if (skill2?.trigger === "threshold" && state.bladeShellCooldownRemaining === 0 && event.nearbyEnemyCount > 0) {
+      const release = buildGengjinRelease(
+        next,
+        event.targets ?? [],
+        learnedMasteryIds,
+        event.playerX ?? 0,
+        event.playerY ?? 0
+      );
+      if (release) commands.push(release);
     }
+    commands.push(gengjinBraceCommand(next));
   }
 
   if (next.crimsonFurnace) {
@@ -4937,47 +5086,6 @@ export function galeStepSeveranceCorridor(
  * source, its bite scaled by current Guard. Returns undefined when the
  * Transformation is not learned or there is no Guard to spend.
  */
-export function reboundingEdgeBlade(
-  runtime: GongfaRuntime,
-  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
-): { damage: number; pierce: number } | undefined {
-  if (
-    !runtime.gengjin ||
-    !learnedMasteryIds.includes("rebounding-edge") ||
-    runtime.gengjin.guardValue <= 0
-  ) {
-    return undefined;
-  }
-
-  return {
-    damage: Math.max(1, Math.floor(runtime.combat.damage + runtime.gengjin.guardValue * 0.5)),
-    pierce: runtime.combat.pierce + 1
-  };
-}
-
-/**
- * Iron Wake: each Evade leaves a Guard-scaled cutting wall along its path.
- * Returns the wall's pierce and blade count, or undefined when not learned or
- * there is no Guard.
- */
-export function ironWakeWall(
-  runtime: GongfaRuntime,
-  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
-): { pierce: number; count: number } | undefined {
-  if (
-    !runtime.gengjin ||
-    !learnedMasteryIds.includes("iron-wake") ||
-    runtime.gengjin.guardValue <= 0
-  ) {
-    return undefined;
-  }
-
-  return {
-    pierce: runtime.combat.pierce + 1,
-    count: Math.max(2, Math.round(runtime.gengjin.guardValue / 20))
-  };
-}
-
 export function planGongfaAttack(
   runtime: GongfaRuntime,
   elapsedMs: number,
@@ -5541,17 +5649,10 @@ export function planGongfaAttack(
       return commands;
     }
     case "aura":
+      if (runtime.gengjin) return [];
       if (!runtime.burningRing) {
         const learnedMasteryIds = options.learnedMasteryIds ?? [];
         let count = runtime.combat.count;
-        // Hundred-Blade Halo: Guard fuels a denser rotating blade halo.
-        if (runtime.gengjin && learnedMasteryIds.includes("hundred-blade-halo")) {
-          count += Math.floor(runtime.gengjin.guardValue / 12);
-        }
-        // Gengjin Fortress: current Guard manifests as orbiting defensive blades.
-        if (runtime.gengjin && learnedMasteryIds.includes("gengjin-fortress")) {
-          count += Math.floor(runtime.gengjin.guardValue / 8);
-        }
         count += surgeBonusCount(runtime, learnedMasteryIds);
         return [
           {

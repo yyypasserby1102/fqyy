@@ -48,6 +48,22 @@ export function createGongfaSigil(
       }
       graphic.strokeCircle(0, 0, radius * (identity.geometry === "bloom" ? 0.42 : 0.25));
       break;
+    case "armor":
+      for (let i = 0; i < 6; i += 1) {
+        const angle = (Math.PI * 2 * i) / 6;
+        const nextAngle = (Math.PI * 2 * (i + 1)) / 6;
+        const innerA = point(angle, radius * 0.58);
+        const outerA = point(angle, radius);
+        const outerB = point(nextAngle, radius);
+        const innerB = point(nextAngle, radius * 0.58);
+        graphic.beginPath();
+        graphic.moveTo(innerA.x, innerA.y).lineTo(outerA.x, outerA.y)
+          .lineTo(outerB.x, outerB.y).lineTo(innerB.x, innerB.y).closePath();
+        graphic.fillPath().strokePath();
+      }
+      graphic.strokeCircle(0, 0, radius * 0.34);
+      graphic.lineBetween(-radius * 0.18, -radius * 0.72, radius * 0.08, -radius * 0.42);
+      break;
     case "furnace":
       graphic.strokeRect(-radius * 0.55, -radius * 0.55, radius * 1.1, radius * 1.1);
       graphic.strokeCircle(0, 0, radius * 0.38);

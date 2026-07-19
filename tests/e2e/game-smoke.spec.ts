@@ -1473,9 +1473,9 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   expect(snapshot.combat.pattern).toBe("aura");
   expect(snapshot.progression.skillTags).toEqual(["aura", "metal", "defensive"]);
   expect(snapshot.progression.guard).toBe(0);
-  expect(snapshot.progression.guardMitigation).toBe(0);
-  expect(snapshot.combat.auraRadius).toBe(92);
-  expect(snapshot.combat.retaliationDamage).toBeGreaterThanOrEqual(8);
+  expect(snapshot.progression.guardMitigation).toBeCloseTo(0.3);
+  expect(snapshot.progression.guardCapacity).toBe(100);
+  expect(snapshot.progression.guardFractures).toBe(0);
   expect(snapshot.combat.shellBursts).toBe(0);
 
   await page.evaluate(() => {
@@ -1484,18 +1484,23 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
   await page.waitForTimeout(1200);
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(snapshot.progression.guard).toBeGreaterThan(0);
-  expect(snapshot.progression.guardMitigation).toBeGreaterThan(0);
-  expect(snapshot.combat.retaliationDamage).toBeGreaterThan(8);
+  expect(snapshot.progression.guard).toBe(0);
 
   await page.evaluate(() => {
     window.__gameTest!.forceClearEnemies();
   });
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  const beforeMitigatedDamage = snapshot.player.health;
+  const beforeDistantDamage = snapshot.player.health;
   await page.evaluate(() => window.__gameTest!.forceDamagePlayer(20));
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
-  expect(beforeMitigatedDamage - snapshot.player.health).toBeLessThan(20);
+  expect(beforeDistantDamage - snapshot.player.health).toBe(20);
+  const beforeMitigatedDamage = snapshot.player.health;
+  await page.evaluate(() => window.__gameTest!.forceCloseDamagePlayer(20, 71));
+  snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(beforeMitigatedDamage - snapshot.player.health).toBe(14);
+  expect(snapshot.progression.guard).toBe(6);
+  expect(snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("forged-brace:tempered-brace:"))).toBe(true);
+  expect(snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("mirror-lotus:"))).toBe(false);
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -1520,13 +1525,16 @@ test("Stage Breakthroughs preserve Gengjin Huti while Mastery remains independen
 
   await page.evaluate(() => {
     window.__gameTest!.forceSpawnEnemies(8);
-    window.__gameTest!.forceDamagePlayer(40);
-    window.__gameTest!.forceDamagePlayer(40);
+    window.__gameTest!.forceCloseDamagePlayer(60, 81);
+    window.__gameTest!.forceCloseDamagePlayer(60, 81);
+    window.__gameTest!.forceCloseDamagePlayer(60, 81);
+    window.__gameTest!.forceCloseDamagePlayer(20, 81);
   });
   await page.waitForTimeout(1000);
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.bladeShellCasts).toBeGreaterThan(0);
+  expect(snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("forged-brace:conserved-release:"))).toBe(true);
 });
 
 test("Burning Ring Scripture builds Heat only while distinct enemies occupy its danger band", async ({ page }) => {

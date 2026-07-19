@@ -16,6 +16,10 @@ export interface HudPresentationState {
   galeMomentum: number;
   skillTags: string;
   guard: number;
+  guardCapacity: number;
+  guardFractures: number;
+  guardDisabled: boolean;
+  guardShield: number;
   guardMitigation: number;
   bladeShellCasts: number;
   bladeShellCharge: number;
@@ -47,7 +51,10 @@ function buildResourceLine(state: HudPresentationState): string | undefined {
   if (state.guard > 0) {
     const mitigation = `${(state.guardMitigation * 100).toFixed(0)}% mitigation`;
     const shell = state.bladeShellCasts > 0 ? ` · Blade Shell x${state.bladeShellCasts}` : "";
-    return `Guard: ${state.guard.toFixed(0)} · ${mitigation}${shell}`;
+    const fractures = state.guardFractures > 0 ? ` · Fractures ${state.guardFractures}/3` : "";
+    const disabled = state.guardDisabled ? " · ARMOR BROKEN" : "";
+    const shield = state.guardShield > 0 ? ` · Golden City ${state.guardShield.toFixed(0)}` : "";
+    return `Guard: ${state.guard.toFixed(0)}/${state.guardCapacity.toFixed(0)} · ${mitigation}${fractures}${disabled}${shield}${shell}`;
   }
   return undefined;
 }

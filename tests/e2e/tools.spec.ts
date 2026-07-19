@@ -21,7 +21,7 @@ test("title screen opens the searchable canonical Gongfa compendium", async ({ p
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Deepens Skill 2 damage");
   await expect(page.locator('[data-gongfa-detail="crimson-furnace-sword-art"]')).toContainText("Focus the needles");
 
-  await page.getByRole("searchbox", { name: "Search Gongfa" }).fill("explosive");
+  await page.getByRole("searchbox", { name: "Search Gongfa" }).fill("corona");
   await expect(page.locator(".tools-gongfa-card").filter({ hasText: "Burning Ring Scripture" })).toBeVisible();
 });
 

@@ -38,7 +38,7 @@ implementation, testing, balance review, and future regression checks.
 | Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Implemented and verified |
 | Burning Ring Scripture / 焚轮经 | Hudao | Approved | Implemented and verified |
 | Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Implemented and verified |
-| Gengjin Huti / 庚金护体 | Hudao | Approved | Pending redesign |
+| Gengjin Huti / 庚金护体 | Hudao | Approved | Implemented and verified |
 | Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Pending redesign |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Pending redesign |
 | Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Pending redesign |
@@ -574,6 +574,31 @@ multiplies the conserved force.
 
 **Must not become:** Ice Mirror's discrete negation, Burning Ring's Heat defense,
 generic nearby-enemy Guard generation, or an unconserved radial burst.
+
+### Implemented tuning contract
+
+- Close range is `190`; base mitigation is `30%`. Guard stores the integer
+  difference between incoming damage and damage actually taken. Environmental and
+  distant damage do not mitigate or store.
+- Base capacity is `100`; overflow fractures the brace, retains only `35%` of
+  capacity, and disables mitigation for `2.8s`. Fractures recover every `4.2s`.
+- R3: Rebounding Edge Armor reflects `35%` and stores `65%` (the two paths conserve
+  the prevented total); Hundred-Forged Heavy
+  Armor uses `42%` mitigation, `150` capacity, `-16%` movement, `4.2s` disabled and
+  `6.5s` fracture recovery; Flowing-Gold Vent has `72` capacity and safely discards
+  overflow.
+- R6: Immovable Mountain adds `12%` mitigation and `50` capacity while stationary;
+  Flowing-Gold Turn converts `40%` Guard into a `1s` layer; Armor Remembers Enemy
+  gains `3%` mitigation per repeat up to `15%`, resets on source change, and stores
+  `78%` of prevented force.
+- Blade-Shell Rebound requires at least `60` Guard plus a close enemy. Eight-Wastes
+  divides the exact integer total among up to eight targets (including remainder);
+  One Edge assigns the full total once; Golden City creates an equal `5s` shield.
+  Every release clears Guard and fractures. Allocation sums are unit-tested to equal
+  the recorded total regardless of enemy count.
+- Presentation uses a solid six-plate forged brace with capacity fill and fracture
+  scars, not Ice Mirror's directional facets. The HUD shows `Guard/current cap`,
+  fracture count, broken state, and Golden City shield.
 
 ---
 

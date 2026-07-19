@@ -18,8 +18,6 @@ import {
   createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
   galeStepSeveranceCorridor,
-  ironWakeWall,
-  reboundingEdgeBlade,
   getAuthoredSkill2CooldownMs,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
@@ -505,6 +503,7 @@ describe("Gongfa runtime", () => {
       expect(plan, `${gongfaId} declares unsupported Skill 2 ${skill2Id}`).toBeDefined();
 
       const runtime = createGongfaRuntime({ gongfaId });
+      if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
       if (gongfaId === "burning-ring-scripture") runtime.burningRing!.heat = 100;
       if (gongfaId === "black-tide-scripture") runtime.authored.cycleCount = 3;
       if (gongfaId === "vermilion-bird-covenant") {
@@ -576,9 +575,13 @@ describe("Gongfa runtime", () => {
             })
           : plan?.trigger === "threshold"
             ? advanceGongfaRuntime(runtime, {
-                kind: "incoming-damage",
-                amount: 1000,
-                skill2Id
+                kind: "tick",
+                deltaMs: 16,
+                nearbyEnemyCount: 1,
+                skill2Id,
+                playerX: 0,
+                playerY: 0,
+                targets: [{ targetId: 49, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }]
               })
             : advanceGongfaRuntime(runtime, {
                 kind: "skill2",
@@ -782,13 +785,7 @@ describe("Gongfa runtime", () => {
       }
     ]);
 
-    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "gengjin-huti" }), 0)).toEqual([
-      {
-        kind: "aura-burst",
-        damage: 9,
-        count: 6
-      }
-    ]);
+    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "gengjin-huti" }), 0)).toEqual([]);
   });
 
   it("plans Yujian transformation commands from learned mastery ids", () => {
@@ -1113,17 +1110,17 @@ describe("Gongfa runtime", () => {
     const gengjin = advanceGongfaRuntime(
       createGongfaRuntime({ gongfaId: "gengjin-huti" }),
       {
-        kind: "tick",
-        deltaMs: 1000,
-        nearbyEnemyCount: 2,
-        skill2Id: "blade-shell-rebound"
+        kind: "incoming-damage",
+        amount: 20,
+        sourceDistance: 80,
+        sourceId: 1
       }
     ).runtime;
 
     expect(projectGongfaRuntimeView(gengjin)).toMatchObject({
-      guard: 1.24,
-      guardMitigation: 1.24 / 220,
-      bladeShellCharge: 14.062,
+      guard: 6,
+      guardMitigation: 0.3,
+      bladeShellCharge: 6,
       bladeShellCasts: 0,
       crimsonPressureRadiusScale: 0.45
     });
@@ -1149,7 +1146,7 @@ describe("Gongfa runtime", () => {
       guardDecayRate: 0.38,
       bladeShellThreshold: 100
     });
-    expect(gengjin.gengjin?.guardMitigation).toBeCloseTo(40 / 220);
+    expect(gengjin.gengjin?.guardMitigation).toBeCloseTo(0.3);
 
     const advanced = advanceGongfaRuntime(gengjin, {
       kind: "tick",
@@ -1158,8 +1155,8 @@ describe("Gongfa runtime", () => {
       skill2Id: "blade-shell-rebound"
     }).runtime;
 
-    expect(advanced.gengjin?.guardValue).toBeCloseTo(40.62);
-    expect(advanced.gengjin?.bladeShellCharge).toBeGreaterThan(0);
+    expect(advanced.gengjin?.guardValue).toBe(40);
+    expect(advanced.gengjin?.bladeShellCharge).toBe(40);
   });
 
   it("owns Burning Ring distinct-target Heat and never schedules a substitute volley", () => {
@@ -1245,58 +1242,40 @@ describe("Gongfa runtime", () => {
   });
 
   it("owns Gengjin guard, mitigation, and Blade Shell commands without Phaser", () => {
-    const guarded = advanceGongfaRuntime(
-      createGongfaRuntime({ gongfaId: "gengjin-huti" }),
-      {
-        kind: "tick",
-        deltaMs: 1000,
-        nearbyEnemyCount: 2,
-        skill2Id: "blade-shell-rebound"
-      }
-    ).runtime;
-
-    expect(guarded.gengjin?.guardValue).toBe(1.24);
-    expect(guarded.gengjin?.bladeShellCharge).toBeCloseTo(14.062);
-    expect(guarded.gengjin?.guardMitigation).toBeCloseTo(1.24 / 220);
-
-    const damaged = advanceGongfaRuntime(guarded, {
+    const damaged = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
       kind: "incoming-damage",
       amount: 20,
+      sourceDistance: 80,
+      sourceId: 7,
       skill2Id: "blade-shell-rebound"
     });
-    expect(damaged.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 19 });
-    expect(damaged.runtime.gengjin?.bladeShellCharge).toBeCloseTo(52.062);
+    expect(damaged.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 14 });
+    expect(damaged.runtime.gengjin?.guardValue).toBe(6);
 
     const primed = createGongfaRuntime({
       gongfaId: "gengjin-huti",
-      gengjin: {
-        bladeShellCharge: 100
-      }
+      gengjin: { guardValue: 75 }
     });
     const triggered = advanceGongfaRuntime(primed, {
       kind: "tick",
       deltaMs: 0,
-      nearbyEnemyCount: 0,
-      skill2Id: "blade-shell-rebound"
+      nearbyEnemyCount: 2,
+      skill2Id: "blade-shell-rebound",
+      playerX: 0,
+      playerY: 0,
+      targets: [
+        { targetId: 1, x: 80, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }
+      ]
     });
     expect(triggered.runtime.gengjin).toMatchObject({
       bladeShellCharge: 0,
       bladeShellCooldownRemaining: 1800,
       bladeShellCasts: 1
     });
-    expect(triggered.commands).toEqual([
-      {
-        kind: "blade-shell-rebound",
-        baseDamage: 9,
-        baseBladeCount: 6,
-        damageScale: 1,
-        bonusBlades: 0,
-        masteryCast: {
-          skill2Id: "blade-shell-rebound",
-          cooldownMs: 3000
-        }
-      }
-    ]);
+    const release = triggered.commands.find((command) => command.kind === "authored-gengjin-release");
+    expect(release).toMatchObject({ kind: "authored-gengjin-release", conservedTotal: 75, law: "shared" });
+    expect(release?.allocations.reduce((sum, allocation) => sum + allocation.amount, 0)).toBe(75);
   });
 
   it("returns ordinary incoming damage for runtimes without defensive state", () => {
@@ -1341,13 +1320,13 @@ describe("Gongfa runtime", () => {
 
     const improved = applyGongfaImprovement(guarded, "unyielding-shield").runtime;
 
-    expect(baselineMitigation).toBeCloseTo(0.2);
-    expect(improved.gengjin?.guardMitigation).toBeCloseTo(0.28);
+    expect(baselineMitigation).toBeCloseTo(0.3);
+    expect(improved.gengjin?.guardMitigation).toBeCloseTo(0.38);
 
     const projected = projectGongfaRuntimeCheckpoint(improved);
     expect(projected.guardMitigationBonus).toBe(0.08);
     const restored = createGongfaRuntimeFromCheckpoint("gengjin-huti", projected);
-    expect(restored.gengjin?.guardMitigation).toBeCloseTo(0.28);
+    expect(restored.gengjin?.guardMitigation).toBeCloseTo(0.38);
   });
 
   it("does not need runtime improvement replay after restoring a projected checkpoint", () => {
@@ -1712,197 +1691,117 @@ describe("Gongfa runtime", () => {
     ).toBeUndefined();
   });
 
-  it("Hundred-Blade Halo widens the Gengjin aura by Guard", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 10,
-      isMoving: false
-    }).runtime;
-    expect(guarded.gengjin!.guardValue).toBeGreaterThan(12);
-
-    const [halo] = planGongfaAttack(guarded, 0, { learnedMasteryIds: ["hundred-blade-halo"] });
-    const [plain] = planGongfaAttack(guarded, 0);
-    const haloCount = halo.kind === "aura-burst" ? halo.count : 0;
-    const plainCount = plain.kind === "aura-burst" ? plain.count : 0;
-    expect(haloCount).toBeGreaterThan(plainCount);
-  });
-
-  it("Rebounding Edge returns a Guard-scaled blade only when learned", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 10,
-      isMoving: false
-    }).runtime;
-
-    const blade = reboundingEdgeBlade(guarded, ["rebounding-edge"]);
-    expect(blade).toBeDefined();
-    expect(blade!.damage).toBeGreaterThan(guarded.combat.damage);
-    expect(blade!.pierce).toBe(guarded.combat.pierce + 1);
-
-    expect(reboundingEdgeBlade(guarded, [])).toBeUndefined();
-    expect(
-      reboundingEdgeBlade(createGongfaRuntime({ gongfaId: "gengjin-huti" }), ["rebounding-edge"])
-    ).toBeUndefined();
-  });
-
-  it("Iron Wake returns a Guard-scaled wall only when learned", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 10,
-      isMoving: false
-    }).runtime;
-
-    const wall = ironWakeWall(guarded, ["iron-wake"]);
-    expect(wall).toBeDefined();
-    expect(wall!.pierce).toBe(guarded.combat.pierce + 1);
-    expect(wall!.count).toBeGreaterThanOrEqual(2);
-
-    expect(ironWakeWall(guarded, [])).toBeUndefined();
-    expect(
-      ironWakeWall(createGongfaRuntime({ gongfaId: "gengjin-huti" }), ["iron-wake"])
-    ).toBeUndefined();
-  });
-
-  it("Immovable Mountain builds Guard faster while standing still", () => {
+  it("stores exactly prevented close damage and ignores distant danger", () => {
     const base = createGongfaRuntime({ gongfaId: "gengjin-huti" });
-    const still = advanceGongfaRuntime(base, {
-      kind: "tick",
-      deltaMs: 2000,
-      nearbyEnemyCount: 5,
-      isMoving: false,
+    const close = advanceGongfaRuntime(base, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 1
+    });
+    expect(close.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 70 });
+    expect(close.runtime.gengjin!.guardValue).toBe(30);
+    const distant = advanceGongfaRuntime(base, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 260, sourceId: 1
+    });
+    expect(distant.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 100 });
+    expect(distant.runtime.gengjin!.guardValue).toBe(0);
+  });
+
+  it("makes each rank-3 armor choice change gain and failure behavior", () => {
+    const base = createGongfaRuntime({ gongfaId: "gengjin-huti" });
+    const rebound = advanceGongfaRuntime(base, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 8,
+      learnedMasteryIds: ["rebounding-edge-armor"]
+    });
+    expect(rebound.runtime.gengjin!.guardValue).toBe(19);
+    expect(rebound.commands).toContainEqual(expect.objectContaining({
+      kind: "authored-gengjin-reflection", targetId: 8, amount: 10
+    }));
+
+    const heavy = advanceGongfaRuntime(base, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 8,
+      learnedMasteryIds: ["hundred-forged-heavy-armor"]
+    });
+    expect(heavy.runtime.gengjin).toMatchObject({ guardValue: 42, guardCapacity: 150 });
+
+    const vented = advanceGongfaRuntime(createGongfaRuntime({
+      gongfaId: "gengjin-huti", gengjin: { guardValue: 70 }
+    }), {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 8,
+      learnedMasteryIds: ["flowing-gold-vent"]
+    });
+    expect(vented.runtime.gengjin).toMatchObject({ guardValue: 72, guardCapacity: 72, fractureCount: 0 });
+  });
+
+  it("fractures on overflow and temporarily disables mitigation", () => {
+    const primed = createGongfaRuntime({ gongfaId: "gengjin-huti", gengjin: { guardValue: 95 } });
+    const broken = advanceGongfaRuntime(primed, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 3
+    });
+    expect(broken.runtime.gengjin).toMatchObject({
+      guardValue: 35, fractureCount: 1, mitigationDisabledRemaining: 2800
+    });
+    const followup = advanceGongfaRuntime(broken.runtime, {
+      kind: "incoming-damage", amount: 20, sourceDistance: 80, sourceId: 3
+    });
+    expect(followup.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 20 });
+  });
+
+  it("implements stationary capacity, Evade venting, and source adaptation", () => {
+    const mountain = advanceGongfaRuntime(createGongfaRuntime({
+      gongfaId: "gengjin-huti", gengjin: { guardValue: 140 }
+    }), {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 0, isMoving: false,
       learnedMasteryIds: ["immovable-mountain"]
     }).runtime;
-    const ordinary = advanceGongfaRuntime(base, {
-      kind: "tick",
-      deltaMs: 2000,
-      nearbyEnemyCount: 5,
-      isMoving: false
+    expect(mountain.gengjin!.guardCapacity).toBe(150);
+    const moved = advanceGongfaRuntime(mountain, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 0, isMoving: true,
+      learnedMasteryIds: ["immovable-mountain"]
     }).runtime;
-    expect(still.gengjin!.guardValue).toBeGreaterThan(ordinary.gengjin!.guardValue);
-  });
+    expect(moved.gengjin).toMatchObject({ guardCapacity: 100, guardValue: 100, fractureCount: 0 });
 
-  it("Flowing Iron Body grants Guard and a shockwave on Evade", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 2000,
-      nearbyEnemyCount: 5,
-      isMoving: false
-    }).runtime;
-    const before = guarded.gengjin!.guardValue;
-
-    const evaded = advanceGongfaRuntime(guarded, {
-      kind: "evade",
-      learnedMasteryIds: ["flowing-iron-body"]
+    const evaded = advanceGongfaRuntime(createGongfaRuntime({
+      gongfaId: "gengjin-huti", gengjin: { guardValue: 80 }
+    }), { kind: "evade", learnedMasteryIds: ["flowing-gold-turn"] });
+    expect(evaded.runtime.gengjin).toMatchObject({ guardValue: 48, postEvadeGuard: 32, postEvadeLayerRemaining: 1000 });
+    const layeredHit = advanceGongfaRuntime(evaded.runtime, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 10,
+      learnedMasteryIds: ["flowing-gold-turn"]
     });
-    expect(evaded.runtime.gengjin!.guardValue).toBeGreaterThan(before);
-    expect(evaded.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+    expect(layeredHit.commands).toContainEqual({ kind: "incoming-damage", finalDamage: 52 });
+    expect(layeredHit.runtime.gengjin).toMatchObject({ guardValue: 78, postEvadeGuard: 14 });
 
-    const inert = advanceGongfaRuntime(guarded, { kind: "evade", learnedMasteryIds: [] });
-    expect(inert.runtime.gengjin!.guardValue).toBe(before);
-    expect(inert.commands).toHaveLength(0);
-  });
-
-  it("Ten-Thousand Armor Resonance builds Guard on defensive hits", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 2000,
-      nearbyEnemyCount: 5,
-      isMoving: false
-    }).runtime;
-    const before = guarded.gengjin!.guardValue;
-    const hitFacts = {
-      sourceGongfaId: "gengjin-huti" as const,
-      targetId: 1,
-      damage: 8,
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    };
-
-    const resonant = advanceGongfaRuntimeForProjectileHit(guarded, {
-      ...hitFacts,
-      learnedMasteryIds: ["ten-thousand-armor-resonance"]
-    }).runtime;
-    expect(resonant.gengjin!.guardValue).toBeGreaterThan(before);
-
-    const inert = advanceGongfaRuntimeForProjectileHit(guarded, {
-      ...hitFacts,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(inert.gengjin!.guardValue).toBe(before);
-  });
-
-  it("Gengjin Fortress turns Guard into extra orbiting aura blades", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 15,
-      isMoving: false
-    }).runtime;
-    expect(guarded.gengjin!.guardValue).toBeGreaterThan(8);
-
-    const [fortress] = planGongfaAttack(guarded, 0, { learnedMasteryIds: ["gengjin-fortress"] });
-    const [plain] = planGongfaAttack(guarded, 0);
-    const fortressCount = fortress.kind === "aura-burst" ? fortress.count : 0;
-    const plainCount = plain.kind === "aura-burst" ? plain.count : 0;
-    expect(fortressCount).toBeGreaterThan(plainCount);
-  });
-
-  it("Iron Gravity Domain pulls and bursts at high Guard, then waits on cooldown", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 15,
-      isMoving: false
-    }).runtime;
-    expect(guarded.gengjin!.guardValue).toBeGreaterThanOrEqual(60);
-
-    const first = advanceGongfaRuntime(guarded, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 4,
-      isMoving: false,
-      learnedMasteryIds: ["iron-gravity-domain"]
+    const first = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 11,
+      learnedMasteryIds: ["armor-remembers-enemy"]
     });
-    expect(first.commands.some((command) => command.kind === "gravity-pull")).toBe(true);
-    expect(first.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-    expect(first.runtime.gengjin!.gengjinPulseCooldownRemaining).toBeGreaterThan(0);
-
     const second = advanceGongfaRuntime(first.runtime, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 4,
-      isMoving: false,
-      learnedMasteryIds: ["iron-gravity-domain"]
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 11,
+      learnedMasteryIds: ["armor-remembers-enemy"]
     });
-    expect(second.commands.some((command) => command.kind === "gravity-pull")).toBe(false);
+    const switched = advanceGongfaRuntime(second.runtime, {
+      kind: "incoming-damage", amount: 100, sourceDistance: 80, sourceId: 12,
+      learnedMasteryIds: ["armor-remembers-enemy"]
+    });
+    expect(second.runtime.gengjin!.guardMitigation).toBeGreaterThan(first.runtime.gengjin!.guardMitigation);
+    expect(switched.runtime.gengjin!.rememberedHits).toBe(1);
   });
 
-  it("Unbroken Advance strikes on Evade and while moving at high Guard", () => {
-    const guarded = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "gengjin-huti" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 15,
-      isMoving: false
-    }).runtime;
+  it("conserves the release total for all three rank-9 laws", () => {
+    const targets = [1, 2, 3].map((targetId) => ({ targetId, x: targetId * 35, y: 0, healthRatio: 1, rank: "ordinary" as const }));
+    const releaseFor = (masteryId: string) => advanceGongfaRuntime(createGongfaRuntime({
+      gongfaId: "gengjin-huti", gengjin: { guardValue: 79 }
+    }), {
+      kind: "tick", deltaMs: 0, nearbyEnemyCount: 3, skill2Id: "blade-shell-rebound",
+      playerX: 0, playerY: 0, targets, learnedMasteryIds: [masteryId]
+    }).commands.find((command) => command.kind === "authored-gengjin-release");
 
-    const evaded = advanceGongfaRuntime(guarded, {
-      kind: "evade",
-      learnedMasteryIds: ["unbroken-advance"]
-    });
-    expect(evaded.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-
-    const moving = advanceGongfaRuntime(guarded, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 4,
-      isMoving: true,
-      learnedMasteryIds: ["unbroken-advance"]
-    });
-    expect(moving.commands.some((command) => command.kind === "aura-burst")).toBe(true);
+    const shared = releaseFor("eight-wastes-rebound");
+    expect(shared?.law).toBe("shared");
+    expect(shared?.allocations.reduce((sum, allocation) => sum + allocation.amount, 0)).toBe(79);
+    const single = releaseFor("one-edge-breaks-mountain");
+    expect(single).toMatchObject({ law: "single", conservedTotal: 79, allocations: [{ targetId: 1, amount: 79 }] });
+    const city = releaseFor("unbroken-golden-city");
+    expect(city).toMatchObject({ law: "shield", conservedTotal: 79, allocations: [], shield: 79 });
   });
 
   const burningTarget = (targetId: number, rank: "ordinary" | "elite" | "boss" = "ordinary") =>

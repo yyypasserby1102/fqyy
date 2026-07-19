@@ -39,6 +39,10 @@ interface HudState {
   gongfaCodexPaths: GongfaCodexPath[];
   galeMomentum: number;
   guard: number;
+  guardCapacity: number;
+  guardFractures: number;
+  guardDisabled: boolean;
+  guardShield: number;
   guardMitigation: number;
   bladeShellCharge: number;
   bladeShellCasts: number;
@@ -196,6 +200,10 @@ export class UIScene extends Phaser.Scene {
         galeMomentum: hud.galeMomentum,
         skillTags: hud.skillTags,
         guard: hud.guard,
+        guardCapacity: hud.guardCapacity,
+        guardFractures: hud.guardFractures,
+        guardDisabled: hud.guardDisabled,
+        guardShield: hud.guardShield,
         guardMitigation: hud.guardMitigation,
         bladeShellCasts: hud.bladeShellCasts,
         bladeShellCharge: hud.bladeShellCharge,

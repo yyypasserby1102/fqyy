@@ -749,41 +749,41 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "疾风断绝",
     "lore": "每次躲避都会沿着其路径切出一条动量规模的走廊。"
   },
-  "rebounding-edge": {
-    "name": "篮板优势",
-    "lore": "守卫向被阻止伤害的源头发射聚焦刀片。"
+  "rebounding-edge-armor": {
+    "name": "回弹锋甲",
+    "lore": "每次近身减伤都会立刻反弹部分力道，但留存在守势中的力道更少。"
   },
-  "hundred-blade-halo": {
-    "name": "百刃光环",
-    "lore": "防护装置会产生更密集的旋转近距离刀刃光环。"
+  "hundred-forged-heavy-armor": {
+    "name": "百炼重甲",
+    "lore": "提高减伤与守势上限，但移速降低且破甲恢复更慢。"
   },
-  "iron-wake": {
-    "name": "钢铁觉醒",
-    "lore": "每次躲避都会沿着其路径留下临时的切割墙。"
+  "flowing-gold-vent": {
+    "name": "流金卸甲",
+    "lore": "溢出的守势会安全散去而不破甲，但守势上限更低。"
   },
   "immovable-mountain": {
-    "name": "不动山",
-    "lore": "站立不动会大大增加后卫的增益和防御输出。"
+    "name": "不动如山",
+    "lore": "静止时提高守势上限与减伤，移动时安全卸去临时容量。"
   },
-  "flowing-iron-body": {
-    "name": "流动的铁身",
-    "lore": "每次闪避都会给予防御并释放防御冲击波。"
+  "flowing-gold-turn": {
+    "name": "流金转身",
+    "lore": "闪避将部分守势转为短暂减伤层，因此最终释放的力道更少。"
   },
-  "ten-thousand-armor-resonance": {
-    "name": "万甲共鸣",
-    "lore": "任何带有防御标记的技能命中都会构建守卫。"
+  "armor-remembers-enemy": {
+    "name": "刻甲识敌",
+    "lore": "连续承受同一来源的近身攻击会逐渐适应，换敌即重置且储力更少。"
   },
-  "gengjin-fortress": {
-    "name": "耿津堡",
-    "lore": "当前的守卫表现为绕轨道运行的防御刀片。"
+  "eight-wastes-rebound": {
+    "name": "八荒震甲",
+    "lore": "将守恒的总力道分配给最多八名近敌，敌人数不会复制总伤害。"
   },
-  "iron-gravity-domain": {
-    "name": "铁重力域",
-    "lore": "在高守卫状态下，将附近的敌人拉入重复的光环爆发中。"
+  "one-edge-breaks-mountain": {
+    "name": "一锋破岳",
+    "lore": "将全部守恒力道集中斩向一名近身优先目标。"
   },
-  "unbroken-advance": {
-    "name": "不间断的前进",
-    "lore": "高防御运动会攻击附近的敌人并增强闪避能力。"
+  "unbroken-golden-city": {
+    "name": "金城不坏",
+    "lore": "将全部守恒力道化为临时护盾，不造成伤害。"
   },
   "counter-rotating-twin-rings": {
     "name": "双轮逆转",
@@ -885,9 +885,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "crescent-wake": { name: "月牙尾流" },
   "unbroken-current": { name: "势流不绝" },
   "walking-storm": { name: "随身罡风" },
-  "rebounding-edge": { name: "回弹锋刃" },
-  "iron-wake": { name: "铁壁留痕" },
-  "gengjin-fortress": { name: "庚金堡垒" },
+  "rebounding-edge-armor": { name: "回弹锋甲" },
+  "hundred-forged-heavy-armor": { name: "百炼重甲" },
+  "flowing-gold-vent": { name: "流金卸甲" },
+  "immovable-mountain": { name: "不动如山" },
+  "flowing-gold-turn": { name: "流金转身" },
+  "armor-remembers-enemy": { name: "刻甲识敌" },
+  "eight-wastes-rebound": { name: "八荒震甲" },
+  "one-edge-breaks-mountain": { name: "一锋破岳" },
+  "unbroken-golden-city": { name: "金城不坏" },
   "counter-rotating-twin-rings": { name: "双轮逆转", gain: "生成内外两道逆转日轮，交点追加伤害", cost: "每道日轮在非交点处伤害降低 28%", scope: "日轮层数、转向与分节接触" },
   "furnace-heart-lone-ring": { name: "熔心孤轮", gain: "只留两段重焰，单段伤害提高 85%", cost: "六个轮位只占两个，缺口显著扩大", scope: "日轮转速、覆盖与分节伤害" },
   "wandering-luminary-rings": { name: "游曜错环", gain: "日轮在 76 与 138 距离的危险带间交替", cost: "每次换轨有 250 毫秒无焰空档", scope: "日轮半径与持续时间" },
