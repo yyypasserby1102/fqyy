@@ -41,6 +41,11 @@ implementation, testing, balance review, and future regression checks.
 | Gengjin Huti / 庚金护体 | Hudao | Approved | Pending redesign |
 | Ironwood Wave Form / 铁木浪形 | Hudao | Approved | Pending redesign |
 | Crimson Furnace Sword Art / 赤炉剑法 | Hudao | Approved | Pending redesign |
+| Vermilion Bird Covenant / 朱雀灵契 | Yuling | Approved | Pending redesign |
+| Black Tide Scripture / 玄潮经 | Yuling | Approved | Pending redesign |
+| Heavenfall Body Art / 天坠锻体术 | Yuling | Approved | Pending redesign |
+| Myriad Beast Grove / 万兽灵林 | Yuling | Approved | Pending redesign |
+| Ancient Tree Body Art / 古木锻体术 | Yuling | Approved | Pending redesign |
 
 ---
 
@@ -645,3 +650,228 @@ new fragments may produce exactly one follow-up chain, preventing infinite recur
 
 **Must not become:** Sword Burial corpse inventory, Yujian returning ammo, Green Vine
 tethers, ordinary explosive projectiles, or generic hit-built Pressure.
+
+---
+
+## Heavenfall Body Art / 天坠锻体术
+
+**Identity:** periodically become a mobile falling-star body whose uninterrupted
+movement builds Mass; the transformed body replaces the normal attack set and ends in
+a movement-steered descent.
+
+### Core
+
+- **Falling-Star Body / 坠星身:** when ready, continuous movement with a nearby threat
+  automatically begins a temporary transformation. Normal attacks disappear; the body
+  itself damages ordinary enemies it passes through, with a per-enemy contact cooldown.
+- **Meteor Mass / 陨星质量:** uninterrupted travel builds visible Mass. Stopping, sharp
+  turns, and hard collisions shed it. Higher Mass increases body size, collision force,
+  and the final descent, while reducing turning response. Hits never generate Mass.
+- **Failure:** hesitant movement, repeated turns, or an early hard collision produces
+  a weak descent. No cursor, pointer, or separate manual aiming is used.
+
+### Milestones
+
+- **R3:** Star-Piercing Iron Body / 贯星铁躯 is narrow and fast but turns poorly;
+  Heavenfall Giant Body / 天陨巨身 is broad and powerful but slow to build Mass;
+  Wandering-Star Light Body / 游星轻身 turns easily but has lower Mass and descent caps.
+- **R6:** No-Return Advance / 一往无回 builds Mass rapidly in a straight line but a
+  large turn clears it; Iron Body Opens the Road / 铁躯开道 preserves Mass through
+  ordinary enemies but each passage briefly slows movement; Heaven-Turning Pivot /
+  回天转斗 permits one sharp turn for half Mass but lowers the Mass cap and descent area.
+- **R9:** Mountain-Piercing Star Lance / 穿岳星槊 converts the finish into a narrow,
+  high-priority-target pierce with almost no crater; Heavenfall Crater / 天坑陨界 makes
+  a huge crowd-control crater with long recovery; Reverse-Star Return / 逆星回天
+  rebounds along the approach route for a weaker second pass and creates no crater.
+
+### Skill 2 — Star-Breaking Descent / 碎星天坠
+
+At the transformation time limit or full Mass, the body rises briefly and continues
+to steer with ordinary movement at a limited turn rate. A projected landing indicator
+follows the current travel heading, then the body crashes, spends all Mass, and ends
+the form. Damage, area, and impact use the Mass present at commitment.
+
+**Must not become:** Jinfeng's persistent movement cuts, Flame Demon's health
+sacrifice, Ancient Tree's rooted form, Gengjin stored damage, or an ordinary melee
+combo.
+
+---
+
+## Myriad Beast Grove / 万兽灵林
+
+**Identity:** maintain a fixed small pack of different species whose independent jobs
+must overlap on the same prey; composition, survival, and cooperative kills replace
+generic summon count.
+
+### Core
+
+- **Three-Beast Pack / 三兽猎群:** at most one Rock Boar, Spirit Fox, and Verdant Deer
+  live at once. The Boar breaks dense groups, the Fox flanks isolated or weakened prey,
+  and the Deer stays near the player to root approaching threats. Each has independent
+  health, position, and a seed-rebirth delay.
+- **Wildwood Kinship / 荒林同契:** a beast that meaningfully assists places its species
+  mark. A death with two distinct marks grants Kinship; three distinct marks grants a
+  complete bond and heals the pack. Repeated marks from one species add nothing.
+- **Indirect command:** continuous player movement spreads the hunt; standing recalls
+  the formation. Evade makes every beast disengage and reform at the destination but
+  causes no attack. There is no manual target selection.
+- **Failure:** solo kills, split prey, or a downed species prevent complete cooperation.
+
+### Milestones
+
+- **R3:** Mountain Lord Enters the Grove / 山君入林 replaces the Fox with an elite/boss
+  hunter that neglects weak mobs; Black Tortoise Guards the Grove / 玄龟镇林 replaces
+  the Boar with interception and loses active crowd breaking; White Ape Calls the Pack /
+  白猿号群 replaces the Deer and spreads its own mark but loses player defense/rooting.
+- **R6:** Two Beasts Aid Each Other / 双兽相援 makes two marks reliable but lowers
+  Kinship and ancestor caps; Three Spirits Hunt Together / 三灵会猎 doubles complete
+  three-species rewards but collapses while one beast is down; Unending Rotating Hunt /
+  轮猎不息 rewards consecutive different species combinations but repeating one grants
+  nothing.
+- **R9:** Ancestors Run the Wild / 群祖奔荒 sends each ancestor across the field for
+  crowd clear but limits repeat boss hits; Ancestral Encirclement / 祖灵围猎 focuses all
+  ancestors on the strongest threat with little area clear; Ancestors Return to the
+  Grove / 祖林归巢 revives downed beasts and protects the pack with sharply lower damage.
+
+### Skill 2 — Ancestral Menagerie / 万兽祖庭
+
+At full Kinship with at least two living species, each currently living species calls
+one giant ancestral echo to perform its signature action exactly once, then vanish.
+Downed species contribute no ancestor. The activation consumes all Kinship and never
+adds permanent summons.
+
+**Must not become:** Vermilion Bird's single central companion, Mist Wraith's corpse
+army, identical summon multiplication, manual pet targeting, or a generic hit meter.
+
+---
+
+## Vermilion Bird Covenant / 朱雀灵契
+
+**Identity:** protect and guide one persistent companion through dangerous outbound
+dives and safe returns; its independent life and position matter more than projectile
+count.
+
+### Core
+
+- **One Vermilion Bird / 独契朱雀:** exactly one bird owns independent health,
+  position, target, and behavior. Player movement direction indirectly guides its dive;
+  standing still recalls it to close guard. There is no manual target selection.
+- **Phoenix Bond / 凤契:** dangerous flight followed by a safe return builds Bond.
+  Hits alone add nothing. Being downed turns the bird into an ember for a visible
+  recovery period and loses Bond.
+- **Failure:** repeated long dives without a safe return down the companion and remove
+  both its pressure and capstone readiness.
+
+### Milestones
+
+- **R3:** Crimson-Feather Head Hunt / 赤羽猎首 performs dangerous deep boss dives;
+  Cinnabar-Plume Guardian / 丹翎护主 stays close with lower damage; Firewing Sweeping
+  Formation / 火翼掠阵 crosses multiple targets but has weak single-target damage and a
+  difficult return.
+- **R6:** Nurtured Covenant / 温养灵契 safely heals on return with a low Bond ceiling;
+  Blood Covenant of Fire-Bathing / 浴火血契 grants high Bond for low-health returns but
+  punishes a down heavily; Paired-Wing Flight / 比翼同翔 rewards moving with the bird
+  and makes opposing movement impede its return.
+- **R9:** Urgent Ember Egg / 烬卵急生 hatches quickly into a weaker bird; True-Plume
+  Nirvana / 真羽涅槃 creates a slow defensible egg and a strong persistent phoenix;
+  Sacrifice to Guard the Master / 舍身护主 lets the bird save a low-health player, but
+  leaves an exposed egg and a weak rebirth.
+
+### Skill 2 — Vermilion Rebirth / 朱雀涅槃
+
+At full Bond, the bird makes a terminal dive, burns away its life, and becomes a
+physical damageable egg. Staying nearby speeds hatching. Egg destruction causes
+ordinary ember downtime; success returns the same individual as one larger phoenix.
+It never creates a second bird.
+
+**Must not become:** Blazing Feather projectiles, Myriad Beast's mixed pack, a generic
+pet multiplier, manual dive aiming, or multiple phoenix summons.
+
+---
+
+## Black Tide Scripture / 玄潮经
+
+**Identity:** a world-scale tide with one visible cardinal flow direction and three
+automatic phases; player movement changes the calendar rather than aiming a spell.
+
+### Core
+
+- **Ebb, Still, Flood / 退潮、静水、涨潮:** Ebb deals little damage and broad currents
+  draw toward the ebb boundary; Still removes displacement, slows, and forms medium
+  water bands; Flood sends high-damage walls from the source boundary and pushes along
+  the global current. It never pulls toward the player or a selected point.
+- **Moon-Guided Tide Order / 月引潮序:** UI always shows phase, cardinal direction,
+  progress, and next phase. Moving with the current accelerates time, moving against it
+  slows time, and lateral movement or standing keeps normal time. Hits change nothing.
+- **Failure:** careless movement advances a useful phase too early or prolongs the
+  wrong one. The global direction reverses after every complete cycle.
+
+### Milestones
+
+- **R3:** Azure Sea Withdraws the Border / 沧海退界 empowers Ebb at the cost of the
+  other phases; Still-Sea Mystic Mirror / 静海玄镜 empowers Still; Great Flood Presses
+  the Realm / 洪涛压境 empowers Flood under the same tradeoff.
+- **R6:** Ride the Tide / 乘潮行舟 strongly accelerates with-current travel but cannot
+  hold a phase well; Hold the Moon Against the Tide / 逆潮留月 strongly delays against
+  the current but slows the player; Heaven-Timed Tide / 天时定潮 fixes phase timing and
+  makes capstone preparation slower.
+- **R9:** All Beings Share the Flow / 众生同流 maximizes displacement with low damage;
+  Mystic Water Anchors the Realm / 玄水镇界 emphasizes attack slow/control with weak
+  movement and damage; Dry Sea Splits the Shore / 枯海裂岸 creates a short violent
+  draining Flood with little movement control.
+
+### Skill 2 — Deluge Mandate / 洪潮敕令
+
+After three complete cycles, locks the current and floods the whole arena. All movable
+ordinary enemies receive the same global velocity and preserve their relative
+positions; bosses are slowed but not displaced. The tide drains at the destination
+boundary, deposits survivors, and clears. It is never a point-centered pull.
+
+**Must not become:** Scarlet alternating waves, Moonfall's point gravity, generic
+periodic knockback, a hit resource, or a player-aimed current.
+
+---
+
+## Ancient Tree Body Art / 古木锻体术
+
+**Identity:** stop long enough to become an immovable tree with a replacement
+root-trunk-canopy attack set; time rooted creates visible Growth Rings that vanish on
+uprooting.
+
+### Core
+
+- **Ancient Tree Body / 古木身:** standing near danger automatically roots the player.
+  Movement input begins a readable uprooting delay. Normal attacks are replaced by an
+  inner root zone that seizes and pushes, sequential middle branch sectors, and an
+  outer canopy strike against the farthest threat.
+- **Growth Rings / 生长年轮:** rooted time alone creates Rings. Each expands roots,
+  adds an occupied branch sector, enlarges the canopy, and slightly lengthens uprooting.
+  Hits, kills, and damage taken grant none; uprooting removes all Rings.
+- **Failure:** a poor initial position leaves a weak young tree exposed, while a mature
+  tree cannot escape immediately.
+
+### Milestones
+
+- **R3:** Great Rooted Banyan / 盘根古榕 has the widest control and low branch/canopy
+  damage; Iron-Crowned Divine Tree / 铁冠神木 focuses its canopy on elites and bosses
+  with a small root zone; Spirit-Fruit Fusang / 灵果扶桑 heals the player and injured
+  beasts but grows slowly with reduced attack range.
+- **R6:** One Ring in a Thousand Years / 千年一轮 has three slow, exceptionally strong
+  Rings; Spring Flourishing / 春荣催生 quickly grows seven weak Rings with sharply
+  increasing uproot time; Hollow-Trunk Tribulation / 空心渡劫 consumes one Ring to
+  prevent a fatal hit, permanently losing that layer's reach and power.
+- **R9:** Myriad Roots Cover the Realm / 万根覆界 assigns one hunting root to each
+  ordinary enemy but is weak on bosses; One Tree Upholds Heaven / 一木擎天 concentrates
+  main roots on the strongest enemy and ignores others; World-Sheltering Canopy /
+  庇世华盖 intercepts most hostile projectiles and heals allies with little damage.
+
+### Skill 2 — World-Tree Incarnation / 世界树化身
+
+At maximum Rings after continuing to hold the rooted position, the player becomes the
+immovable trunk for a clearly timed duration. Every effect grows outward from that
+trunk according to the R9 law; it creates no separate walls or summons. The player
+cannot uproot during the duration, then forcibly returns to mobile form with zero
+Rings. There is no directional or manual aiming step.
+
+**Must not become:** Ironwood's constructed directional walls, Thousand Root's target
+infection, Verdant glyph ordering, Gengjin stored damage, or a generic radial aura.
