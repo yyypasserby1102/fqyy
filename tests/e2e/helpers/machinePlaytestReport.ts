@@ -116,12 +116,12 @@ export function renderMachinePlaytestMarkdown(report: MachinePlaytestReport): st
     );
   }
   suggestions.push(
-    "**Difficulty is intentionally ungraded.** Forced Qi and enemy cleanup prove state flow, persistence, and presentation—not challenge, real pacing, or fairness. Apply numerical balance changes only after the real-time human protocol reaches its evidence threshold."
+    "**Difficulty is intentionally ungraded.** Forced Qi, incoming-damage suppression, enemy cleanup, and accelerated boss damage prove state flow, persistence, and presentation—not challenge, real pacing, or fairness. Apply numerical balance changes only after the real-time human protocol reaches its evidence threshold."
   );
 
   return `# Machine whole-Run playtest
 
-Generated from the public browser surface and \`window.__gameTest\` acceleration seam. Machine wall time is diagnostic only and must not be interpreted as game pacing. Coverage facts below seed human-playtest hypotheses; they do not establish subjective readability, mix quality, tactics, or difficulty.
+Generated from the public browser surface and \`window.__gameTest\` acceleration seam. Progression uses forced Qi; the whole-Run coverage path suppresses incoming damage and accelerates boss damage, while anti-kiting pressure is validated separately with damage enabled. Machine wall time is diagnostic only and must not be interpreted as game pacing. Coverage facts below seed human-playtest hypotheses; they do not establish subjective readability, mix quality, tactics, or difficulty.
 
 | Measurement | Result |
 | --- | --- |
