@@ -2431,6 +2431,58 @@ describe("Gongfa runtime", () => {
     expect(runtime.authored.cycleCount).toBe(1);
   });
 
+  it("uses real wave-surface width for Scarlet Confluence", () => {
+    const makeWaitingPair = () => {
+      const runtime = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
+      runtime.authored.phase = 1;
+      runtime.authored.anchors = [{
+        kind: "trail", x: 0, y: 0, angle: 0, value: 72,
+        maxValue: 390, remainingMs: 2000
+      }];
+      return runtime;
+    };
+    const targets = [{
+      targetId: 2, x: 100, y: 114.63, healthRatio: 1, rank: "ordinary" as const
+    }];
+    const [broad] = planGongfaAttack(makeWaitingPair(), 0, {
+      playerX: 0, playerY: 60, targets,
+      learnedMasteryIds: ["river-crossing-flame-moon"]
+    });
+    const [narrow] = planGongfaAttack(makeWaitingPair(), 0, {
+      playerX: 0, playerY: 60, targets,
+      learnedMasteryIds: ["scarlet-lance-tide"]
+    });
+    expect(broad.kind === "authored-scarlet-tides" && broad.seam).toBeDefined();
+    expect(narrow.kind === "authored-scarlet-tides" && narrow.seam).toBeUndefined();
+  });
+
+  it("moves a successful Scarlet seam and returns crescents only on Reversing Tide", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
+    const targets = [{ targetId: 1, x: 120, y: 0, healthRatio: 1, rank: "ordinary" as const }];
+    planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0, targets, learnedMasteryIds: ["reverse-scarlet-tide"]
+    });
+    const [right] = planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0, targets, learnedMasteryIds: ["reverse-scarlet-tide"]
+    });
+    expect(right).toMatchObject({
+      kind: "authored-scarlet-tides", reverse: true,
+      reverseWaves: [{ bank: -1 }, { bank: 1 }]
+    });
+    expect(right.kind === "authored-scarlet-tides" && right.seamTravel).toBeDefined();
+  });
+
+  it("makes Rolling Twin Tides materially faster but shorter-lived", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "scarlet-wave-manual" });
+    const [left] = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["rolling-twin-tides"],
+      targets: [{ targetId: 1, x: 120, y: 0, healthRatio: 1, rank: "ordinary" }]
+    });
+    expect(left).toMatchObject({
+      kind: "authored-scarlet-tides", durationMs: 1100, nextCooldownScale: 0.58
+    });
+  });
+
   it("Moonfall builds Syzygy only from a retained enemy's real angular travel", () => {
     const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
     const initial = [{ targetId: 7, x: 100, y: 0, healthRatio: 1, rank: "ordinary" as const }];

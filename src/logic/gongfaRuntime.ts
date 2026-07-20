@@ -762,10 +762,13 @@ export type GongfaRuntimeCommand =
     }
   | {
       kind: "authored-scarlet-tides";
-      waves: Array<{ x: number; y: number; angle: number; length: number; width: number }>;
+      waves: Array<{ x: number; y: number; angle: number; length: number; width: number; bank?: -1 | 0 | 1 }>;
       seam?: { from: { x: number; y: number }; to: { x: number; y: number }; width: number };
+      seamTravel?: { x: number; y: number };
+      reverseWaves?: Array<{ x: number; y: number; angle: number; length: number; width: number; bank: -1 | 1 }>;
       damage: number; seamDamage: number; immediateSeam: boolean; reverse: boolean;
-      durationMs: number; supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
+      durationMs: number; supreme: boolean; nextCooldownScale?: number;
+      sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
     }
   | {
       kind: "authored-moon-orbit";
@@ -2583,6 +2586,20 @@ function distanceSquared(ax: number, ay: number, bx: number, by: number): number
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+}
+
+function closestPointOnSegment(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): { x: number; y: number } {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared === 0 ? 0 : Math.max(0, Math.min(1,
+    ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared
+  ));
+  return { x: from.x + dx * t, y: from.y + dy * t };
 }
 
 function normalizedAngleDifference(a: number, b: number): number {
@@ -6935,7 +6952,8 @@ export function planGongfaAttack(
     const wave = {
       x: playerX + (horizon ? Math.cos(angle + Math.PI / 2) * 210 * horizonSide : 0),
       y: playerY + (horizon ? Math.sin(angle + Math.PI / 2) * 210 * horizonSide : 0),
-      angle, length, width: width + (horizon ? 20 : 0)
+      angle, length, width: width + (horizon ? 20 : 0),
+      bank: (runtime.authored.phase === 0 ? -1 : 1) as -1 | 1
     };
     if (runtime.authored.phase === 0) {
       runtime.authored.phase = 1;
@@ -6944,7 +6962,8 @@ export function planGongfaAttack(
         kind: "authored-scarlet-tides", waves: [wave], damage: Math.max(1, Math.floor(runtime.combat.damage * (lance ? 1.25 : broad ? 0.62 : 0.9) *
           (learnedIds.includes("after-tide-awaits-moon") ? 0.68 : 1) * (learnedIds.includes("long-sunset-trace") ? 0.72 : 1) * (horizon ? 1.18 : 1))),
         seamDamage: 0, immediateSeam: false, reverse: false, durationMs,
-        supreme: false, sourceGongfaId: runtime.gongfaId
+        supreme: false, nextCooldownScale: rolling ? 0.58 : broad ? 1.18 : 1,
+        sourceGongfaId: runtime.gongfaId
       }];
     }
     const first = runtime.authored.anchors.find((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
@@ -6961,17 +6980,33 @@ export function planGongfaAttack(
     const denominator = (a1x - a2x) * (b1y - b2y) - (a1y - a2y) * (b1x - b2x);
     const t = denominator === 0 ? -1 : ((a1x - b1x) * (b1y - b2y) - (a1y - b1y) * (b1x - b2x)) / denominator;
     const u = denominator === 0 ? -1 : -((a1x - a2x) * (a1y - b1y) - (a1y - a2y) * (a1x - b1x)) / denominator;
-    let intersects = t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    const centerlinesIntersect = t >= 0 && t <= 1 && u >= 0 && u <= 1;
+    const firstFrom = { x: a1x, y: a1y }; const firstTo = { x: a2x, y: a2y };
+    const secondFrom = { x: b1x, y: b1y }; const secondTo = { x: b2x, y: b2y };
+    const closestPairs = [
+      { a: firstFrom, b: closestPointOnSegment(firstFrom, secondFrom, secondTo) },
+      { a: firstTo, b: closestPointOnSegment(firstTo, secondFrom, secondTo) },
+      { a: closestPointOnSegment(secondFrom, firstFrom, firstTo), b: secondFrom },
+      { a: closestPointOnSegment(secondTo, firstFrom, firstTo), b: secondTo }
+    ].sort((left, right) => distanceSquared(left.a.x, left.a.y, left.b.x, left.b.y) -
+      distanceSquared(right.a.x, right.a.y, right.b.x, right.b.y));
+    const closest = closestPairs[0]!;
+    const surfaceAllowance = ((first.value ?? width) + wave.width) / 2;
+    const surfacesOverlap = centerlinesIntersect ||
+      distanceSquared(closest.a.x, closest.a.y, closest.b.x, closest.b.y) <= surfaceAllowance ** 2;
     const misbanked = learnedIds.includes("misbanked-flying-arc");
-    if (!intersects && misbanked) intersects = Math.hypot(first.x - wave.x, first.y - wave.y) <= 420;
-    const ix = intersects && t >= 0 ? a1x + t * (a2x - a1x) : (first.x + wave.x) / 2;
-    const iy = intersects && t >= 0 ? a1y + t * (a2y - a1y) : (first.y + wave.y) / 2;
+    const bridged = !surfacesOverlap && misbanked && Math.hypot(first.x - wave.x, first.y - wave.y) <= 420;
+    const intersects = surfacesOverlap || bridged;
+    const ix = centerlinesIntersect ? a1x + t * (a2x - a1x) : bridged
+      ? (first.x + wave.x) / 2 : (closest.a.x + closest.b.x) / 2;
+    const iy = centerlinesIntersect ? a1y + t * (a2y - a1y) : bridged
+      ? (first.y + wave.y) / 2 : (closest.a.y + closest.b.y) / 2;
     const seamLength = learnedIds.includes("long-sunset-trace") ? 520 : 340;
     const seamAngle = (first.angle! + wave.angle) / 2;
     const seam = intersects ? {
       from: { x: ix - Math.cos(seamAngle) * seamLength / 2, y: iy - Math.sin(seamAngle) * seamLength / 2 },
       to: { x: ix + Math.cos(seamAngle) * seamLength / 2, y: iy + Math.sin(seamAngle) * seamLength / 2 },
-      width: misbanked && t < 0 ? 18 : 30
+      width: bridged ? 18 : 30
     } : undefined;
     runtime.authored.anchors = seam ? [{
       kind: "trail", x: ix, y: iy, angle: seamAngle, value: seam.width,
@@ -6980,14 +7015,25 @@ export function planGongfaAttack(
     runtime.authored.phase = intersects ? 2 : 0;
     runtime.authored.targetLedger[-80] = 600;
     if (intersects) runtime.authored.cycleCount = Math.min(3, runtime.authored.cycleCount + 1);
+    const reverse = learnedIds.includes("reverse-scarlet-tide");
+    const immediateSeam = learnedIds.includes("ruptured-burning-current");
     return [{
       kind: "authored-scarlet-tides", waves: [wave], seam,
+      ...(seam && !immediateSeam ? { seamTravel: {
+        x: Math.cos(seamAngle + Math.PI / 2) * (horizon ? 160 : 105),
+        y: Math.sin(seamAngle + Math.PI / 2) * (horizon ? 160 : 105)
+      } } : {}),
+      ...(seam && reverse ? { reverseWaves: [
+        { x: first.x, y: first.y, angle: first.angle!, length: firstLength, width: first.value, bank: -1 as const },
+        { ...wave, bank: 1 as const }
+      ] } : {}),
       damage: Math.max(1, Math.floor(runtime.combat.damage * (lance ? 1.25 : broad ? 0.62 : rolling ? 0.72 : 0.9) *
         (learnedIds.includes("long-sunset-trace") ? 0.72 : 1) * (horizon ? 1.18 : 1))),
-      seamDamage: Math.max(1, Math.floor(runtime.combat.damage * (learnedIds.includes("ruptured-burning-current") ? 2.1 : learnedIds.includes("reverse-scarlet-tide") ? 0.72 : 1.25))),
-      immediateSeam: learnedIds.includes("ruptured-burning-current"), reverse: learnedIds.includes("reverse-scarlet-tide"),
+      seamDamage: Math.max(1, Math.floor(runtime.combat.damage * (immediateSeam ? 2.1 : reverse ? 0.72 : 1.25))),
+      immediateSeam, reverse,
       durationMs: learnedIds.includes("long-sunset-trace") ? 3200 : 1600,
-      supreme: false, sourceGongfaId: runtime.gongfaId
+      supreme: false, nextCooldownScale: rolling ? 0.58 : broad ? 1.18 : 1,
+      sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "flame-demon-body-art") {

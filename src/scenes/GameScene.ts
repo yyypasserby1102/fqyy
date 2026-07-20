@@ -1828,7 +1828,9 @@ export class GameScene extends Phaser.Scene {
         this.executeGongfaRuntimeCommands(commands, runtime);
       }
       const updatedRuntime = this.gongfaCollection.byId[runtime.gongfaId] ?? runtime;
-      updatedRuntime.attackCooldownRemaining = updatedRuntime.combat.cooldownMs;
+      const authoredScarlet = commands.find((command) => command.kind === "authored-scarlet-tides");
+      updatedRuntime.attackCooldownRemaining = updatedRuntime.combat.cooldownMs *
+        (authoredScarlet?.kind === "authored-scarlet-tides" ? authoredScarlet.nextCooldownScale ?? 1 : 1);
     }
     this.restorePrimaryRuntimeAdapter();
   }
@@ -4817,25 +4819,57 @@ export class GameScene extends Phaser.Scene {
     for (const wave of command.waves) {
       const hx = Math.cos(wave.angle) * wave.length / 2;
       const hy = Math.sin(wave.angle) * wave.length / 2;
-      visual.lineStyle(wave.width, identity.accent, command.supreme ? 0.52 : 0.68);
-      visual.lineBetween(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy);
+      const waveVisual = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(13);
+      waveVisual.lineStyle(wave.width, wave.bank === 1 ? identity.secondary : identity.accent, command.supreme ? 0.52 : 0.68);
+      if (command.supreme || !wave.bank) {
+        waveVisual.lineBetween(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy);
+      } else {
+        new Phaser.Curves.Path(wave.x - hx, wave.y - hy).quadraticBezierTo(
+          wave.x + hx, wave.y + hy,
+          wave.x + Math.cos(wave.angle + Math.PI / 2) * wave.width * 1.7 * wave.bank,
+          wave.y + Math.sin(wave.angle + Math.PI / 2) * wave.width * 1.7 * wave.bank
+        ).draw(waveVisual, 24);
+      }
       hitLine(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy, wave.width / 2, command.damage, command.supreme ? 170 : 0);
+      this.tweens.add({ targets: waveVisual, alpha: 0, duration: command.durationMs, onComplete: () => waveVisual.destroy() });
     }
     if (command.seam) {
       visual.lineStyle(command.immediateSeam ? command.seam.width + 10 : command.seam.width, identity.secondary, 0.95);
       visual.lineBetween(command.seam.from.x, command.seam.from.y, command.seam.to.x, command.seam.to.y);
-      hitLine(command.seam.from.x, command.seam.from.y, command.seam.to.x, command.seam.to.y, command.seam.width / 2, command.seamDamage);
-      if (command.reverse) {
-        this.time.delayedCall(320, () => hitLine(
-          command.seam!.to.x, command.seam!.to.y, command.seam!.from.x, command.seam!.from.y,
-          command.seam!.width / 2, command.seamDamage * 0.55
-        ));
+      if (command.immediateSeam || !command.seamTravel) {
+        hitLine(command.seam.from.x, command.seam.from.y, command.seam.to.x, command.seam.to.y, command.seam.width / 2, command.seamDamage);
+      } else {
+        for (let step = 0; step < 4; step += 1) {
+          this.time.delayedCall(command.durationMs * step / 4, () => {
+            const ratio = step / 3;
+            const dx = command.seamTravel!.x * ratio;
+            const dy = command.seamTravel!.y * ratio;
+            hitLine(command.seam!.from.x + dx, command.seam!.from.y + dy,
+              command.seam!.to.x + dx, command.seam!.to.y + dy,
+              command.seam!.width / 2, command.seamDamage * 0.32);
+          });
+        }
       }
+    }
+    if (command.reverseWaves) {
+      this.time.delayedCall(320, () => {
+        for (const wave of command.reverseWaves!) {
+          const outwardX = Math.cos(wave.angle + Math.PI / 2) * wave.bank * 90;
+          const outwardY = Math.sin(wave.angle + Math.PI / 2) * wave.bank * 90;
+          const hx = Math.cos(wave.angle) * wave.length / 2;
+          const hy = Math.sin(wave.angle) * wave.length / 2;
+          const returning = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(15);
+          returning.lineStyle(wave.width * 0.72, wave.bank === 1 ? identity.secondary : identity.accent, 0.76);
+          returning.lineBetween(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy);
+          hitLine(wave.x - hx, wave.y - hy, wave.x + hx, wave.y + hy, wave.width / 2, command.damage * 0.55);
+          this.tweens.add({ targets: returning, x: outwardX, y: outwardY, alpha: 0, duration: 620, onComplete: () => returning.destroy() });
+        }
+      });
     }
     this.tweens.add({
       targets: visual,
-      x: command.seam && !command.immediateSeam ? (command.seam.to.x - command.seam.from.x) * 0.18 : 0,
-      y: command.seam && !command.immediateSeam ? (command.seam.to.y - command.seam.from.y) * 0.18 : 0,
+      x: command.seamTravel?.x ?? 0,
+      y: command.seamTravel?.y ?? 0,
       alpha: 0, duration: command.durationMs, onComplete: () => visual.destroy()
     });
     this.recordGongfaMotif(`${identity.motifId}:${command.supreme ? "sunset-divide" : command.seam ? "confluence" : "waiting-tide"}`);

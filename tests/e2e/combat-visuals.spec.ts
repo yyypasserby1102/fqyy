@@ -237,6 +237,22 @@ test("Jinfeng draws travel-powered ground cuts without substitute projectiles", 
   )).toBe(false);
 });
 
+test("Scarlet Wave forms a spatial Confluence without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("scarlet-wave-manual");
+    window.__gameTest!.forceSpawnHealingPill(100);
+    window.__gameTest!.forceSpawnEnemies(6);
+  });
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs.some(
+    (motif) => motif === "intersecting-scarlet-surfaces:confluence"
+  ));
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "scarlet-wave-manual"
+  )).toBe(false);
+});
+
 test("Crimson Furnace remains the final legacy projectile treatment in this review pair", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [

@@ -32,7 +32,7 @@ implementation, testing, balance review, and future regression checks.
 | Jinfeng Gong / 金锋功 | Youxia | Approved | Implemented and verified |
 | Green Vine Art / 青藤诀 | Youxia | Approved | Implemented and verified |
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Implemented and verified |
-| Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Pending redesign |
+| Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Implemented and verified |
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
 | Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
 | Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Implemented and verified |
@@ -427,6 +427,22 @@ meeting line, then clear the Confluence record. No pull, mark, execution, or fir
 
 **Must not become:** Jinfeng player trails, Black Tide's world cycle, Blazing's fan,
 or generic repeated fire waves.
+
+### Implemented tuning contract
+
+- Left and right waves are visibly different bowed surfaces. Confluence tests their
+  finite line segments plus physical half-widths, so broad waves genuinely overlap
+  more easily while the 16-wide Lance route has little tolerance. Expired first
+  surfaces are removed before the next automatic cast and cannot contribute.
+- A successful normal Confluence creates a third seam that sweeps 105 world units
+  across four spatial samples. Long Sunset extends it from 340 to 520 units and from
+  1.6 to 3.2 seconds; Ruptured Current instead detonates once and never moves.
+- Rolling Tides uses 58% of normal attack cadence and a 1.1-second first-wave life.
+  After-Tide extends that life to 3.6 seconds while reducing its damage. Misbanked
+  may bridge only pairs within 420 units and produces an 18-wide seam.
+- Reversing Tide creates two explicit weakened outward crescent passes after a valid
+  Confluence; it does not reverse or double-hit the seam. Three successful spatial
+  Confluences unlock one opposing-wall Sunset Divide and then clear the record.
 
 ---
 
