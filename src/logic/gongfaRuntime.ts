@@ -749,7 +749,7 @@ export type GongfaRuntimeCommand =
   | {
       kind: "authored-sundering-edict";
       lines: Array<{ x: number; y: number; angle: number; length: number }>;
-      width: number; physicalDamage: number; judgmentDamage: number; delayMs: number;
+      width: number; physicalDamage: number; judgmentDamage: number; intersectionDamage: number; delayMs: number;
       supreme: boolean; translateTo?: { x: number; y: number }; sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
     }
@@ -5339,17 +5339,26 @@ export function advanceGongfaRuntime(
       const records = next.authored.anchors.filter((anchor) => anchor.kind === "trail" && anchor.angle !== undefined);
       if (next.authored.resource >= cap - 0.001 && records.length > 0) {
         const amendment = event.learnedMasteryIds.includes("heaven-moving-amendment");
-        const dense = event.targets?.[0];
+        const targets = event.targets ?? [];
+        const dense = [...targets].sort((a, b) => {
+          const density = (target: AuthoredTargetFact): number => targets.reduce((score, other) =>
+            score + (distanceSquared(target.x, target.y, other.x, other.y) <= 170 ** 2
+              ? other.rank === "boss" ? 4 : other.rank === "elite" ? 2 : 1 : 0), 0);
+          return density(b) - density(a);
+        })[0];
+        const twin = event.learnedMasteryIds.includes("twin-edicts");
         commands.push({
           kind: "authored-sundering-edict",
           lines: records.map((record) => ({
             x: amendment && dense ? dense.x : record.x, y: amendment && dense ? dense.y : record.y,
-            angle: record.angle!, length: 1200
+            angle: record.angle!, length: 2400
           })),
           width: event.learnedMasteryIds.includes("lone-heaven-scar") ? 16 : 34,
           physicalDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.38)),
           judgmentDamage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale *
-            (amendment ? 1.15 : event.learnedMasteryIds.includes("twin-edicts") ? 1.05 : 1.65))),
+            (amendment ? 1.15 : twin ? 1.05 : 1.65))),
+          intersectionDamage: twin
+            ? Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 0.72)) : 0,
           delayMs: 900, supreme: true, sourceGongfaId: next.gongfaId,
           masteryCast: { skill2Id: "supreme-sundering-decree", cooldownMs: Math.floor(authoredSkill2Plans["supreme-sundering-decree"].cooldownMs * skill2Stats.cadenceScale) }
         });
@@ -6867,6 +6876,7 @@ export function planGongfaAttack(
       kind: "authored-sundering-edict", lines, width,
       physicalDamage: Math.max(1, Math.floor(runtime.combat.damage * (longLine ? 0.34 : crossed ? 0.22 : 0.28))),
       judgmentDamage: Math.max(1, Math.floor(runtime.combat.damage * (longLine ? 1.65 : crossed ? 0.72 : swift ? 0.82 : 1.25))),
+      intersectionDamage: crossed ? Math.max(1, Math.floor(runtime.combat.damage * 0.82)) : 0,
       delayMs: swift ? 340 : longLine ? 1050 : 760,
       supreme: false, sourceGongfaId: runtime.gongfaId
     }];

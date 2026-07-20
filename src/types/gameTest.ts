@@ -228,6 +228,7 @@ export interface GameTestHarness {
   forceSpawnSpiritTreasure(treasureId: string): void;
   forceClaimLingcao(): void;
   forceSpawnHealingPill(healAmount?: number): void;
+  forceSetIncomingDamageDisabled(disabled: boolean): void;
   forceSpawnPickupShowcase(): void;
   forceAdvanceSpawnClock(deltaMs: number): void;
 }

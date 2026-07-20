@@ -34,7 +34,7 @@ implementation, testing, balance review, and future regression checks.
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Implemented and verified |
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Implemented and verified |
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Implemented and verified |
-| Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
+| Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Implemented and verified |
 | Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Implemented and verified |
 | Burning Ring Scripture / 焚轮经 | Hudao | Approved | Implemented and verified |
 | Ice Mirror Guard / 冰镜护体 | Hudao | Approved | Implemented and verified |
@@ -540,6 +540,23 @@ receive the payoff; Mandate and records clear. No explosion, tracking, or domain
 
 **Must not become:** Nine-Sun ground prediction, Jinfeng travel lines, Yujian weapon
 paths, or Blazing's marked execution corridor.
+
+### Implemented tuning contract
+
+- Every normal cast chooses the highest weighted line through current threats from
+  the player's position, damages once physically, and stores those exact world-space
+  coordinates for the 0.34–1.05 second spell repeat. Moving the player cannot move or
+  rotate a committed line.
+- Mandate gains 18% per same-target double hit by default and zero from partial hits.
+  Lenient partials grant 5% with a 78% cap; Aggravated grants 36% for elite/boss and
+  6% for ordinary doubles; Collective doubles casts with 3+ doubles and otherwise
+  uses 45%; Swift multiplies all Mandate gain by 68%.
+- Crossed Golden Edict produces two 310-unit perpendicular lines and a distinct
+  intersection judgment. Lone Scar retains only the highest-quality record; Twin
+  retains the latest two and gives their capstone overlap an additional judgment.
+- Supreme lines are 2,400 units long, exceeding the arena diagonal. Heaven-Moving
+  selects the current densest weighted cluster, translates every stored center there,
+  preserves each recorded angle exactly, lowers damage, then consumes Mandate and records.
 
 ---
 

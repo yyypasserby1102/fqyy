@@ -113,6 +113,7 @@ test("machine square-kiting takes pressure without becoming an unavoidable death
 });
 
 test("machine-driven whole Run reaches victory and emits feel evidence", async ({ page }) => {
+  test.skip(!process.env.MACHINE_PLAYTEST_ARTIFACTS, "Dedicated one-worker machine-playtest only");
   test.setTimeout(240_000);
   const startedAt = new Date().toISOString();
   const wallStart = performance.now();

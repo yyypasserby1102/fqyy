@@ -3094,17 +3094,58 @@ describe("Gongfa runtime", () => {
     expect(runtime.authored.anchors[0]?.angle).toBe(Math.PI / 4);
   });
 
+  it("gives Crossed Golden Edict two fixed weak lines and an intersection judgment", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "heaven-sundering-edict" });
+    const [command] = planGongfaAttack(runtime, 0, {
+      playerX: 20, playerY: 30, learnedMasteryIds: ["crossed-golden-edict"],
+      targets: [{ targetId: 1, x: 120, y: 30, healthRatio: 1, rank: "elite" }]
+    });
+    expect(command).toMatchObject({
+      kind: "authored-sundering-edict", width: 28,
+      lines: [{ x: 20, y: 30, length: 310 }, { x: 20, y: 30, length: 310 }]
+    });
+    expect(command.kind === "authored-sundering-edict" && command.intersectionDamage).toBeGreaterThan(0);
+    if (command.kind === "authored-sundering-edict") {
+      expect(Math.abs(command.lines[1]!.angle - command.lines[0]!.angle)).toBeCloseTo(Math.PI / 2);
+    }
+  });
+
+  it("stores the latest two Twin Edicts and repeats them with intersection power", () => {
+    let runtime = createGongfaRuntime({ gongfaId: "heaven-sundering-edict" });
+    for (const angle of [0.2, 0.8, 1.4]) {
+      runtime = advanceGongfaRuntime(runtime, {
+        kind: "authored-edict-result", doubleHits: 2, partialHits: 0, eliteDoubleHits: 0,
+        lineQuality: angle * 10, lines: [{ x: angle * 100, y: 0, angle, length: 460 }],
+        learnedMasteryIds: ["twin-edicts"]
+      }).runtime;
+    }
+    runtime.authored.resource = 1;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "skill2", skill2Id: "supreme-sundering-decree",
+      learnedMasteryIds: ["twin-edicts"]
+    });
+    const command = result.commands.find((item) => item.kind === "authored-sundering-edict");
+    expect(command?.lines.map((line) => line.angle)).toEqual([0.8, 1.4]);
+    expect(command?.lines.every((line) => line.length === 2400)).toBe(true);
+    expect(command?.intersectionDamage).toBeGreaterThan(0);
+  });
+
   it("extends retained Heaven-Sundering records without rotating them", () => {
     const runtime = createGongfaRuntime({ gongfaId: "heaven-sundering-edict" });
     runtime.authored.resource = 1;
     runtime.authored.anchors.push({ kind: "trail", x: 10, y: 20, angle: 0.7, value: 5, maxValue: 500 });
     const result = advanceGongfaRuntime(runtime, {
       kind: "skill2", skill2Id: "supreme-sundering-decree",
-      targets: [{ targetId: 1, x: 200, y: 100, healthRatio: 1, rank: "elite" }],
+      targets: [
+        { targetId: 1, x: -500, y: -400, healthRatio: 1, rank: "elite" },
+        { targetId: 2, x: 200, y: 100, healthRatio: 1, rank: "elite" },
+        { targetId: 3, x: 220, y: 110, healthRatio: 1, rank: "ordinary" },
+        { targetId: 4, x: 180, y: 90, healthRatio: 1, rank: "ordinary" }
+      ],
       learnedMasteryIds: ["heaven-moving-amendment"]
     });
     const decree = result.commands.find((command) => command.kind === "authored-sundering-edict");
-    expect(decree?.lines[0]).toMatchObject({ x: 200, y: 100, angle: 0.7, length: 1200 });
+    expect(decree?.lines[0]).toMatchObject({ x: 200, y: 100, angle: 0.7, length: 2400 });
     expect(result.runtime.authored.anchors).toHaveLength(0);
     expect(result.runtime.authored.resource).toBe(0);
   });

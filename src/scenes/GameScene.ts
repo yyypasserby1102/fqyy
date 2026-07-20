@@ -200,6 +200,7 @@ const ARENA_HALF_WIDTH = 1000;
 const ARENA_HALF_HEIGHT = 640;
 
 export class GameScene extends Phaser.Scene {
+  private testIncomingDamageDisabled = false;
   private arenaFloor!: Phaser.GameObjects.TileSprite;
   private arenaDecorationCount = 0;
   private arenaPresentation?: ArenaPresentation;
@@ -4712,7 +4713,9 @@ export class GameScene extends Phaser.Scene {
         const enemy = this.getEnemyByCombatTargetId(targetId);
         if (!enemy?.active) continue;
         if (physicalIds.has(targetId) && (enemy.role === "tribulation-boss" || enemy.maxHealth >= 150)) eliteDoubleHits += 1;
-        if (enemy.receiveDamage(command.judgmentDamage)) this.resolveEnemyDeath(enemy);
+        const lineCount = command.lines.reduce((count, line) => count + (onLine(enemy, line) ? 1 : 0), 0);
+        const intersectionBonus = lineCount >= 2 ? command.intersectionDamage : 0;
+        if (enemy.receiveDamage(command.judgmentDamage + intersectionBonus)) this.resolveEnemyDeath(enemy);
       }
       const runtime = this.gongfaCollection.byId[command.sourceGongfaId];
       if (runtime && !command.supreme) {
@@ -7408,6 +7411,10 @@ export class GameScene extends Phaser.Scene {
     this.publishHud(this.lastMessage);
   }
 
+  forceSetIncomingDamageDisabled(disabled: boolean): void {
+    this.testIncomingDamageDisabled = disabled;
+  }
+
   forceSpawnPickupShowcase(): void {
     this.spawnOrb(this.player.x - 108, this.player.y - 48, 1);
     this.spawnHealingPill(this.player.x - 72, this.player.y + 62, 30);
@@ -7442,7 +7449,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private applyIncomingDamage(amount: number, sourceX?: number, sourceY?: number, sourceId?: number): void {
-    if (this.evade.state.invulnerable) {
+    if (this.testIncomingDamageDisabled || this.evade.state.invulnerable) {
       return;
     }
 
