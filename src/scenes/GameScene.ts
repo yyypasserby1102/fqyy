@@ -4955,6 +4955,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const identity = getGongfaVisualIdentity(runtime.gongfaId);
+    const learnedIds = runtime.mastery.masteryLearnedIds;
+    const orbitRadius = runtime.authored.phase === 2 ? 245 :
+      learnedIds.includes("sea-suppressing-heavy-moon") ? 92 :
+        learnedIds.includes("swift-moon-vessel") ? 205 : moons.length > 1 ? 132 : 152;
     const marker = this.moonfallMarker ?? this.add.graphics().setDepth(14);
     this.moonfallMarker = marker;
     marker.clear();
@@ -4964,9 +4968,11 @@ export class GameScene extends Phaser.Scene {
       marker.fillCircle(moon.x, moon.y, radius);
       marker.lineStyle(runtime.authored.phase === 2 ? 8 : 4, index % 2 ? identity.secondary : identity.accent, 0.9);
       marker.strokeCircle(moon.x, moon.y, radius);
-      marker.lineStyle(2, identity.secondary, 0.42);
+      marker.lineStyle(2, index % 2 ? identity.secondary : identity.accent, 0.22);
+      marker.strokeCircle(moon.x, moon.y, orbitRadius);
+      marker.lineStyle(3, identity.secondary, 0.58);
       marker.beginPath();
-      marker.arc(moon.x, moon.y, radius + 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * runtime.authored.resource);
+      marker.arc(moon.x, moon.y, orbitRadius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * runtime.authored.resource);
       marker.strokePath();
     }
     for (const orbiter of runtime.authored.anchors.filter((anchor) => anchor.kind === "orbiter" && anchor.targetId !== undefined)) {

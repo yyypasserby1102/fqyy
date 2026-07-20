@@ -33,7 +33,7 @@ implementation, testing, balance review, and future regression checks.
 | Green Vine Art / 青藤诀 | Youxia | Approved | Implemented and verified |
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Implemented and verified |
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Implemented and verified |
-| Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
+| Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Implemented and verified |
 | Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
 | Verdant Ring Scripture / 碧环经 | Faxiu | Approved | Implemented and verified |
 | Burning Ring Scripture / 焚轮经 | Hudao | Approved | Implemented and verified |
@@ -482,6 +482,23 @@ harder. It then clears the record.
 
 **Must not become:** Nine-Sun prediction, Black Tide's arena-wide phase, a fixed
 delayed blast, or an ordinary suction field.
+
+### Implemented tuning contract
+
+- The moon chooses the densest group automatically, then follows only the player's
+  ordinary position with route-specific lag. Its UI draws the real 92/132/152/205
+  collection radius; there is no cursor, aim stick, or ground-placement input.
+- Every retained orbiter stores its prior polar angle. Syzygy adds only the wrapped
+  angular difference observed on later ticks; waiting and damage add zero. Leaving
+  138% of the live orbit radius removes all unfinished contribution unless Still-Sea
+  preserves exactly half, with a reduced 76% cap.
+- Twin Moon maintains two centers 136 units apart and reassigns an orbiter only to
+  the nearer live track. Heavy Moon barely follows and pulls hard; Swift Moon follows
+  rapidly with broad collection but weak pull and resolution.
+- Resolution occurs after 6.2 seconds as inward collapse, tangential collision release,
+  or stationary suspension. Three resolutions above 72% of the route cap unlock an
+  1.8-second mobile Eclipse that records pre-suspension velocities, bends them inward,
+  scales travel and damage with stored speed, then clears the record.
 
 ---
 

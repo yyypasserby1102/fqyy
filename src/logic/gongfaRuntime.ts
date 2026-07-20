@@ -4630,7 +4630,8 @@ function advanceAuthoredWorldFacts(
     const followRate = state.phase === 2 ? 0.00007 : heavy ? 0.000018 : swift ? 0.00028 : 0.000105;
     for (const moon of moonAnchors) {
       const blend = Math.min(1, event.deltaMs * followRate);
-      moon.x += (playerX - moon.x) * blend;
+      const twinOffset = twin ? (moon.chainId === 0 ? -68 : 68) : 0;
+      moon.x += (playerX + twinOffset - moon.x) * blend;
       moon.y += (playerY - moon.y) * blend;
     }
     const radius = state.phase === 2 ? 245 : heavy ? 92 : swift ? 205 : twin ? 132 : 152;

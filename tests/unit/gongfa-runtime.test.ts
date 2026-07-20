@@ -2503,6 +2503,45 @@ describe("Gongfa runtime", () => {
     expect(escaped.runtime.authored.resource).toBe(0);
   });
 
+  it("keeps Twin-Moon centers separated while they lag behind the player", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
+    planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0,
+      learnedMasteryIds: ["twin-moon-crossing"],
+      targets: [{ targetId: 1, x: 0, y: 0, healthRatio: 1, rank: "ordinary" }]
+    });
+    expect(runtime.authored.anchors.filter((anchor) => anchor.kind === "moon")).toHaveLength(2);
+    let carried = runtime;
+    for (let step = 0; step < 10; step += 1) {
+      carried = advanceGongfaRuntime(carried, {
+        kind: "tick", deltaMs: 100, nearbyEnemyCount: 1,
+        playerX: 240, playerY: 80, isMoving: true,
+        learnedMasteryIds: ["twin-moon-crossing"], targets: []
+      }).runtime;
+    }
+    const moons = carried.authored.anchors.filter((anchor) => anchor.kind === "moon");
+    expect(moons).toHaveLength(2);
+    expect(Math.abs(moons[1]!.x - moons[0]!.x)).toBeCloseTo(136);
+    expect(moons[0]!.y).toBeCloseTo(moons[1]!.y);
+  });
+
+  it("retains exactly half escaped angular motion with Still-Sea Syzygy", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
+    runtime.authored.phase = 1;
+    runtime.authored.anchors = [
+      { kind: "moon", x: 0, y: 0, value: 1, chainId: 0 },
+      { kind: "orbiter", x: 100, y: 0, value: 1, targetId: 8, angle: 0, chainId: 0 }
+    ];
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+      targets: [{ targetId: 8, x: 900, y: 900, healthRatio: 1, rank: "elite" }],
+      learnedMasteryIds: ["still-sea-syzygy"]
+    });
+    expect(result.runtime.authored.secondaryResource).toBeCloseTo(0.5);
+    expect(result.runtime.authored.resource).toBeCloseTo(0.5 / 2.4);
+    expect(result.runtime.authored.charges).toBe(0);
+  });
+
   it("Moonfall R9 resolves with a branch-specific fate instead of a generic blast", () => {
     const runtime = createGongfaRuntime({ gongfaId: "moonfall-tide-ritual" });
     runtime.authored.phase = 1;
