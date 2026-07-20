@@ -3031,6 +3031,32 @@ describe("Gongfa runtime", () => {
     expect(charging.authored.resource).toBeCloseTo(0.055);
   });
 
+  it("fixes a Nine-Sun seal at the target's predicted future position", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
+    const [command] = planGongfaAttack(runtime, 0, {
+      targets: [{
+        targetId: 1, x: 100, y: 50, velocityX: 20, velocityY: -10,
+        healthRatio: 1, rank: "elite"
+      }]
+    });
+    expect(command).toMatchObject({
+      kind: "authored-falling-sun",
+      seals: [{ x: 129, y: 35.5, delayMs: 1450 }]
+    });
+  });
+
+  it("marks Dark-Sun's long telegraph as a visibly shrinking center", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
+    const [command] = planGongfaAttack(runtime, 0, {
+      learnedMasteryIds: ["dark-sun-calamity"],
+      targets: [{ targetId: 1, x: 100, y: 50, healthRatio: 1, rank: "elite" }]
+    });
+    expect(command).toMatchObject({
+      kind: "authored-falling-sun", shrinkingCenter: true,
+      seals: [{ x: 100, y: 50, delayMs: 2100 }]
+    });
+  });
+
   it("turns a Nine-Sun miss into only a dim Returning Afterglow omen", () => {
     const runtime = createGongfaRuntime({ gongfaId: "nine-sun-calamity-seal" });
     runtime.authored.phase = 1;
@@ -3048,10 +3074,13 @@ describe("Gongfa runtime", () => {
     runtime.authored.charges = 9;
     const result = advanceGongfaRuntime(runtime, {
       kind: "skill2", skill2Id: "heavenly-sun-descent",
-      targets: [{ targetId: 4, x: 160, y: -40, healthRatio: 1, rank: "boss" }]
+      targets: [{
+        targetId: 4, x: 160, y: -40, velocityX: 10, velocityY: 5,
+        healthRatio: 1, rank: "boss"
+      }]
     });
     const sun = result.commands.find((command) => command.kind === "authored-falling-sun");
-    expect(sun?.seals).toEqual([{ x: 160, y: -40, delayMs: 2400 }]);
+    expect(sun?.seals).toEqual([{ x: 184, y: -28, delayMs: 2400 }]);
     expect(sun?.supreme).toBe(true);
   });
 });

@@ -31,7 +31,7 @@ implementation, testing, balance review, and future regression checks.
 | Yujian Jue / 御剑诀 | Youxia | Approved | Implemented and verified |
 | Jinfeng Gong / 金锋功 | Youxia | Approved | Implemented and verified |
 | Green Vine Art / 青藤诀 | Youxia | Approved | Implemented and verified |
-| Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Pending redesign |
+| Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Implemented and verified |
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Pending redesign |
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
 | Heaven-Sundering Edict / 断天敕令 | Faxiu | Approved | Pending redesign |
@@ -372,6 +372,21 @@ impact, then omens and Zenith clear. No tracking, execution, or lingering fire.
 
 **Must not become:** Moonfall gravity, a generic meteor shower, ordinary fire DoT,
 or a player-aimed ground spell.
+
+### Implemented tuning contract
+
+- Every normal seal predicts from the chosen enemy's current velocity at commitment,
+  then remains fixed for its full 0.72–2.1 second warning. Nine Suns in One uses the
+  same rule over 2.4 seconds; neither seal tracks after placement.
+- Zenith grows only while no seal is committed: 5.5% per second normally and 8.5%
+  with Swift Eclipse. Fixed-Noon caps it at 67%, Swift Eclipse at 78%, and all other
+  routes at 100%.
+- Normal impacts use a 118-radius seal and 42-radius center. Solitary contracts to
+  76/28, Twin uses two 92-radius seals staggered by 420 ms, and Dark-Sun exposes a
+  bright center visibly shrinking from 2.6x to its 22-radius impact core.
+- Center-Forge grants two omens only from center hits; Myriad Beings grants by distinct
+  victims; Returning Afterglow grants one dim omen only on a total miss. Nine dim
+  omens can reduce the capstone to 45% damage, and every capstone consumes all omens.
 
 ---
 

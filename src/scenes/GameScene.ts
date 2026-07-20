@@ -907,6 +907,8 @@ export class GameScene extends Phaser.Scene {
           : candidate.maxHealth >= 150
             ? "elite" as const
             : "ordinary" as const,
+        velocityX: (candidate.body as Phaser.Physics.Arcade.Body).velocity.x,
+        velocityY: (candidate.body as Phaser.Physics.Arcade.Body).velocity.y,
         embedStacks: candidate.embedStacks,
         embedPower: candidate.embedPower
       }));
@@ -1809,6 +1811,8 @@ export class GameScene extends Phaser.Scene {
             : enemy.maxHealth >= 150
               ? "elite" as const
               : "ordinary" as const,
+          velocityX: (enemy.body as Phaser.Physics.Arcade.Body).velocity.x,
+          velocityY: (enemy.body as Phaser.Physics.Arcade.Body).velocity.y,
           embedStacks: enemy.embedStacks,
           embedPower: enemy.embedPower
         }));
@@ -2292,6 +2296,8 @@ export class GameScene extends Phaser.Scene {
           : enemy.maxHealth >= 150
             ? "elite" as const
             : "ordinary" as const,
+        velocityX: (enemy.body as Phaser.Physics.Arcade.Body).velocity.x,
+        velocityY: (enemy.body as Phaser.Physics.Arcade.Body).velocity.y,
         embedStacks: enemy.embedStacks,
         embedPower: enemy.embedPower
       }));
@@ -4741,6 +4747,22 @@ export class GameScene extends Phaser.Scene {
       }
       omen.fillStyle(identity.accent, 0.12);
       omen.fillCircle(seal.x, seal.y, command.centerRadius);
+      const shrinkingCenter = command.shrinkingCenter
+        ? this.applyGongfaEffectVisualHierarchy(this.add.graphics({ x: seal.x, y: seal.y }), command.sourceGongfaId).setDepth(15)
+        : null;
+      if (shrinkingCenter) {
+        shrinkingCenter.fillStyle(identity.secondary, 0.34);
+        shrinkingCenter.fillCircle(0, 0, command.centerRadius * 2.6);
+        shrinkingCenter.lineStyle(3, identity.accent, 0.95);
+        shrinkingCenter.strokeCircle(0, 0, command.centerRadius * 2.6);
+        this.tweens.add({
+          targets: shrinkingCenter,
+          scale: 0.38,
+          alpha: 0.92,
+          duration: seal.delayMs,
+          ease: "Sine.easeIn"
+        });
+      }
       this.time.delayedCall(seal.delayMs, () => {
         const impact = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), command.sourceGongfaId).setDepth(17);
         impact.fillStyle(identity.secondary, 0.82);
@@ -4758,6 +4780,7 @@ export class GameScene extends Phaser.Scene {
         }
         resolved += 1;
         omen.destroy();
+        shrinkingCenter?.destroy();
         this.tweens.add({ targets: impact, alpha: 0, scale: 1.22, duration: 650, onComplete: () => impact.destroy() });
         if (resolved === command.seals.length) {
           const runtime = this.gongfaCollection.byId[command.sourceGongfaId];

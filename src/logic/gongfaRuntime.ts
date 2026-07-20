@@ -117,6 +117,8 @@ export interface AuthoredTargetFact {
   y: number;
   healthRatio: number;
   rank: "ordinary" | "elite" | "boss";
+  velocityX?: number;
+  velocityY?: number;
   embedStacks?: number;
   embedPower?: number;
 }
@@ -755,7 +757,8 @@ export type GongfaRuntimeCommand =
       kind: "authored-falling-sun";
       seals: Array<{ x: number; y: number; delayMs: number }>;
       radius: number; centerRadius: number; damage: number; zenith: number;
-      supreme: boolean; sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
+      supreme: boolean; shrinkingCenter?: boolean;
+      sourceGongfaId: GongfaId; masteryCast?: MasterySkill2Cast;
     }
   | {
       kind: "authored-scarlet-tides";
@@ -5299,10 +5302,15 @@ export function advanceGongfaRuntime(
         const dimScale = Math.max(0.45, 1 - next.authored.secondaryResource * 0.06);
         next.authored.phase = 1;
         commands.push({
-          kind: "authored-falling-sun", seals: [{ x: target.x, y: target.y, delayMs: 2400 }],
+          kind: "authored-falling-sun", seals: [{
+            x: target.x + (target.velocityX ?? 0) * 2.4,
+            y: target.y + (target.velocityY ?? 0) * 2.4,
+            delayMs: 2400
+          }],
           radius: 220, centerRadius: 58,
           damage: Math.max(1, Math.floor(skill2Base.damage * skill2Stats.damageScale * 3.4 * dimScale)),
-          zenith: next.authored.resource, supreme: true, sourceGongfaId: next.gongfaId,
+          zenith: next.authored.resource, supreme: true, shrinkingCenter: false,
+          sourceGongfaId: next.gongfaId,
           masteryCast: { skill2Id: "heavenly-sun-descent", cooldownMs: Math.floor(authoredSkill2Plans["heavenly-sun-descent"].cooldownMs * skill2Stats.cadenceScale) }
         });
       }
@@ -6861,9 +6869,14 @@ export function planGongfaAttack(
     ).length + (target.rank === "boss" ? 4 : target.rank === "elite" ? 2 : 0);
     const ordered = [...targets].sort((a, b) => density(b) - density(a));
     const delay = dark ? 2100 : swift ? 720 : solitary ? 1850 : 1450;
-    const seals = ordered.slice(0, twin ? 2 : 1).map((target, index) => ({
-      x: target.x, y: target.y, delayMs: delay + index * 420
-    }));
+    const seals = ordered.slice(0, twin ? 2 : 1).map((target, index) => {
+      const delayMs = delay + index * 420;
+      return {
+        x: target.x + (target.velocityX ?? 0) * delayMs / 1000,
+        y: target.y + (target.velocityY ?? 0) * delayMs / 1000,
+        delayMs
+      };
+    });
     const zenith = runtime.authored.resource;
     runtime.authored.phase = 1;
     runtime.authored.resource = learnedIds.includes("fixed-noon-sun") ? zenith / 3 : 0;
@@ -6872,7 +6885,8 @@ export function planGongfaAttack(
       radius: solitary ? 76 : twin ? 92 : 118,
       centerRadius: dark ? 22 : solitary ? 28 : 42,
       damage: Math.max(1, Math.floor(runtime.combat.damage * (solitary ? 2.4 : twin ? 0.8 : swift ? 0.88 : 1.35) * (1 + zenith * (unsetting ? 2.2 : dark ? 1.8 : 1.35)))),
-      zenith, supreme: false, sourceGongfaId: runtime.gongfaId
+      zenith, supreme: false, shrinkingCenter: dark,
+      sourceGongfaId: runtime.gongfaId
     }];
   }
   if (runtime.gongfaId === "moonfall-tide-ritual") {
