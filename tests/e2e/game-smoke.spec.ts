@@ -713,38 +713,21 @@ test("pure Wood reveals all three Wood Gongfa packages", async ({ page }) => {
   expect(snapshot.progression.gongfa).toBe("green-vine-art");
 });
 
-for (const gongfaId of ["green-vine-art"] as const) {
-  test(`${gongfaId} attacks and builds its Wood passive in observable combat`, async ({ page }) => {
-    await startNewRun(page, "wood");
-    await page.evaluate((id) => {
-      window.__gameTest!.forceEquipGongfa(id);
-      window.__gameTest!.forceSpawnEnemies(8);
-    }, gongfaId);
-
-    await expect.poll(() => page.evaluate(
-      (id) => {
-        const snapshot = window.__gameTest!.getSnapshot();
-        const combat = snapshot.progression.gongfaCombats.find((item) => item.gongfaId === id);
-        return {
-          passiveActive: (combat?.passiveStacks ?? 0) > 0 &&
-            (combat?.passiveDamageBonus ?? 0) > 0
-        };
-      },
-      gongfaId
-    ), { timeout: 12_000 }).toMatchObject({
-      passiveActive: true
-    });
-
-    const evidence = await page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (item) => item.gongfaId === id
-      ),
-      gongfaId
-    );
-    expect(evidence?.passiveStacks).toBeGreaterThan(0);
-    expect(evidence?.passiveDamageBonus).toBeGreaterThan(0);
+test("green-vine-art exposes geometric Tension instead of a hit-built passive", async ({ page }) => {
+  await startNewRun(page, "wood");
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("green-vine-art");
+    window.__gameTest!.forceSpawnEnemies(6);
   });
-}
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes(
+    "verdant-knot:two-polarity-tether"
+  ));
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  const combat = snapshot.progression.gongfaCombats.find((item) => item.gongfaId === "green-vine-art");
+  expect(combat?.passiveStacks).toBe(0);
+  expect(combat?.passiveDamageBonus).toBe(0);
+  expect(snapshot.progression.skillTags).toEqual(["trap", "wood"]);
+});
 
 test("verdant-ring-scripture writes behavior glyphs and invokes without a hit-built passive", async ({ page }) => {
   await startNewRun(page, "wood");
@@ -762,70 +745,16 @@ test("verdant-ring-scripture writes behavior glyphs and invokes without a hit-bu
   }), { timeout: 8_000 }).toEqual({ hasCompiledGlyph: true, passiveStacks: 0 });
 });
 
-for (const [gongfaId, cascadeId, skill2Id] of [
-  ["green-vine-art", "growth-cascade", "verdant-root-network"]
-] as const) {
-  test(`${gongfaId} exposes transformed passive and live Skill 2 snapshots`, async ({ page }) => {
-    await startNewRun(page, "wood");
-    await page.evaluate((id) => window.__gameTest!.forceEquipGongfa(id), gongfaId);
-
-    const before = await page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (combat) => combat.gongfaId === id
-      ),
-      gongfaId
-    );
-    await reachNextMasteryChoiceThroughQi(page);
-    const rank3 = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    expect(rank3.choice?.options).toHaveLength(3);
-    expect(rank3.choice?.options.every((option) =>
-      Boolean(option.gain && option.cost && option.scope)
-    )).toBe(true);
-    await page.evaluate(() => window.__gameTest!.selectChoice(0));
-    const transformed = await page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (combat) => combat.gongfaId === id
-      ),
-      gongfaId
-    );
-    expect(transformed).not.toEqual(before);
-
-    await advanceMasteryToRankThroughQi(page, 6);
-    const rank6 = await page.evaluate(() => window.__gameTest!.getSnapshot());
-    expect(rank6.choice?.title).toContain("Mastery Rank 6");
-    const cascadeIndex = rank6.choice?.options.findIndex((option) => option.id === cascadeId) ?? -1;
-    expect(cascadeIndex).toBeGreaterThanOrEqual(0);
-    await page.evaluate((index) => window.__gameTest!.selectChoice(index), cascadeIndex);
-    expect(await page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (combat) => combat.gongfaId === id
-      )?.passiveStackGain,
-      gongfaId
-    )).toBe(2);
-
-    await advanceMasteryToRankThroughQi(page, 10);
-    await chooseUntil(page, () => false);
-    await page.evaluate(() => window.__gameTest!.forceSpawnEnemies(8));
-    await page.keyboard.down("d");
-    await expect.poll(() => page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (combat) => combat.gongfaId === id
-      ),
-      gongfaId
-    ), { timeout: 15_000 }).toMatchObject({
-      skill2Id,
-      skill2Casts: expect.any(Number),
-      passiveStackGain: 2
-    });
-    await expect.poll(() => page.evaluate(
-      (id) => window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
-        (combat) => combat.gongfaId === id
-      )?.skill2Casts ?? 0,
-      gongfaId
-    ), { timeout: 15_000 }).toBeGreaterThan(0);
-    await page.keyboard.up("d");
-  });
-}
+test("green-vine-art presents the approved geometric rank-3 choices in Chinese-review form", async ({ page }) => {
+  await startNewRun(page, "wood");
+  await page.evaluate(() => window.__gameTest!.forceEquipGongfa("green-vine-art"));
+  await reachNextMasteryChoiceThroughQi(page);
+  const rank3 = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(rank3.choice?.options.map((option) => option.id)).toEqual([
+    "heart-piercing-thorn-cable", "twin-serpent-bind", "flying-vine-graft"
+  ]);
+  expect(rank3.choice?.options.every((option) => Boolean(option.gain && option.cost && option.scope))).toBe(true);
+});
 
 for (const [choiceIndex, expectedGongfa] of [
   [0, "burning-ring-scripture"],

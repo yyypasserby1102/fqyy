@@ -390,7 +390,7 @@ export interface AuthoredGongfaRuntimeState {
   activationCount: number;
   targetLedger: Record<number, number>;
   anchors: Array<{
-    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter" | "glyph" | "facet" | "wall" | "furnace-node" | "phoenix-brand" | "weakpoint";
+    kind: "corpse-soul" | "stored-soul" | "grave-sword" | "sword" | "seal" | "infection" | "trail" | "companion" | "beast" | "moon" | "orbiter" | "glyph" | "facet" | "wall" | "furnace-node" | "phoenix-brand" | "weakpoint" | "vine-endpoint" | "verdant-knot";
     x: number;
     y: number;
     value: number;

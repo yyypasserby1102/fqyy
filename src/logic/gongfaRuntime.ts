@@ -484,15 +484,6 @@ export type GongfaRuntimeCommand =
       masteryCast: MasterySkill2Cast;
     }
   | {
-      kind: "verdant-root-network";
-      linkCount: number;
-      pulseCount: number;
-      pulseDelayMs: number;
-      damage: number;
-      reach: number;
-      masteryCast: MasterySkill2Cast;
-    }
-  | {
       kind: "sprout-sun-circle";
       spokeCount: number;
       pulseCount: number;
@@ -877,6 +868,41 @@ export type GongfaRuntimeCommand =
       durationMs: number;
       sourceGongfaId: GongfaId;
       masteryCast: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-vine-tether";
+      endpoints: Array<{ x: number; y: number; targetId?: number }>;
+      player: { x: number; y: number };
+      tension: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-vine-contact";
+      from: { x: number; y: number };
+      via: { x: number; y: number };
+      to: { x: number; y: number };
+      targetIds: number[];
+      damage: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-vine-snap";
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      targetIds: number[];
+      damage: number;
+      bindMs: number;
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-heaven-net";
+      points: Array<{ x: number; y: number }>;
+      targetIds: number[];
+      damage: number;
+      durationMs: number;
+      slowMultiplier: number;
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -1013,7 +1039,7 @@ const authoredSkill2Plans: Record<AuthoredSkill2Intent, AuthoredSkill2Plan> = {
   },
   "verdant-root-network": {
     intent: "verdant-root-network",
-    trigger: "timed",
+    trigger: "threshold",
     cooldownMs: 2700
   },
   "sprout-sun-circle": {
@@ -1531,8 +1557,6 @@ function buildExplicitTimedSkill2Command(
       return { kind: skill2.intent, needleCount: Math.max(5, combat.count + 3 + resource + coverage * 2), staggerMs: delay(75), damage: damage(combat.damage * 1.05), pierce: combat.pierce + Math.floor(resource / 3), masteryCast };
     case "moon-tide-vault":
       return { kind: skill2.intent, radius: 180 + resource * 12 + coverage * 24, damage: damage(combat.damage * 1.2), controlStrength: 180 + resource * 15 + coverage * 20, returnDelayMs: delay(320), masteryCast };
-    case "verdant-root-network":
-      return { kind: skill2.intent, linkCount: Math.max(3, combat.count + resource + coverage), pulseCount: 3 + coverage, pulseDelayMs: delay(180), damage: damage(combat.damage * (0.7 + resource * 0.08)), reach: 220 + resource * 20 + coverage * 30, masteryCast };
     case "sprout-sun-circle":
       return { kind: skill2.intent, spokeCount: Math.max(8, combat.count + 5 + resource + coverage * 2), pulseCount: 3 + coverage, pulseDelayMs: delay(220), damage: damage(combat.damage * (1.1 + resource * 0.07)), radius: 100 + resource * 12 + coverage * 18, masteryCast };
     case "heavenly-sun-descent":
@@ -1740,10 +1764,23 @@ const legacyJinfengMasteryIds: Record<string, string> = {
   "gale-step-severance": "formation-breaking-gale-step"
 };
 
+const legacyGreenVineMasteryIds: Record<string, string> = {
+  "thorned-vines": "heart-piercing-thorn-cable",
+  "vine-spread": "twin-serpent-bind",
+  "swift-vines": "flying-vine-graft",
+  "lasting-growth": "hundred-forged-soft-vine",
+  "growth-cascade": "mountain-rending-iron-cable",
+  "growth-burst": "step-borrowed-pull",
+  "growth-crown": "dragon-binding-knot",
+  "growth-domain": "dense-heaven-net-knot",
+  "growth-step": "broken-vine-branching"
+};
+
 function migrateLegacyMasteryId(gongfaId: GongfaId, id: string): string {
   if (gongfaId === "crimson-furnace-sword-art") return legacyCrimsonMasteryIds[id] ?? id;
   if (gongfaId === "yujian-jue") return legacyYujianMasteryIds[id] ?? id;
   if (gongfaId === "jinfeng-gong") return legacyJinfengMasteryIds[id] ?? id;
+  if (gongfaId === "green-vine-art") return legacyGreenVineMasteryIds[id] ?? id;
   return id;
 }
 
@@ -2109,7 +2146,7 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
     // Blazing Feather now uses the authored finite-quiver state below.
     blazingFeather: undefined,
     surge: surgeGongfaIdSet.has(input.gongfaId) &&
-      !["blazing-feather-art", "drifting-frost-needle", "verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(input.gongfaId)
+      !["blazing-feather-art", "drifting-frost-needle", "green-vine-art", "verdant-ring-scripture", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(input.gongfaId)
       ? { ...surgeDefaults, ...input.surge }
       : undefined,
     authored: {
@@ -3081,6 +3118,36 @@ function advanceAuthoredWorldFacts(
     : runtime.mastery.masteryLearnedIds;
 
   if (event.kind === "enemy-death") {
+    if (runtime.gongfaId === "green-vine-art") {
+      const deadEndpoint = state.anchors.find((anchor) =>
+        anchor.kind === "vine-endpoint" && anchor.targetId === event.targetId
+      );
+      if (deadEndpoint) {
+        const other = state.anchors.find((anchor) =>
+          anchor.kind === "vine-endpoint" && anchor !== deadEndpoint
+        );
+        const grafts = state.targetLedger[-400] ?? 0;
+        const replacement = learnedIds.includes("flying-vine-graft") && grafts < 2
+          ? (event.targets ?? []).find((target) => target.targetId !== other?.targetId)
+          : undefined;
+        if (replacement) {
+          deadEndpoint.targetId = replacement.targetId;
+          deadEndpoint.x = replacement.x;
+          deadEndpoint.y = replacement.y;
+          state.resource *= 0.5;
+          state.targetLedger[-400] = grafts + 1;
+        } else {
+          if (learnedIds.includes("broken-vine-branching")) {
+            state.anchors.push(
+              { kind: "verdant-knot", x: event.x - 24, y: event.y, value: 0.55, remainingMs: 3800 },
+              { kind: "verdant-knot", x: event.x + 24, y: event.y, value: 0.55, remainingMs: 3800 }
+            );
+          }
+          state.anchors = state.anchors.filter((anchor) => anchor.kind !== "vine-endpoint");
+          state.resource = 0;
+        }
+      }
+    }
     if (runtime.gongfaId === "blazing-feather-art") {
       const deadBrands = state.anchors.filter((anchor) =>
         anchor.kind === "phoenix-brand" && anchor.targetId === event.targetId
@@ -3411,6 +3478,25 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "evade" && runtime.gongfaId === "green-vine-art") {
+    const endpoints = state.anchors.filter((anchor) => anchor.kind === "vine-endpoint");
+    if (learnedIds.includes("step-borrowed-pull") && endpoints.length === 2 && state.targetLedger[-403] !== 1) {
+      state.targetLedger[-403] = 1;
+      state.resource = Math.min(1, state.resource + 0.45);
+      const angle = (event.movementAngle ?? 0) + Math.PI / 2;
+      const center = { x: event.playerX ?? 0, y: event.playerY ?? 0 };
+      const from = { x: center.x - Math.cos(angle) * 110, y: center.y - Math.sin(angle) * 110 };
+      const to = { x: center.x + Math.cos(angle) * 110, y: center.y + Math.sin(angle) * 110 };
+      commands.push({
+        kind: "authored-vine-contact", from, via: center, to,
+        targetIds: (event.targets ?? []).filter((target) => distanceToSegment(target, from, to) <= 24)
+          .map((target) => target.targetId),
+        damage: Math.max(1, Math.floor(runtime.combat.damage * 0.9)), sourceGongfaId: runtime.gongfaId
+      });
+    }
+    return;
+  }
+
   if (event.kind === "evade" && runtime.gongfaId === "jinfeng-gong") {
     if (learnedIds.includes("formation-breaking-gale-step") && state.resource > 0) {
       const angle = event.movementAngle ?? state.lastMovementAngle ?? 0;
@@ -3462,6 +3548,117 @@ function advanceAuthoredWorldFacts(
 
   if (runtime.gongfaId === "crimson-furnace-sword-art") {
     advanceCrimsonNetwork(runtime, event, learnedIds, commands);
+    return;
+  }
+
+  if (runtime.gongfaId === "green-vine-art") {
+    runtime.mastery.masterySkill2CooldownRemaining = Math.max(
+      0, runtime.mastery.masterySkill2CooldownRemaining - event.deltaMs
+    );
+    state.anchors = state.anchors.filter((anchor) => {
+      if (anchor.kind !== "verdant-knot") return true;
+      anchor.remainingMs = Math.max(0, (anchor.remainingMs ?? 6000) - event.deltaMs);
+      return anchor.remainingMs > 0;
+    });
+    const endpoints = state.anchors.filter((anchor) => anchor.kind === "vine-endpoint");
+    if (endpoints.length === 2) {
+      for (const endpoint of endpoints) {
+        if (endpoint.targetId === undefined) continue;
+        const target = (event.targets ?? []).find((candidate) => candidate.targetId === endpoint.targetId);
+        if (!target) {
+          state.anchors = state.anchors.filter((anchor) => anchor.kind !== "vine-endpoint");
+          state.resource = 0;
+          return;
+        }
+        endpoint.x = target.x;
+        endpoint.y = target.y;
+      }
+      const player = { x: event.playerX ?? 0, y: event.playerY ?? 0 };
+      const direct = Math.hypot(endpoints[1]!.x - endpoints[0]!.x, endpoints[1]!.y - endpoints[0]!.y);
+      const routed = Math.hypot(player.x - endpoints[0]!.x, player.y - endpoints[0]!.y) +
+        Math.hypot(player.x - endpoints[1]!.x, player.y - endpoints[1]!.y);
+      const geometric = Math.max(0, (routed - direct) / 160) *
+        Math.pow(1.18, masteryEffectTiers(learnedIds, "surgeBuild"));
+      const soft = learnedIds.includes("hundred-forged-soft-vine");
+      const iron = learnedIds.includes("mountain-rending-iron-cable");
+      const cap = iron ? 1.18 : soft ? 0.78 : 1;
+      state.resource = soft
+        ? Math.min(cap, Math.max(geometric, state.resource - event.deltaMs / 2500))
+        : Math.min(cap, geometric);
+      state.targetLedger[-402] = Math.max(0, (state.targetLedger[-402] ?? 0) - event.deltaMs);
+      commands.push({
+        kind: "authored-vine-tether",
+        endpoints: endpoints.map((endpoint) => ({ x: endpoint.x, y: endpoint.y, targetId: endpoint.targetId })),
+        player, tension: state.resource / cap, sourceGongfaId: runtime.gongfaId
+      });
+      if (!iron && state.targetLedger[-402] === 0) {
+        state.targetLedger[-402] = 320;
+        const targetIds = (event.targets ?? []).filter((target) =>
+          distanceToSegment(target, endpoints[0]!, player) <= 18 ||
+          distanceToSegment(target, player, endpoints[1]!) <= 18
+        ).map((target) => target.targetId);
+        if (targetIds.length > 0) commands.push({
+          kind: "authored-vine-contact", from: endpoints[0]!, via: player, to: endpoints[1]!, targetIds,
+          damage: Math.max(1, Math.floor(runtime.combat.damage *
+            (learnedIds.includes("twin-serpent-bind") ? 0.72 : 0.48))),
+          sourceGongfaId: runtime.gongfaId
+        });
+      }
+      if (state.resource >= cap - 0.01) {
+        const snapScale = iron ? 1.75 : learnedIds.includes("heart-piercing-thorn-cable") ? 1.55 :
+          learnedIds.includes("flying-vine-graft") ? 0.72 : learnedIds.includes("twin-serpent-bind") ? 0.7 : 1.2;
+        const targetIds = (event.targets ?? []).filter((target) =>
+          distanceToSegment(target, endpoints[0]!, endpoints[1]!) <= 28
+        ).map((target) => target.targetId);
+        commands.push({
+          kind: "authored-vine-snap", from: endpoints[0]!, to: endpoints[1]!, targetIds,
+          damage: Math.max(1, Math.floor(runtime.combat.damage * snapScale)),
+          bindMs: learnedIds.includes("step-borrowed-pull") ? 0 : soft ? 520 : 1100,
+          sourceGongfaId: runtime.gongfaId
+        });
+        if (["dragon-binding-knot", "dense-heaven-net-knot", "broken-vine-branching"].some((id) => learnedIds.includes(id))) {
+          const knot = {
+            kind: "verdant-knot" as const,
+            x: (endpoints[0]!.x + endpoints[1]!.x) / 2,
+            y: (endpoints[0]!.y + endpoints[1]!.y) / 2,
+            value: 1,
+            remainingMs: (learnedIds.includes("dense-heaven-net-knot") ? 9000 : 6000) *
+              Math.pow(1.16, masteryEffectTiers(learnedIds, "surgeStability"))
+          };
+          const knots = state.anchors.filter((anchor) => anchor.kind === "verdant-knot");
+          const maxKnots = learnedIds.includes("dense-heaven-net-knot") ? 6 : 4;
+          if (knots.length >= maxKnots) state.anchors.splice(state.anchors.indexOf(knots[0]!), 1);
+          state.anchors.push(knot);
+        }
+        state.anchors = state.anchors.filter((anchor) => anchor.kind !== "vine-endpoint");
+        state.resource = 0;
+      }
+    }
+    const knots = state.anchors.filter((anchor) => anchor.kind === "verdant-knot");
+    if (knots.length >= 3 && runtime.mastery.masterySkill2Id === "verdant-root-network" &&
+        (runtime.mastery.masterySkill2CooldownRemaining <= 0 || runtime.mastery.masterySkill2Casts === 0)) {
+      const center = knots.reduce((sum, knot) => ({ x: sum.x + knot.x, y: sum.y + knot.y }), { x: 0, y: 0 });
+      center.x /= knots.length; center.y /= knots.length;
+      const points = [...knots].sort((a, b) =>
+        Math.atan2(a.y - center.y, a.x - center.x) - Math.atan2(b.y - center.y, b.x - center.x)
+      ).map((knot) => ({ x: knot.x, y: knot.y }));
+      const stats = skill2RefinementStats(runtime);
+      const cooldownMs = Math.floor(authoredSkill2Plans["verdant-root-network"].cooldownMs * stats.cadenceScale);
+      commands.push({
+        kind: "authored-heaven-net", points,
+        targetIds: (event.targets ?? []).map((target) => target.targetId),
+        damage: Math.max(1, Math.floor(skill2Combat(runtime).damage *
+          (learnedIds.includes("dragon-binding-knot") ? 0.72 : learnedIds.includes("dense-heaven-net-knot") ? 0.78 : 1) * stats.damageScale)),
+        durationMs: learnedIds.includes("broken-vine-branching") ? 1500 : 2400,
+        slowMultiplier: learnedIds.includes("dragon-binding-knot") ? 0.2 : 0.55,
+        sourceGongfaId: runtime.gongfaId,
+        masteryCast: { skill2Id: "verdant-root-network", cooldownMs }
+      });
+      runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+      state.anchors = state.anchors.filter((anchor) => anchor.kind !== "verdant-knot");
+      state.charges = 0;
+    }
+    state.charges = state.anchors.filter((anchor) => anchor.kind === "verdant-knot").length;
     return;
   }
 
@@ -4859,6 +5056,7 @@ export function advanceGongfaRuntime(
     runtime.gongfaId !== "blazing-feather-art" &&
     runtime.gongfaId !== "drifting-frost-needle" &&
     runtime.gongfaId !== "jinfeng-gong" &&
+    runtime.gongfaId !== "green-vine-art" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -6163,6 +6361,48 @@ export function planGongfaAttack(
     ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
+  if (runtime.gongfaId === "green-vine-art") {
+    if (runtime.authored.anchors.some((anchor) => anchor.kind === "vine-endpoint")) return [];
+    const targets = options.targets ?? [];
+    if (targets.length === 0) return [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const learnedIds = options.learnedMasteryIds ?? [];
+    const priority = [...targets].sort((a, b) =>
+      distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY)
+    )[0]!;
+    let second: { x: number; y: number; targetId?: number };
+    if (!learnedIds.includes("heart-piercing-thorn-cable") && targets.length > 1) {
+      second = [...targets].filter((target) => target.targetId !== priority.targetId).sort((a, b) => {
+        const angleA = normalizedAngleDifference(
+          Math.atan2(priority.y - playerY, priority.x - playerX),
+          Math.atan2(a.y - playerY, a.x - playerX)
+        );
+        const angleB = normalizedAngleDifference(
+          Math.atan2(priority.y - playerY, priority.x - playerX),
+          Math.atan2(b.y - playerY, b.x - playerX)
+        );
+        return angleB - angleA;
+      })[0]!;
+    } else {
+      second = { x: playerX * 2 - priority.x, y: playerY * 2 - priority.y };
+    }
+    runtime.authored.anchors.push(
+      { kind: "vine-endpoint", x: priority.x, y: priority.y, targetId: priority.targetId, value: 0 },
+      { kind: "vine-endpoint", x: second.x, y: second.y, targetId: second.targetId, value: 0 }
+    );
+    runtime.authored.resource = 0;
+    runtime.authored.targetLedger[-400] = 0;
+    runtime.authored.targetLedger[-403] = 0;
+    return [{
+      kind: "authored-vine-tether",
+      endpoints: [
+        { x: priority.x, y: priority.y, targetId: priority.targetId },
+        { x: second.x, y: second.y, targetId: second.targetId }
+      ],
+      player: { x: playerX, y: playerY }, tension: 0, sourceGongfaId: runtime.gongfaId
+    }];
+  }
   if (runtime.gongfaId === "jinfeng-gong") {
     // Travel itself is Skill 1. The ordinary attack clock only supplies a
     // modest close cut while standing, so it can never become a projectile

@@ -411,12 +411,12 @@ const missingStartingFamilies: Array<readonly [GongfaId, FamilySeed[]]> = [
     ["unclouded-glass", "Unclouded Glass", "Reflection fades more slowly outside danger.", "surgeStability", 0.84, "Passive: Cold Reflection"]
   ]],
   ["green-vine-art", [
-    ["thorn-tempering", "Thorn Tempering", "Seeking Vines lash with greater force.", "skill1Damage", 4, "Skill 1: Seeking Vines"],
-    ["branching-lashes", "Branching Lashes", "Each cycle grows another seeking vine.", "skill1Count", 1, "Skill 1: Seeking Vines"],
-    ["quickened-sap", "Verdant Conduction", "Vinegrowth empowers both Seeking Vines and Verdant Root Network.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
-    ["iron-thorns", "Iron Thorns", "Every Skill in the Green Vine package gains piercing force.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
-    ["patient-growth", "Patient Growth", "Vine hits build Vinegrowth more rapidly.", "surgeBuild", 0.18, "Passive: Patient Vinegrowth"],
-    ["deep-roots", "Deep Roots", "Vinegrowth recedes more slowly between lashes.", "surgeStability", 0.84, "Passive: Patient Vinegrowth"]
+    ["thorn-tempering", "Thorn Tempering", "Tether contact and the final snap deal more damage.", "skill1Damage", 4, "Skill 1: Two-Polarity Vine"],
+    ["branching-lashes", "Broader Cable", "The live tether catches enemies across a slightly wider crossing band.", "skill1Count", 1, "Skill 1: Two-Polarity Vine"],
+    ["quickened-sap", "Verdant Conduction", "Strengthens both tether snaps and Heaven-Net edges.", "gongfaDamageSynergy", 2, "Owning Gongfa: both Skills"],
+    ["iron-thorns", "Barbed Geometry", "Tether contact checks a broader edge without creating another vine.", "gongfaPierceSynergy", 1, "Owning Gongfa: both Skills"],
+    ["patient-growth", "Tension Practice", "The same geometric stretch produces more usable Tension.", "surgeBuild", 0.18, "Passive: Verdant Tension"],
+    ["deep-roots", "Lasting Knots", "Successful Verdant Knots remain available longer.", "surgeStability", 0.84, "Passive: Verdant Knots"]
   ]],
   ["verdant-ring-scripture", [
     ["petal-tempering", "Petal Tempering", "Verdant Petal Rings cut with greater force.", "skill1Damage", 4, "Skill 1: Verdant Petal Ring"],

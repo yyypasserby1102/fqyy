@@ -30,7 +30,7 @@ implementation, testing, balance review, and future regression checks.
 | Drifting Frost Needle / 游霜针 | Youxia | Approved | Implemented and verified |
 | Yujian Jue / 御剑诀 | Youxia | Approved | Implemented and verified |
 | Jinfeng Gong / 金锋功 | Youxia | Approved | Implemented and verified |
-| Green Vine Art / 青藤诀 | Youxia | Approved | Pending redesign |
+| Green Vine Art / 青藤诀 | Youxia | Approved | Implemented and verified |
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Pending redesign |
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Pending redesign |
 | Moonfall Tide Ritual / 月坠潮仪 | Faxiu | Approved | Pending redesign |
@@ -314,6 +314,24 @@ Full contraction breaks the net and consumes all Knots.
 
 **Must not become:** Myriad-Root Lifebinding infection, Frozen River crossing curses, generic
 seeking vines, or a stationary pulsing field.
+
+### Implemented tuning contract
+
+- Skill 1 owns exactly two live endpoints. It automatically prefers enemies on
+  opposite sides; Heart-Piercing and single-target fallback use one fixed terrain end.
+- Tension is `(player-to-endpoint route − direct endpoint distance) / 160`, with
+  no gain from hits or elapsed time. Returning toward the straight line relaxes it.
+- The live V line checks crossing contact every 320 ms. Mountain-Rending removes
+  that contact damage and raises the snap threshold to 1.18.
+- A normal snap binds for 1.1 seconds. Hundred-Forged caps Tension at 0.78 and
+  shortens bind to 0.52 seconds; Step-Borrowed removes final bind entirely.
+- Flying Vine Graft can replace a dead endpoint twice, retains half current Tension,
+  and weakens the eventual snap. Without a valid graft, endpoint loss clears Tension.
+- Rank-9 snaps leave one finite knot. Dense Heaven-Net retains up to six knots for
+  9 seconds; Broken-Vine endpoint death instead leaves two 3.8-second weak knots.
+- Heaven-Net requires at least three live knots, sorts them into a closed polygon,
+  contracts through six visible steps, pulls and damages only enemies still inside,
+  then consumes every knot. It never seeks a replacement target or pulses in place.
 
 ---
 

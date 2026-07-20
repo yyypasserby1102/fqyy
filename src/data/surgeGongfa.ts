@@ -80,17 +80,17 @@ export const surgeGongfaSpecs: SurgeGongfaSpec[] = [
   },
   {
     gongfaId: "green-vine-art",
-    resource: "Vinegrowth",
+    resource: "Verdant Tension",
     mechanics: { focusDamageScale: 1.4, focusPierce: 2, focusSpreadScale: 0.6, spreadCount: 2, spreadDegrees: 32, spreadDamageScale: 0.8, quickenCooldownScale: 0.75, quickenDamageScale: 0.85, quickenSpeed: 55, holdFloor: 3, cascadeGain: 3, burstCount: 3, crownPerStack: 1.25, domainDamageScale: 0.36, updraftStackScale: 1 },
-    focus: { id: "thorned-vines", name: "Thorned Vines", lore: "Harden the vines into piercing thorned lashes." },
-    spread: { id: "vine-spread", name: "Vine Spread", lore: "Spread the vines across a broad thicket." },
-    quicken: { id: "swift-vines", name: "Swift Vines", lore: "Lash the vines faster and swifter." },
-    hold: { id: "lasting-growth", name: "Lasting Growth", lore: "Well-stoked Vinegrowth no longer fades below half." },
-    cascade: { id: "growth-cascade", name: "Growth Cascade", lore: "Each hit stokes Vinegrowth twice as fast." },
-    burst: { id: "growth-burst", name: "Overgrowth Burst", lore: "At full Vinegrowth, the next lash erupts with extra vines." },
-    crown: { id: "growth-crown", name: "Verdant Crown", lore: "Vinegrowth crowns every lash with spectral vines." },
-    domain: { id: "growth-domain", name: "Bramble Domain", lore: "Hits leave a Vinegrowth-scaled bramble field." },
-    updraft: { id: "growth-step", name: "Vine Step", lore: "Each Evade looses a Vinegrowth-scaled vine lash." }
+    focus: { id: "heart-piercing-thorn-cable", name: "Heart-Piercing Thorn Cable", lore: "Use one enemy and a terrain anchor for a stronger single-target snap." },
+    spread: { id: "twin-serpent-bind", name: "Twin-Serpent Bind", lore: "Strengthen the two-enemy sweep while weakening the final snap." },
+    quicken: { id: "flying-vine-graft", name: "Flying Vine Graft", lore: "A lost endpoint can reattach twice with half Tension retained, but snaps weaken." },
+    hold: { id: "hundred-forged-soft-vine", name: "Hundred-Forged Soft Vine", lore: "Tension relaxes gradually, with a lower cap and shorter bind." },
+    cascade: { id: "mountain-rending-iron-cable", name: "Mountain-Rending Iron Cable", lore: "Raise the snap threshold and power, but remove contact damage from the live line." },
+    burst: { id: "step-borrowed-pull", name: "Step-Borrowed Pull", lore: "The first Evade crossing adds Tension and a cross-cut, but the final snap cannot bind." },
+    crown: { id: "dragon-binding-knot", name: "Dragon-Binding Knot", lore: "Knots strongly slow the net's prey, but its edge damage is lower." },
+    domain: { id: "dense-heaven-net-knot", name: "Dense Heaven-Net Knot", lore: "Keep up to six longer-lived vertices with weaker edges." },
+    updraft: { id: "broken-vine-branching", name: "Broken-Vine Branching", lore: "An endpoint death creates two weak knots, but the resulting net contracts sooner." }
   },
   {
     gongfaId: "verdant-ring-scripture",

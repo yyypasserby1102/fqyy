@@ -97,11 +97,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "frozen-lotus-shell", name: "Frozen Lotus Shell", description: "With enough intact facets and nearby danger, facets close into a temporary shell, record incoming directions, then reflect along them and all crack.", tags: ["aura", "water", "defensive"] }
   },
   "green-vine-art": {
-    combatRole: "Seeking vine lashes that branch into a pulsing rooted network.",
-    visualMotif: "Jade tendril curves, thorn nodes, and luminous linked root paths.",
-    skill1: { id: "seeking-vines", name: "Seeking Vines", description: "Living vines curve toward nearby enemies, lashing harder as Vinegrowth accumulates.", tags: ["homing", "projectile", "wood"] },
-    passive: { name: "Patient Vinegrowth", resource: "Vinegrowth", description: "Vine hits build Vinegrowth, adding lashes and strength until the living qi recedes." },
-    skill2: { id: "verdant-root-network", name: "Verdant Root Network", description: "A rooted enemy anchors branching vine links that pulse through nearby targets and seek replacements.", tags: ["homing", "projectile", "wood"] }
+    combatRole: "Stretch one automatic two-endpoint vine through movement, then convert successful snaps into a contracting net.",
+    visualMotif: "One bright V-shaped live tether, visible Tension, inert jade knots, and a shrinking polygon.",
+    skill1: { id: "two-polarity-vine", name: "Two-Polarity Vine", description: "Automatically tethers two opposite enemies, or one enemy and terrain; moving the V-shaped pulley creates geometric Tension.", tags: ["trap", "wood"] },
+    passive: { name: "Verdant Tension", resource: "Tension", description: "Only current tether geometry builds Tension. Relaxing the line lowers it, and losing an endpoint forfeits the snap." },
+    skill2: { id: "verdant-root-network", name: "Heaven-Net Vine Realm", description: "At three knots, connects them into a closed polygon that visibly contracts, cuts crossings, gathers prey, then consumes every knot.", tags: ["trap", "wood"] }
   },
   "verdant-ring-scripture": {
     combatRole: "A behavior scribe whose last three automatic glyphs compile shape, motion, and payoff into one predictable invocation.",

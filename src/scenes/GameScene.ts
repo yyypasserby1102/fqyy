@@ -286,6 +286,7 @@ export class GameScene extends Phaser.Scene {
   private frostNeedleMarker?: Phaser.GameObjects.Graphics;
   private yujianSwordMarker?: Phaser.GameObjects.Graphics;
   private jinfengRouteMarker?: Phaser.GameObjects.Graphics;
+  private greenVineMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -422,6 +423,11 @@ export class GameScene extends Phaser.Scene {
       const route = runtime.authored.anchors.filter((anchor) => anchor.kind === "trail").length;
       const moving = runtime.authored.targetLedger[-304] === 1;
       return `Golden Gale: Momentum ${Math.floor(runtime.authored.resource * 100)}% · Route ${route} · ${moving ? "cutting by travel" : "standing cut"}`;
+    }
+    if (runtime.gongfaId === "green-vine-art") {
+      const endpoints = runtime.authored.anchors.filter((anchor) => anchor.kind === "vine-endpoint").length;
+      const knots = runtime.authored.anchors.filter((anchor) => anchor.kind === "verdant-knot").length;
+      return `Green Vine: Tension ${Math.floor(runtime.authored.resource * 100)}% · Endpoints ${endpoints}/2 · Knots ${knots}/3`;
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
       const bird = runtime.authored.anchors.find((anchor) => anchor.kind === "companion");
@@ -2553,11 +2559,6 @@ export class GameScene extends Phaser.Scene {
         return;
       }
 
-      if (command.kind === "verdant-root-network") {
-        this.fireVerdantRootNetwork(command);
-        return;
-      }
-
       if (command.kind === "sprout-sun-circle") {
         this.fireSproutSunCircle(command);
         return;
@@ -2761,6 +2762,26 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-golden-gale-route") {
         this.fireAuthoredGoldenGaleRoute(command);
+        return;
+      }
+
+      if (command.kind === "authored-vine-tether") {
+        this.syncAuthoredVineTether(command);
+        return;
+      }
+
+      if (command.kind === "authored-vine-contact") {
+        this.fireAuthoredVineContact(command);
+        return;
+      }
+
+      if (command.kind === "authored-vine-snap") {
+        this.fireAuthoredVineSnap(command);
+        return;
+      }
+
+      if (command.kind === "authored-heaven-net") {
+        this.fireAuthoredHeavenNet(command);
         return;
       }
 
@@ -5428,6 +5449,94 @@ export class GameScene extends Phaser.Scene {
     this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:recorded-gale-corridor`);
   }
 
+  private syncAuthoredVineTether(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-vine-tether" }>
+  ): void {
+    const marker = this.greenVineMarker ?? this.add.graphics().setDepth(19);
+    this.greenVineMarker = marker;
+    marker.clear();
+    const [first, second] = command.endpoints;
+    if (!first || !second) return;
+    marker.lineStyle(5 + command.tension * 5, command.tension > 0.9 ? 0xeaff9a : 0x65d66d, 0.88);
+    marker.lineBetween(first.x, first.y, command.player.x, command.player.y);
+    marker.lineBetween(command.player.x, command.player.y, second.x, second.y);
+    marker.fillStyle(0xc8ff8e, 0.95);
+    marker.fillCircle(first.x, first.y, 7);
+    marker.fillCircle(second.x, second.y, 7);
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:two-polarity-tether`);
+  }
+
+  private fireAuthoredVineContact(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-vine-contact" }>
+  ): void {
+    for (const targetId of new Set(command.targetIds)) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (enemy?.active && enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:sweeping-vine-contact`);
+  }
+
+  private fireAuthoredVineSnap(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-vine-snap" }>
+  ): void {
+    this.greenVineMarker?.clear();
+    const visual = this.add.graphics().setDepth(23);
+    visual.lineStyle(14, 0x4f9f43, 0.35);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    visual.lineStyle(5, 0xe6ff9b, 0.98);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    for (const targetId of new Set(command.targetIds)) {
+      const enemy = this.getEnemyByCombatTargetId(targetId);
+      if (!enemy?.active) continue;
+      if (command.bindMs > 0 && enemy.role !== "tribulation-boss") enemy.applySlow(0.08, command.bindMs);
+      if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+    }
+    this.tweens.add({ targets: visual, alpha: 0, duration: 500, onComplete: () => visual.destroy() });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:tension-snap`);
+  }
+
+  private fireAuthoredHeavenNet(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-heaven-net" }>
+  ): void {
+    this.greenVineMarker?.clear();
+    const visual = this.add.graphics().setDepth(24);
+    const center = command.points.reduce((sum, point) => ({ x: sum.x + point.x, y: sum.y + point.y }), { x: 0, y: 0 });
+    center.x /= command.points.length; center.y /= command.points.length;
+    const inside = (x: number, y: number, points: Array<{ x: number; y: number }>): boolean => {
+      let result = false;
+      for (let i = 0, j = points.length - 1; i < points.length; j = i, i += 1) {
+        const a = points[i]!; const b = points[j]!;
+        if (((a.y > y) !== (b.y > y)) && x < (b.x - a.x) * (y - a.y) / (b.y - a.y || 0.001) + a.x) result = !result;
+      }
+      return result;
+    };
+    const pulses = 6;
+    for (let pulse = 0; pulse < pulses; pulse += 1) {
+      this.time.delayedCall(Math.floor(command.durationMs * pulse / pulses), () => {
+        const scale = 1 - pulse / pulses * 0.72;
+        const points = command.points.map((point) => ({
+          x: center.x + (point.x - center.x) * scale,
+          y: center.y + (point.y - center.y) * scale
+        }));
+        visual.clear();
+        visual.lineStyle(8, 0x6ad96d, 0.35);
+        for (let index = 0; index < points.length; index += 1) {
+          const next = points[(index + 1) % points.length]!;
+          visual.lineBetween(points[index]!.x, points[index]!.y, next.x, next.y);
+        }
+        for (const targetId of command.targetIds) {
+          const enemy = this.getEnemyByCombatTargetId(targetId);
+          if (!enemy?.active || !inside(enemy.x, enemy.y, points)) continue;
+          if (enemy.role !== "tribulation-boss") enemy.applySlow(command.slowMultiplier, 520);
+          this.physics.moveTo(enemy, center.x, center.y, 70 + pulse * 18);
+          if (enemy.receiveDamage(Math.max(1, Math.floor(command.damage / pulses)))) this.resolveEnemyDeath(enemy);
+        }
+      });
+    }
+    this.time.delayedCall(command.durationMs + 100, () => visual.destroy());
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:contracting-heaven-net`);
+  }
+
   private fireSunsetWaveApex(
     command: Extract<GongfaRuntimeCommand, { kind: "sunset-wave-apex" }>
   ): void {
@@ -5514,36 +5623,6 @@ export class GameScene extends Phaser.Scene {
         sourceGongfaId
       );
     });
-  }
-
-  private fireVerdantRootNetwork(
-    command: Extract<GongfaRuntimeCommand, { kind: "verdant-root-network" }>
-  ): void {
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const tint = this.combatState.tint;
-    for (let pulse = 0; pulse < command.pulseCount; pulse += 1) {
-      this.time.delayedCall(pulse * command.pulseDelayMs, () => {
-        const linked = this.getNearestEnemies(command.linkCount).filter(
-          (enemy) => Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) <= command.reach
-        );
-        const vines = this.applyGongfaEffectVisualHierarchy(this.add.graphics(), sourceGongfaId);
-        vines.lineStyle(3, tint, 0.75);
-        let fromX = this.player.x;
-        let fromY = this.player.y;
-        linked.forEach((enemy) => {
-          vines.lineBetween(fromX, fromY, enemy.x, enemy.y);
-          fromX = enemy.x;
-          fromY = enemy.y;
-          const body = enemy.body as Phaser.Physics.Arcade.Body;
-          body.setVelocity(0, 0);
-          if (enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
-        });
-        if (linked.length > 0 && sourceGongfaId) {
-          this.stokeSkill2Resource(sourceGongfaId);
-        }
-        this.time.delayedCall(command.pulseDelayMs - 20, () => vines.destroy());
-      });
-    }
   }
 
   private fireSproutSunCircle(

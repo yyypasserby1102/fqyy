@@ -373,9 +373,9 @@ export const gongfaConfigs: Record<GongfaId, GongfaConfig> = {
     id: "green-vine-art",
     name: "Green Vine Art",
     requiredRoots: ["wood"],
-    pattern: "homing",
+    pattern: "trap",
     title: "Green Vine Art",
-    lore: "Wood qi lashes outward in living tendrils.",
+    lore: "Wood qi fixes two poles, stretches through the Cultivator, and knots where the cable snaps.",
     projectileTexture: "qi-bolt",
     tint: 0x8fdc7b,
     stages: {

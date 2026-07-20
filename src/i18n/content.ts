@@ -117,10 +117,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "冰莲镜甲", description: "完整镜片足够且近险将至时闭合成全向冰莲，记录来袭方向，结束后沿原方向反射并使参与镜片全部碎裂。" }
   },
   "green-vine-art": {
-    name: "青藤诀", lore: "木气化生灵藤，循敌缠击不休。", combatRole: "追踪藤鞭不断分枝，织成脉动根网。", visualMotif: "碧玉藤弧、荆棘节点与发光根脉。",
-    skill1: { name: "寻敌灵藤", description: "活藤弯折追向近敌，并随藤势积累增强鞭击。" },
-    passive: { name: "徐生藤势", resource: "藤势", description: "灵藤命中积累藤势，增加藤鞭数量与力量。" },
-    skill2: { name: "碧根灵网", description: "扎根目标牵出分枝藤脉，脉动攻击近敌并寻找新的宿主。" }
+    name: "青藤诀", lore: "两极定藤，修士居中引索；势至则断，断处成结。", combatRole: "自动牵住两个端点，靠走位改变藤索几何并积累张力，再以藤结织成收缩天罗。", visualMotif: "一条明亮折形活藤、清晰张力、静止翠结与不断收紧的多边藤网。",
+    skill1: { name: "两仪牵藤", description: "自动连接相对两侧的敌人；仅一敌时改连地形。修士作为滑轮走位拉伸，满张力后直线绷断。" },
+    passive: { name: "青索张力", resource: "张力", description: "张力只取决于当前藤索几何；回到松弛位置会降张力，失去端点则准备全部作废。" },
+    skill2: { name: "天罗藤界", description: "至少三枚藤结时闭合成多边天罗，边线持续收缩、切割并聚拢网内敌人，收尽后消耗全部藤结。" }
   },
   "verdant-ring-scripture": {
     name: "碧环经", lore: "根定其形，叶行其势，棘断其果。", combatRole: "按玩家静止、移动与闪避自动书写根、叶、棘；最近三符依次决定形状、运动和结算。", visualMotif: "方根印、叶脉路线、三角棘纹与组合成形的翠玉三环。",
@@ -497,42 +497,6 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "潮步",
     "lore": "每次闪避都会失去潮汐鳞片的冲击力。"
   },
-  "thorned-vines": {
-    "name": "荆棘藤蔓",
-    "lore": "将藤蔓硬化成刺眼的睫毛。"
-  },
-  "vine-spread": {
-    "name": "藤蔓延",
-    "lore": "将藤蔓铺展在宽阔的灌木丛中。"
-  },
-  "swift-vines": {
-    "name": "迅捷藤蔓",
-    "lore": "鞭打藤蔓的速度越来越快。"
-  },
-  "lasting-growth": {
-    "name": "持久增长",
-    "lore": "充满活力的藤蔓不再褪色到一半以下。"
-  },
-  "growth-cascade": {
-    "name": "增长级联",
-    "lore": "每次命中都会使藤蔓生长速度加快两倍。"
-  },
-  "growth-burst": {
-    "name": "过度生长爆发",
-    "lore": "当藤蔓完全生长时，下一鞭子会爆发出额外的藤蔓。"
-  },
-  "growth-crown": {
-    "name": "翠绿皇冠",
-    "lore": "每根睫毛上都长满了幽灵般的藤蔓。"
-  },
-  "growth-domain": {
-    "name": "布兰布尔域",
-    "lore": "击中后会留下藤蔓规模的荆棘田。"
-  },
-  "growth-step": {
-    "name": "藤步",
-    "lore": "每次躲避都会失去一根藤蔓鳞片藤鞭。"
-  },
   "piercing-bloom": {
     "name": "刺穿绽放",
     "lore": "将环形花瓣磨成刺穿刀片。"
@@ -717,8 +681,6 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "lancing-crescent": { name: "贯日炎月" },
   "frost-cascade": { name: "凝霜连生" },
   "tide-crown": { name: "玄潮加冕" },
-  "growth-crown": { name: "青藤华冠" },
-  "growth-domain": { name: "荆棘生域" },
   "swift-bloom": { name: "瞬息花开" },
   "lone-great-rampart": { name: "独木巨垒" },
   "linked-timber-palisade": { name: "连城木栅" },
@@ -747,6 +709,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "one-line-to-horizon": { name: "天涯一线", lore: "严格直行足够远后，行锋横贯战场。", gain: "长距离直行把地面斩扩展为全屏锋线。", cost: "任何明显转向都会重置直行距离", scope: "直线纪律与全屏覆盖" },
   "returning-dragon-edge": { name: "游龙回锋", lore: "缓弯不再断势，但锋长与势能上限下降。", gain: "可沿平滑曲线持续积势。", cost: "最高势能与地面斩长度均降低", scope: "曲线容错、势能上限与锋长" },
   "formation-breaking-gale-step": { name: "破阵罡步", lore: "闪避起点与终点各留一道横锋，并耗去半势。", gain: "每次闪避在出发与落点各生成一道地面斩。", cost: "闪避立即消耗当前一半势能", scope: "闪避路径与势能支出" },
+  "heart-piercing-thorn-cable": { name: "穿心棘索", lore: "固定采用敌人与地形两端，换取更强单体绷断。", gain: "单敌绷断伤害显著提高。", cost: "放弃双敌扫线，清群能力降低", scope: "端点选择与单体绷断" },
+  "twin-serpent-bind": { name: "双蛇缚敌", lore: "强化双敌之间的两段扫线，但削弱最终绷断。", gain: "活藤扫过敌人时的接触伤害提高。", cost: "单敌用法与最终绷断伤害降低", scope: "双端扫线与绷断伤害" },
+  "flying-vine-graft": { name: "飞蔓换枝", lore: "端点死亡后最多换接两次，并保留一半张力。", gain: "失去端点时可自动换接新敌两次。", cost: "每次换接只留半张力，最终绷断较弱", scope: "端点死亡、换接次数与绷断" },
+  "hundred-forged-soft-vine": { name: "百炼柔藤", lore: "几何放松时张力改为渐退，但上限与束缚降低。", gain: "回位或短暂松弛不会瞬间丢尽张力。", cost: "张力上限降低，绷断束缚更短", scope: "张力回落、上限与控制" },
+  "mountain-rending-iron-cable": { name: "崩山铁索", lore: "提高张力上限与绷断威力，活藤不再造成沿线接触伤害。", gain: "满张力绷断更强。", cost: "拉索期间的两段藤线不再伤敌", scope: "蓄势阈值、绷断与沿线伤害" },
+  "step-borrowed-pull": { name: "借步催索", lore: "每条藤索首次闪避可强拉张力并横扫，但绷断不再束缚。", gain: "首次闪避增加大量张力并产生一次横切。", cost: "最终绷断不附带定身", scope: "闪避、张力与最终控制" },
+  "dragon-binding-knot": { name: "困龙结", lore: "天罗聚拢与减速更强，但藤网边伤降低。", gain: "网内敌人受到更强减速与聚拢。", cost: "收缩边线伤害降低", scope: "天罗控制与边线伤害" },
+  "dense-heaven-net-knot": { name: "天罗密结", lore: "最多保留六枚长寿藤结，换取较弱网边。", gain: "藤结容量与存续时间提高。", cost: "每段藤网边线伤害降低", scope: "藤结数量、寿命与网边伤害" },
+  "broken-vine-branching": { name: "断藤生枝", lore: "端点死亡留下两枚弱结，但天罗更快收尽。", gain: "端点死亡时生成两枚有限弱藤结。", cost: "由其组成的天罗持续时间缩短", scope: "端点死亡、藤结生成与收缩时长" },
   "rebounding-edge-armor": { name: "回弹锋甲" },
   "hundred-forged-heavy-armor": { name: "百炼重甲" },
   "flowing-gold-vent": { name: "流金卸甲" },

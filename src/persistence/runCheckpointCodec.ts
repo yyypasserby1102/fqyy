@@ -108,7 +108,7 @@ const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype | undefined> = {
   "drifting-frost-needle": undefined,
   "black-tide-scripture": "surge",
   "ice-mirror-guard": undefined,
-  "green-vine-art": "surge",
+  "green-vine-art": undefined,
   "verdant-ring-scripture": undefined,
   "ironwood-wave-form": undefined,
   "nine-sun-calamity-seal": "surge",
@@ -135,7 +135,7 @@ function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: Gongf
     .filter((subtype) => runtime[subtype] !== undefined);
   // These Gongfa used the shared Surge subtype before their authored redesigns.
   // Accept legacy payloads for migration while new checkpoints carry no subtype.
-  if (["drifting-frost-needle", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(gongfaId) && presentSubtypes.length === 1 && presentSubtypes[0] === "surge") {
+  if (["drifting-frost-needle", "green-vine-art", "ice-mirror-guard", "ironwood-wave-form", "flame-demon-body-art", "mist-wraith-canon", "frozen-river-formation", "sword-burial-formation", "thousand-root-formation"].includes(gongfaId) && presentSubtypes.length === 1 && presentSubtypes[0] === "surge") {
     return hasNonNegativeFields(runtime.surge, subtypeNumberFields.surge);
   }
   if (gongfaId === "blazing-feather-art" && presentSubtypes.length === 1 && presentSubtypes[0] === "blazingFeather") {

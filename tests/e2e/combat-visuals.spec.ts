@@ -237,10 +237,10 @@ test("Jinfeng draws travel-powered ground cuts without substitute projectiles", 
   )).toBe(false);
 });
 
-test("the two remaining legacy projectile Gongfa render their own treatment and trail", async ({ page }) => {
+test("Crimson Furnace remains the final legacy projectile treatment in this review pair", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
-    "crimson-furnace-sword-art", "green-vine-art"
+    "crimson-furnace-sword-art"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
 
@@ -271,9 +271,25 @@ test("the two remaining legacy projectile Gongfa render their own treatment and 
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(2);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(2);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(2);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(1);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(1);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(1);
+});
+
+test("Green Vine renders one geometric tether without seeking projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("green-vine-art");
+    window.__gameTest!.forceSpawnHealingPill(100);
+    window.__gameTest!.forceSpawnEnemies(4);
+  });
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes(
+    "verdant-knot:two-polarity-tether"
+  ));
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "green-vine-art"
+  )).toBe(false);
 });
 
 test("Yujian, Blazing Feather, and Drifting Frost render authored bodies without substitute projectiles", async ({ page }) => {

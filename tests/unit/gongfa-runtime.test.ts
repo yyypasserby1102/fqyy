@@ -490,7 +490,7 @@ describe("Gongfa runtime", () => {
       "drifting-frost-needle": "authored-reverse-winter-thread",
       "black-tide-scripture": "authored-deluge-mandate",
       "ice-mirror-guard": "authored-mirror-facets",
-      "green-vine-art": "verdant-root-network",
+      "green-vine-art": "authored-heaven-net",
       "verdant-ring-scripture": "authored-sprout-sun",
       "ironwood-wave-form": "authored-ironwood-walls",
       "vermilion-bird-covenant": "authored-vermilion-flight"
@@ -509,6 +509,14 @@ describe("Gongfa runtime", () => {
           { kind: "trail", x: 0, y: 0, value: 0.4, remainingMs: 2100 },
           { kind: "trail", x: 60, y: 0, value: 0.7, remainingMs: 2100 },
           { kind: "trail", x: 120, y: 0, value: 1, remainingMs: 2100 }
+        );
+      }
+      if (gongfaId === "green-vine-art") {
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.authored.anchors.push(
+          { kind: "verdant-knot", x: -80, y: 40, value: 1, remainingMs: 6000 },
+          { kind: "verdant-knot", x: 80, y: 40, value: 1, remainingMs: 6000 },
+          { kind: "verdant-knot", x: 0, y: -80, value: 1, remainingMs: 6000 }
         );
       }
       if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
@@ -825,6 +833,18 @@ describe("Gongfa runtime", () => {
           { kind: "glyph", glyph: "thorn", x: 0, y: 0, value: 1 }
         );
       }
+      if (gongfaId === "green-vine-art") {
+        runtime.mastery.masterySkill2Id = "verdant-root-network";
+        runtime.authored.anchors.push(
+          { kind: "verdant-knot", x: -100, y: 60, value: 1, remainingMs: 6000 },
+          { kind: "verdant-knot", x: 100, y: 60, value: 1, remainingMs: 6000 },
+          { kind: "verdant-knot", x: 0, y: -100, value: 1, remainingMs: 6000 }
+        );
+        return advanceGongfaRuntime(runtime, {
+          kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, playerX: 0, playerY: 0,
+          targets: [{ targetId: 6, x: 0, y: 0, healthRatio: 1, rank: "elite" }]
+        }).commands.find((command) => command.kind === "authored-heaven-net");
+      }
       if (runtime.surge) runtime.surge.stacks = 6;
       return advanceGongfaRuntime(runtime, {
         kind: "skill2",
@@ -869,9 +889,9 @@ describe("Gongfa runtime", () => {
       terminal: true
     });
     expect(cast("green-vine-art")).toMatchObject({
-      kind: "verdant-root-network",
-      reach: 340,
-      linkCount: 7
+      kind: "authored-heaven-net",
+      points: expect.arrayContaining([expect.objectContaining({ x: -100, y: 60 })]),
+      targetIds: [6]
     });
     expect(cast("verdant-ring-scripture")).toMatchObject({
       kind: "authored-sprout-sun",
@@ -1737,6 +1757,86 @@ describe("Gongfa runtime", () => {
       command.kind === "authored-jinfeng-ground-cut" && command.style === "evade-cross"
     )).toBe(true);
     expect(result.runtime.authored.resource).toBeCloseTo(0.4);
+  });
+
+  it("Green Vine creates one automatic V-tether and builds Tension only from geometry", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "green-vine-art" });
+    const commands = planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0,
+      targets: [
+        { targetId: 1, x: -100, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }
+      ]
+    });
+    expect(commands[0]).toMatchObject({
+      kind: "authored-vine-tether",
+      endpoints: [{ targetId: 1 }, { targetId: 2 }],
+      tension: 0
+    });
+    expect(commands.some((command) => command.kind === "homing-volley")).toBe(false);
+    const stretched = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 2, playerX: 0, playerY: 100,
+      targets: [
+        { targetId: 1, x: -100, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }
+      ]
+    });
+    expect(stretched.runtime.authored.resource).toBeCloseTo(0.518, 2);
+    expect(stretched.commands).toContainEqual(expect.objectContaining({ kind: "authored-vine-tether" }));
+  });
+
+  it("Green Vine snaps directly between endpoints, binds, and leaves no seeking projectile", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "green-vine-art" });
+    planGongfaAttack(runtime, 0, {
+      playerX: 0, playerY: 0,
+      targets: [
+        { targetId: 1, x: -100, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }
+      ]
+    });
+    const snapped = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 3, playerX: 0, playerY: 220,
+      learnedMasteryIds: ["dragon-binding-knot"],
+      targets: [
+        { targetId: 1, x: -100, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 2, x: 100, y: 0, healthRatio: 1, rank: "ordinary" },
+        { targetId: 3, x: 0, y: 4, healthRatio: 1, rank: "elite" }
+      ]
+    });
+    expect(snapped.commands).toContainEqual(expect.objectContaining({
+      kind: "authored-vine-snap", targetIds: [1, 2, 3], bindMs: 1100
+    }));
+    expect(snapped.commands.some((command) => command.kind === "homing-volley")).toBe(false);
+    expect(snapped.runtime.authored.anchors).toContainEqual(
+      expect.objectContaining({ kind: "verdant-knot", x: 0, y: 0 })
+    );
+  });
+
+  it("Flying Vine Graft reattaches twice while Broken-Vine Branching leaves finite weak knots", () => {
+    const graft = createGongfaRuntime({ gongfaId: "green-vine-art" });
+    graft.authored.anchors.push(
+      { kind: "vine-endpoint", x: -80, y: 0, targetId: 1, value: 0 },
+      { kind: "vine-endpoint", x: 80, y: 0, targetId: 2, value: 0 }
+    );
+    graft.authored.resource = 0.8;
+    const reattached = advanceGongfaRuntime(graft, {
+      kind: "enemy-death", targetId: 1, x: -80, y: 0, rank: "ordinary",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0,
+      learnedMasteryIds: ["flying-vine-graft"],
+      targets: [{ targetId: 3, x: -120, y: 20, healthRatio: 1, rank: "ordinary" }]
+    });
+    expect(reattached.runtime.authored.resource).toBeCloseTo(0.4);
+    expect(reattached.runtime.authored.anchors).toContainEqual(
+      expect.objectContaining({ kind: "vine-endpoint", targetId: 3 })
+    );
+
+    const broken = advanceGongfaRuntime(graft, {
+      kind: "enemy-death", targetId: 1, x: -80, y: 0, rank: "ordinary",
+      velocityX: 0, velocityY: 0, playerX: 0, playerY: 0,
+      learnedMasteryIds: ["broken-vine-branching"], targets: []
+    });
+    expect(broken.runtime.authored.anchors.filter((anchor) => anchor.kind === "verdant-knot")).toHaveLength(2);
+    expect(broken.runtime.authored.anchors.some((anchor) => anchor.kind === "vine-endpoint")).toBe(false);
   });
 
   it("stores exactly prevented close damage and ignores distant danger", () => {
