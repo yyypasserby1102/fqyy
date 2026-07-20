@@ -1424,7 +1424,7 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
 
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(snapshot.progression.galeMomentum).toBeGreaterThan(0);
-  expect(snapshot.combat.range).toBeGreaterThan(140);
+  expect(snapshot.combat.range).toBe(140);
 
   await advanceOneStage(page);
   snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
@@ -1447,11 +1447,13 @@ test("Stage Breakthroughs preserve Jinfeng Gong while Mastery remains independen
   expect(beforeSkill2Window.progression.masteryRank).toBeGreaterThanOrEqual(10);
   expect(beforeSkill2Window.progression.masterySkill2).toBe("golden-gale-corridor");
 
+  await page.keyboard.down("a");
   await page.waitForFunction(
     (casts) => window.__gameTest!.getSnapshot().progression.masterySkill2Casts > casts,
     beforeSkill2Window.progression.masterySkill2Casts,
     { timeout: 10_000 }
   );
+  await page.keyboard.up("a");
 
   const afterSkill2Window = await page.evaluate(() => window.__gameTest!.getSnapshot());
   expect(afterSkill2Window.progression.masterySkill2Casts).toBeGreaterThan(

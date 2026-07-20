@@ -232,8 +232,8 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   },
   {
     id: "broadened-front",
-    name: "Broadened Front",
-    lore: "+1 cutting wave.",
+    name: "Measured Footwork",
+    lore: "Traveling Edge lays its next ground cut 12% sooner.",
     effect: "skill1Count",
     value: 1,
     requiredGongfaIds: ["jinfeng-gong"],
@@ -241,9 +241,9 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   },
   {
     id: "long-edge-resonance",
-    name: "Long Edge Resonance",
-    lore: "+28 Jinfeng range.",
-    effect: "gongfaRangeSynergy",
+    name: "Extended Ground Edge",
+    lore: "+28 ground-cut length.",
+    effect: "skill1Range",
     value: 28,
     requiredGongfaIds: ["jinfeng-gong"],
     maxSelections: 3
@@ -251,7 +251,7 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   {
     id: "gathering-gale",
     name: "Gathering Gale",
-    lore: "Jinfeng momentum builds faster while you keep moving.",
+    lore: "Each unit of uninterrupted travel builds 12% more Momentum.",
     effect: "galeMomentumBuild",
     value: 0.12,
     requiredGongfaIds: ["jinfeng-gong"],
@@ -260,7 +260,7 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   {
     id: "unbroken-stride",
     name: "Unbroken Stride",
-    lore: "Jinfeng momentum decays more slowly when you pause.",
+    lore: "Momentum drains 12% more slowly after the stop grace expires.",
     effect: "galeMomentumDecay",
     value: 0.88,
     requiredGongfaIds: ["jinfeng-gong"],
@@ -269,7 +269,7 @@ const baselineUpgradeConfigs: BaselineUpgradeSeed[] = [
   {
     id: "windborne-reach",
     name: "Windborne Reach",
-    lore: "All wave Skills gain stronger width and range from momentum.",
+    lore: "Ground cuts become 6% longer-lived and longer; it creates no extra projectile.",
     effect: "waveSynergy",
     value: 0.06,
     requiredGongfaIds: ["jinfeng-gong"],

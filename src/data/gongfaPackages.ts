@@ -34,11 +34,11 @@ export const gongfaPackageCatalog: Record<GongfaId, GongfaPackageDefinition> = {
     skill2: { id: "returning-sword-formation", name: "Myriad Swords Return", description: "With at least three swords airborne, every sword reverses its own recorded route and crossing paths cut again.", tags: ["projectile", "metal", "sword"] }
   },
   "jinfeng-gong": {
-    combatRole: "Movement-aimed cutting lanes that reward assertive positioning.",
-    visualMotif: "Gold-white wind crescents, long horizon cuts, and streaming wake lines.",
-    skill1: { id: "cutting-front", name: "Cutting Front", description: "Frontal metal-qi waves cut along the Cultivator's movement direction and widen with Momentum.", tags: ["wave", "metal"] },
-    passive: { name: "Gale Momentum", resource: "Momentum", description: "Movement, wave hits, and Evade build Momentum, extending the width and range of wave-tagged Skills." },
-    skill2: { id: "golden-gale-corridor", name: "Golden Gale Corridor", description: "A lingering cutting corridor repeatedly severs enemies in the movement lane and sustains Momentum.", tags: ["wave", "metal"] }
+    combatRole: "Turn continuous movement into ground cuts; route discipline matters more than target direction.",
+    visualMotif: "Gold-white scars drawn across the floor, a visible recent route, and one solidified cutting corridor.",
+    skill1: { id: "cutting-front", name: "Traveling Edge", description: "Distance traveled automatically lays ground cuts across or along the route; standing only produces a weak close cut.", tags: ["wave", "metal"] },
+    passive: { name: "Gale Momentum", resource: "Momentum", description: "Uninterrupted travel builds Momentum and records roughly two seconds of path; a sharp reversal or long stop breaks both." },
+    skill2: { id: "golden-gale-corridor", name: "Golden Gale Corridor", description: "At full Momentum, solidifies the recorded route into a persistent cutting corridor, then empties Momentum.", tags: ["wave", "metal"] }
   },
   "gengjin-huti": {
     combatRole: "Close-hit mitigation that stores only prevented force for a conserved release.",

@@ -99,7 +99,7 @@ type RuntimeSubtype = keyof typeof subtypeNumberFields;
 
 const runtimeSubtypeByGongfa: Record<GongfaId, RuntimeSubtype | undefined> = {
   "yujian-jue": "yujian",
-  "jinfeng-gong": "jinfeng",
+  "jinfeng-gong": undefined,
   "gengjin-huti": "gengjin",
   "burning-ring-scripture": "burningRing",
   "crimson-furnace-sword-art": "crimsonFurnace",
@@ -140,6 +140,9 @@ function isRuntimeSubtypeState(runtime: Record<string, unknown>, gongfaId: Gongf
   }
   if (gongfaId === "blazing-feather-art" && presentSubtypes.length === 1 && presentSubtypes[0] === "blazingFeather") {
     return hasNonNegativeFields(runtime.blazingFeather, subtypeNumberFields.blazingFeather);
+  }
+  if (gongfaId === "jinfeng-gong" && presentSubtypes.length === 1 && presentSubtypes[0] === "jinfeng") {
+    return hasNonNegativeFields(runtime.jinfeng, subtypeNumberFields.jinfeng);
   }
   if (expectedSubtype === undefined) return presentSubtypes.length === 0;
   if (presentSubtypes.length !== 1 || presentSubtypes[0] !== expectedSubtype) return false;

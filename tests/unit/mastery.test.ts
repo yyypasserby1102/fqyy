@@ -118,7 +118,7 @@ describe("mastery progression", () => {
       rank: 3,
       seed: "seed-123",
       learnedIds: []
-    })).toEqual(["heaven-splitting-line", "golden-gale-fan", "crescent-wake"]);
+    })).toEqual(["heaven-splitting-long-edge", "golden-gale-crosscut", "crescent-wake"]);
 
     expect(getMasteryChoiceDefinition("crescent-wake")).toMatchObject({
       name: "Crescent Wake",
@@ -133,7 +133,7 @@ describe("mastery progression", () => {
       gongfaId: "jinfeng-gong",
       rank: 3,
       seed: "seed-123",
-      learnedIds: ["golden-gale-fan"]
+      learnedIds: ["golden-gale-crosscut"]
     })).toEqual([]);
   });
 
@@ -142,15 +142,15 @@ describe("mastery progression", () => {
       gongfaId: "jinfeng-gong",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["golden-gale-fan"]
+      learnedIds: ["golden-gale-crosscut"]
     })).toEqual([
-      "unbroken-current",
-      "ten-thousand-wave-resonance",
-      "gale-detonation"
+      "unbroken-continuance",
+      "borrowed-turn-edge",
+      "gale-rupture"
     ]);
 
-    expect(getMasteryChoiceDefinition("gale-detonation")).toMatchObject({
-      name: "Gale Detonation",
+    expect(getMasteryChoiceDefinition("gale-rupture")).toMatchObject({
+      name: "Gale Rupture",
       kind: "transformation",
       milestoneRank: 6,
       exclusivityGroup: "jinfeng-gong:rank-6"
@@ -162,7 +162,7 @@ describe("mastery progression", () => {
       gongfaId: "jinfeng-gong",
       rank: 6,
       seed: "seed-123",
-      learnedIds: ["golden-gale-fan", "unbroken-current"]
+      learnedIds: ["golden-gale-crosscut", "unbroken-continuance"]
     })).toEqual([]);
   });
 
@@ -171,15 +171,15 @@ describe("mastery progression", () => {
       gongfaId: "jinfeng-gong",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["golden-gale-fan", "unbroken-current"]
+      learnedIds: ["golden-gale-crosscut", "unbroken-continuance"]
     })).toEqual([
-      "endless-horizon",
-      "walking-storm",
-      "gale-step-severance"
+      "one-line-to-horizon",
+      "returning-dragon-edge",
+      "formation-breaking-gale-step"
     ]);
 
-    expect(getMasteryChoiceDefinition("walking-storm")).toMatchObject({
-      name: "Walking Storm",
+    expect(getMasteryChoiceDefinition("returning-dragon-edge")).toMatchObject({
+      name: "Returning Dragon Edge",
       kind: "transformation",
       milestoneRank: 9,
       exclusivityGroup: "jinfeng-gong:rank-9"
@@ -191,7 +191,7 @@ describe("mastery progression", () => {
       gongfaId: "jinfeng-gong",
       rank: 9,
       seed: "seed-123",
-      learnedIds: ["golden-gale-fan", "unbroken-current", "walking-storm"]
+      learnedIds: ["golden-gale-crosscut", "unbroken-continuance", "returning-dragon-edge"]
     })).toEqual([]);
   });
 

@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { claimOpeningLingcao } from "./helpers/claimOpeningLingcao";
 import { getGongfaVisualIdentity } from "../../src/visual/gongfaVisualIdentity";
 
 type CandidateLinggenId = "metal" | "water-metal";
@@ -220,83 +219,28 @@ test("enemy hit and defeat feedback are observable without changing kill rewards
   );
 });
 
-for (const visualCase of [
-  {
-    linggen: "metal",
-    choiceIndex: 1,
-    gongfa: "jinfeng-gong",
-    projectile: "metal-wave",
-    travel: "projectile-metal-wave-travel",
-    impact: "impact-metal-wave",
-    motif: "golden-horizon",
-    silhouette: { x: 1.35, y: 0.62 },
-  },
-] as const) {
-  test(`${visualCase.gongfa} uses its production travel and impact family`, async ({
-    page,
-  }) => {
-    await startNewRun(page, visualCase.linggen);
-    await claimOpeningLingcao(page);
-    await page.evaluate(
-      (index) => window.__gameTest!.selectChoice(index),
-      visualCase.choiceIndex,
-    );
-    await page.evaluate(() => {
-      window.__gameTest!.forceSpawnEnemy("celestial-construct");
-      window.__gameTest!.forceSpawnEnemy("celestial-construct");
-      window.__gameTest!.forceSpawnEnemy("celestial-construct");
-    });
-
-    await page.waitForFunction(
-      ({ projectile, travel }) =>
-        window
-          .__gameTest!.getSnapshot()
-          .visuals.projectiles.some(
-            (visual) =>
-              visual.logicalTexture === projectile &&
-              visual.textureKey === "gongfa-projectile-atlas" &&
-              visual.animationKey === travel,
-          ),
-      { projectile: visualCase.projectile, travel: visualCase.travel },
-    );
-    const travelAngles = await page.evaluate(
-      (logicalTexture) =>
-        window
-          .__gameTest!.getSnapshot()
-          .visuals.projectiles.filter(
-            (visual) => visual.logicalTexture === logicalTexture,
-          )
-          .map((visual) => visual.angle),
-      visualCase.projectile,
-    );
-    expect(travelAngles.some((angle) => Math.abs(angle) > 5)).toBe(true);
-    const identity = await page.evaluate(
-      (gongfa) => window.__gameTest!.getSnapshot().visuals.projectiles.find(
-        (visual) => visual.sourceGongfaId === gongfa
-      ),
-      visualCase.gongfa
-    );
-    expect(identity).toMatchObject({
-      motifId: visualCase.motif,
-      silhouetteScale: visualCase.silhouette
-    });
-    await page.waitForFunction(
-      (impact) =>
-        window
-          .__gameTest!.getSnapshot()
-          .visuals.projectileImpacts.includes(impact),
-      visualCase.impact,
-    );
-    const motifs = await page.evaluate(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs);
-    expect(motifs).toContain(`${visualCase.motif}:cast`);
-    expect(motifs).toContain(`${visualCase.motif}:impact`);
+test("Jinfeng draws travel-powered ground cuts without substitute projectiles", async ({ page }) => {
+  await startNewRun(page);
+  await page.evaluate(() => {
+    window.__gameTest!.forceEquipGongfa("jinfeng-gong");
+    window.__gameTest!.forceSpawnHealingPill(100);
+    window.__gameTest!.forceSpawnEnemies(5);
   });
-}
+  await page.keyboard.down("d");
+  await page.waitForFunction(() => window.__gameTest!.getSnapshot().visuals.gongfaMotifs.some(
+    (motif) => motif.startsWith("golden-horizon:movement-ground-")
+  ));
+  await page.keyboard.up("d");
+  const snapshot = await page.evaluate(() => window.__gameTest!.getSnapshot());
+  expect(snapshot.visuals.projectiles.some((projectile) =>
+    projectile.sourceGongfaId === "jinfeng-gong"
+  )).toBe(false);
+});
 
-test("the three remaining projectile-based Gongfa render their own treatment and trail", async ({ page }) => {
+test("the two remaining legacy projectile Gongfa render their own treatment and trail", async ({ page }) => {
   await startNewRun(page);
   const gongfaIds = [
-    "jinfeng-gong", "crimson-furnace-sword-art", "green-vine-art"
+    "crimson-furnace-sword-art", "green-vine-art"
   ] as const;
   const treatments: Array<{ motifId?: string; trailStyle?: string; silhouette: string }> = [];
 
@@ -327,9 +271,9 @@ test("the three remaining projectile-based Gongfa render their own treatment and
     });
   }
 
-  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(3);
-  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(3);
-  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(3);
+  expect(new Set(treatments.map((item) => item.motifId)).size).toBe(2);
+  expect(new Set(treatments.map((item) => item.trailStyle)).size).toBe(2);
+  expect(new Set(treatments.map((item) => `${item.motifId}:${item.silhouette}`)).size).toBe(2);
 });
 
 test("Yujian, Blazing Feather, and Drifting Frost render authored bodies without substitute projectiles", async ({ page }) => {

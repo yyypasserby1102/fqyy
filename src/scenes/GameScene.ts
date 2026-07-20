@@ -79,7 +79,6 @@ import {
   applyGongfaImprovement,
   createGongfaRuntime,
   createGongfaCollectionRuntime,
-  galeStepSeveranceCorridor,
   getGongfaProjectileHitMode,
   getGongfaRuntimeTickThreatRadius,
   planGongfaAttack,
@@ -241,6 +240,8 @@ export class GameScene extends Phaser.Scene {
   private lastMessage?: string;
   private lastAimAngle = 0;
   private hasMovementDirection = false;
+  private lastRuntimePlayerX?: number;
+  private lastRuntimePlayerY?: number;
   private finalBossWaveAccumulator = 0;
   private finalBossHazardAccumulator = 0;
   private finalBossSafeZoneX = 0;
@@ -284,6 +285,7 @@ export class GameScene extends Phaser.Scene {
   private blazingFeatherMarker?: Phaser.GameObjects.Graphics;
   private frostNeedleMarker?: Phaser.GameObjects.Graphics;
   private yujianSwordMarker?: Phaser.GameObjects.Graphics;
+  private jinfengRouteMarker?: Phaser.GameObjects.Graphics;
   private recentGongfaMotifs: string[] = [];
   private readonly activePickupEffects = new Set<Phaser.GameObjects.Sprite>();
   private readonly activeLingcaoEffects = new Set<Phaser.GameObjects.Sprite>();
@@ -415,6 +417,11 @@ export class GameScene extends Phaser.Scene {
     if (runtime.gongfaId === "yujian-jue") {
       const airborne = runtime.authored.anchors.filter((anchor) => anchor.kind === "sword").length;
       return `Yujian Rack: Ready ${runtime.authored.charges}/${runtime.authored.maxCharges} · Airborne ${airborne} · ${airborne >= 3 ? "Myriad Return ready" : "assigning routes"}`;
+    }
+    if (runtime.gongfaId === "jinfeng-gong") {
+      const route = runtime.authored.anchors.filter((anchor) => anchor.kind === "trail").length;
+      const moving = runtime.authored.targetLedger[-304] === 1;
+      return `Golden Gale: Momentum ${Math.floor(runtime.authored.resource * 100)}% · Route ${route} · ${moving ? "cutting by travel" : "standing cut"}`;
     }
     if (runtime.gongfaId === "vermilion-bird-covenant") {
       const bird = runtime.authored.anchors.find((anchor) => anchor.kind === "companion");
@@ -703,7 +710,6 @@ export class GameScene extends Phaser.Scene {
       ) {
         this.player.presentEvade(this.evade.state.direction);
         this.sfx.evade();
-        this.maybeCutGaleStepCorridor();
         this.applyEvadeRuntimeEffects();
       }
     }
@@ -954,7 +960,7 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "verdant-ring-scripture") {
         this.syncVerdantGlyphMarker(result.runtime);
       }
-      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue"].includes(result.runtime.gongfaId)) {
+      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue", "jinfeng-gong"].includes(result.runtime.gongfaId)) {
         this.syncPrecisionGongfaMarkers(result.runtime);
       }
     }
@@ -2024,47 +2030,28 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private maybeCutGaleStepCorridor(): void {
-    const direction = this.evade.state.direction;
-    const angle = Math.atan2(direction.y, direction.x);
-    for (const runtime of this.learnedGongfaRuntimes) {
-      const corridor = galeStepSeveranceCorridor(runtime);
-      if (!corridor) {
-        continue;
-      }
-      const combat = { ...runtime.combat };
-      for (let i = 0; i < corridor.count; i += 1) {
-        this.time.delayedCall(i * 40, () => {
-          if (!this.player.active) {
-            return;
-          }
-          this.spawnWaveProjectile(
-            this.player.x,
-            this.player.y,
-            angle,
-            Math.max(1, Math.floor(combat.damage * 0.7)),
-            corridor.pierce,
-            combat.projectileSpeed + 60,
-            combat.projectileLifetimeMs + 220,
-            0.95,
-            1,
-            runtime.gongfaId,
-            combat.projectileTexture,
-            combat.tint
-          );
-        });
-      }
-    }
-  }
-
   private applyEvadeRuntimeEffects(): void {
     this.bloodCombinationSerial += 1;
+    const targets = (this.enemies.getChildren() as Enemy[])
+      .filter((enemy) => enemy.active)
+      .map((enemy) => ({
+        targetId: enemy.combatTargetId,
+        x: enemy.x,
+        y: enemy.y,
+        healthRatio: enemy.maxHealth > 0 ? enemy.health / enemy.maxHealth : 0,
+        rank: enemy.role === "tribulation-boss"
+          ? "boss" as const
+          : enemy.maxHealth >= 150 ? "elite" as const : "ordinary" as const
+      }));
+    const direction = this.evade.state.direction;
     for (const runtime of this.learnedGongfaRuntimes) {
       const result = advanceGongfaRuntime(runtime, {
         kind: "evade",
         playerX: this.player.x,
         playerY: this.player.y,
-        nearbyEnemyCount: this.getEnemiesWithinRadius(190).length
+        movementAngle: Math.atan2(direction.y, direction.x),
+        nearbyEnemyCount: this.getEnemiesWithinRadius(190).length,
+        targets
       });
       this.adoptPrimaryRuntime(result.runtime);
       this.executeGongfaRuntimeCommands(result.commands, result.runtime);
@@ -2280,7 +2267,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   private updateGongfaRuntimeTick(movement: Phaser.Math.Vector2, delta: number): void {
-    const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+    const priorX = this.lastRuntimePlayerX ?? this.player.x;
+    const priorY = this.lastRuntimePlayerY ?? this.player.y;
+    const actualDx = this.player.x - priorX;
+    const actualDy = this.player.y - priorY;
+    const actualMovementDistance = Math.hypot(actualDx, actualDy);
+    this.lastRuntimePlayerX = this.player.x;
+    this.lastRuntimePlayerY = this.player.y;
     const targetFacts = (this.enemies.getChildren() as Enemy[])
       .filter((enemy) => enemy.active)
       .map((enemy) => ({
@@ -2310,8 +2303,10 @@ export class GameScene extends Phaser.Scene {
           : this.getNearestEnemies(64).length,
         hasMovementDirection: this.hasMovementDirection,
         isMoving: movement.lengthSq() > 0,
-        movementAngle: movement.lengthSq() > 0 ? movement.angle() : undefined,
-        movementDistance: playerBody.velocity.length() * Math.max(0, delta) / 1000,
+        movementAngle: actualMovementDistance > 0.1
+          ? Math.atan2(actualDy, actualDx)
+          : movement.lengthSq() > 0 ? movement.angle() : undefined,
+        movementDistance: actualMovementDistance,
         playerX: this.player.x,
         playerY: this.player.y,
         healthRatio: this.player.stats.maxHealth > 0
@@ -2353,7 +2348,7 @@ export class GameScene extends Phaser.Scene {
       if (result.runtime.gongfaId === "sword-burial-formation") {
         this.syncSwordBurialMarker(result.runtime);
       }
-      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue"].includes(result.runtime.gongfaId)) {
+      if (["blazing-feather-art", "drifting-frost-needle", "yujian-jue", "jinfeng-gong"].includes(result.runtime.gongfaId)) {
         this.syncPrecisionGongfaMarkers(result.runtime);
       }
     }
@@ -2484,11 +2479,6 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "returning-sword-formation") {
         this.fireReturningSwordFormation(command);
-        return;
-      }
-
-      if (command.kind === "golden-gale-corridor") {
-        this.fireGoldenGaleCorridor(command);
         return;
       }
 
@@ -2761,6 +2751,16 @@ export class GameScene extends Phaser.Scene {
 
       if (command.kind === "authored-myriad-swords-return") {
         this.fireAuthoredMyriadSwordsReturn(command);
+        return;
+      }
+
+      if (command.kind === "authored-jinfeng-ground-cut") {
+        this.fireAuthoredJinfengGroundCut(command);
+        return;
+      }
+
+      if (command.kind === "authored-golden-gale-route") {
+        this.fireAuthoredGoldenGaleRoute(command);
         return;
       }
 
@@ -5138,6 +5138,29 @@ export class GameScene extends Phaser.Scene {
           this.player.x - 36 + index * 18, this.player.y - 24,
           this.player.x - 30 + index * 18, this.player.y - 20);
       }
+      return;
+    }
+    if (runtime.gongfaId === "jinfeng-gong") {
+      this.blazingFeatherMarker?.clear();
+      this.frostNeedleMarker?.clear();
+      this.yujianSwordMarker?.clear();
+      const marker = this.jinfengRouteMarker ?? this.add.graphics().setDepth(17);
+      this.jinfengRouteMarker = marker;
+      marker.clear();
+      const route = runtime.authored.anchors.filter((anchor) => anchor.kind === "trail");
+      marker.lineStyle(5, 0xd7a92f, 0.3);
+      for (let index = 1; index < route.length; index += 1) {
+        marker.lineBetween(route[index - 1]!.x, route[index - 1]!.y, route[index]!.x, route[index]!.y);
+      }
+      route.forEach((point) => {
+        marker.fillStyle(0xffe58a, 0.65);
+        marker.fillCircle(point.x, point.y, 3);
+      });
+      const momentum = runtime.authored.resource;
+      marker.lineStyle(3, momentum >= 0.99 ? 0xffffff : 0xf1c84e, 0.9);
+      marker.beginPath();
+      marker.arc(this.player.x, this.player.y, 34, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * momentum);
+      marker.strokePath();
     }
   }
 
@@ -5319,6 +5342,90 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.shake(command.masteryCast ? 150 : 70, command.masteryCast ? 0.004 : 0.002);
     this.tweens.add({ targets: visual, alpha: 0, duration: 420, onComplete: () => visual.destroy() });
     this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:${command.masteryCast ? "myriad-swords-return" : "void-step-recall"}`);
+  }
+
+  private fireAuthoredJinfengGroundCut(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-jinfeng-ground-cut" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(19);
+    const palette = command.style === "wake"
+      ? { bed: 0x936d20, edge: 0xffec9c, width: 9 }
+      : command.style === "rupture" || command.style === "evade-cross"
+        ? { bed: 0xffb41f, edge: 0xffffff, width: 12 }
+        : command.style === "longitudinal"
+          ? { bed: 0xbf8d1d, edge: 0xffdd65, width: 6 }
+          : { bed: 0xa77818, edge: 0xf8ce55, width: 8 };
+    visual.lineStyle(palette.width + 12, palette.bed, command.delayMs > 0 ? 0.12 : 0.25);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    visual.lineStyle(palette.width, palette.edge, command.delayMs > 0 ? 0.28 : 0.92);
+    visual.lineBetween(command.from.x, command.from.y, command.to.x, command.to.y);
+    const resolveCut = (): void => {
+      visual.setAlpha(1);
+      for (const targetId of new Set(command.targetIds)) {
+        const enemy = this.getEnemyByCombatTargetId(targetId);
+        if (enemy?.active && enemy.receiveDamage(command.damage)) this.resolveEnemyDeath(enemy);
+      }
+      this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:movement-ground-${command.style}`);
+      this.tweens.add({
+        targets: visual,
+        alpha: 0,
+        duration: command.lifetimeMs,
+        onComplete: () => visual.destroy()
+      });
+    };
+    if (command.delayMs > 0) this.time.delayedCall(command.delayMs, resolveCut);
+    else resolveCut();
+  }
+
+  private fireAuthoredGoldenGaleRoute(
+    command: Extract<GongfaRuntimeCommand, { kind: "authored-golden-gale-route" }>
+  ): void {
+    const visual = this.add.graphics().setDepth(18);
+    visual.lineStyle(command.width * 2, 0xb27a12, 0.22);
+    for (let index = 1; index < command.points.length; index += 1) {
+      visual.lineBetween(command.points[index - 1]!.x, command.points[index - 1]!.y,
+        command.points[index]!.x, command.points[index]!.y);
+    }
+    visual.lineStyle(6, 0xffe27a, 0.92);
+    for (let index = 1; index < command.points.length; index += 1) {
+      visual.lineBetween(command.points[index - 1]!.x, command.points[index - 1]!.y,
+        command.points[index]!.x, command.points[index]!.y);
+    }
+    const distanceToSegment = (
+      point: { x: number; y: number },
+      from: { x: number; y: number },
+      to: { x: number; y: number }
+    ): number => {
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const lengthSquared = dx * dx + dy * dy;
+      if (lengthSquared <= 0.001) return Phaser.Math.Distance.Between(point.x, point.y, from.x, from.y);
+      const t = Phaser.Math.Clamp(((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared, 0, 1);
+      return Phaser.Math.Distance.Between(point.x, point.y, from.x + dx * t, from.y + dy * t);
+    };
+    const pulses = 5;
+    for (let pulse = 0; pulse < pulses; pulse += 1) {
+      this.time.delayedCall(Math.floor(command.durationMs * pulse / pulses), () => {
+        const enemies = (this.enemies.getChildren() as Enemy[]).filter((enemy) => enemy.active);
+        for (const enemy of enemies) {
+          const inside = command.points.slice(1).some((point, index) =>
+            distanceToSegment(enemy, command.points[index]!, point) <= command.width
+          );
+          if (inside && enemy.receiveDamage(Math.max(1, Math.floor(command.damage / pulses)))) {
+            this.resolveEnemyDeath(enemy);
+          }
+        }
+        visual.setAlpha(pulse % 2 === 0 ? 1 : 0.62);
+      });
+    }
+    this.tweens.add({
+      targets: visual,
+      alpha: 0,
+      delay: command.durationMs,
+      duration: 360,
+      onComplete: () => visual.destroy()
+    });
+    this.recordGongfaMotif(`${getGongfaVisualIdentity(command.sourceGongfaId).motifId}:recorded-gale-corridor`);
   }
 
   private fireSunsetWaveApex(
@@ -5978,53 +6085,6 @@ export class GameScene extends Phaser.Scene {
         );
       }));
     });
-  }
-
-  private fireGoldenGaleCorridor(
-    command: Extract<GongfaRuntimeCommand, { kind: "golden-gale-corridor" }>
-  ): void {
-    const combat = { ...this.combatState };
-    const sourceGongfaId = this.gongfaRuntime?.gongfaId;
-    const angle = this.getWaveAimAngle();
-    const laneCount = command.laneCount;
-    const spreadRad = Phaser.Math.DegToRad(command.spreadDeg);
-
-    for (let burst = 0; burst < command.burstCount; burst += 1) {
-      this.time.delayedCall(burst * command.burstDelayMs, () => {
-        if (!this.player.active) {
-          return;
-        }
-
-        const forwardOffset = command.forwardOffset.start + burst * command.forwardOffset.step;
-        for (let i = 0; i < laneCount; i += 1) {
-          const offset = laneCount === 1 ? 0 : Phaser.Math.Linear(-spreadRad / 2, spreadRad / 2, i / (laneCount - 1));
-          const sideways = (i - (laneCount - 1) / 2) * command.sidewaysSpacing;
-          const x =
-            this.player.x +
-            Math.cos(angle) * forwardOffset +
-            Math.cos(angle + Math.PI / 2) * sideways;
-          const y =
-            this.player.y +
-            Math.sin(angle) * forwardOffset +
-            Math.sin(angle + Math.PI / 2) * sideways;
-
-          this.spawnWaveProjectile(
-            x,
-            y,
-            angle + offset,
-            command.projectile.damage,
-            command.projectile.pierce,
-            command.projectile.speed,
-            command.projectile.lifetimeMs,
-            command.projectile.scale,
-            1,
-            sourceGongfaId,
-            combat.projectileTexture,
-            combat.tint
-          );
-        }
-      });
-    }
   }
 
   private fireReturningSwordFormation(

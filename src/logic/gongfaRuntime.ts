@@ -225,10 +225,17 @@ export type GongfaRuntimeEvent =
       learnedMasteryIds?: string[];
     }
   | { kind: "projectile-hit"; damage: number; learnedMasteryIds?: string[] }
-  | { kind: "jinfeng-wave-hit"; learnedMasteryIds?: string[] }
   | { kind: "surge-hit"; learnedMasteryIds?: string[] }
   | { kind: "gengjin-defensive-hit"; learnedMasteryIds?: string[] }
-  | { kind: "evade"; playerX?: number; playerY?: number; nearbyEnemyCount?: number; learnedMasteryIds?: string[] }
+  | {
+      kind: "evade";
+      playerX?: number;
+      playerY?: number;
+      movementAngle?: number;
+      nearbyEnemyCount?: number;
+      targets?: AuthoredTargetFact[];
+      learnedMasteryIds?: string[];
+    }
   | {
       kind: "authored-beast-assist";
       targetId: number;
@@ -322,20 +329,6 @@ export type GongfaRuntimeCommand =
       count: number;
       opening: YujianProjectileSpec;
       returnPath: YujianProjectileSpec & { delayMs: number };
-      masteryCast: MasterySkill2Cast;
-    }
-  | {
-      kind: "golden-gale-corridor";
-      burstCount: number;
-      burstDelayMs: number;
-      laneCount: number;
-      spreadDeg: number;
-      forwardOffset: {
-        start: number;
-        step: number;
-      };
-      sidewaysSpacing: number;
-      projectile: WaveProjectileSpec;
       masteryCast: MasterySkill2Cast;
     }
   | {
@@ -863,6 +856,27 @@ export type GongfaRuntimeCommand =
       intersectionDamage: number;
       sourceGongfaId: GongfaId;
       masteryCast?: MasterySkill2Cast;
+    }
+  | {
+      kind: "authored-jinfeng-ground-cut";
+      from: { x: number; y: number };
+      to: { x: number; y: number };
+      targetIds: number[];
+      damage: number;
+      delayMs: number;
+      lifetimeMs: number;
+      style: "cross-step" | "longitudinal" | "wake" | "rupture" | "evade-cross" | "standing";
+      sourceGongfaId: GongfaId;
+    }
+  | {
+      kind: "authored-golden-gale-route";
+      points: Array<{ x: number; y: number }>;
+      targetIds: number[];
+      damage: number;
+      width: number;
+      durationMs: number;
+      sourceGongfaId: GongfaId;
+      masteryCast: MasterySkill2Cast;
     };
 
 export interface YujianTransformationTriggers {
@@ -876,14 +890,6 @@ export interface YujianProjectileSpec {
   pierce: number;
   speed: number;
   lifetimeMs: number;
-}
-
-export interface WaveProjectileSpec {
-  damage: number;
-  pierce: number;
-  speed: number;
-  lifetimeMs: number;
-  scale: number;
 }
 
 export interface MasterySkill2Cast {
@@ -962,7 +968,7 @@ const authoredSkill2Plans: Record<AuthoredSkill2Intent, AuthoredSkill2Plan> = {
   },
   "golden-gale-corridor": {
     intent: "golden-gale-corridor",
-    trigger: "timed",
+    trigger: "threshold",
     cooldownMs: 2600
   },
   "blade-shell-rebound": {
@@ -1642,17 +1648,6 @@ export interface GongfaRuntimeView {
   };
 }
 
-const jinfengDefaults: JinfengState = {
-  momentum: 0,
-  momentumBuildRate: 0.72,
-  momentumDecayRate: 0.48,
-  momentumWaveBonus: 0.08,
-  momentumAppliedRangeBonus: 0,
-  momentumAppliedSpreadBonus: 0,
-  momentumAppliedLifetimeBonus: 0,
-  walkingStormCooldownRemaining: 0
-};
-
 const gengjinDefaults: GengjinState = {
   guardValue: 0,
   guardBuildRate: 0.62,
@@ -1734,9 +1729,21 @@ const legacyYujianMasteryIds: Record<string, string> = {
   "void-step-formation": "void-step-recall"
 };
 
-function migrateCrimsonMasteryId(gongfaId: GongfaId, id: string): string {
+const legacyJinfengMasteryIds: Record<string, string> = {
+  "heaven-splitting-line": "heaven-splitting-long-edge",
+  "golden-gale-fan": "golden-gale-crosscut",
+  "unbroken-current": "unbroken-continuance",
+  "ten-thousand-wave-resonance": "borrowed-turn-edge",
+  "gale-detonation": "gale-rupture",
+  "endless-horizon": "one-line-to-horizon",
+  "walking-storm": "returning-dragon-edge",
+  "gale-step-severance": "formation-breaking-gale-step"
+};
+
+function migrateLegacyMasteryId(gongfaId: GongfaId, id: string): string {
   if (gongfaId === "crimson-furnace-sword-art") return legacyCrimsonMasteryIds[id] ?? id;
   if (gongfaId === "yujian-jue") return legacyYujianMasteryIds[id] ?? id;
+  if (gongfaId === "jinfeng-gong") return legacyJinfengMasteryIds[id] ?? id;
   return id;
 }
 
@@ -2043,8 +2050,8 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
       ...createEmptyGongfaMastery(),
       ...input.mastery,
       masterySkill2Id: input.mastery?.masterySkill2Id,
-      masteryLearnedIds: (input.mastery?.masteryLearnedIds ?? []).map((id) => migrateCrimsonMasteryId(input.gongfaId, id)),
-      upgradeSelectionIds: (input.mastery?.upgradeSelectionIds ?? []).map((id) => migrateCrimsonMasteryId(input.gongfaId, id)),
+      masteryLearnedIds: (input.mastery?.masteryLearnedIds ?? []).map((id) => migrateLegacyMasteryId(input.gongfaId, id)),
+      upgradeSelectionIds: (input.mastery?.upgradeSelectionIds ?? []).map((id) => migrateLegacyMasteryId(input.gongfaId, id)),
       masteryPendingRanks: [...(input.mastery?.masteryPendingRanks ?? [])]
     },
     combat: {
@@ -2066,17 +2073,9 @@ export function createGongfaRuntime(input: CreateGongfaRuntimeInput): GongfaRunt
             }
           }
         : undefined,
-    jinfeng:
-      input.gongfaId === "jinfeng-gong"
-        ? {
-            ...jinfengDefaults,
-            ...input.jinfeng,
-            // These are derived projections onto combat state, not durable state.
-            momentumAppliedRangeBonus: 0,
-            momentumAppliedSpreadBonus: 0,
-            momentumAppliedLifetimeBonus: 0
-          }
-        : undefined,
+    // Legacy Momentum fields remain accepted by the checkpoint codec, but the
+    // rebuilt movement-cut discipline lives entirely in authored state.
+    jinfeng: undefined,
     gengjin:
       input.gongfaId === "gengjin-huti"
         ? {
@@ -2338,14 +2337,13 @@ export function projectGongfaCollectionPersistence(
 }
 
 export function projectGongfaRuntimeView(runtime: GongfaRuntime | undefined): GongfaRuntimeView {
-  const jinfeng = runtime?.jinfeng;
   const gengjin = runtime?.gengjin;
   const burningRing = runtime?.burningRing;
   const crimsonFurnace = runtime?.crimsonFurnace;
   const yujian = runtime?.yujian;
 
   return {
-    galeMomentum: jinfeng?.momentum ?? 0,
+    galeMomentum: runtime?.gongfaId === "jinfeng-gong" ? runtime.authored.resource : 0,
     heat: burningRing?.heat ?? 0,
     ringSegments: burningRing?.ringSegments ?? 0,
     counterflowRingSegments: burningRing?.counterflowRingSegments ?? 0,
@@ -2421,16 +2419,6 @@ export function advanceGongfaRuntimeForProjectileHit(
     next = result.runtime;
     commands.push(...result.commands);
   }
-
-  if (facts.sourceGongfaId === "jinfeng-gong" && next.jinfeng) {
-    const result = advanceGongfaRuntime(next, {
-      kind: "jinfeng-wave-hit",
-      learnedMasteryIds: facts.learnedMasteryIds
-    });
-    next = result.runtime;
-    commands.push(...result.commands);
-  }
-
 
   if (facts.sourceGongfaId === "gengjin-huti" && next.gengjin) {
     const result = advanceGongfaRuntime(next, {
@@ -2571,6 +2559,21 @@ function distanceToInfiniteLine(
   const length = Math.hypot(dx, dy);
   if (length < 0.001) return Math.hypot(point.x - from.x, point.y - from.y);
   return Math.abs(dy * point.x - dx * point.y + to.x * from.y - to.y * from.x) / length;
+}
+
+function distanceToSegment(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number }
+): number {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  if (lengthSquared < 0.001) return Math.hypot(point.x - from.x, point.y - from.y);
+  const t = Math.max(0, Math.min(1,
+    ((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSquared
+  ));
+  return Math.hypot(point.x - (from.x + dx * t), point.y - (from.y + dy * t));
 }
 
 function movementCrossesLine(
@@ -3408,6 +3411,33 @@ function advanceAuthoredWorldFacts(
     return;
   }
 
+  if (event.kind === "evade" && runtime.gongfaId === "jinfeng-gong") {
+    if (learnedIds.includes("formation-breaking-gale-step") && state.resource > 0) {
+      const angle = event.movementAngle ?? state.lastMovementAngle ?? 0;
+      const x = event.playerX ?? 0;
+      const y = event.playerY ?? 0;
+      const length = 150 + state.resource * 150;
+      const damage = Math.max(1, Math.floor(runtime.combat.damage * (0.8 + state.resource * 0.6)));
+      const buildCut = (centerX: number, centerY: number): GongfaRuntimeCommand => {
+        const from = { x: centerX - Math.cos(angle + Math.PI / 2) * length / 2,
+          y: centerY - Math.sin(angle + Math.PI / 2) * length / 2 };
+        const to = { x: centerX + Math.cos(angle + Math.PI / 2) * length / 2,
+          y: centerY + Math.sin(angle + Math.PI / 2) * length / 2 };
+        return {
+          kind: "authored-jinfeng-ground-cut", from, to,
+          targetIds: (event.targets ?? []).filter((target) => distanceToSegment(target, from, to) <= 30)
+            .map((target) => target.targetId),
+          damage, delayMs: 0, lifetimeMs: 520,
+          style: "evade-cross", sourceGongfaId: runtime.gongfaId
+        };
+      };
+      commands.push(buildCut(x, y));
+      commands.push(buildCut(x + Math.cos(angle) * 120, y + Math.sin(angle) * 120));
+      state.resource *= 0.5;
+    }
+    return;
+  }
+
   if (event.kind !== "tick") return;
 
   if (runtime.gongfaId === "flame-demon-body-art") {
@@ -3432,6 +3462,137 @@ function advanceAuthoredWorldFacts(
 
   if (runtime.gongfaId === "crimson-furnace-sword-art") {
     advanceCrimsonNetwork(runtime, event, learnedIds, commands);
+    return;
+  }
+
+  if (runtime.gongfaId === "jinfeng-gong") {
+    const x = event.playerX ?? 0;
+    const y = event.playerY ?? 0;
+    const moving = event.isMoving === true && (event.movementDistance ?? 0) > 0;
+    const angle = event.movementAngle ?? state.targetLedger[-303] ?? 0;
+    const continuity = learnedIds.includes("unbroken-continuance");
+    const borrowedTurn = learnedIds.includes("borrowed-turn-edge");
+    const returningDragon = learnedIds.includes("returning-dragon-edge");
+    const rupture = learnedIds.includes("gale-rupture");
+    const cap = continuity ? 0.78 : returningDragon ? 0.86 : 1;
+    runtime.mastery.masterySkill2CooldownRemaining = Math.max(
+      0, runtime.mastery.masterySkill2CooldownRemaining - event.deltaMs
+    );
+    state.anchors = state.anchors.filter((anchor) => {
+      if (anchor.kind !== "trail") return true;
+      anchor.remainingMs = Math.max(0, (anchor.remainingMs ?? 2100) - event.deltaMs);
+      return anchor.remainingMs > 0;
+    });
+    state.targetLedger[-304] = moving ? 1 : 0;
+    if (moving) {
+      state.targetLedger[-305] = 0;
+      const priorAngle = state.targetLedger[-303];
+      if (priorAngle !== undefined) {
+        const turn = normalizedAngleDifference(angle, priorAngle);
+        const allowedTurn = returningDragon ? 1.25 : 0.68;
+        if (turn > allowedTurn) {
+          if (borrowedTurn && state.resource >= cap - 0.02 && state.phase === 0) {
+            state.resource *= 0.5;
+            state.phase = 1;
+          } else {
+            state.resource = 0;
+            state.phase = 0;
+            state.anchors = state.anchors.filter((anchor) => anchor.kind !== "trail");
+            state.continuousDistance = 0;
+          }
+        } else if (turn < 0.3) {
+          state.phase = 0;
+        }
+      }
+      state.targetLedger[-303] = angle;
+      const distance = Math.max(0, event.movementDistance ?? 0);
+      state.resource = Math.min(cap, state.resource + distance / 680 * (1 + (state.targetLedger[-307] ?? 0)));
+      const lastPoint = state.anchors.filter((anchor) => anchor.kind === "trail").at(-1);
+      if (!lastPoint || Math.hypot(x - lastPoint.x, y - lastPoint.y) >= 18) {
+        state.anchors.push({ kind: "trail", x, y, angle, value: state.resource, remainingMs: 2100 });
+      }
+      state.targetLedger[-306] = (state.targetLedger[-306] ?? 0) + distance;
+      const refinementCadence = 1 + (runtime.skill1Refinements?.countBonus ?? 0) * 0.12;
+      const spacing = (learnedIds.includes("golden-gale-crosscut") ? 105 :
+        learnedIds.includes("crescent-wake") ? 72 : 68) / refinementCadence;
+      if (state.targetLedger[-306] >= spacing) {
+        state.targetLedger[-306] %= spacing;
+        const longitudinal = learnedIds.includes("heaven-splitting-long-edge");
+        const oneLine = learnedIds.includes("one-line-to-horizon") && state.continuousDistance >= 260;
+        let length = oneLine ? 680 : longitudinal ? 310 :
+          learnedIds.includes("golden-gale-crosscut") ? 270 : 150 + state.resource * 170;
+        if (returningDragon) length *= 0.8;
+        if (rupture) length *= 0.72;
+        length = (length + (runtime.skill1Refinements?.rangeBonus ?? 0)) *
+          (1 + (state.targetLedger[-309] ?? 0));
+        const cutAngle = longitudinal ? angle : angle + Math.PI / 2;
+        const centerX = learnedIds.includes("crescent-wake") ? x - Math.cos(angle) * 52 : x;
+        const centerY = learnedIds.includes("crescent-wake") ? y - Math.sin(angle) * 52 : y;
+        const from = { x: centerX - Math.cos(cutAngle) * length / 2,
+          y: centerY - Math.sin(cutAngle) * length / 2 };
+        const to = { x: centerX + Math.cos(cutAngle) * length / 2,
+          y: centerY + Math.sin(cutAngle) * length / 2 };
+        const hitWidth = learnedIds.includes("golden-gale-crosscut") ? 32 : longitudinal ? 15 : 22;
+        const targetIds = (event.targets ?? []).filter((target) =>
+          distanceToSegment(target, from, to) <= hitWidth
+        ).map((target) => target.targetId);
+        commands.push({
+          kind: "authored-jinfeng-ground-cut", from, to, targetIds,
+          damage: Math.max(1, Math.floor(runtime.combat.damage *
+            (learnedIds.includes("crescent-wake") ? 1.28 : longitudinal ? 1.18 :
+              learnedIds.includes("golden-gale-crosscut") ? 0.82 : 1))),
+          delayMs: learnedIds.includes("crescent-wake") ? 260 : 0,
+          lifetimeMs: (420 + state.resource * 520) * (1 + (state.targetLedger[-309] ?? 0)),
+          style: longitudinal ? "longitudinal" : learnedIds.includes("crescent-wake") ? "wake" : "cross-step",
+          sourceGongfaId: runtime.gongfaId
+        });
+      }
+      const route = state.anchors.filter((anchor) => anchor.kind === "trail");
+      if (state.resource >= cap - 0.01 && rupture && !runtime.mastery.masterySkill2Id) {
+        const length = 380;
+        for (const cutAngle of [angle, angle + Math.PI / 2]) {
+          const from = { x: x - Math.cos(cutAngle) * length / 2, y: y - Math.sin(cutAngle) * length / 2 };
+          const to = { x: x + Math.cos(cutAngle) * length / 2, y: y + Math.sin(cutAngle) * length / 2 };
+          commands.push({
+            kind: "authored-jinfeng-ground-cut", from, to,
+            targetIds: (event.targets ?? []).filter((target) => distanceToSegment(target, from, to) <= 30).map((target) => target.targetId),
+            damage: Math.max(1, Math.floor(runtime.combat.damage * 1.65)), delayMs: 0,
+            lifetimeMs: 650, style: "rupture", sourceGongfaId: runtime.gongfaId
+          });
+        }
+        state.resource = 0;
+        state.anchors = state.anchors.filter((anchor) => anchor.kind !== "trail");
+      } else if (state.resource >= cap - 0.01 && route.length >= 3 &&
+          runtime.mastery.masterySkill2Id === "golden-gale-corridor" &&
+          (runtime.mastery.masterySkill2CooldownRemaining <= 0 || runtime.mastery.masterySkill2Casts === 0)) {
+        const stats = skill2RefinementStats(runtime);
+        const points = route.map((point) => ({ x: point.x, y: point.y }));
+        const width = 34 + stats.coverage * 7;
+        const targetIds = (event.targets ?? []).filter((target) => points.slice(1).some((point, index) =>
+          distanceToSegment(target, points[index]!, point) <= width
+        )).map((target) => target.targetId);
+        const cooldownMs = Math.floor(authoredSkill2Plans["golden-gale-corridor"].cooldownMs * stats.cadenceScale);
+        commands.push({
+          kind: "authored-golden-gale-route", points, targetIds,
+          damage: Math.max(1, Math.floor(skill2Combat(runtime).damage * 1.15 * stats.damageScale)),
+          width, durationMs: 2200 + stats.coverage * 250,
+          sourceGongfaId: runtime.gongfaId,
+          masteryCast: { skill2Id: "golden-gale-corridor", cooldownMs }
+        });
+        runtime.mastery.masterySkill2CooldownRemaining = cooldownMs;
+        state.resource = 0;
+        state.anchors = state.anchors.filter((anchor) => anchor.kind !== "trail");
+        state.cycleCount += 1;
+      }
+    } else {
+      state.targetLedger[-305] = (state.targetLedger[-305] ?? 0) + event.deltaMs;
+      const grace = continuity ? 720 : 180;
+      if ((state.targetLedger[-305] ?? 0) > grace) {
+        state.resource = Math.max(0, state.resource - event.deltaMs / 1200 * (state.targetLedger[-308] ?? 1));
+        if (state.resource === 0) state.anchors = state.anchors.filter((anchor) => anchor.kind !== "trail");
+      }
+    }
+    state.resource = Math.min(cap, state.resource);
     return;
   }
 
@@ -4697,6 +4858,7 @@ export function advanceGongfaRuntime(
     runtime.gongfaId !== "thousand-root-formation" &&
     runtime.gongfaId !== "blazing-feather-art" &&
     runtime.gongfaId !== "drifting-frost-needle" &&
+    runtime.gongfaId !== "jinfeng-gong" &&
     event.kind !== "skill2"
   ) {
     return { runtime, commands: [] };
@@ -5350,31 +5512,6 @@ export function advanceGongfaRuntime(
       }
       return { runtime: next, commands };
     }
-    if (event.skill2Id === "golden-gale-corridor" && next.jinfeng) {
-      commands.push({
-        kind: "golden-gale-corridor",
-        burstCount: 3 + skill2Stats.coverage,
-        burstDelayMs: Math.floor(180 * skill2Stats.cadenceScale),
-        laneCount: Math.max(3, Math.min(7, 3 + Math.floor(skill2Base.count / 2) + skill2Stats.coverage)),
-        spreadDeg: Math.max(8, skill2Base.spreadDeg * 0.4),
-        forwardOffset: {
-          start: 32,
-          step: 26
-        },
-        sidewaysSpacing: 12,
-        projectile: {
-          damage: Math.floor(skill2Base.damage * 0.8 * skill2Stats.damageScale),
-          pierce: skill2Base.pierce + 1,
-          speed: skill2Base.projectileSpeed + 25,
-          lifetimeMs: skill2Base.projectileLifetimeMs + Math.floor(skill2Base.range * 0.9),
-          scale: 0.92
-        },
-        masteryCast: {
-          skill2Id: "golden-gale-corridor",
-          cooldownMs: Math.floor(authoredSkill2Plans["golden-gale-corridor"].cooldownMs * skill2Stats.cadenceScale)
-        }
-      });
-    }
     const skill2 = getAuthoredSkill2Plan(event.skill2Id);
     if (
       skill2?.trigger === "timed" &&
@@ -5418,15 +5555,6 @@ export function advanceGongfaRuntime(
     }
     // Burning Ring Heat is maintained by distinct bodies in its danger band;
     // repeated projectile/segment hits never generate Heat.
-    return { runtime: next, commands };
-  }
-
-  if (event.kind === "jinfeng-wave-hit") {
-    // Ten-Thousand Wave Resonance: wave-tagged Skill hits feed Momentum.
-    if (next.jinfeng && event.learnedMasteryIds.includes("ten-thousand-wave-resonance")) {
-      next.jinfeng.momentum = Math.min(5, next.jinfeng.momentum + 0.5);
-      syncJinfengCombat(next);
-    }
     return { runtime: next, commands };
   }
 
@@ -5859,48 +5987,6 @@ export function advanceGongfaRuntime(
     }
   }
 
-  if (next.jinfeng) {
-    const learnedMasteryIds = event.learnedMasteryIds ?? [];
-    if (event.isMoving) {
-      next.jinfeng.momentum = Math.min(
-        5,
-        next.jinfeng.momentum + next.jinfeng.momentumBuildRate * deltaSeconds
-      );
-    } else if (!learnedMasteryIds.includes("unbroken-current")) {
-      // Unbroken Current holds Momentum instead of letting it bleed on a stop.
-      next.jinfeng.momentum = Math.max(
-        0,
-        next.jinfeng.momentum - next.jinfeng.momentumDecayRate * deltaSeconds
-      );
-    }
-
-    // Gale Detonation: at full Momentum, spend part of it for a crossing wave.
-    if (learnedMasteryIds.includes("gale-detonation") && next.jinfeng.momentum >= 5) {
-      next.jinfeng.momentum = Math.max(0, next.jinfeng.momentum - 2.5);
-      commands.push({ kind: "wave-volley", count: 2, returnShots: 0, aimMode: "last" });
-    }
-
-    // Walking Storm: periodic radial cutting waves while Momentum stays high.
-    next.jinfeng.walkingStormCooldownRemaining = Math.max(
-      0,
-      next.jinfeng.walkingStormCooldownRemaining - Math.max(0, event.deltaMs)
-    );
-    if (
-      learnedMasteryIds.includes("walking-storm") &&
-      next.jinfeng.momentum >= 4 &&
-      next.jinfeng.walkingStormCooldownRemaining === 0
-    ) {
-      next.jinfeng.walkingStormCooldownRemaining = 1600;
-      commands.push({
-        kind: "aura-burst",
-        damage: next.combat.damage,
-        count: 8
-      });
-    }
-
-    syncJinfengCombat(next);
-  }
-
   if (next.gengjin) {
     const learnedMasteryIds = event.learnedMasteryIds ?? [];
     const state = next.gengjin;
@@ -6057,29 +6143,6 @@ export function advanceGongfaRuntime(
 }
 
 /**
- * Gale-Step Severance: each Evade cuts a Momentum-scaled corridor. Returns the
- * corridor's pierce and wave count, or undefined when the Transformation is not
- * learned or there is no Momentum to spend on it.
- */
-export function galeStepSeveranceCorridor(
-  runtime: GongfaRuntime,
-  learnedMasteryIds: string[] = runtime.mastery.masteryLearnedIds
-): { pierce: number; count: number } | undefined {
-  if (
-    !runtime.jinfeng ||
-    !learnedMasteryIds.includes("gale-step-severance") ||
-    runtime.jinfeng.momentum <= 0
-  ) {
-    return undefined;
-  }
-
-  return {
-    pierce: runtime.combat.pierce + 2,
-    count: Math.max(2, Math.round(runtime.jinfeng.momentum))
-  };
-}
-
-/**
  * Rebounding Edge: prevented damage launches a focused blade back at its
  * source, its bite scaled by current Guard. Returns undefined when the
  * Transformation is not learned or there is no Guard to spend.
@@ -6100,6 +6163,44 @@ export function planGongfaAttack(
     ...options,
     learnedMasteryIds: options.learnedMasteryIds ?? runtime.mastery.masteryLearnedIds
   };
+  if (runtime.gongfaId === "jinfeng-gong") {
+    // Travel itself is Skill 1. The ordinary attack clock only supplies a
+    // modest close cut while standing, so it can never become a projectile
+    // fallback or reward idle play more than route building.
+    if (runtime.authored.targetLedger[-304] === 1) return [];
+    const playerX = options.playerX ?? 0;
+    const playerY = options.playerY ?? 0;
+    const targets = options.targets ?? [];
+    const nearest = [...targets].sort((a, b) =>
+      distanceSquared(a.x, a.y, playerX, playerY) - distanceSquared(b.x, b.y, playerX, playerY)
+    )[0];
+    if (!nearest || distanceSquared(nearest.x, nearest.y, playerX, playerY) > 155 ** 2) return [];
+    const facing = Math.atan2(nearest.y - playerY, nearest.x - playerX);
+    const cutAngle = facing + Math.PI / 2;
+    const length = 125;
+    const centerX = playerX + Math.cos(facing) * 54;
+    const centerY = playerY + Math.sin(facing) * 54;
+    const from = {
+      x: centerX - Math.cos(cutAngle) * length / 2,
+      y: centerY - Math.sin(cutAngle) * length / 2
+    };
+    const to = {
+      x: centerX + Math.cos(cutAngle) * length / 2,
+      y: centerY + Math.sin(cutAngle) * length / 2
+    };
+    return [{
+      kind: "authored-jinfeng-ground-cut",
+      from,
+      to,
+      targetIds: targets.filter((target) => distanceToSegment(target, from, to) <= 24)
+        .map((target) => target.targetId),
+      damage: Math.max(1, Math.floor(runtime.combat.damage * 0.58)),
+      delayMs: 0,
+      lifetimeMs: 300,
+      style: "standing",
+      sourceGongfaId: runtime.gongfaId
+    }];
+  }
   if (runtime.gongfaId === "yujian-jue") {
     const state = runtime.authored;
     const learnedIds = options.learnedMasteryIds ?? [];
@@ -6918,36 +7019,12 @@ export function planGongfaAttack(
     }
     case "wave": {
       const learnedMasteryIds = options.learnedMasteryIds ?? [];
-      // Endless Horizon: the Cutting Front grows as it travels, scaled by Momentum.
-      const growthScale =
-        runtime.jinfeng && learnedMasteryIds.includes("endless-horizon")
-          ? 1 + runtime.jinfeng.momentum * 0.18
-          : undefined;
-      const commands: GongfaRuntimeCommand[] = [
-        {
-          kind: "wave-volley",
-          count: Math.max(1, runtime.combat.count + surgeBonusCount(runtime, learnedMasteryIds)),
-          returnShots: runtime.combat.returnShots,
-          aimMode: runtime.jinfeng ? "last" : "nearest",
-          ...(growthScale !== undefined ? { growthScale } : {})
-        }
-      ];
-
-      // Crescent Wake trails an extra cutting crescent while moving at speed.
-      if (
-        runtime.jinfeng &&
-        learnedMasteryIds.includes("crescent-wake") &&
-        runtime.jinfeng.momentum >= 2
-      ) {
-        commands.push({
-          kind: "wave-volley",
-          count: 1,
-          returnShots: 0,
-          aimMode: "last"
-        });
-      }
-
-      return commands;
+      return [{
+        kind: "wave-volley",
+        count: Math.max(1, runtime.combat.count + surgeBonusCount(runtime, learnedMasteryIds)),
+        returnShots: runtime.combat.returnShots,
+        aimMode: "nearest"
+      }];
     }
     case "aura":
       if (runtime.gengjin) return [];
@@ -7055,24 +7132,12 @@ function applyStructuralTransformation(
   runtime: GongfaRuntime,
   transformationId: string
 ): GongfaRuntime | undefined {
-  if (runtime.jinfeng) {
-    if (transformationId === "heaven-splitting-line") {
-      // Compress the Cutting Front into one long penetrating lane.
-      const next = copyRuntime(runtime);
-      next.combat.count = 1;
-      next.combat.pierce += 2;
-      next.combat.range += 90;
-      next.combat.spreadDeg = Math.max(2, Math.floor(next.combat.spreadDeg / 2));
-      return next;
-    }
-
-    if (transformationId === "golden-gale-fan") {
-      // Spread the Cutting Front into a broad frontal arc.
-      const next = copyRuntime(runtime);
-      next.combat.count += 2;
-      next.combat.spreadDeg += 40;
-      return next;
-    }
+  if (runtime.gongfaId === "jinfeng-gong" && [
+    "heaven-splitting-long-edge", "golden-gale-crosscut", "crescent-wake",
+    "unbroken-continuance", "borrowed-turn-edge", "gale-rupture",
+    "one-line-to-horizon", "returning-dragon-edge", "formation-breaking-gale-step"
+  ].includes(transformationId)) {
+    return copyRuntime(runtime);
   }
 
   if (runtime.gongfaId === "blazing-feather-art") {
@@ -7268,24 +7333,20 @@ export function applyGongfaImprovement(
       }
       break;
     case "galeMomentumBuild":
-      if (next.jinfeng) {
-        next.jinfeng.momentumBuildRate += upgrade.value;
+      if (next.gongfaId === "jinfeng-gong") {
+        next.authored.targetLedger[-307] = (next.authored.targetLedger[-307] ?? 0) + upgrade.value;
         return { runtime: next };
       }
       break;
     case "galeMomentumDecay":
-      if (next.jinfeng) {
-        next.jinfeng.momentumDecayRate = Math.max(
-          0.08,
-          next.jinfeng.momentumDecayRate * upgrade.value
-        );
+      if (next.gongfaId === "jinfeng-gong") {
+        next.authored.targetLedger[-308] = (next.authored.targetLedger[-308] ?? 1) * upgrade.value;
         return { runtime: next };
       }
       break;
     case "waveSynergy":
-      if (next.jinfeng) {
-        next.jinfeng.momentumWaveBonus += upgrade.value;
-        syncJinfengCombat(next);
+      if (next.gongfaId === "jinfeng-gong") {
+        next.authored.targetLedger[-309] = (next.authored.targetLedger[-309] ?? 0) + upgrade.value;
         return { runtime: next };
       }
       break;

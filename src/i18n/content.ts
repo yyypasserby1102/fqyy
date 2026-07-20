@@ -63,10 +63,10 @@ const zhGongfa: Record<GongfaId, GongfaTranslation> = {
     skill2: { name: "万剑归宗", description: "至少三剑在外时，所有飞剑立刻沿各自完整剑路逆返，交点再次斩击。" }
   },
   "jinfeng-gong": {
-    name: "金锋功", lore: "金气化作锐利锋潮向外迸发。", combatRole: "沿移动方向斩开长廊，主动走位方能尽显锋芒。", visualMotif: "金白风刃、横贯长空的锋线与流动尾迹。",
-    skill1: { name: "断空锋", description: "金气锋浪沿修士移动方向斩出，随势能增长而拓宽。" },
-    passive: { name: "罡风势", resource: "势能", description: "移动、锋浪命中与闪避积累势能，拓宽并延长浪形术法。" },
-    skill2: { name: "金风长廊", description: "持续存在的锋刃长廊反复切割行进路线上的敌人，并维持势能。" }
+    name: "金锋功", lore: "以足下行迹为锋路，路不断则金风不绝。", combatRole: "持续走位自动在地面刻下锋痕；路线经营比朝向敌人更重要。", visualMotif: "金白地面锋痕、最近两秒的可见行迹与凝固成形的金风长廊。",
+    skill1: { name: "行锋", description: "每移动一段距离便自动沿行迹落下地面斩；静止时仅有较弱的近身横斩。" },
+    passive: { name: "罡风势", resource: "势能", description: "连续同向行进积累势能并记录约两秒路线；急转、折返或久停会失势。" },
+    skill2: { name: "金风长廊", description: "势能满时，将最近行迹凝成持续切割的实体长廊，随后清空势能。" }
   },
   "gengjin-huti": {
     name: "庚金护体", lore: "淬炼肉身，以庚金锋芒反击近身威胁。", combatRole: "以近身防御化险为攻，将敌势转为反击。", visualMotif: "钢蓝护环、多面甲片与放射刃爆。",
@@ -617,42 +617,6 @@ const zhMasteryDrafts: Record<string, { name: string; lore: string }> =
     "name": "逆转剑道",
     "lore": "御剑一技剑穿过敌人返回到修真者身上。"
   },
-  "heaven-splitting-line": {
-    "name": "裂天线",
-    "lore": "将切割前沿压缩成一条长的穿透通道。"
-  },
-  "golden-gale-fan": {
-    "name": "金色大风扇",
-    "lore": "将切割前端分布在宽阔的刀片正面弧上。"
-  },
-  "crescent-wake": {
-    "name": "新月唤醒",
-    "lore": "沿着耕耘者的移动路线快速切割新月。"
-  },
-  "unbroken-current": {
-    "name": "不间断的电流",
-    "lore": "当修行者停止时，动量不再消失。"
-  },
-  "ten-thousand-wave-resonance": {
-    "name": "万波共振",
-    "lore": "每个带有波浪标记的技能命中都会增加动量。"
-  },
-  "gale-detonation": {
-    "name": "强风爆炸",
-    "lore": "动量满时，花费部分动量来发射交叉切割波。"
-  },
-  "endless-horizon": {
-    "name": "无尽的地平线",
-    "lore": "切割前沿在传播过程中不断增长，并根据动量进行缩放。"
-  },
-  "walking-storm": {
-    "name": "行走的风暴",
-    "lore": "在高动量下，耕耘机周围爆发出周期性的径向切割波。"
-  },
-  "gale-step-severance": {
-    "name": "疾风断绝",
-    "lore": "每次躲避都会沿着其路径切出一条动量规模的走廊。"
-  },
   "rebounding-edge-armor": {
     "name": "回弹锋甲",
     "lore": "每次近身减伤都会立刻反弹部分力道，但留存在守势中的力道更少。"
@@ -774,10 +738,15 @@ const zhMasteryOverrides: Record<string, { name: string; lore?: string; gain?: s
   "heavenly-sword-crown": { name: "天剑为冠", lore: "一剑常驻头顶护持，主动剑匣缩为三柄。", gain: "保留一柄常驻支援天剑。", cost: "可出鞘的实体剑由四柄减为三柄", scope: "常驻支援与剑匣容量" },
   "three-enclosure-sword-domain": { name: "三垣剑域", lore: "修士与在外飞剑之间形成切割线，接回飞剑会缩小剑域。", gain: "修士与在外飞剑之间生成可见切割线。", cost: "每接回一剑，剑域边数与覆盖范围都会缩小", scope: "在外剑位、切割线与接剑取舍" },
   "void-step-recall": { name: "虚步收锋", lore: "闪避令全部飞剑折返，不会凭空生成新剑。", gain: "闪避时立即令所有在外飞剑转入返程。", cost: "该次闪避只用于收锋，不附带额外攻击", scope: "闪避与全剑召回" },
-  "golden-gale-fan": { name: "金风巨扇" },
-  "crescent-wake": { name: "月牙尾流" },
-  "unbroken-current": { name: "势流不绝" },
-  "walking-storm": { name: "随身罡风" },
+  "heaven-splitting-long-edge": { name: "裂天纵锋", lore: "地面斩改为顺着行迹纵切，锋线更长更窄。", gain: "获得长而窄的纵向地面斩。", cost: "失去横切覆盖，路线两侧更容易漏敌", scope: "行锋方向、长度与横向覆盖" },
+  "golden-gale-crosscut": { name: "金风横断", lore: "行锋间隔增大，但每次横断覆盖显著变宽。", gain: "单次横斩更宽，更适合切开密集敌群。", cost: "两次落锋之间需要移动更远", scope: "横向覆盖与落锋频率" },
+  "crescent-wake": { name: "月牙余锋", lore: "锋痕延迟落在身后并增强，正前方不再立即受护。", gain: "身后延迟锋痕伤害提高。", cost: "前方没有即时地面斩，追击路线更危险", scope: "延迟、身后路线与伤害" },
+  "unbroken-continuance": { name: "绵延不绝", lore: "短暂停步仍可续势，但势能上限降低。", gain: "短暂停顿不会立刻断势。", cost: "最高势能永久降至较低上限", scope: "停步容错与势能上限" },
+  "borrowed-turn-edge": { name: "借势折锋", lore: "满势时可承受一次急转，以半数势能支付代价。", gain: "满势时第一次急转不会清空路线。", cost: "急转立即消耗一半势能", scope: "急转容错与势能支出" },
+  "gale-rupture": { name: "罡势决流", lore: "满势爆成十字地裂并全部耗尽，平常行锋缩短。", gain: "满势时自动产生高伤十字地面斩。", cost: "触发后势能归零，普通锋痕长度缩短", scope: "满势爆发、清空与日常锋长" },
+  "one-line-to-horizon": { name: "天涯一线", lore: "严格直行足够远后，行锋横贯战场。", gain: "长距离直行把地面斩扩展为全屏锋线。", cost: "任何明显转向都会重置直行距离", scope: "直线纪律与全屏覆盖" },
+  "returning-dragon-edge": { name: "游龙回锋", lore: "缓弯不再断势，但锋长与势能上限下降。", gain: "可沿平滑曲线持续积势。", cost: "最高势能与地面斩长度均降低", scope: "曲线容错、势能上限与锋长" },
+  "formation-breaking-gale-step": { name: "破阵罡步", lore: "闪避起点与终点各留一道横锋，并耗去半势。", gain: "每次闪避在出发与落点各生成一道地面斩。", cost: "闪避立即消耗当前一半势能", scope: "闪避路径与势能支出" },
   "rebounding-edge-armor": { name: "回弹锋甲" },
   "hundred-forged-heavy-armor": { name: "百炼重甲" },
   "flowing-gold-vent": { name: "流金卸甲" },

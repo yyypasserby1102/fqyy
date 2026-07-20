@@ -17,7 +17,6 @@ import {
   createGongfaRuntime,
   createGongfaMasteryStateFromCheckpoint,
   createGongfaRuntimeFromCheckpoint,
-  galeStepSeveranceCorridor,
   getAuthoredSkill2CooldownMs,
   getCrimsonEmbedThreshold,
   getAuthoredSkill2Plan,
@@ -170,23 +169,27 @@ describe("Gongfa runtime", () => {
   it("checkpoints every learned Gongfa combat and passive state", () => {
     let collection = learnGongfa(createGongfaCollectionRuntime(), "jinfeng-gong", true);
     collection = learnGongfa(collection, "burning-ring-scripture");
-    collection.byId["jinfeng-gong"]!.jinfeng!.momentum = 4;
+    collection.byId["jinfeng-gong"]!.authored.resource = 0.64;
+    collection.byId["jinfeng-gong"]!.authored.anchors.push({
+      kind: "trail", x: 20, y: 40, value: 0.64, remainingMs: 1800
+    });
     collection.byId["jinfeng-gong"]!.attackCooldownRemaining = 320;
-    collection.byId["jinfeng-gong"]!.jinfeng!.walkingStormCooldownRemaining = 450;
     collection.byId["jinfeng-gong"]!.combat.range = 188;
     collection.byId["burning-ring-scripture"]!.burningRing!.heat = 72;
 
     const checkpoint = projectGongfaCollectionCheckpoint(collection);
     const restored = createGongfaCollectionFromCheckpoint(checkpoint);
 
-    expect(restored.byId["jinfeng-gong"]!.jinfeng!.momentum).toBe(4);
+    expect(restored.byId["jinfeng-gong"]!.authored.resource).toBe(0.64);
     expect(restored.byId["jinfeng-gong"]!.attackCooldownRemaining).toBe(0);
-    expect(restored.byId["jinfeng-gong"]!.jinfeng!.walkingStormCooldownRemaining).toBe(0);
+    expect(restored.byId["jinfeng-gong"]!.authored.anchors).toContainEqual(
+      expect.objectContaining({ kind: "trail", x: 20, y: 40 })
+    );
     expect(restored.byId["jinfeng-gong"]!.combat.range).toBe(188);
     expect(restored.byId["burning-ring-scripture"]!.burningRing!.heat).toBe(72);
 
-    restored.byId["jinfeng-gong"]!.jinfeng!.momentum = 1;
-    expect(checkpoint.runtimes[0].jinfeng!.momentum).toBe(4);
+    restored.byId["jinfeng-gong"]!.authored.resource = 0.1;
+    expect(checkpoint.runtimes[0].authored.resource).toBe(0.64);
   });
 
   it("constructs and refines a complete Gongfa combat package through one interface", () => {
@@ -209,7 +212,7 @@ describe("Gongfa runtime", () => {
       trigger: "threshold",
       cooldownMs: 2400
     });
-    expect(getAuthoredSkill2Plan("golden-gale-corridor")?.trigger).toBe("timed");
+    expect(getAuthoredSkill2Plan("golden-gale-corridor")?.trigger).toBe("threshold");
     expect(getAuthoredSkill2Plan("furnace-cascade")?.trigger).toBe("timed");
     expect(getAuthoredSkill2Plan("solar-flare-cycle")?.trigger).toBe("cycle");
     expect(getAuthoredSkill2Plan("blade-shell-rebound")?.trigger).toBe("threshold");
@@ -481,6 +484,7 @@ describe("Gongfa runtime", () => {
   it("casts every declared rank-10 Skill 2 through the runtime public interface", () => {
     const expectedEffectKinds: Partial<Record<GongfaId, string>> = {
       "yujian-jue": "authored-myriad-swords-return",
+      "jinfeng-gong": "authored-golden-gale-route",
       "blazing-feather-art": "authored-phoenix-horizon",
       "scarlet-wave-manual": "authored-scarlet-tides",
       "drifting-frost-needle": "authored-reverse-winter-thread",
@@ -498,6 +502,15 @@ describe("Gongfa runtime", () => {
 
       const runtime = createGongfaRuntime({ gongfaId });
       if (gongfaId === "yujian-jue") runtime.mastery.masterySkill2Id = skill2Id;
+      if (gongfaId === "jinfeng-gong") {
+        runtime.mastery.masterySkill2Id = skill2Id;
+        runtime.authored.resource = 1;
+        runtime.authored.anchors.push(
+          { kind: "trail", x: 0, y: 0, value: 0.4, remainingMs: 2100 },
+          { kind: "trail", x: 60, y: 0, value: 0.7, remainingMs: 2100 },
+          { kind: "trail", x: 120, y: 0, value: 1, remainingMs: 2100 }
+        );
+      }
       if (gongfaId === "gengjin-huti") runtime.gengjin!.guardValue = 60;
       if (gongfaId === "blazing-feather-art") {
         runtime.mastery.masterySkill2Id = skill2Id;
@@ -664,12 +677,15 @@ describe("Gongfa runtime", () => {
             })
           : plan?.trigger === "threshold"
             ? advanceGongfaRuntime(runtime, {
-                kind: "tick",
-                deltaMs: 16,
-                nearbyEnemyCount: 1,
-                skill2Id,
-                playerX: 0,
-                playerY: 0,
+              kind: "tick",
+              deltaMs: 16,
+              nearbyEnemyCount: 1,
+              skill2Id,
+              isMoving: gongfaId === "jinfeng-gong",
+              movementAngle: gongfaId === "jinfeng-gong" ? 0 : undefined,
+              movementDistance: gongfaId === "jinfeng-gong" ? 1 : undefined,
+              playerX: gongfaId === "jinfeng-gong" ? 121 : 0,
+              playerY: 0,
                 targets: [{ targetId: 49, x: 100, y: 0, healthRatio: 1, rank: "ordinary" }]
               })
             : advanceGongfaRuntime(runtime, {
@@ -973,14 +989,14 @@ describe("Gongfa runtime", () => {
       shadeTargetIds: []
     });
 
-    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), 0)).toEqual([
-      {
-        kind: "wave-volley",
-        count: 2,
-        returnShots: 0,
-        aimMode: "last"
-      }
-    ]);
+    expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), 0, {
+      playerX: 0, playerY: 0,
+      targets: [{ targetId: 2, x: 70, y: 0, healthRatio: 1, rank: "ordinary" }]
+    })[0]).toMatchObject({
+      kind: "authored-jinfeng-ground-cut",
+      targetIds: [2],
+      style: "standing"
+    });
 
     expect(planGongfaAttack(createGongfaRuntime({ gongfaId: "gengjin-huti" }), 0)).toEqual([]);
   });
@@ -1102,37 +1118,32 @@ describe("Gongfa runtime", () => {
     }).commands).toEqual([]);
   });
 
-  it("plans Golden Gale Corridor as a runtime-owned Jinfeng Skill 2 command", () => {
+  it("requires full Momentum and a recorded route for Golden Gale Corridor", () => {
     const runtime = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
-
+    runtime.mastery.masterySkill2Id = "golden-gale-corridor";
     expect(advanceGongfaRuntime(runtime, {
       kind: "skill2",
       skill2Id: "golden-gale-corridor"
-    }).commands).toEqual([
-      {
-        kind: "golden-gale-corridor",
-        burstCount: 3,
-        burstDelayMs: 180,
-        laneCount: 4,
-        spreadDeg: 8,
-        forwardOffset: {
-          start: 32,
-          step: 26
-        },
-        sidewaysSpacing: 12,
-        projectile: {
-          damage: 16,
-          pierce: 2,
-          speed: 385,
-          lifetimeMs: 876,
-          scale: 0.92
-        },
-        masteryCast: {
-          skill2Id: "golden-gale-corridor",
-          cooldownMs: 2600
-        }
-      }
-    ]);
+    }).commands).toEqual([]);
+    runtime.authored.resource = 1;
+    runtime.authored.anchors.push(
+      { kind: "trail", x: 0, y: 0, value: 0.3, remainingMs: 2100 },
+      { kind: "trail", x: 70, y: 0, value: 0.7, remainingMs: 2100 },
+      { kind: "trail", x: 140, y: 0, value: 1, remainingMs: 2100 }
+    );
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "tick", deltaMs: 16, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: 0, movementDistance: 1,
+      playerX: 140, playerY: 0,
+      targets: [{ targetId: 5, x: 70, y: 8, healthRatio: 1, rank: "ordinary" }]
+    });
+    expect(result.commands[0]).toMatchObject({
+      kind: "authored-golden-gale-route",
+      targetIds: [5],
+      masteryCast: { skill2Id: "golden-gale-corridor", cooldownMs: 2600 }
+    });
+    expect(result.runtime.authored.resource).toBe(0);
+    expect(result.runtime.authored.anchors).toHaveLength(0);
   });
 
   it("owns Yujian rank-3 route transformations without Phaser objects", () => {
@@ -1219,17 +1230,13 @@ describe("Gongfa runtime", () => {
       galeMomentumWaveBonus: 0.1
     });
 
-    expect(jinfeng.jinfeng).toMatchObject({
-      momentum: 2,
-      momentumBuildRate: 1,
-      momentumDecayRate: 0.25,
-      momentumWaveBonus: 0.1
-    });
+    expect(jinfeng.jinfeng).toBeUndefined();
+    expect(jinfeng.authored).toMatchObject({ resource: 0, anchors: [] });
     expect(projectGongfaRuntimeCheckpoint(jinfeng)).toMatchObject({
-      galeMomentum: 2,
-      galeMomentumBuildRate: 1,
-      galeMomentumDecayRate: 0.25,
-      galeMomentumWaveBonus: 0.1,
+      galeMomentum: 0,
+      galeMomentumBuildRate: 0,
+      galeMomentumDecayRate: 0,
+      galeMomentumWaveBonus: 0,
       guardValue: 0,
       heat: 0,
       crimsonPressure: 0
@@ -1370,27 +1377,26 @@ describe("Gongfa runtime", () => {
     expect(result.runtime.combat.cooldownMs).toBe(initial.combat.cooldownMs);
   });
 
-  it("owns Jinfeng momentum, refinements, and combat projection without Phaser", () => {
+  it("owns Jinfeng distance Momentum and route recording without Phaser", () => {
     const initial = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
     const moving = advanceGongfaRuntime(initial, {
       kind: "tick",
-      deltaMs: 1000,
+      deltaMs: 500,
       nearbyEnemyCount: 0,
-      isMoving: true
+      isMoving: true,
+      movementAngle: 0,
+      movementDistance: 136,
+      playerX: 136,
+      playerY: 0
     }).runtime;
     const refined = applyGongfaImprovement(moving, "windborne-reach").runtime;
 
-    expect(refined.jinfeng).toMatchObject({
-      momentum: 0.72,
-      momentumBuildRate: 0.72,
-      momentumDecayRate: 0.48,
-      momentumWaveBonus: 0.14
-    });
-    expect(refined.combat.range).toBeGreaterThan(initial.combat.range);
-    expect(refined.combat.spreadDeg).toBeGreaterThan(initial.combat.spreadDeg);
-    expect(refined.combat.projectileLifetimeMs).toBeGreaterThan(
-      initial.combat.projectileLifetimeMs
+    expect(refined.jinfeng).toBeUndefined();
+    expect(refined.authored.resource).toBeCloseTo(0.2);
+    expect(refined.authored.anchors).toContainEqual(
+      expect.objectContaining({ kind: "trail", x: 136, y: 0 })
     );
+    expect(refined.combat.range).toBe(initial.combat.range);
 
     const decayed = advanceGongfaRuntime(refined, {
       kind: "tick",
@@ -1398,7 +1404,7 @@ describe("Gongfa runtime", () => {
       nearbyEnemyCount: 0,
       isMoving: false
     }).runtime;
-    expect(decayed.jinfeng?.momentum).toBe(0.48);
+    expect(decayed.authored.resource).toBeLessThan(refined.authored.resource);
   });
 
   it("owns Gengjin guard, mitigation, and Blade Shell commands without Phaser", () => {
@@ -1610,195 +1616,127 @@ describe("Gongfa runtime", () => {
     });
   });
 
-  it("Heaven-Splitting Line compresses Jinfeng Cutting Front into a piercing lane", () => {
-    const runtime = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
-    const { combat } = applyGongfaImprovement(runtime, "heaven-splitting-line").runtime;
+  it("creates distinct longitudinal, crosscut, and delayed-wake ground cuts", () => {
+    const tick = (learnedMasteryIds: string[], movementDistance = 110) => advanceGongfaRuntime(
+      createGongfaRuntime({ gongfaId: "jinfeng-gong" }),
+      { kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, isMoving: true,
+        movementAngle: 0, movementDistance, playerX: movementDistance, playerY: 0,
+        learnedMasteryIds,
+        targets: [{ targetId: 1, x: movementDistance, y: 12, healthRatio: 1, rank: "ordinary" }] }
+    );
+    const longitudinal = tick(["heaven-splitting-long-edge"]);
+    const longCut = longitudinal.commands.find((command) => command.kind === "authored-jinfeng-ground-cut");
+    expect(longCut).toMatchObject({ kind: "authored-jinfeng-ground-cut", style: "longitudinal" });
+    expect(longCut?.kind === "authored-jinfeng-ground-cut" && longCut.from.y).toBeCloseTo(
+      longCut?.kind === "authored-jinfeng-ground-cut" ? longCut.to.y : 1
+    );
 
-    expect(combat.count).toBe(1);
-    expect(combat.pierce).toBe(runtime.combat.pierce + 2);
-    expect(combat.range).toBe(runtime.combat.range + 90);
-    expect(combat.spreadDeg).toBeLessThan(runtime.combat.spreadDeg);
-  });
-
-  it("Golden Gale Fan widens Jinfeng Cutting Front into a frontal arc", () => {
-    const runtime = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
-    const { combat } = applyGongfaImprovement(runtime, "golden-gale-fan").runtime;
-
-    expect(combat.count).toBe(runtime.combat.count + 2);
-    expect(combat.spreadDeg).toBe(runtime.combat.spreadDeg + 40);
-  });
-
-  it("Crescent Wake trails an extra wave only while moving with built Momentum", () => {
-    const base = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
-
-    // No Momentum yet: only the standard Cutting Front fires.
-    expect(
-      planGongfaAttack(base, 0, { learnedMasteryIds: ["crescent-wake"] })
-    ).toHaveLength(1);
-
-    // Build Momentum by moving, then the crescent trails behind.
-    const moved = advanceGongfaRuntime(base, {
-      kind: "tick",
-      deltaMs: 4000,
-      nearbyEnemyCount: 0,
-      isMoving: true,
-      skill2Id: undefined
-    }).runtime;
-    expect(moved.jinfeng!.momentum).toBeGreaterThanOrEqual(2);
-
-    const commands = planGongfaAttack(moved, 0, {
-      learnedMasteryIds: ["crescent-wake"]
+    expect(tick(["golden-gale-crosscut"], 90).commands).toEqual([]);
+    expect(tick(["golden-gale-crosscut"], 110).commands[0]).toMatchObject({
+      kind: "authored-jinfeng-ground-cut", style: "cross-step"
     });
-    expect(commands).toHaveLength(2);
-    expect(commands.every((command) => command.kind === "wave-volley")).toBe(true);
-
-    // Without the Transformation learned, no crescent even at Momentum.
-    expect(planGongfaAttack(moved, 0)).toHaveLength(1);
+    expect(tick(["crescent-wake"]).commands[0]).toMatchObject({
+      kind: "authored-jinfeng-ground-cut", style: "wake", delayMs: 260
+    });
   });
 
-  it("Unbroken Current holds Momentum when the Cultivator stops", () => {
+  it("builds Momentum only from distance and loses it on a sharp reversal", () => {
+    const first = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 0, movementDistance: 340, playerX: 340, playerY: 0
+    });
+    expect(first.runtime.authored.resource).toBeCloseTo(0.5);
+    const reversed = advanceGongfaRuntime(first.runtime, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: Math.PI, movementDistance: 34, playerX: 306, playerY: 0
+    });
+    expect(reversed.runtime.authored.resource).toBeCloseTo(0.05);
+    expect(reversed.runtime.authored.anchors).toHaveLength(1);
+  });
+
+  it("Unbroken Continuance tolerates a brief stop but lowers the Momentum cap", () => {
     const moved = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
-      kind: "tick",
-      deltaMs: 3000,
-      nearbyEnemyCount: 0,
-      isMoving: true
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 0, movementDistance: 680, playerX: 680, playerY: 0,
+      learnedMasteryIds: ["unbroken-continuance"]
     }).runtime;
-    const momentum = moved.jinfeng!.momentum;
-    expect(momentum).toBeGreaterThan(0);
-
+    expect(moved.authored.resource).toBe(0.78);
     const held = advanceGongfaRuntime(moved, {
-      kind: "tick",
-      deltaMs: 1000,
-      nearbyEnemyCount: 0,
-      isMoving: false,
-      learnedMasteryIds: ["unbroken-current"]
+      kind: "tick", deltaMs: 500, nearbyEnemyCount: 0, isMoving: false,
+      learnedMasteryIds: ["unbroken-continuance"]
     }).runtime;
-    expect(held.jinfeng!.momentum).toBe(momentum);
-
-    const decayed = advanceGongfaRuntime(moved, {
-      kind: "tick",
-      deltaMs: 1000,
-      nearbyEnemyCount: 0,
-      isMoving: false
-    }).runtime;
-    expect(decayed.jinfeng!.momentum).toBeLessThan(momentum);
+    expect(held.authored.resource).toBe(0.78);
   });
 
-  it("Ten-Thousand Wave Resonance builds Momentum on Jinfeng wave hits", () => {
-    const base = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
-    const hitFacts = {
-      sourceGongfaId: "jinfeng-gong" as const,
-      targetId: 1,
-      damage: 10,
-      baseDamageKilledTarget: false,
-      embedStacks: 0,
-      embedPower: 0
-    };
-
-    const resonant = advanceGongfaRuntimeForProjectileHit(base, {
-      ...hitFacts,
-      learnedMasteryIds: ["ten-thousand-wave-resonance"]
-    }).runtime;
-    expect(resonant.jinfeng!.momentum).toBeGreaterThan(0);
-
-    const inert = advanceGongfaRuntimeForProjectileHit(base, {
-      ...hitFacts,
-      learnedMasteryIds: []
-    }).runtime;
-    expect(inert.jinfeng!.momentum).toBe(0);
-  });
-
-  it("Gale Detonation spends full Momentum to launch a crossing wave", () => {
+  it("Borrowed-Turn Edge spends half Momentum to preserve one reversal", () => {
     const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 0,
-      isMoving: true
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 0, movementDistance: 680, playerX: 680, playerY: 0,
+      learnedMasteryIds: ["borrowed-turn-edge"]
     }).runtime;
-    expect(full.jinfeng!.momentum).toBe(5);
-
-    const { runtime: detonated, commands } = advanceGongfaRuntime(full, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 0,
-      isMoving: true,
-      learnedMasteryIds: ["gale-detonation"]
-    });
-    expect(detonated.jinfeng!.momentum).toBeLessThan(5);
-    expect(commands).toContainEqual({
-      kind: "wave-volley",
-      count: 2,
-      returnShots: 0,
-      aimMode: "last"
-    });
+    const turned = advanceGongfaRuntime(full, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: Math.PI, movementDistance: 10, playerX: 670, playerY: 0,
+      learnedMasteryIds: ["borrowed-turn-edge"]
+    }).runtime;
+    expect(turned.authored.resource).toBeGreaterThan(0.5);
+    expect(turned.authored.anchors).toContainEqual(
+      expect.objectContaining({ kind: "trail", x: 680, y: 0 })
+    );
   });
 
-  it("Endless Horizon grows the Cutting Front by Momentum", () => {
-    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 0,
-      isMoving: true
-    }).runtime;
-
-    const [wave] = planGongfaAttack(full, 0, { learnedMasteryIds: ["endless-horizon"] });
-    expect(wave.kind).toBe("wave-volley");
-    expect(wave.kind === "wave-volley" && wave.growthScale).toBeGreaterThan(1);
-
-    // No growth without the Transformation.
-    const [plain] = planGongfaAttack(full, 0);
-    expect(plain.kind === "wave-volley" && plain.growthScale).toBeUndefined();
+  it("Gale Rupture empties full Momentum into a non-projectile ground cross", () => {
+    const result = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 1, isMoving: true,
+      movementAngle: 0, movementDistance: 680, playerX: 680, playerY: 0,
+      learnedMasteryIds: ["gale-rupture"],
+      targets: [{ targetId: 2, x: 680, y: 0, healthRatio: 1, rank: "elite" }]
+    });
+    expect(result.runtime.authored.resource).toBe(0);
+    expect(result.commands.filter((command) =>
+      command.kind === "authored-jinfeng-ground-cut" && command.style === "rupture"
+    )).toHaveLength(2);
+    expect(result.commands.some((command) => command.kind === "wave-volley")).toBe(false);
   });
 
-  it("Walking Storm erupts a cooldown-gated radial burst at high Momentum", () => {
-    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 0,
-      isMoving: true
+  it("One Line to Horizon and Returning Dragon impose opposite route disciplines", () => {
+    const straight = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 0, movementDistance: 300, playerX: 300, playerY: 0,
+      learnedMasteryIds: ["one-line-to-horizon"]
+    });
+    const horizon = straight.commands.find((command) => command.kind === "authored-jinfeng-ground-cut");
+    expect(horizon?.kind === "authored-jinfeng-ground-cut"
+      ? Math.hypot(horizon.to.x - horizon.from.x, horizon.to.y - horizon.from.y)
+      : 0).toBe(680);
+
+    const curvedBase = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 0, movementDistance: 500, playerX: 500, playerY: 0,
+      learnedMasteryIds: ["returning-dragon-edge"]
     }).runtime;
-
-    const first = advanceGongfaRuntime(full, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 0,
-      isMoving: true,
-      learnedMasteryIds: ["walking-storm"]
-    });
-    expect(first.commands.some((command) => command.kind === "aura-burst")).toBe(true);
-    expect(first.runtime.jinfeng!.walkingStormCooldownRemaining).toBeGreaterThan(0);
-
-    // Still on cooldown the very next tick.
-    const second = advanceGongfaRuntime(first.runtime, {
-      kind: "tick",
-      deltaMs: 16,
-      nearbyEnemyCount: 0,
-      isMoving: true,
-      learnedMasteryIds: ["walking-storm"]
-    });
-    expect(second.commands.some((command) => command.kind === "aura-burst")).toBe(false);
+    const curved = advanceGongfaRuntime(curvedBase, {
+      kind: "tick", deltaMs: 100, nearbyEnemyCount: 0, isMoving: true,
+      movementAngle: 1, movementDistance: 200, playerX: 608, playerY: 168,
+      learnedMasteryIds: ["returning-dragon-edge"]
+    }).runtime;
+    expect(curved.authored.resource).toBe(0.86);
+    expect(curved.authored.anchors.length).toBeGreaterThan(1);
   });
 
-  it("Gale-Step Severance cuts a Momentum-scaled corridor only when learned", () => {
-    const full = advanceGongfaRuntime(createGongfaRuntime({ gongfaId: "jinfeng-gong" }), {
-      kind: "tick",
-      deltaMs: 8000,
-      nearbyEnemyCount: 0,
-      isMoving: true
-    }).runtime;
-
-    const corridor = galeStepSeveranceCorridor(full, ["gale-step-severance"]);
-    expect(corridor).toBeDefined();
-    expect(corridor!.pierce).toBe(full.combat.pierce + 2);
-    expect(corridor!.count).toBeGreaterThanOrEqual(2);
-
-    expect(galeStepSeveranceCorridor(full, [])).toBeUndefined();
-    expect(
-      galeStepSeveranceCorridor(
-        createGongfaRuntime({ gongfaId: "jinfeng-gong" }),
-        ["gale-step-severance"]
-      )
-    ).toBeUndefined();
+  it("Formation-Breaking Gale Step cuts both Evade endpoints and spends half Momentum", () => {
+    const runtime = createGongfaRuntime({ gongfaId: "jinfeng-gong" });
+    runtime.authored.resource = 0.8;
+    const result = advanceGongfaRuntime(runtime, {
+      kind: "evade", playerX: 50, playerY: 40, movementAngle: 0,
+      learnedMasteryIds: ["formation-breaking-gale-step"],
+      targets: [{ targetId: 9, x: 50, y: 40, healthRatio: 1, rank: "ordinary" }]
+    });
+    expect(result.commands).toHaveLength(2);
+    expect(result.commands.every((command) =>
+      command.kind === "authored-jinfeng-ground-cut" && command.style === "evade-cross"
+    )).toBe(true);
+    expect(result.runtime.authored.resource).toBeCloseTo(0.4);
   });
 
   it("stores exactly prevented close damage and ignores distant danger", () => {

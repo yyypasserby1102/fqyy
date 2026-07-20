@@ -29,7 +29,7 @@ implementation, testing, balance review, and future regression checks.
 | Blazing Feather Art / 烈羽诀 | Youxia | Approved | Implemented and verified |
 | Drifting Frost Needle / 游霜针 | Youxia | Approved | Implemented and verified |
 | Yujian Jue / 御剑诀 | Youxia | Approved | Implemented and verified |
-| Jinfeng Gong / 金锋功 | Youxia | Approved | Pending redesign |
+| Jinfeng Gong / 金锋功 | Youxia | Approved | Implemented and verified |
 | Green Vine Art / 青藤诀 | Youxia | Approved | Pending redesign |
 | Nine-Sun Calamity Seal / 九阳劫印 | Faxiu | Approved | Pending redesign |
 | Scarlet Wave Manual / 赤浪真诀 | Faxiu | Approved | Pending redesign |
@@ -252,6 +252,26 @@ player's route, not an enemy-selected line.
 
 **Must not become:** Scarlet's timed waves, Yujian's sword routes, Blazing's selected
 line, or a radial moving aura.
+
+### Implemented tuning contract
+
+- Momentum is `0..1` and is gained from actual world distance traveled, not input
+  time or hit count: baseline full charge is 680 world units.
+- Recent route anchors persist for about 2.1 seconds. A baseline turn over 0.68
+  radians clears Momentum and the route; Returning Dragon raises this to 1.25.
+- Baseline cuts occur every 68 traveled units. Golden Gale Crosscut changes this
+  to 105 units; refinements can shorten the interval without creating projectiles.
+- A normal stop has 180 ms grace before Momentum drains over 1.2 seconds.
+  Unbroken Continuance raises grace to 720 ms and caps Momentum at 0.78.
+- Returning Dragon caps Momentum at 0.86 and shortens cuts by 20%. Gale Rupture
+  shortens ordinary cuts by 28%, then empties full Momentum into two ground lines.
+- One Line to Horizon requires at least 260 uninterrupted straight-travel units
+  and produces a 680-unit ground line.
+- Golden Gale Corridor requires the current build's full Momentum cap plus at least three live route
+  anchors, persists for about 2.2 seconds, and deals five corridor pulses to live
+  entrants. It never spawns a projectile or uses manual aim.
+- Legacy wave-Momentum checkpoint fields remain decode-compatible but inert; legacy
+  mastery IDs migrate to their corresponding movement-cut choices on load.
 
 ---
 
