@@ -1,10 +1,10 @@
 {
   "schemaVersion": 2,
-  "commit": "76c6119",
+  "commit": "174416d",
   "seed": 2,
   "candidate": "Fire-Metal Linggen",
-  "startedAt": "2026-07-18T03:38:11.949Z",
-  "wallClockMs": 32196,
+  "startedAt": "2026-07-20T16:42:19.177Z",
+  "wallClockMs": 44418,
   "completedRuns": 1,
   "persistenceResumes": 1,
   "outcome": "victory",
@@ -116,7 +116,7 @@
       "masteryRank": 5,
       "kills": 0,
       "health": 144,
-      "enemyCount": 6,
+      "enemyCount": 3,
       "arenaVariant": "mist-court",
       "choiceTitle": "",
       "journeyKind": "tribulation"
@@ -125,11 +125,11 @@
       "label": "Entered zhuji",
       "stage": "zhuji",
       "phase": "chuqi",
-      "realmProgress": 0,
+      "realmProgress": 6.0528,
       "learnedGongfaCount": 2,
       "masteryRank": 5,
-      "kills": 6,
-      "health": 125,
+      "kills": 1,
+      "health": 152,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
       "choiceTitle": "",
@@ -139,12 +139,12 @@
       "label": "zhuji combat sample",
       "stage": "zhuji",
       "phase": "chuqi",
-      "realmProgress": 7.76,
+      "realmProgress": 9.0792,
       "learnedGongfaCount": 2,
       "masteryRank": 5,
-      "kills": 7,
+      "kills": 2,
       "health": 152,
-      "enemyCount": 7,
+      "enemyCount": 9,
       "arenaVariant": "foundation-terrace",
       "choiceTitle": "",
       "journeyKind": "breakthrough"
@@ -156,11 +156,11 @@
       "realmProgress": 0,
       "learnedGongfaCount": 2,
       "masteryRank": 7,
-      "kills": 7,
+      "kills": 2,
       "health": 160,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Yujian Jue Mastery Rank 6",
+      "choiceTitle": "Burning Ring Scripture Mastery Rank 3",
       "journeyKind": "breakthrough"
     },
     {
@@ -169,12 +169,12 @@
       "phase": "houqi",
       "realmProgress": 0,
       "learnedGongfaCount": 2,
-      "masteryRank": 8,
-      "kills": 7,
+      "masteryRank": 10,
+      "kills": 2,
       "health": 168,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Burning Ring Scripture Mastery Rank 3",
+      "choiceTitle": "Burning Ring Scripture Mastery Rank 6",
       "journeyKind": "breakthrough"
     },
     {
@@ -183,12 +183,12 @@
       "phase": "dayuanman",
       "realmProgress": 0,
       "learnedGongfaCount": 2,
-      "masteryRank": 9,
-      "kills": 7,
+      "masteryRank": 12,
+      "kills": 2,
       "health": 176,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
-      "choiceTitle": "Yujian Jue Mastery Rank 9",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -197,8 +197,8 @@
       "phase": "dayuanman",
       "realmProgress": 100,
       "learnedGongfaCount": 2,
-      "masteryRank": 11,
-      "kills": 7,
+      "masteryRank": 14,
+      "kills": 2,
       "health": 176,
       "enemyCount": 0,
       "arenaVariant": "foundation-terrace",
@@ -211,10 +211,10 @@
       "phase": "dayuanman",
       "realmProgress": 100,
       "learnedGongfaCount": 2,
-      "masteryRank": 11,
-      "kills": 7,
+      "masteryRank": 14,
+      "kills": 2,
       "health": 176,
-      "enemyCount": 8,
+      "enemyCount": 3,
       "arenaVariant": "foundation-terrace",
       "choiceTitle": "",
       "journeyKind": "tribulation"
@@ -223,11 +223,11 @@
       "label": "Entered jindan",
       "stage": "jindan",
       "phase": "chuqi",
-      "realmProgress": 11.64,
+      "realmProgress": 0,
       "learnedGongfaCount": 3,
-      "masteryRank": 11,
-      "kills": 15,
-      "health": 169,
+      "masteryRank": 14,
+      "kills": 3,
+      "health": 184,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
       "choiceTitle": "",
@@ -237,10 +237,10 @@
       "label": "jindan combat sample",
       "stage": "jindan",
       "phase": "chuqi",
-      "realmProgress": 11.64,
+      "realmProgress": 9.7776,
       "learnedGongfaCount": 3,
-      "masteryRank": 11,
-      "kills": 15,
+      "masteryRank": 15,
+      "kills": 5,
       "health": 184,
       "enemyCount": 8,
       "arenaVariant": "golden-core-sanctum",
@@ -253,12 +253,12 @@
       "phase": "zhongqi",
       "realmProgress": 0,
       "learnedGongfaCount": 3,
-      "masteryRank": 12,
-      "kills": 15,
+      "masteryRank": 18,
+      "kills": 5,
       "health": 192,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Burning Ring Scripture Mastery Rank 9",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -267,12 +267,12 @@
       "phase": "houqi",
       "realmProgress": 0,
       "learnedGongfaCount": 3,
-      "masteryRank": 14,
-      "kills": 15,
+      "masteryRank": 20,
+      "kills": 5,
       "health": 200,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Scarlet Wave Manual Mastery Rank 3",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -281,12 +281,12 @@
       "phase": "dayuanman",
       "realmProgress": 0,
       "learnedGongfaCount": 3,
-      "masteryRank": 15,
-      "kills": 15,
+      "masteryRank": 22,
+      "kills": 5,
       "health": 208,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
-      "choiceTitle": "Scarlet Wave Manual Mastery Rank 6",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -295,8 +295,8 @@
       "phase": "dayuanman",
       "realmProgress": 100,
       "learnedGongfaCount": 3,
-      "masteryRank": 16,
-      "kills": 15,
+      "masteryRank": 22,
+      "kills": 5,
       "health": 208,
       "enemyCount": 0,
       "arenaVariant": "golden-core-sanctum",
@@ -309,10 +309,10 @@
       "phase": "dayuanman",
       "realmProgress": 100,
       "learnedGongfaCount": 3,
-      "masteryRank": 16,
-      "kills": 15,
+      "masteryRank": 22,
+      "kills": 5,
       "health": 208,
-      "enemyCount": 10,
+      "enemyCount": 3,
       "arenaVariant": "golden-core-sanctum",
       "choiceTitle": "",
       "journeyKind": "tribulation"
@@ -321,42 +321,42 @@
       "label": "Entered yuanying",
       "stage": "yuanying",
       "phase": "chuqi",
-      "realmProgress": 19.4,
+      "realmProgress": 0,
       "learnedGongfaCount": 4,
-      "masteryRank": 17,
-      "kills": 25,
+      "masteryRank": 22,
+      "kills": 6,
       "health": 216,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Scarlet Wave Manual Mastery Rank 9",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
       "label": "yuanying combat sample",
       "stage": "yuanying",
       "phase": "chuqi",
-      "realmProgress": 19.4,
+      "realmProgress": 28.246399999999998,
       "learnedGongfaCount": 4,
-      "masteryRank": 17,
-      "kills": 25,
+      "masteryRank": 22,
+      "kills": 13,
       "health": 216,
-      "enemyCount": 8,
+      "enemyCount": 3,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Scarlet Wave Manual Mastery Rank 9",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
       "label": "yuanying chuqi milestone",
       "stage": "yuanying",
       "phase": "zhongqi",
-      "realmProgress": 31.04,
+      "realmProgress": 0,
       "learnedGongfaCount": 4,
-      "masteryRank": 19,
-      "kills": 25,
+      "masteryRank": 22,
+      "kills": 13,
       "health": 224,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Blazing Feather Art Mastery Rank 3",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -365,12 +365,12 @@
       "phase": "houqi",
       "realmProgress": 0,
       "learnedGongfaCount": 4,
-      "masteryRank": 20,
-      "kills": 25,
+      "masteryRank": 22,
+      "kills": 13,
       "health": 232,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "",
+      "choiceTitle": "Blazing Feather Art Mastery Rank 9",
       "journeyKind": "breakthrough"
     },
     {
@@ -380,11 +380,11 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 25,
+      "kills": 13,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
-      "choiceTitle": "Blazing Feather Art Mastery Rank 6",
+      "choiceTitle": "",
       "journeyKind": "breakthrough"
     },
     {
@@ -394,7 +394,7 @@
       "realmProgress": 100,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 25,
+      "kills": 13,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
@@ -408,7 +408,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 25,
+      "kills": 13,
       "health": 240,
       "enemyCount": 2,
       "arenaVariant": "nascent-sky-dais",
@@ -422,7 +422,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 25,
+      "kills": 13,
       "health": 240,
       "enemyCount": 2,
       "arenaVariant": "nascent-sky-dais",
@@ -436,7 +436,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 27,
+      "kills": 14,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
@@ -450,7 +450,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 30,
+      "kills": 15,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
@@ -464,7 +464,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 34,
+      "kills": 16,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
@@ -478,7 +478,7 @@
       "realmProgress": 0,
       "learnedGongfaCount": 4,
       "masteryRank": 22,
-      "kills": 34,
+      "kills": 16,
       "health": 240,
       "enemyCount": 0,
       "arenaVariant": "nascent-sky-dais",
@@ -514,25 +514,31 @@
     {
       "title": "Yujian Jue Mastery Rank 6",
       "stage": "zhuji",
-      "phase": "zhongqi",
+      "phase": "chuqi",
       "optionCount": 3
     },
     {
       "title": "Burning Ring Scripture Mastery Rank 3",
       "stage": "zhuji",
-      "phase": "houqi",
+      "phase": "zhongqi",
       "optionCount": 3
     },
     {
       "title": "Yujian Jue Mastery Rank 9",
       "stage": "zhuji",
-      "phase": "dayuanman",
+      "phase": "zhongqi",
       "optionCount": 3
     },
     {
       "title": "Burning Ring Scripture Mastery Rank 6",
       "stage": "zhuji",
-      "phase": "dayuanman",
+      "phase": "houqi",
+      "optionCount": 3
+    },
+    {
+      "title": "Burning Ring Scripture Mastery Rank 9",
+      "stage": "zhuji",
+      "phase": "houqi",
       "optionCount": 3
     },
     {
@@ -548,21 +554,21 @@
       "optionCount": 3
     },
     {
-      "title": "Burning Ring Scripture Mastery Rank 9",
-      "stage": "jindan",
-      "phase": "zhongqi",
-      "optionCount": 3
-    },
-    {
       "title": "Scarlet Wave Manual Mastery Rank 3",
       "stage": "jindan",
-      "phase": "houqi",
+      "phase": "chuqi",
       "optionCount": 3
     },
     {
       "title": "Scarlet Wave Manual Mastery Rank 6",
       "stage": "jindan",
-      "phase": "dayuanman",
+      "phase": "zhongqi",
+      "optionCount": 3
+    },
+    {
+      "title": "Scarlet Wave Manual Mastery Rank 9",
+      "stage": "jindan",
+      "phase": "houqi",
       "optionCount": 3
     },
     {
@@ -578,27 +584,21 @@
       "optionCount": 3
     },
     {
-      "title": "Scarlet Wave Manual Mastery Rank 9",
+      "title": "Blazing Feather Art Mastery Rank 3",
       "stage": "yuanying",
       "phase": "chuqi",
       "optionCount": 3
     },
     {
-      "title": "Blazing Feather Art Mastery Rank 3",
+      "title": "Blazing Feather Art Mastery Rank 6",
       "stage": "yuanying",
       "phase": "zhongqi",
       "optionCount": 3
     },
     {
-      "title": "Blazing Feather Art Mastery Rank 6",
-      "stage": "yuanying",
-      "phase": "dayuanman",
-      "optionCount": 3
-    },
-    {
       "title": "Blazing Feather Art Mastery Rank 9",
       "stage": "yuanying",
-      "phase": "dayuanman",
+      "phase": "houqi",
       "optionCount": 3
     },
     {
@@ -670,8 +670,6 @@
       "choice-accept",
       "choice-open",
       "evade",
-      "healing-pill",
-      "hit",
       "phase-transition",
       "qi-pickup",
       "rank-up",
@@ -679,7 +677,7 @@
       "victory"
     ],
     "learnedGongfaCount": 4,
-    "maxEnemies": 10,
+    "maxEnemies": 9,
     "finalMasteryRank": 22,
     "gongfaMasteries": [
       {
@@ -694,12 +692,12 @@
       },
       {
         "gongfaId": "scarlet-wave-manual",
-        "rank": 18,
-        "fullyMastered": false
+        "rank": 22,
+        "fullyMastered": true
       },
       {
         "gongfaId": "blazing-feather-art",
-        "rank": 9,
+        "rank": 19,
         "fullyMastered": false
       }
     ],
@@ -725,31 +723,6 @@
         "accent": 11113455
       }
     ],
-    "projectileHierarchy": [
-      {
-        "sourceGongfaId": "yujian-jue",
-        "visualTier": "founding",
-        "alpha": 1,
-        "depth": 12
-      },
-      {
-        "sourceGongfaId": "burning-ring-scripture",
-        "visualTier": "layered",
-        "alpha": 0.82,
-        "depth": 11
-      },
-      {
-        "sourceGongfaId": "scarlet-wave-manual",
-        "visualTier": "layered",
-        "alpha": 0.68,
-        "depth": 10
-      },
-      {
-        "sourceGongfaId": "blazing-feather-art",
-        "visualTier": "layered",
-        "alpha": 0.58,
-        "depth": 9
-      }
-    ]
+    "projectileHierarchy": []
   }
 }

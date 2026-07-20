@@ -1,0 +1,41 @@
+{
+  "pattern": "clockwise-square",
+  "stage": "lianqi",
+  "phase": "dayuanman",
+  "durationMs": 3049,
+  "maxHealth": 144,
+  "finalHealth": 95,
+  "survived": true,
+  "samples": [
+    {
+      "elapsedMs": 519,
+      "health": 144,
+      "enemies": 8
+    },
+    {
+      "elapsedMs": 1036,
+      "health": 144,
+      "enemies": 14
+    },
+    {
+      "elapsedMs": 1538,
+      "health": 144,
+      "enemies": 14
+    },
+    {
+      "elapsedMs": 2029,
+      "health": 144,
+      "enemies": 14
+    },
+    {
+      "elapsedMs": 2522,
+      "health": 110,
+      "enemies": 21
+    },
+    {
+      "elapsedMs": 3015,
+      "health": 95,
+      "enemies": 21
+    }
+  ]
+}

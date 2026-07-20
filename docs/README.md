@@ -11,6 +11,7 @@ Browser-based 2D action roguelite with a xiuxian cultivation theme, persistent R
 - `FULL_RUN_PLAYTEST_2026-07-14.md`: end-to-end journey and loading audit
 - `REAL_TIME_PLAYTEST_PROTOCOL.md`: human-session balance evidence and tuning gate
 - `machine-playtest/latest.md`: latest accelerated whole-Run flow evidence and bounded feel suggestions
+- `machine-playtest/anti-kiting.json`: latest damage-enabled square-kiting pressure trace
 
 ## Current Scope
 
