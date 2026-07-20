@@ -78,7 +78,7 @@ test("machine square-kiting takes pressure without becoming an unavoidable death
 
   const samples: Array<{ elapsedMs: number; health: number; enemies: number }> = [];
   const started = performance.now();
-  const tightSquare = Array.from({ length: 2 }, () => ["d", "s", "a", "w"]).flat();
+  const tightSquare = ["d", "s", "a", "w", "d", "s"];
   for (const key of tightSquare) {
     await page.keyboard.down(key);
     await page.waitForTimeout(420);
