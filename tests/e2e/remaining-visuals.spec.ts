@@ -239,7 +239,9 @@ test("the production choice panel renders all four treasure replacement options"
       "lingbao:ironhide-seal",
       "lingbao:ironhide-seal",
       "lingbao:ironhide-seal"
-    ]
+    ],
+    optionWidths: [194, 194, 194, 194],
+    descriptionFontSizes: [11, 11, 11, 11]
   });
   if (process.env.CHOICE_PANEL_CAPTURE) {
     await page.screenshot({ path: process.env.CHOICE_PANEL_CAPTURE, fullPage: true });

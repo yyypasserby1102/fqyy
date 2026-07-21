@@ -834,7 +834,6 @@ export class GameScene extends Phaser.Scene {
       : false;
     if (hitMode.appliesBaseDamage) {
       this.spawnProjectileImpact(projectile, enemy.x, enemy.y);
-      this.spawnDamageNumber(enemy.x, enemy.y, projectileDamage);
       this.sfx.hit();
     }
     let diedFromCommands = false;
@@ -7177,6 +7176,7 @@ export class GameScene extends Phaser.Scene {
           passiveStackGain: runtime.mastery.masteryLearnedIds.some((id) =>
             SURGE_CASCADE_IDS.has(id)
           ) ? 2 : 1,
+          mechanicResource: runtime.authored.resource,
           skill2Id: runtime.mastery.masterySkill2Id,
           skill2Casts: runtime.mastery.masterySkill2Casts
         })),
@@ -7290,7 +7290,9 @@ export class GameScene extends Phaser.Scene {
           .map((enemy) => ({
             id: enemy.config.id,
             x: enemy.x,
-            y: enemy.y
+            y: enemy.y,
+            health: Math.max(0, enemy.health),
+            maxHealth: enemy.maxHealth
           }))
       },
       choice: this.choiceActive && this.currentChoiceTitle

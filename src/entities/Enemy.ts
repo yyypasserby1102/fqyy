@@ -28,6 +28,7 @@ export interface EnemyVisualSnapshot {
   health: number;
   maxHealth: number;
   healthRatio: number;
+  healthBarVisible: boolean;
   enraged: boolean;
   movementBehavior: EnemyMovementBehavior;
   movementMode: EnemyMovementMode;
@@ -61,6 +62,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   visualState: EnemyVisualSnapshot["state"] = "materialize";
 
   private readonly shadow: Phaser.GameObjects.Ellipse;
+  private readonly healthBar: Phaser.GameObjects.Graphics;
   private readonly bossAura?: Phaser.GameObjects.Graphics;
   private readonly bossAuraColor: number;
   private movementElapsedMs = 0;
@@ -71,6 +73,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   private forcedVelocityY = 0;
   private forcedVelocityUntil = 0;
   private deathEffect?: Phaser.GameObjects.Sprite;
+  private healthBarVisibleUntil = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -115,6 +118,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         visual.grounded ? 0.28 : 0.16,
       )
       .setDepth(4);
+
+    this.healthBar = scene.add.graphics().setDepth(13).setVisible(false);
 
     if (this.role === "tribulation-boss") {
       this.bossAura = scene.add.graphics().setDepth(4.5);
@@ -164,7 +169,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   receiveDamage(amount: number): boolean {
     if (!this.active) return false;
-    this.health -= amount;
+    const appliedDamage = Math.max(0, amount);
+    this.health -= appliedDamage;
+    this.healthBarVisibleUntil = this.scene.time.now + 1_600;
+    this.renderHealthBar();
+    this.presentDamageFeedback(appliedDamage);
     this.visualState = "hit";
     this.setTint(0xfff4dc).setTintMode(Phaser.TintModes.FILL);
     const recoilAngle = this.flipX ? 3 : -3;
@@ -210,6 +219,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     body.setVelocity(0, 0);
     body.enable = false;
     this.setActive(false);
+    this.healthBar.setVisible(false);
 
     this.deathEffect = this.scene.add
       .sprite(this.x, this.y, COMBAT_TEXTURES.tribulationEnemies, 12)
@@ -243,6 +253,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       health: Math.max(0, this.health),
       maxHealth: this.maxHealth,
       healthRatio: this.maxHealth > 0 ? Math.max(0, this.health / this.maxHealth) : 0,
+      healthBarVisible: this.healthBar.visible,
       enraged: this.isEnraged,
       movementBehavior: this.role === "tribulation-boss"
         ? "pursuit"
@@ -263,10 +274,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.bossAura.setPosition(this.x, this.y);
       this.renderBossAura(time);
     }
+    this.healthBar.setPosition(this.x, this.y);
+    if (this.healthBar.visible && time >= this.healthBarVisibleUntil) {
+      this.healthBar.setVisible(false);
+    }
   }
 
   destroy(fromScene?: boolean): void {
     this.shadow?.destroy();
+    this.healthBar?.destroy();
     this.bossAura?.destroy();
     this.deathEffect?.destroy();
     super.destroy(fromScene);
@@ -295,5 +311,61 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         getShadowOffsetY(visual) + Math.sin(angle) * radiusY * 0.62
       );
     }
+  }
+
+  private renderHealthBar(): void {
+    const width = this.role === "tribulation-boss" ? 104 : 46;
+    const height = this.role === "tribulation-boss" ? 8 : 6;
+    const y = -this.displayHeight * 0.62;
+    const ratio = Phaser.Math.Clamp(this.health / Math.max(1, this.maxHealth), 0, 1);
+    const fill = ratio > 0.55 ? 0x73db78 : ratio > 0.25 ? 0xf0c95a : 0xef6a67;
+    this.healthBar
+      .setPosition(this.x, this.y)
+      .setVisible(true)
+      .clear()
+      .fillStyle(0x101820, 0.92)
+      .fillRoundedRect(-width / 2 - 2, y - 2, width + 4, height + 4, 3)
+      .fillStyle(0x351c25, 0.96)
+      .fillRoundedRect(-width / 2, y, width, height, 2)
+      .fillStyle(fill, 1)
+      .fillRoundedRect(-width / 2, y, width * ratio, height, 2)
+      .lineStyle(1, 0xfff0c2, 0.72)
+      .strokeRoundedRect(-width / 2 - 1, y - 1, width + 2, height + 2, 3);
+  }
+
+  private presentDamageFeedback(amount: number): void {
+    if (amount <= 0) return;
+    const visual = enemyVisualDefinitions[this.config.id];
+    const label = this.scene.add
+      .text(this.x, this.y - visual.displaySize * 0.42, `-${Math.max(1, Math.round(amount))}`, {
+        fontFamily: "Trebuchet MS, sans-serif",
+        fontSize: this.role === "tribulation-boss" ? "19px" : "15px",
+        fontStyle: "bold",
+        color: "#fff0a8",
+        stroke: "#351808",
+        strokeThickness: 4
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
+    const impact = this.scene.add
+      .circle(this.x, this.y, Math.max(18, this.displayWidth * 0.28), 0xffe68a, 0.08)
+      .setStrokeStyle(3, 0xfff5c8, 0.9)
+      .setDepth(14);
+    this.scene.tweens.add({
+      targets: label,
+      y: label.y - 34,
+      alpha: 0,
+      duration: 560,
+      ease: "Cubic.out",
+      onComplete: () => label.destroy()
+    });
+    this.scene.tweens.add({
+      targets: impact,
+      scale: 1.55,
+      alpha: 0,
+      duration: 190,
+      ease: "Quad.out",
+      onComplete: () => impact.destroy()
+    });
   }
 }

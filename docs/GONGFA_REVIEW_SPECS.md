@@ -21,6 +21,13 @@ implementation, testing, balance review, and future regression checks.
 - Every Gongfa needs a distinct targeting rule, spatial silhouette, resource engine,
   failure condition, player lever, and capstone payoff.
 - Milestone choices state both gain and cost and materially change the loop.
+- Every Gongfa selection and Codex page explicitly labels its `How to Play / 玩法`
+  direction; players must not infer the core movement or positioning rule from lore.
+- Every three-option Gongfa or Mastery decision uses the large `380 × 470` card
+  layout with `17px` body copy; long Chinese instructions wrap inside their card.
+- Every successful enemy hit exposes health loss through a temporary health bar,
+  floating damage number, hit flash, and impact ring, including authored attacks
+  that do not use projectile collisions.
 
 ## Review status
 

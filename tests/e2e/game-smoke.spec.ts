@@ -520,7 +520,9 @@ test("Yujian Jue integrates ordinary refinements and reserves choices for Transf
   expect(transformation.choice?.title).toContain("Mastery Rank 3");
   expect(await page.evaluate(() => window.__gameTest!.getUiSnapshot().choicePanel)).toMatchObject({
     optionKinds: ["mastery", "mastery", "mastery"],
-    optionVisuals: ["gongfa:yujian-jue", "gongfa:yujian-jue", "gongfa:yujian-jue"]
+    optionVisuals: ["gongfa:yujian-jue", "gongfa:yujian-jue", "gongfa:yujian-jue"],
+    optionWidths: [380, 380, 380],
+    descriptionFontSizes: [17, 17, 17]
   });
   if (process.env.TRANSFORMATION_CHOICE_CAPTURE) {
     await page.screenshot({ path: process.env.TRANSFORMATION_CHOICE_CAPTURE, fullPage: true });
@@ -742,9 +744,19 @@ test("verdant-ring-scripture writes behavior glyphs and invokes without a hit-bu
     const combat = snapshot.progression.gongfaCombats.find((item) => item.gongfaId === "verdant-ring-scripture");
     return {
       hasCompiledGlyph: snapshot.visuals.gongfaMotifs.some((motif) => motif.startsWith("three-life-glyph-order:")),
-      passiveStacks: combat?.passiveStacks ?? -1
+      passiveStacks: combat?.passiveStacks ?? -1,
+      dealtDamage: snapshot.counts.enemyPositions.some((enemy) => enemy.health < enemy.maxHealth),
+      healthBarVisible: snapshot.visuals.enemies.some((enemy) => enemy.healthBarVisible)
     };
-  }), { timeout: 8_000 }).toEqual({ hasCompiledGlyph: true, passiveStacks: 0 });
+  }), { timeout: 8_000 }).toEqual({
+    hasCompiledGlyph: true,
+    passiveStacks: 0,
+    dealtDamage: true,
+    healthBarVisible: true
+  });
+  if (process.env.DAMAGE_FEEDBACK_CAPTURE) {
+    await page.screenshot({ path: process.env.DAMAGE_FEEDBACK_CAPTURE, fullPage: true });
+  }
 });
 
 test("green-vine-art presents the approved geometric rank-3 choices in Chinese-review form", async ({ page }) => {

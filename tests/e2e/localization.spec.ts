@@ -69,6 +69,9 @@ test("a Chinese run localizes awakening choices, HUD progression, and the Gongfa
   expect(awakening.title).toContain("觉醒");
   expect(awakening.optionTitles.length).toBeGreaterThan(0);
   expect(awakening.optionTitles.join("")).not.toMatch(/[A-Za-z]/);
+  if (process.env.GONGFA_CHOICE_CAPTURE) {
+    await page.screenshot({ path: process.env.GONGFA_CHOICE_CAPTURE, fullPage: true });
+  }
 
   await page.evaluate(() => window.__gameTest!.selectChoice(0));
   await expect.poll(() =>

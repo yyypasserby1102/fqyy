@@ -280,7 +280,7 @@ export class GongfaCodex {
     this.container.addAt(this.sigil, 3);
     this.title.setText(config.name);
     this.rank.setText(localizeRuntimeText(locale, selected.fullyMastered ? `RANK ${selected.rank} · FULLY MASTERED` : `MASTERY RANK ${selected.rank}`));
-    this.role.setText(definition.combatRole);
+    this.role.setText(`${locale === "zh-CN" ? "玩法" : "HOW TO PLAY"} · ${definition.combatRole}`);
     this.tabs.setText(this.paths.map((path, index) => `${index === this.selectedIndex ? "◆" : "◇"} ${localizeGongfa(locale, path.gongfaId).name}`).join("   "));
     const content = [
       { kind: localizeRuntimeText(locale, "SKILL 1 · ACTIVE"), skill: definition.skill1, description: definition.skill1.description },

@@ -111,6 +111,7 @@ export interface GameSnapshot {
       passiveStacks: number;
       passiveDamageBonus: number;
       passiveStackGain: number;
+      mechanicResource: number;
       skill2Id?: string;
       skill2Casts: number;
     }>;
@@ -177,7 +178,13 @@ export interface GameSnapshot {
     healingPillPositions: Array<{ x: number; y: number; healAmount: number }>;
     lingcaoPositions: Array<{ x: number; y: number }>;
     enemyIds: Record<string, number>;
-    enemyPositions: Array<{ id: EnemyId; x: number; y: number }>;
+    enemyPositions: Array<{
+      id: EnemyId;
+      x: number;
+      y: number;
+      health: number;
+      maxHealth: number;
+    }>;
   };
   choice?: {
     title: string;

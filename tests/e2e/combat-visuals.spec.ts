@@ -342,7 +342,11 @@ test("Ironwood Wave Form renders a physical rooted wall and driven wall without 
     () => window.__gameTest?.forceClearEnemies(),
     100
   ));
-  await page.waitForTimeout(4200);
+  await page.waitForFunction(() =>
+    (window.__gameTest!.getSnapshot().progression.gongfaCombats.find(
+      (gongfa) => gongfa.gongfaId === "ironwood-wave-form"
+    )?.mechanicResource ?? 0) >= 70
+  );
   await page.keyboard.down("d");
   await page.waitForFunction(() =>
     window.__gameTest!.getSnapshot().visuals.gongfaMotifs.includes("ironwood-rampart:driven-rampart")

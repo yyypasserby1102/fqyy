@@ -8,10 +8,13 @@ import {
 import { createGongfaSigil } from "../visual/gongfaSigils";
 import { getGongfaVisualIdentity } from "../visual/gongfaVisualIdentity";
 import { getSettings, subscribeSettings } from "../persistence/settingsPersistence";
+import { getLocale } from "../i18n/runtime";
 
 export class LevelUpPanel {
   private readonly scene: Phaser.Scene;
   private readonly container: Phaser.GameObjects.Container;
+  private readonly panel: Phaser.GameObjects.Rectangle;
+  private readonly panelInset: Phaser.GameObjects.Rectangle;
   private readonly title: Phaser.GameObjects.Text;
   private readonly subtitle: Phaser.GameObjects.Text;
   private readonly awakeningGlow: Phaser.GameObjects.Arc;
@@ -39,10 +42,10 @@ export class LevelUpPanel {
       .setOrigin(0)
       .setInteractive();
 
-    const panel = scene.add
+    this.panel = scene.add
       .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 900, 460, 0x07111d, 0.97)
       .setStrokeStyle(3, 0x72ced7, 0.72);
-    const panelInset = scene.add
+    this.panelInset = scene.add
       .rectangle(scene.scale.width * 0.5, scene.scale.height * 0.5, 876, 436)
       .setStrokeStyle(1, 0xd7b96d, 0.38);
 
@@ -97,8 +100,8 @@ export class LevelUpPanel {
       backdrop,
       this.awakeningGlow,
       this.awakeningSeal,
-      panel,
-      panelInset,
+      this.panel,
+      this.panelInset,
       this.awakeningHerb,
       this.title,
       this.subtitle
@@ -234,37 +237,42 @@ export class LevelUpPanel {
   }
 
   private getChoiceDetails(option: ChoiceOption): string {
+    let details: string;
     if (option.kind === "gongfa") {
-      return [
-        option.playstyle,
+      details = [
+        option.playstyle ? `${getLocale() === "zh-CN" ? "【玩法】" : "【HOW TO PLAY】"}\n${option.playstyle}` : "",
         option.gain ? `＋ ${option.gain}` : "",
         option.scope ? `◆ ${option.scope}` : "",
         option.cost ? `◇ ${option.cost}` : ""
       ].filter(Boolean).join("\n");
-    }
-    if (option.kind === "mastery") {
-      return [
+    } else if (option.kind === "mastery") {
+      details = [
         option.playstyle,
         option.gain ? `＋ ${option.gain}` : "",
         option.cost ? `△ ${option.cost}` : "",
         option.scope ? `◎ ${option.scope}` : "",
         option.treasureInteraction ? `◇ ${option.treasureInteraction}` : ""
       ].filter(Boolean).join("\n");
-    }
-    if (option.kind === "spirit-treasure-replace") {
+    } else if (option.kind === "spirit-treasure-replace") {
       const resonanceChanges = [
         ...(option.resonanceGained?.map((item) => `✦ +${item}`) ?? []),
         ...(option.resonanceLost?.map((item) => `✦ −${item}`) ?? [])
       ];
-      return [
+      details = [
         option.gain ? `＋ ${option.gain}` : "",
         option.loss ? `－ ${option.loss}` : "",
         ...resonanceChanges,
         ...(option.mechanicsGained?.map((item) => `＋ ${item}`) ?? []),
         ...(option.mechanicsLost?.map((item) => `－ ${item}`) ?? [])
       ].filter(Boolean).join("\n");
+    } else {
+      details = option.description;
     }
-    return option.description;
+    if (getLocale() !== "zh-CN") return details;
+    return details.split("\n").flatMap((line) => {
+      if (line.length <= 18) return [line];
+      return line.match(/.{1,18}/gu) ?? [line];
+    }).join("\n");
   }
 
   private styleOption(index: number): void {
@@ -295,18 +303,25 @@ export class LevelUpPanel {
     }
   }
 
-  private renderOptionVisual(index: number, option: ChoiceOption, x: number, y: number): void {
+  private renderOptionVisual(
+    index: number,
+    option: ChoiceOption,
+    x: number,
+    y: number,
+    largeThreeChoice: boolean
+  ): void {
     const slot = this.options[index];
     slot.sigil?.destroy();
     slot.sigil = undefined;
     slot.treasureIncoming.setVisible(false).setAlpha(1);
     slot.treasureOutgoing.setVisible(false).setAlpha(1);
     const family = this.getChoiceFamily(option);
+    const iconY = y - (largeThreeChoice ? 168 : 82);
     if ((family === "gongfa" || family === "mastery") && option.gongfaId) {
       const sigil = createGongfaSigil(
         this.scene,
         x,
-        y - 82,
+        iconY,
         option.gongfaId,
         family === "gongfa" ? 31 : 27,
         family === "gongfa" ? 1 : 0.76
@@ -316,12 +331,12 @@ export class LevelUpPanel {
     } else if (family === "treasure" && option.spiritTreasureId) {
       const incomingX = option.replacedSpiritTreasureId ? x + 23 : x;
       slot.treasureIncoming
-        .setPosition(incomingX, y - 82)
+        .setPosition(incomingX, iconY)
         .setTint(SPIRIT_TREASURE_TINTS[option.spiritTreasureId])
         .setVisible(true);
       if (option.replacedSpiritTreasureId) {
         slot.treasureOutgoing
-          .setPosition(x - 23, y - 82)
+          .setPosition(x - 23, iconY)
           .setTint(SPIRIT_TREASURE_TINTS[option.replacedSpiritTreasureId])
           .setAlpha(0.48)
           .setVisible(true);
@@ -348,25 +363,36 @@ export class LevelUpPanel {
     this.title.setColor(awakening ? "#ffe3a0" : "#f5e6a8");
     this.container.setVisible(true);
 
-    const spacing = options.length === 4 ? 210 : 270;
+    const largeThreeChoice = options.length === 3;
+    this.panel.setSize(largeThreeChoice ? 1240 : 900, largeThreeChoice ? 680 : 460);
+    this.panelInset.setSize(largeThreeChoice ? 1216 : 876, largeThreeChoice ? 656 : 436);
+    this.title.setPosition(this.scene.scale.width * 0.5, largeThreeChoice ? 43 : this.scene.scale.height * 0.5 - 194);
+    this.subtitle.setPosition(this.scene.scale.width * 0.5, largeThreeChoice ? 82 : this.scene.scale.height * 0.5 - 154);
+    this.subtitle.setWordWrapWidth(largeThreeChoice ? 1120 : 700);
+    const spacing = options.length === 4 ? 210 : largeThreeChoice ? 400 : 270;
     const startX = this.title.x - ((options.length - 1) * spacing) / 2;
-    const optionWidth = options.length === 4 ? 194 : 244;
+    const optionWidth = options.length === 4 ? 194 : largeThreeChoice ? 380 : 244;
+    const optionHeight = largeThreeChoice ? 470 : 282;
+    const optionY = largeThreeChoice ? 410 : this.scene.scale.height * 0.5 + 34;
 
     options.forEach((option, index) => {
       const slot = this.options[index];
       const x = startX + index * spacing;
-      slot.box.setX(x);
-      slot.kind.setX(x);
-      slot.iconHalo.setX(x);
-      slot.label.setX(x);
-      slot.desc.setX(x);
-      slot.box.setSize(optionWidth, 282);
+      slot.box.setPosition(x, optionY);
+      slot.kind.setPosition(x, optionY - (largeThreeChoice ? 216 : 126));
+      slot.iconHalo.setPosition(x, optionY - (largeThreeChoice ? 168 : 82));
+      slot.label.setPosition(x, optionY - (largeThreeChoice ? 112 : 39));
+      slot.desc.setPosition(x, optionY - (largeThreeChoice ? 72 : 4));
+      slot.box.setSize(optionWidth, optionHeight);
       slot.label.setWordWrapWidth(optionWidth - 20);
       slot.desc.setWordWrapWidth(optionWidth - 24);
+      slot.kind.setFontSize(largeThreeChoice ? 14 : 10);
+      slot.label.setFontSize(largeThreeChoice ? 23 : 17);
+      slot.desc.setFontSize(largeThreeChoice ? 17 : 11).setLineSpacing(largeThreeChoice ? 7 : 4);
       slot.kind.setText(this.getKindLabel(option));
       slot.label.setText(`${index + 1}. ${option.title}`);
       slot.desc.setText(this.getChoiceDetails(option));
-      this.renderOptionVisual(index, option, x, slot.box.y);
+      this.renderOptionVisual(index, option, x, optionY, largeThreeChoice);
       this.styleOption(index);
       slot.box.setVisible(true);
       slot.kind.setVisible(true);
@@ -412,6 +438,8 @@ export class LevelUpPanel {
     optionTitles: string[];
     optionKinds: ChoiceOption["kind"][];
     optionVisuals: string[];
+    optionWidths: number[];
+    descriptionFontSizes: number[];
   } {
     return {
       visible: this.container.visible,
@@ -422,6 +450,10 @@ export class LevelUpPanel {
       subtitle: this.subtitle.text,
       optionTitles: this.currentOptions.map((option) => option.title),
       optionKinds: this.currentOptions.map((option) => option.kind),
+      optionWidths: this.currentOptions.map((_, index) => this.options[index]?.box.width ?? 0),
+      descriptionFontSizes: this.currentOptions.map((_, index) =>
+        Number.parseFloat(String(this.options[index]?.desc.style.fontSize ?? 0))
+      ),
       optionVisuals: this.currentOptions.map((option) => {
         if (option.gongfaId) return `gongfa:${option.gongfaId}`;
         if (option.spiritTreasureId) return `lingbao:${option.spiritTreasureId}`;
